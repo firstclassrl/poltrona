@@ -114,7 +114,10 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                 </button>
                 <div className="text-center mt-3">
                   <p className="text-xs text-yellow-300 font-medium">
-                    Poltrona Ver. 1.0 - 2025
+                    Poltrona Ver 1.0.0
+                  </p>
+                  <p className="text-xs text-yellow-300/70">
+                    Copyright 2025 abruzzo.ai
                   </p>
                 </div>
               </div>

@@ -355,6 +355,12 @@ export const Login: React.FC = () => {
         isOpen={showPrivacyPolicy} 
         onClose={() => setShowPrivacyPolicy(false)} 
       />
+
+      {/* Versione e Copyright */}
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center text-white/70 text-sm z-10">
+        <p>Poltrona Ver 1.0.0</p>
+        <p>Copyright 2025 abruzzo.ai</p>
+      </div>
     </div>
   );
 };
