@@ -1,0 +1,40 @@
+# Configurazione Email - Retro Barbershop
+# Copia questo contenuto in un file .env nella root del progetto
+
+# ===========================================
+# CONFIGURAZIONE SENDGRID (Raccomandato)
+# ===========================================
+# Ottieni la tua API Key da: https://app.sendgrid.com/settings/api_keys
+SENDGRID_API_KEY=your-sendgrid-api-key-here
+
+# Email mittente (deve essere verificata su SendGrid)
+FROM_EMAIL=noreply@yourdomain.com
+
+# ===========================================
+# CONFIGURAZIONE GMAIL (Alternativa)
+# ===========================================
+# Per Gmail, usa una App Password invece della password normale
+# Guida: https://support.google.com/accounts/answer/185833
+GMAIL_USER=your-email@gmail.com
+GMAIL_APP_PASSWORD=your-app-password
+
+# ===========================================
+# CONFIGURAZIONE MAILGUN (Alternativa)
+# ===========================================
+MAILGUN_API_KEY=your-mailgun-api-key
+MAILGUN_DOMAIN=your-domain.mailgun.org
+
+# ===========================================
+# CONFIGURAZIONE GENERALE
+# ===========================================
+NODE_ENV=development
+
+# ===========================================
+# ISTRUZIONI
+# ===========================================
+# 1. Scegli UN provider email (SendGrid, Gmail, o Mailgun)
+# 2. Configura solo le variabili del provider scelto
+# 3. Lascia vuote le altre sezioni
+# 4. Non committare mai il file .env con le credenziali reali!
+# 5. Aggiungi .env al tuo .gitignore
+

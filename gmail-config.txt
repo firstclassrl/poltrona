@@ -1,0 +1,72 @@
+# Configurazione Gmail per Retro Barbershop
+# Segui questi passi per configurare Gmail
+
+# ===========================================
+# PASSO 1: ABILITA LA VERIFICA IN 2 PASSAGGI
+# ===========================================
+1. Vai su https://myaccount.google.com/security
+2. Clicca su "Verifica in 2 passaggi"
+3. Segui le istruzioni per abilitarla
+4. È OBBLIGATORIO per usare App Password
+
+# ===========================================
+# PASSO 2: CREA UNA APP PASSWORD
+# ===========================================
+1. Vai su https://myaccount.google.com/apppasswords
+2. Seleziona "Mail" come app
+3. Seleziona "Other" come dispositivo
+4. Inserisci "Retro Barbershop" come nome
+5. Clicca "Generate"
+6. COPIA la password generata (16 caratteri)
+7. SALVA questa password, non la potrai più vedere!
+
+# ===========================================
+# PASSO 3: CREA IL FILE .env
+# ===========================================
+Crea un file chiamato ".env" nella root del progetto con questo contenuto:
+
+GMAIL_USER=your-email@gmail.com
+GMAIL_APP_PASSWORD=your-16-character-app-password
+NODE_ENV=production
+
+# Sostituisci:
+# - your-email@gmail.com con la tua email Gmail
+# - your-16-character-app-password con la password generata
+
+# ===========================================
+# PASSO 4: AGGIORNA IL SERVIZIO EMAIL
+# ===========================================
+Sostituisci il contenuto di src/services/emailService.ts con quello di src/services/emailServiceGmail.ts
+
+# ===========================================
+# PASSO 5: TESTA LA CONFIGURAZIONE
+# ===========================================
+1. Riavvia l'applicazione
+2. Fai una prenotazione di test
+3. Controlla che l'email arrivi
+4. Verifica i log nella console
+
+# ===========================================
+# TROUBLESHOOTING
+# ===========================================
+
+# Problema: "Invalid login"
+# Soluzione: Verifica che l'App Password sia corretta
+
+# Problema: "Less secure app access"
+# Soluzione: Usa App Password, non la password normale
+
+# Problema: "2-step verification required"
+# Soluzione: Abilita la verifica in 2 passaggi
+
+# Problema: Email non arrivano
+# Soluzione: Controlla la cartella spam
+
+# ===========================================
+# SICUREZZA
+# ===========================================
+- NON committare mai il file .env
+- Aggiungi .env al tuo .gitignore
+- Usa sempre App Password, mai la password normale
+- Mantieni le credenziali private
+

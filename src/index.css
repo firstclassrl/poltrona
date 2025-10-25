@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Force 24-hour format for time inputs */
+@layer utilities {
+  input[type="time"][data-format="24"] {
+    /* Force 24-hour format display */
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+  }
+  
+  input[type="time"][data-format="24"]::-webkit-datetime-edit-ampm-field {
+    display: none !important;
+  }
+  
+  input[type="time"][data-format="24"]::-webkit-datetime-edit-hour-field,
+  input[type="time"][data-format="24"]::-webkit-datetime-edit-minute-field {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* Force 24-hour format for all time inputs in the app */
+  input[type="time"],
+  .time-24h {
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+  }
+  
+  input[type="time"]::-webkit-datetime-edit-ampm-field,
+  .time-24h::-webkit-datetime-edit-ampm-field {
+    display: none !important;
+  }
+
+  /* Additional 24-hour format enforcement */
+  .time-24h::-webkit-datetime-edit-hour-field,
+  .time-24h::-webkit-datetime-edit-minute-field {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
+
+/* Custom Glass Effect for Sidebar */
+@layer components {
+  .glass-sidebar-dark {
+    /* Darker black glass background with more opacity */
+    background: rgba(37, 64, 28, 0.95); /* #25401c with opacity */
+    
+    /* Enhanced frosted glass effect */
+    backdrop-filter: blur(25px) saturate(180%);
+    -webkit-backdrop-filter: blur(25px) saturate(180%);
+    
+    /* More defined border for better contrast */
+    border: 1px solid rgba(238, 207, 84, 0.3); /* Yellow border */
+    
+    /* Deeper shadows for more dramatic effect */
+    box-shadow: 
+      0 8px 32px rgba(37, 64, 28, 0.6),
+      0 0 0 1px rgba(238, 207, 84, 0.1),
+      inset 0 1px 0 rgba(238, 207, 84, 0.15);
+  }
+  
+  .glass-nav-item {
+    /* Enhanced glass effect for navigation items */
+    backdrop-filter: blur(15px) saturate(150%);
+    -webkit-backdrop-filter: blur(15px) saturate(150%);
+    
+    /* More pronounced inner glow */
+    box-shadow: 
+      inset 0 1px 0 rgba(238, 207, 84, 0.2),
+      0 2px 8px rgba(37, 64, 28, 0.4);
+  }
+  
+  /* Fallback for browsers that don't support backdrop-filter */
+  @supports not (backdrop-filter: blur()) {
+    .glass-sidebar-dark {
+      background: rgba(37, 64, 28, 0.98);
+    }
+  }
+
+  /* Brand Color Utilities */
+  .brand-green {
+    background-color: #25401c;
+  }
+  
+  .brand-yellow {
+    color: #eecf54;
+  }
+  
+  .brand-yellow-bg {
+    background-color: #eecf54;
+  }
+  
+  .brand-green-text {
+    color: #25401c;
+  }
+  
+  .brand-border-yellow {
+    border-color: #eecf54;
+  }
+  
+  .brand-hover-green:hover {
+    background-color: rgba(37, 64, 28, 0.8);
+  }
+  
+  .brand-hover-yellow:hover {
+    background-color: rgba(238, 207, 84, 0.1);
+  }
+}
