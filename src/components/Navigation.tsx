@@ -43,8 +43,18 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
   // Filter nav items based on user permissions and shop settings
   let navItems = allNavItems.filter(item => {
     // Check if products are enabled for the shop
-    if (item.id === 'products' && shop && shop.products_enabled === false) {
-      return false;
+    if (item.id === 'products') {
+      console.log('🔧 [DEBUG] Checking products navigation item:', {
+        shop: shop,
+        products_enabled: shop?.products_enabled,
+        products_enabled_type: typeof shop?.products_enabled,
+        shouldHide: shop && shop.products_enabled === false
+      });
+      
+      if (shop && shop.products_enabled === false) {
+        console.log('🚫 [DEBUG] Hiding products navigation item - products disabled');
+        return false;
+      }
     }
     return hasPermission(item.permission);
   });

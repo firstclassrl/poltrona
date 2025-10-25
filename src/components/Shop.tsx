@@ -38,9 +38,12 @@ export const ShopManagement = () => {
 
   const loadShopData = async () => {
     try {
-      console.log('Loading shop data...');
+      console.log('🔄 [DEBUG] Loading shop data...');
       const shopData = await apiService.getShop();
-      console.log('Shop data loaded:', shopData);
+      console.log('📊 [DEBUG] Shop data loaded:', shopData);
+      console.log('🔧 [DEBUG] products_enabled value:', shopData.products_enabled);
+      console.log('🔧 [DEBUG] products_enabled type:', typeof shopData.products_enabled);
+      
       setShop(shopData);
       setBasicFormData({
         name: shopData.name || '',
@@ -54,11 +57,15 @@ export const ShopManagement = () => {
         notification_email: (shopData as any).notification_email || '',
         description: shopData.description || '',
       });
+      
+      const productsEnabled = shopData.products_enabled ?? true;
+      console.log('🔧 [DEBUG] Setting advancedFormData.products_enabled to:', productsEnabled);
+      
       setAdvancedFormData({
-        products_enabled: shopData.products_enabled ?? true,
+        products_enabled: productsEnabled,
       });
     } catch (error) {
-      console.error('Error loading shop data:', error);
+      console.error('❌ [DEBUG] Error loading shop data:', error);
       setShop(null);
     }
   };
@@ -106,13 +113,23 @@ export const ShopManagement = () => {
     
     setIsLoading(true);
     try {
+      console.log('🔧 [DEBUG] Saving advanced settings:', {
+        currentShop: shop,
+        advancedFormData: advancedFormData,
+        products_enabled: advancedFormData.products_enabled
+      });
+
       const updatedShop: Shop = {
         ...shop,
         products_enabled: advancedFormData.products_enabled
       };
 
+      console.log('🔧 [DEBUG] Updated shop data to save:', updatedShop);
+
       await apiService.updateShop(updatedShop);
       setShop(updatedShop);
+      
+      console.log('✅ [DEBUG] Advanced settings saved successfully');
       
       setIsEditingAdvanced(false);
       setMessage({ type: 'success', text: 'Impostazioni avanzate salvate con successo!' });
@@ -120,7 +137,7 @@ export const ShopManagement = () => {
       // Rimuovi il messaggio dopo 3 secondi
       setTimeout(() => setMessage(null), 3000);
     } catch (error) {
-      console.error('Error saving advanced settings:', error);
+      console.error('❌ [DEBUG] Error saving advanced settings:', error);
       setMessage({ type: 'error', text: 'Errore durante il salvataggio delle impostazioni avanzate. Riprova.' });
       
       // Rimuovi il messaggio dopo 5 secondi
