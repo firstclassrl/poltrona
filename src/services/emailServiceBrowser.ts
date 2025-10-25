@@ -34,6 +34,11 @@ class EmailServiceBrowser {
     this.initializeService();
   }
 
+  // Metodo per verificare se il servizio è configurato
+  public isServiceConfigured(): boolean {
+    return this.isConfigured;
+  }
+
   private async initializeService() {
     try {
       // Nel browser, usiamo sempre la modalità mock

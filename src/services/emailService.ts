@@ -32,6 +32,11 @@ export interface AppointmentEmailData {
 class EmailService {
   private isConfigured: boolean = false;
 
+  // Metodo per verificare se il servizio è configurato
+  public isServiceConfigured(): boolean {
+    return this.isConfigured;
+  }
+
   constructor() {
     this.initializeService();
   }

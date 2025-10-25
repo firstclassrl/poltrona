@@ -264,7 +264,7 @@ export const Chat: React.FC = () => {
                       message.sender_id === user.id ? 'flex-row-reverse space-x-reverse' : ''
                     }`}>
                       <Avatar 
-                        name={message.sender_name}
+                        name={message.sender_name || 'Unknown'}
                         size="sm"
                         imageUrl={message.sender_photo && !message.sender_photo.includes('/api/placeholder') ? message.sender_photo : undefined}
                       />

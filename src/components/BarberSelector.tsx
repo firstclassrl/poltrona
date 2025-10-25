@@ -32,7 +32,7 @@ export const BarberSelector = ({ onBarberSelect, className = '' }: BarberSelecto
           <Avatar 
             name={activeStaff?.full_name || 'Seleziona Barbiere'}
             size="sm"
-            imageUrl={activeStaff?.profile_photo_url}
+            imageUrl={activeStaff?.profile_photo_url || undefined}
           />
           <div className="text-left">
             <div className="font-medium text-gray-900">
@@ -65,7 +65,7 @@ export const BarberSelector = ({ onBarberSelect, className = '' }: BarberSelecto
                   <Avatar 
                     name={staff.full_name}
                     size="md"
-                    imageUrl={staff.profile_photo_url}
+                    imageUrl={staff.profile_photo_url || undefined}
                   />
                   <div>
                     <div className="font-medium text-gray-900">{staff.full_name}</div>

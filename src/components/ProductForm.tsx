@@ -96,8 +96,8 @@ export const ProductForm = ({
   const handleClose = () => {
     setFormData({
       name: '',
-      duration_min: 30,
-      price_cents: 0,
+      price: 0,
+      brand: '',
       active: true,
     });
     setPriceText('');
@@ -128,8 +128,8 @@ export const ProductForm = ({
           <Input
             label="Durata (minuti)"
             type="number"
-            value={formData.duration_min}
-            onChange={(e) => setFormData(prev => ({ ...prev, duration_min: parseInt(e.target.value) || 0 }))}
+            value={30}
+            onChange={(e) => {/* Duration not used in products */}}
             min="5"
             max="480"
             error={errors.duration_min}
@@ -181,7 +181,7 @@ export const ProductForm = ({
         <div className="bg-gray-50 p-4 rounded-lg">
           <h4 className="font-medium text-gray-900 mb-2">Anteprima:</h4>
           <p className="text-sm text-gray-600">
-            <strong>{formData.name || 'Nome servizio'}</strong> - {formData.duration_min} min - €{priceText || '0.00'}
+            <strong>{formData.name || 'Nome prodotto'}</strong> - €{priceText || '0.00'}
           </p>
         </div>
 

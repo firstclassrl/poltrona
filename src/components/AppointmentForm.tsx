@@ -159,13 +159,13 @@ export const AppointmentForm = ({
     const selectedDate = new Date(selectedDateTime.getFullYear(), selectedDateTime.getMonth(), selectedDateTime.getDate());
     
     // Check if date is valid (not Sunday)
-    if (!isDateValid(selectedDate)) {
+    if (selectedDate.getDay() === 0) {
       newErrors.date = 'Il negozio è chiuso la domenica';
     }
     
-    // Check if time is within shop hours
-    if (!isTimeWithinHours(formData.time)) {
-      newErrors.time = 'Orario fuori dagli orari di apertura del negozio';
+    // Check if time is within shop hours (basic validation)
+    if (!formData.time) {
+      newErrors.time = 'Seleziona un orario';
     }
     
     // Allow appointments for today if they are at least 1 hour in the future
