@@ -5,6 +5,7 @@ import { Input } from './ui/Input';
 import { Card } from './ui/Card';
 import { PrivacyPolicy } from './PrivacyPolicy';
 import { useAuth } from '../contexts/AuthContext';
+import { APP_VERSION } from '../config/version';
 
 export const Login: React.FC = () => {
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -358,7 +359,7 @@ export const Login: React.FC = () => {
 
       {/* Versione e Copyright */}
       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center text-white/70 text-sm z-10">
-        <p>Poltrona Ver 1.0.0</p>
+        <p>Poltrona v{APP_VERSION}</p>
         <p>Copyright 2025 abruzzo.ai</p>
       </div>
     </div>

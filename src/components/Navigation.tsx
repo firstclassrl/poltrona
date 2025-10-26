@@ -3,6 +3,7 @@ import { Calendar, Users, Home, ShoppingBag, User, Building2, LogOut, UserCheck,
 import { cn } from '../utils/cn';
 import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/api';
+import { APP_VERSION } from '../config/version';
 import type { Shop } from '../types';
 
 interface NavigationProps {
@@ -124,7 +125,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                 </button>
                 <div className="text-center mt-3">
                   <p className="text-xs text-yellow-300 font-medium">
-                    Poltrona Ver 1.0.0
+                    Poltrona v{APP_VERSION}
                   </p>
                   <p className="text-xs text-yellow-300/70">
                     Copyright 2025 abruzzo.ai
@@ -155,6 +156,12 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
               </button>
             );
           })}
+        </div>
+        {/* Mobile Version Info */}
+        <div className="text-center py-1 border-t border-yellow-400/20">
+          <p className="text-xs text-yellow-300/70">
+            v{APP_VERSION} | © 2025 abruzzo.ai
+          </p>
         </div>
       </div>
     </>

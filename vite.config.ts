@@ -16,6 +16,9 @@ export default defineConfig({
   define: {
     global: 'globalThis',
   },
+  json: {
+    namedExports: true,
+  },
   build: {
     rollupOptions: {
       external: ['nodemailer'],

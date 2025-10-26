@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Scissors, Check, ArrowLeft, ArrowRight } from 'lucide-react';
+import { User, Scissors, Check, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Sun, Moon } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Modal } from './ui/Modal';
 import { ProductUpsell } from './ProductUpsell';
@@ -33,6 +33,11 @@ export const ClientBookingCalendar: React.FC = () => {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [shop, setShop] = useState<Shop | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Mobile-specific states
+  const [isMobile, setIsMobile] = useState(false);
+  const [currentDay, setCurrentDay] = useState(new Date());
+  const [timePeriod, setTimePeriod] = useState<'morning' | 'afternoon'>('morning');
 
   // Load services, staff, and shop data from API
   useEffect(() => {
@@ -55,6 +60,18 @@ export const ClientBookingCalendar: React.FC = () => {
     };
 
     loadData();
+  }, []);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   // Generate 2 weeks from today, filtering out closed days
@@ -104,6 +121,37 @@ export const ClientBookingCalendar: React.FC = () => {
   const getTimeSlotsForDate = (date: Date) => {
     // Use the new daily shop hours system
     return getAvailableTimeSlots(date, 30); // 30 minutes slots
+  };
+
+  // Mobile navigation functions
+  const navigateDay = (direction: 'prev' | 'next') => {
+    const newDay = new Date(currentDay);
+    if (direction === 'prev') {
+      newDay.setDate(currentDay.getDate() - 1);
+    } else {
+      newDay.setDate(currentDay.getDate() + 1);
+    }
+    setCurrentDay(newDay);
+  };
+
+  // Filter time slots by period (morning/afternoon)
+  const getFilteredTimeSlots = (date: Date, period: 'morning' | 'afternoon') => {
+    const allSlots = getTimeSlotsForDate(date);
+    return allSlots.filter(time => {
+      const [hours] = time.split(':').map(Number);
+      if (period === 'morning') {
+        return hours < 13; // Before 1 PM
+      } else {
+        return hours >= 13; // From 1 PM onwards
+      }
+    });
+  };
+
+  // Check if we can navigate to previous day (not before today)
+  const canNavigatePrev = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return currentDay > today;
   };
 
   const handleTimeSlotClick = (date: Date, time: string) => {
@@ -247,6 +295,102 @@ export const ClientBookingCalendar: React.FC = () => {
         <p className="text-gray-600 mt-2">Scegli data e orario disponibili</p>
       </div>
 
+      {/* Mobile Daily View */}
+      {isMobile && (
+        <div className="md:hidden space-y-6">
+          {/* Day Navigation */}
+          <div className="flex items-center justify-between bg-white rounded-lg shadow-sm border p-4">
+            <Button
+              variant="ghost"
+              size="lg"
+              onClick={() => navigateDay('prev')}
+              disabled={!canNavigatePrev()}
+              className="flex items-center space-x-2"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </Button>
+            
+            <div className="text-center">
+              <div className="text-lg font-semibold text-gray-900">
+                {currentDay.toLocaleDateString('it-IT', { 
+                  weekday: 'long', 
+                  day: 'numeric', 
+                  month: 'long' 
+                })}
+              </div>
+              {currentDay.toDateString() === new Date().toDateString() && (
+                <div className="text-sm text-blue-600 font-medium">Oggi</div>
+              )}
+            </div>
+            
+            <Button
+              variant="ghost"
+              size="lg"
+              onClick={() => navigateDay('next')}
+              className="flex items-center space-x-2"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </Button>
+          </div>
+
+          {/* Morning/Afternoon Toggle */}
+          <div className="flex items-center justify-center space-x-2 bg-gray-100 rounded-lg p-1">
+            <Button
+              variant={timePeriod === 'morning' ? 'primary' : 'ghost'}
+              size="lg"
+              onClick={() => setTimePeriod('morning')}
+              className="flex items-center space-x-2 flex-1"
+            >
+              <Sun className="w-5 h-5" />
+              <span>Mattina</span>
+            </Button>
+            <Button
+              variant={timePeriod === 'afternoon' ? 'primary' : 'ghost'}
+              size="lg"
+              onClick={() => setTimePeriod('afternoon')}
+              className="flex items-center space-x-2 flex-1"
+            >
+              <Moon className="w-5 h-5" />
+              <span>Pomeriggio</span>
+            </Button>
+          </div>
+
+          {/* Time Slots List */}
+          <div className="space-y-3">
+            {isDateOpen(currentDay) ? (
+              getFilteredTimeSlots(currentDay, timePeriod).map((time) => {
+                const isAvailable = isTimeSlotAvailable(currentDay, time);
+                
+                return (
+                  <button
+                    key={time}
+                    onClick={() => handleTimeSlotClick(currentDay, time)}
+                    disabled={!isAvailable}
+                    className={`w-full min-h-[48px] py-3 px-4 rounded-lg text-left transition-colors ${
+                      isAvailable
+                        ? 'bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer border border-green-200'
+                        : 'bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-lg font-medium">{time}</span>
+                      <span className="text-sm">
+                        {isAvailable ? 'Disponibile' : 'Occupato'}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <p>Il negozio è chiuso in questa data</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Success Message - Both Mobile and Desktop */}
       {isSuccess && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
           <div className="flex items-center space-x-2">
@@ -263,92 +407,95 @@ export const ClientBookingCalendar: React.FC = () => {
         </div>
       )}
 
-      {/* Week Navigation */}
-      <div className="flex items-center justify-between">
-        <Button
-          variant="secondary"
-          onClick={() => setCurrentWeek(Math.max(0, currentWeek - 1))}
-          disabled={currentWeek === 0}
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Settimana Precedente
-        </Button>
-        
-        <h2 className="text-xl font-semibold text-gray-900">
-          Settimana {currentWeek + 1} di 2
-        </h2>
-        
-        <Button
-          variant="secondary"
-          onClick={() => setCurrentWeek(Math.min(1, currentWeek + 1))}
-          disabled={currentWeek === 1}
-        >
-          Settimana Successiva
-          <ArrowRight className="w-4 h-4 ml-2" />
-        </Button>
-      </div>
-
-      {/* Info banner rimosso per visualizzazione cliente */}
-
-      {/* Calendar Grid */}
-      <div 
-        className="grid gap-2"
-        style={{ gridTemplateColumns: `repeat(${currentWeekDays.length}, 1fr)` }}
-      >
-
-        {/* Calendar Days */}
-        {currentWeekDays.map((date, index) => {
-          const timeSlots = getTimeSlotsForDate(date);
-          const isToday = date.toDateString() === new Date().toDateString();
+      {/* Desktop Weekly View */}
+      <div className="hidden md:block space-y-8">
+        {/* Week Navigation */}
+        <div className="flex items-center justify-between">
+          <Button
+            variant="secondary"
+            onClick={() => setCurrentWeek(Math.max(0, currentWeek - 1))}
+            disabled={currentWeek === 0}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Settimana Precedente
+          </Button>
           
-          return (
-            <div key={index} className="flex flex-col">
-              <div className="text-center mb-3 h-8 flex items-center justify-center">
-                <div className={`text-sm font-medium ${isToday ? 'text-blue-600' : 'text-gray-700'}`}>
-                  {formatDate(date)}
-                </div>
-                {isToday && (
-                  <div className="text-xs text-blue-500">Oggi</div>
-                )}
-              </div>
-              
-              <div className="space-y-1">
-                {timeSlots.map((time) => {
-                  const isAvailable = isTimeSlotAvailable(date, time);
-                  
-                  return (
-                    <button
-                      key={time}
-                      onClick={() => handleTimeSlotClick(date, time)}
-                      disabled={!isAvailable}
-                      className={`w-full text-xs py-1 px-2 rounded transition-colors ${
-                        isAvailable
-                          ? 'bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer'
-                          : 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                      }`}
-                    >
-                      {formatTime(time)}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Settimana {currentWeek + 1} di 2
+          </h2>
+          
+          <Button
+            variant="secondary"
+            onClick={() => setCurrentWeek(Math.min(1, currentWeek + 1))}
+            disabled={currentWeek === 1}
+          >
+            Settimana Successiva
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
+        </div>
 
-      {/* Legend */}
-      <div className="flex items-center justify-center space-x-6 text-sm">
-        <div className="flex items-center space-x-2">
-          <div className="w-4 h-4 bg-green-100 rounded"></div>
-          <span className="text-gray-600">Disponibile</span>
+        {/* Info banner rimosso per visualizzazione cliente */}
+
+        {/* Calendar Grid */}
+        <div 
+          className="grid gap-2"
+          style={{ gridTemplateColumns: `repeat(${currentWeekDays.length}, 1fr)` }}
+        >
+
+          {/* Calendar Days */}
+          {currentWeekDays.map((date, index) => {
+            const timeSlots = getTimeSlotsForDate(date);
+            const isToday = date.toDateString() === new Date().toDateString();
+            
+            return (
+              <div key={index} className="flex flex-col">
+                <div className="text-center mb-3 h-8 flex items-center justify-center">
+                  <div className={`text-sm font-medium ${isToday ? 'text-blue-600' : 'text-gray-700'}`}>
+                    {formatDate(date)}
+                  </div>
+                  {isToday && (
+                    <div className="text-xs text-blue-500">Oggi</div>
+                  )}
+                </div>
+                
+                <div className="space-y-1">
+                  {timeSlots.map((time) => {
+                    const isAvailable = isTimeSlotAvailable(date, time);
+                    
+                    return (
+                      <button
+                        key={time}
+                        onClick={() => handleTimeSlotClick(date, time)}
+                        disabled={!isAvailable}
+                        className={`w-full text-xs py-1 px-2 rounded transition-colors ${
+                          isAvailable
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer'
+                            : 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                        }`}
+                      >
+                        {formatTime(time)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
-        <div className="flex items-center space-x-2">
-          <div className="w-4 h-4 bg-gray-100 rounded"></div>
-          <span className="text-gray-600">Occupato</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <span className="text-gray-500">📅 Orari configurati per giorno</span>
+
+        {/* Legend */}
+        <div className="flex items-center justify-center space-x-6 text-sm">
+          <div className="flex items-center space-x-2">
+            <div className="w-4 h-4 bg-green-100 rounded"></div>
+            <span className="text-gray-600">Disponibile</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="w-4 h-4 bg-gray-100 rounded"></div>
+            <span className="text-gray-600">Occupato</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="text-gray-500">📅 Orari configurati per giorno</span>
+          </div>
         </div>
       </div>
 

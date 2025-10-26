@@ -75,7 +75,7 @@ const AppContent: React.FC = () => {
       case 'calendar':
         return <Calendar />;
       case 'clients':
-        return <Clients />;
+        return <Clients onNavigateToBooking={() => setActiveTab('client_booking')} />;
       case 'products':
         // Mostra ClientProducts per i clienti, Products per admin/barbieri
         return user?.role === 'client' ? (

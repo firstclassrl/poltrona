@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Filter, Package, Sun, Moon } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, Filter, Package, Sun, Moon, User, Clock, MapPin } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
@@ -16,6 +16,11 @@ export const Calendar = () => {
   const { shopHours, getAvailableTimeSlots, isDateOpen, getShopHoursSummary } = useDailyShopHours();
   const { getAssignedChairs } = useChairAssignment();
   const { appointments } = useAppointments();
+  
+  // Mobile-specific states
+  const [isMobile, setIsMobile] = useState(false);
+  const [currentDay, setCurrentDay] = useState(new Date());
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   const getWeekDays = () => {
     const start = new Date(currentDate);
@@ -28,6 +33,58 @@ export const Calendar = () => {
   };
 
   const weekDays = getWeekDays();
+  
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Mobile navigation functions
+  const navigateDay = (direction: 'prev' | 'next') => {
+    const newDay = new Date(currentDay);
+    if (direction === 'prev') {
+      newDay.setDate(currentDay.getDate() - 1);
+    } else {
+      newDay.setDate(currentDay.getDate() + 1);
+    }
+    setCurrentDay(newDay);
+  };
+
+  // Check if we can navigate to previous day (not before today)
+  const canNavigatePrev = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return currentDay > today;
+  };
+
+  // Get appointments for a specific day
+  const getAppointmentsForDay = (date: Date) => {
+    return filteredAppointments.filter(apt => {
+      const aptDate = new Date(apt.start_at);
+      return aptDate.toDateString() === date.toDateString();
+    });
+  };
+
+  // Filter appointments by time period for mobile
+  const getFilteredAppointmentsForDay = (date: Date, period: 'morning' | 'afternoon') => {
+    const dayAppointments = getAppointmentsForDay(date);
+    return dayAppointments.filter(apt => {
+      const aptTime = new Date(apt.start_at);
+      const hours = aptTime.getHours();
+      if (period === 'morning') {
+        return hours < 13; // Before 1 PM
+      } else {
+        return hours >= 13; // From 1 PM onwards
+      }
+    });
+  };
   
   // Usa gli orari del negozio per generare i time slots filtrati per periodo
   const getTimeSlotsForDate = (date: Date, period: 'morning' | 'afternoon') => {
@@ -102,6 +159,7 @@ export const Calendar = () => {
 
   return (
     <div className="space-y-6">
+      {/* Header - Both Mobile and Desktop */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Calendario</h1>
@@ -109,7 +167,8 @@ export const Calendar = () => {
             Orari configurati per ogni giorno della settimana
           </p>
         </div>
-        <div className="flex items-center space-x-4">
+        {/* Desktop Controls */}
+        <div className="hidden md:flex items-center space-x-4">
           <Select
             value={selectedChair}
             onChange={(e) => setSelectedChair(e.target.value)}
@@ -145,6 +204,9 @@ export const Calendar = () => {
           </div>
         </div>
       </div>
+
+      {/* Desktop Calendar Grid */}
+      <div className="hidden md:block">
 
       <Card>
         <div className="flex items-center justify-between mb-6">
@@ -273,43 +335,199 @@ export const Calendar = () => {
           </div>
         </div>
       </Card>
-
-      {/* Appointment List View for Mobile */}
-      <div className="md:hidden space-y-4">
-        <h2 className="text-xl font-semibold text-gray-900">Appuntamenti di Oggi</h2>
-        {filteredAppointments.map((appointment) => (
-          <Card key={appointment.id}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-semibold text-xs">
-                    {appointment.clients?.first_name?.[0]}{appointment.clients?.last_name?.[0]}
-                  </span>
-                </div>
-              <div>
-                <h3 className="text-gray-900 font-medium">
-                  {appointment.clients?.first_name} {appointment.clients?.last_name}
-                </h3>
-                <p className="text-gray-600 text-sm">
-                  {formatTime(appointment.start_at)} - {appointment.staff?.full_name}
-                </p>
-                {appointment.products && appointment.products.length > 0 && (
-                  <div className="flex items-center space-x-1 mt-1">
-                    <div className="flex items-center space-x-1 bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
-                      <Package className="w-3 h-3" />
-                      <span className="text-xs font-medium">
-                        {appointment.products.length} prodotto{appointment.products.length > 1 ? 'i' : ''} da preparare
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-              </div>
-              <Badge variant="info">{appointment.status}</Badge>
-            </div>
-          </Card>
-        ))}
       </div>
+
+      {/* Mobile Optimized View */}
+      {isMobile && (
+        <div className="md:hidden space-y-6">
+          {/* Day Navigation */}
+          <div className="flex items-center justify-between bg-white rounded-lg shadow-sm border p-4">
+            <Button
+              variant="ghost"
+              size="lg"
+              onClick={() => navigateDay('prev')}
+              disabled={!canNavigatePrev()}
+              className="flex items-center space-x-2"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </Button>
+            
+            <div className="text-center">
+              <div className="text-lg font-semibold text-gray-900">
+                {currentDay.toLocaleDateString('it-IT', { 
+                  weekday: 'long', 
+                  day: 'numeric', 
+                  month: 'long' 
+                })}
+              </div>
+              {currentDay.toDateString() === new Date().toDateString() && (
+                <div className="text-sm text-blue-600 font-medium">Oggi</div>
+              )}
+            </div>
+            
+            <Button
+              variant="ghost"
+              size="lg"
+              onClick={() => navigateDay('next')}
+              className="flex items-center space-x-2"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </Button>
+          </div>
+
+          {/* Mobile Filters */}
+          <div className="space-y-4">
+            {/* Morning/Afternoon Toggle */}
+            <div className="flex items-center justify-center space-x-2 bg-gray-100 rounded-lg p-1">
+              <Button
+                variant={timePeriod === 'morning' ? 'primary' : 'ghost'}
+                size="lg"
+                onClick={() => setTimePeriod('morning')}
+                className="flex items-center space-x-2 flex-1"
+              >
+                <Sun className="w-5 h-5" />
+                <span>Mattina</span>
+              </Button>
+              <Button
+                variant={timePeriod === 'afternoon' ? 'primary' : 'ghost'}
+                size="lg"
+                onClick={() => setTimePeriod('afternoon')}
+                className="flex items-center space-x-2 flex-1"
+              >
+                <Moon className="w-5 h-5" />
+                <span>Pomeriggio</span>
+              </Button>
+            </div>
+
+            {/* Chair Filter */}
+            <div className="flex items-center justify-between">
+              <Button
+                variant="secondary"
+                size="lg"
+                onClick={() => setShowMobileFilters(!showMobileFilters)}
+                className="flex items-center space-x-2"
+              >
+                <Filter className="w-4 h-4" />
+                <span>Filtri</span>
+              </Button>
+              
+              {selectedChair !== 'all' && (
+                <Badge variant="info">
+                  {assignedChairs.find(chair => chair.chairId === selectedChair)?.chairName || 'Poltrona'}
+                </Badge>
+              )}
+            </div>
+
+            {/* Expanded Filters */}
+            {showMobileFilters && (
+              <Card className="p-4">
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Poltrona
+                  </label>
+                  <select
+                    value={selectedChair}
+                    onChange={(e) => setSelectedChair(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">Tutte le poltrone</option>
+                    {assignedChairs.map(chair => (
+                      <option key={chair.chairId} value={chair.chairId}>
+                        {chair.chairName} - {chair.staffName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </Card>
+            )}
+          </div>
+
+          {/* Appointments List */}
+          <div className="space-y-3">
+            {isDateOpen(currentDay) ? (
+              getFilteredAppointmentsForDay(currentDay, timePeriod).length > 0 ? (
+                getFilteredAppointmentsForDay(currentDay, timePeriod).map((appointment) => (
+                  <Card key={appointment.id} className="p-4">
+                    <div className="space-y-3">
+                      {/* Header with time and status */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Clock className="w-4 h-4 text-gray-500" />
+                          <span className="font-semibold text-gray-900">
+                            {formatTime(appointment.start_at)}
+                          </span>
+                        </div>
+                        <Badge variant="info">{appointment.status}</Badge>
+                      </div>
+
+                      {/* Client Info */}
+                      <div className="flex items-center space-x-3">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                          <span className="text-white font-semibold text-sm">
+                            {appointment.clients?.first_name?.[0]}{appointment.clients?.last_name?.[0]}
+                          </span>
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-gray-900 font-medium text-lg">
+                            {appointment.clients?.first_name} {appointment.clients?.last_name}
+                          </h3>
+                          <div className="flex items-center space-x-1 text-gray-600 text-sm">
+                            <User className="w-3 h-3" />
+                            <span>{appointment.staff?.full_name}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Service and Products */}
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <MapPin className="w-4 h-4 text-gray-500" />
+                          <span className="text-gray-700 font-medium">
+                            {appointment.services?.name || 'Servizio'}
+                          </span>
+                        </div>
+                        
+                        {appointment.products && appointment.products.length > 0 && (
+                          <div className="flex items-center space-x-2">
+                            <Package className="w-4 h-4 text-orange-500" />
+                            <span className="text-orange-700 text-sm font-medium">
+                              {appointment.products.length} prodotto{appointment.products.length > 1 ? 'i' : ''} da preparare
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Notes if any */}
+                      {appointment.notes && (
+                        <div className="bg-gray-50 p-3 rounded-lg">
+                          <p className="text-gray-700 text-sm">{appointment.notes}</p>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                ))
+              ) : (
+                <Card className="p-8 text-center">
+                  <div className="text-gray-500">
+                    <Clock className="w-12 h-12 mx-auto mb-3" />
+                    <p className="text-lg font-medium">Nessun appuntamento</p>
+                    <p className="text-sm">in questo periodo per {currentDay.toLocaleDateString('it-IT')}</p>
+                  </div>
+                </Card>
+              )
+            ) : (
+              <Card className="p-8 text-center">
+                <div className="text-gray-500">
+                  <Clock className="w-12 h-12 mx-auto mb-3" />
+                  <p className="text-lg font-medium">Negozio chiuso</p>
+                  <p className="text-sm">in questa data</p>
+                </div>
+              </Card>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

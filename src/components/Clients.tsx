@@ -8,7 +8,11 @@ import { CustomerForm } from './CustomerForm';
 import { apiService } from '../services/api';
 import type { Client } from '../types';
 
-export const Clients = () => {
+interface ClientsProps {
+  onNavigateToBooking?: () => void;
+}
+
+export const Clients = ({ onNavigateToBooking }: ClientsProps) => {
   const [clients, setClients] = useState<Client[]>([]);
   useEffect(() => {
     const load = async () => {
@@ -88,6 +92,11 @@ export const Clients = () => {
     } catch (error) {
       console.error('Error saving customer:', error);
     }
+  };
+
+  const handleNewAppointment = () => {
+    setIsModalOpen(false); // Close the client modal
+    onNavigateToBooking?.(); // Navigate to booking calendar
   };
 
   return (
@@ -226,7 +235,7 @@ export const Clients = () => {
             </div>
 
             <div className="flex space-x-3">
-              <Button variant="primary" className="flex-1">
+              <Button variant="primary" className="flex-1" onClick={handleNewAppointment}>
                 <Calendar className="w-4 h-4 mr-2" />
                 Nuovo Appuntamento
               </Button>
