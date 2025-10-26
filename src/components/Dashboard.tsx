@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Plus, Clock, AlertTriangle, ShoppingBag, Package } from 'lucide-react';
+import { Calendar, Users, Plus, Clock, AlertTriangle, ShoppingBag, Package, ChevronRight } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
@@ -13,15 +13,18 @@ interface DashboardProps {
   onNewAppointment: () => void;
   onNavigateToCalendar: () => void;
   onEditAppointment: (appointment: Appointment) => void;
+  onNavigateToClients?: () => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
   onNewAppointment, 
   onNavigateToCalendar,
-  onEditAppointment
+  onEditAppointment,
+  onNavigateToClients
 }) => {
   const { user } = useAuth();
   const [greeting, setGreeting] = useState('Buongiorno');
+  const [isMobile, setIsMobile] = useState(false);
   
   const { appointments } = useAppointments();
   const upcomingAppointments = appointments.slice(0, 6);
@@ -46,6 +49,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
     } else {
       setGreeting('Buonasera');
     }
+  }, []);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   // Record no-show reali (derivati dagli appuntamenti con status no_show)
@@ -116,26 +131,122 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      {/* Header - Responsive */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
             {greeting}{user?.full_name ? `, ${user.full_name}` : ''}
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-gray-600 mt-1 text-sm md:text-base">
             Benvenuto nella tua dashboard - {user?.role === 'admin' ? 'Amministratore' :
                                            user?.role === 'barber' ? 'Barbiere' :
                                            user?.role === 'client' ? 'Cliente' : 'Utente'}
           </p>
         </div>
-        <div className="pr-16"> {/* Aggiunge spazio per la campanella delle notifiche */}
-          <Button onClick={onNewAppointment} size="lg">
+        <div className="md:pr-16">
+          <Button onClick={onNewAppointment} size="lg" className="w-full md:w-auto">
             <Plus className="w-5 h-5 mr-2" />
             Nuovo Appuntamento
           </Button>
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* Mobile Optimized View */}
+      {isMobile && (
+        <div className="md:hidden space-y-4">
+          {/* Quick Actions */}
+          <div className="grid grid-cols-2 gap-3">
+            <Button 
+              variant="secondary" 
+              onClick={onNavigateToCalendar}
+              className="flex items-center justify-center py-4"
+            >
+              <Calendar className="w-5 h-5 mr-2" />
+              <span>Calendario</span>
+            </Button>
+            <Button 
+              variant="secondary" 
+              onClick={onNavigateToClients || (() => {})}
+              className="flex items-center justify-center py-4"
+            >
+              <Users className="w-5 h-5 mr-2" />
+              <span>Clienti</span>
+            </Button>
+          </div>
+
+          {/* Today's Summary */}
+          <Card className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold text-gray-900">Oggi</h3>
+              <Clock className="w-5 h-5 text-gray-500" />
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Appuntamenti:</span>
+                <span className="font-semibold">{appointments.filter(a => {
+                  const today = new Date().toDateString();
+                  return new Date(a.start_at).toDateString() === today;
+                }).length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Completati:</span>
+                <span className="font-semibold text-green-600">{appointments.filter(a => {
+                  const today = new Date().toDateString();
+                  return new Date(a.start_at).toDateString() === today && a.status === 'completed';
+                }).length}</span>
+              </div>
+            </div>
+          </Card>
+
+          {/* Upcoming Appointments - Mobile */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold text-gray-900">Prossimi Appuntamenti</h3>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={onNavigateToCalendar}
+                className="flex items-center"
+              >
+                <span className="text-sm">Vedi tutto</span>
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+            <div className="space-y-3">
+              {upcomingAppointments.slice(0, 3).map((appointment) => (
+                <Card key={appointment.id} className="p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                          <span className="text-white font-semibold text-xs">
+                            {appointment.clients?.first_name?.[0]}{appointment.clients?.last_name?.[0]}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900 text-sm">
+                            {appointment.clients?.first_name} {appointment.clients?.last_name}
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            {formatTime(appointment.start_at)} - {appointment.services?.name}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      {getStatusBadge(appointment.status || 'scheduled')}
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Desktop View */}
+      <div className="hidden md:block space-y-8">
+        {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card 
           className="cursor-pointer hover:scale-105 transition-transform"
@@ -318,6 +429,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
       </Modal>
+      </div>
 
       {/* Appointment Detail Modal */}
       <Modal

@@ -128,7 +128,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                     Poltrona v{APP_VERSION}
                   </p>
                   <p className="text-xs text-yellow-300/70">
-                    Copyright 2025 abruzzo.ai
+                    © 2025 abruzzo.ai
                   </p>
                 </div>
               </div>
@@ -139,7 +139,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
 
       {/* Mobile Bottom Navigation */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 glass-sidebar-dark border-t border-yellow-400/30 z-50 shadow-2xl">
-        <div className="grid grid-cols-5 py-2">
+        <div className="grid grid-cols-6 py-2">
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -156,6 +156,14 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
               </button>
             );
           })}
+          {/* Mobile Logout Button */}
+          <button
+            onClick={logout}
+            className="flex flex-col items-center py-2 px-1 transition-all duration-200 text-yellow-300 hover:text-red-400"
+          >
+            <LogOut className="h-5 w-5 mb-1" />
+            <span className="text-xs font-medium">Logout</span>
+          </button>
         </div>
         {/* Mobile Version Info */}
         <div className="text-center py-1 border-t border-yellow-400/20">

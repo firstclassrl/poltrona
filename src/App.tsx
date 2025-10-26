@@ -70,6 +70,7 @@ const AppContent: React.FC = () => {
             onNewAppointment={handleNewAppointment}
             onNavigateToCalendar={() => setActiveTab('calendar')}
             onEditAppointment={handleEditAppointment}
+            onNavigateToClients={() => setActiveTab('clients')}
           />
         );
       case 'calendar':
@@ -99,6 +100,7 @@ const AppContent: React.FC = () => {
             onNewAppointment={handleNewAppointment}
             onNavigateToCalendar={() => setActiveTab('calendar')}
             onEditAppointment={handleEditAppointment}
+            onNavigateToClients={() => setActiveTab('clients')}
           />
         );
     }

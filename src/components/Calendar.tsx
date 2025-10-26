@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Filter, Package, Sun, Moon, User, Clock, MapPin } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Filter, Package, Sun, Moon, User, Clock, MapPin, Plus } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
@@ -8,6 +8,7 @@ import { formatTime, formatDate } from '../utils/date';
 import { useDailyShopHours } from '../hooks/useDailyShopHours';
 import { useChairAssignment } from '../hooks/useChairAssignment';
 import { useAppointments } from '../hooks/useAppointments';
+import { AppointmentForm } from './AppointmentForm';
 
 export const Calendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -21,6 +22,7 @@ export const Calendar = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [currentDay, setCurrentDay] = useState(new Date());
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [showCreateAppointmentModal, setShowCreateAppointmentModal] = useState(false);
 
   const getWeekDays = () => {
     const start = new Date(currentDate);
@@ -442,6 +444,17 @@ export const Calendar = () => {
             )}
           </div>
 
+          {/* Add Appointment Button */}
+          <div className="flex justify-center">
+            <Button 
+              onClick={() => setShowCreateAppointmentModal(true)}
+              className="flex items-center space-x-2"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Aggiungi Appuntamento</span>
+            </Button>
+          </div>
+
           {/* Appointments List */}
           <div className="space-y-3">
             {isDateOpen(currentDay) ? (
@@ -527,6 +540,18 @@ export const Calendar = () => {
           </div>
         </div>
       )}
+
+      {/* Create Appointment Modal */}
+      <AppointmentForm
+        isOpen={showCreateAppointmentModal}
+        onClose={() => setShowCreateAppointmentModal(false)}
+        onSave={(data) => {
+          // Handle appointment creation
+          console.log('Creating appointment:', data);
+          setShowCreateAppointmentModal(false);
+        }}
+        appointment={null}
+      />
 
     </div>
   );
