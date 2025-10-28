@@ -114,7 +114,10 @@ export const apiService = {
 
   // Cancel appointments in date range (for vacation mode)
   async cancelAppointmentsInRange(startDate: string, endDate: string): Promise<void> {
-    if (!isSupabaseConfigured() || !API_CONFIG.N8N_BASE_URL) throw new Error('Backend non configurato');
+    if (!isSupabaseConfigured() || !API_CONFIG.N8N_BASE_URL) {
+      console.warn('Backend non configurato - modalità ferie attivata senza cancellazione appuntamenti');
+      return; // Permetti l'attivazione della modalità ferie anche senza backend
+    }
     
     try {
       // First, get all appointments in the date range

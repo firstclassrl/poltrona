@@ -188,7 +188,7 @@ export const ShopManagement = () => {
     
     setIsLoading(true);
     try {
-      // Cancel all appointments in the vacation period
+      // Try to cancel appointments (will skip if backend not configured)
       await apiService.cancelAppointmentsInRange(vacationStartDate, vacationEndDate);
       
       // Set vacation period
@@ -197,7 +197,14 @@ export const ShopManagement = () => {
       setShowVacationConfirm(false);
       setVacationStartDate('');
       setVacationEndDate('');
-      setMessage({ type: 'success', text: 'Modalità ferie attivata! Tutti gli appuntamenti nel periodo sono stati cancellati.' });
+      
+      // Check if backend is configured to show appropriate message
+      const isBackendConfigured = localStorage.getItem('supabase_url') && localStorage.getItem('n8n_base_url');
+      const messageText = isBackendConfigured 
+        ? 'Modalità ferie attivata! Tutti gli appuntamenti nel periodo sono stati cancellati.'
+        : 'Modalità ferie attivata! (Backend non configurato - appuntamenti non cancellati)';
+      
+      setMessage({ type: 'success', text: messageText });
     } catch (error) {
       console.error('Error activating vacation mode:', error);
       setMessage({ type: 'error', text: 'Errore durante l\'attivazione della modalità ferie' });
@@ -474,6 +481,8 @@ export const ShopManagement = () => {
                       disabled={!isEditingAdvanced}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                       placeholder="gg/mm/aaaa"
+                      lang="it-IT"
+                      data-format="dd/mm/yyyy"
                     />
                   </div>
                   <div>
@@ -487,6 +496,8 @@ export const ShopManagement = () => {
                       disabled={!isEditingAdvanced}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                       placeholder="gg/mm/aaaa"
+                      lang="it-IT"
+                      data-format="dd/mm/yyyy"
                     />
                   </div>
                 </div>
@@ -524,7 +535,7 @@ export const ShopManagement = () => {
         title="Conferma Attivazione Ferie"
       >
         <div className="text-red-600 font-semibold mb-4">
-          ⚠️ ATTENZIONE: Tutti gli appuntamenti nel periodo selezionato verranno cancellati
+          ⚠️ ATTENZIONE: Tutti gli appuntamenti nel periodo selezionato verranno cancellati (se il backend è configurato)
         </div>
         <p className="mb-4">
           Periodo ferie: {vacationStartDate ? new Date(vacationStartDate).toLocaleDateString('it-IT') : ''} - {vacationEndDate ? new Date(vacationEndDate).toLocaleDateString('it-IT') : ''}
