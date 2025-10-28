@@ -213,6 +213,11 @@ export const ShopManagement = () => {
     }
   };
 
+  const handleDeactivateVacation = () => {
+    clearVacationPeriod();
+    setMessage({ type: 'success', text: 'Modalità ferie disattivata!' });
+  };
+
   return (
     <div className="space-y-4 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-4">
@@ -464,52 +469,88 @@ export const ShopManagement = () => {
                 <h3 className="text-base font-medium text-gray-900 mb-2">
                   Modalità Ferie
                 </h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Imposta un periodo di chiusura per ferie
-                </p>
                 
-                {/* Form date range */}
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Data Inizio
-                    </label>
-                    <input
-                      type="date"
-                      value={vacationStartDate}
-                      onChange={(e) => setVacationStartDate(e.target.value)}
+                {vacationPeriod ? (
+                  // Periodo ferie attivo
+                  <div className="space-y-4">
+                    <div className="p-3 bg-red-100 border border-red-300 rounded-lg">
+                      <p className="text-sm text-red-800 font-medium mb-1">
+                        Modalità ferie attiva
+                      </p>
+                      <p className="text-sm text-red-700">
+                        Periodo: {new Date(vacationPeriod.start_date).toLocaleDateString('it-IT')} - {new Date(vacationPeriod.end_date).toLocaleDateString('it-IT')}
+                      </p>
+                    </div>
+                    
+                    <Button
+                      onClick={handleDeactivateVacation}
+                      variant="secondary"
                       disabled={!isEditingAdvanced}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                      placeholder="gg/mm/aaaa"
-                      lang="it-IT"
-                      data-format="dd/mm/yyyy"
-                    />
+                    >
+                      Disattiva Modalità Ferie
+                    </Button>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Data Fine
-                    </label>
-                    <input
-                      type="date"
-                      value={vacationEndDate}
-                      onChange={(e) => setVacationEndDate(e.target.value)}
-                      disabled={!isEditingAdvanced}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                      placeholder="gg/mm/aaaa"
-                      lang="it-IT"
-                      data-format="dd/mm/yyyy"
-                    />
+                ) : (
+                  // Form per attivare modalità ferie
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-600">
+                      Imposta un periodo di chiusura per ferie
+                    </p>
+                    
+                    {/* Form date range */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Data Inizio
+                        </label>
+                        <input
+                          type="date"
+                          value={vacationStartDate}
+                          onChange={(e) => setVacationStartDate(e.target.value)}
+                          disabled={!isEditingAdvanced}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          placeholder="gg/mm/aaaa"
+                          lang="it-IT"
+                          data-format="dd/mm/yyyy"
+                          style={{ 
+                            colorScheme: 'light',
+                            WebkitAppearance: 'none',
+                            MozAppearance: 'textfield'
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Data Fine
+                        </label>
+                        <input
+                          type="date"
+                          value={vacationEndDate}
+                          onChange={(e) => setVacationEndDate(e.target.value)}
+                          disabled={!isEditingAdvanced}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          placeholder="gg/mm/aaaa"
+                          lang="it-IT"
+                          data-format="dd/mm/yyyy"
+                          style={{ 
+                            colorScheme: 'light',
+                            WebkitAppearance: 'none',
+                            MozAppearance: 'textfield'
+                          }}
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Bottone attivazione */}
+                    <Button
+                      onClick={() => setShowVacationConfirm(true)}
+                      variant="danger"
+                      disabled={!isEditingAdvanced || !vacationStartDate || !vacationEndDate}
+                    >
+                      Attiva Modalità Ferie
+                    </Button>
                   </div>
-                </div>
-                
-                {/* Bottone attivazione */}
-                <Button
-                  onClick={() => setShowVacationConfirm(true)}
-                  variant="danger"
-                  disabled={!isEditingAdvanced || !vacationStartDate || !vacationEndDate}
-                >
-                  Attiva Modalità Ferie
-                </Button>
+                )}
               </div>
             </div>
           </div>

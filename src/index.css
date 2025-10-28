@@ -38,6 +38,24 @@
     -webkit-appearance: none;
     margin: 0;
   }
+
+  /* Force Italian date format for date inputs */
+  input[type="date"][lang="it-IT"] {
+    /* Force Italian date format display */
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+  }
+  
+  input[type="date"][lang="it-IT"]::-webkit-datetime-edit-text {
+    color: #6b7280;
+  }
+  
+  input[type="date"][lang="it-IT"]::-webkit-datetime-edit-month-field,
+  input[type="date"][lang="it-IT"]::-webkit-datetime-edit-day-field,
+  input[type="date"][lang="it-IT"]::-webkit-datetime-edit-year-field {
+    -webkit-appearance: none;
+    margin: 0;
+  }
 }
 
 /* Custom Glass Effect for Sidebar */
