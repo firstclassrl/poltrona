@@ -70,15 +70,47 @@ export const BarberProfile = () => {
 
       // Carica i dati del barbiere
       console.log('Loading staff profile from API...');
-      const staff = await apiService.getStaffProfile();
-      console.log('Staff profile loaded:', staff);
-      setStaffData(staff);
-      
-      // Popola il form con i dati esistenti
-      if (staff) {
-        const profileData = getBarberProfile(staff);
-        console.log('Profile data for form:', profileData);
+      try {
+        const staff = await apiService.getStaffProfile();
+        console.log('Staff profile loaded:', staff);
+        setStaffData(staff);
+        
+        // Popola il form con i dati esistenti
+        if (staff) {
+          const profileData = getBarberProfile(staff);
+          console.log('Profile data for form:', profileData);
+          setFormData(profileData);
+        }
+      } catch (apiError) {
+        console.log('No staff data found in database, creating default staff member');
+        
+        // Crea un barbiere di default se non esiste
+        const defaultStaff: Staff = {
+          id: 'default-staff-1',
+          shop_id: null,
+          full_name: 'Mario Rossi',
+          role: 'barber',
+          calendar_id: null,
+          active: true,
+          chair_id: null,
+          profile_photo_url: null,
+          email: 'mario@retrobarbershop.it',
+          created_at: new Date().toISOString(),
+        };
+        
+        setStaffData(defaultStaff);
+        
+        // Salva nel localStorage per uso futuro
+        localStorage.setItem('barberProfile', JSON.stringify(defaultStaff));
+        
+        // Popola il form con i dati di default
+        const profileData = getBarberProfile(defaultStaff);
         setFormData(profileData);
+        
+        setMessage({ 
+          type: 'success', 
+          text: 'Creato profilo barbiere di default. Puoi modificare i dati e salvarli.' 
+        });
       }
     } catch (error) {
       console.error('Error loading profile data:', error);

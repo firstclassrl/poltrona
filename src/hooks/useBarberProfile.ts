@@ -45,16 +45,50 @@ export const useBarberProfile = () => {
     setIsLoading(true);
     
     try {
+      // Controlla se è un staff di default (non esistente nel database)
+      const isDefaultStaff = staffId.startsWith('default-staff-');
+      
+      if (isDefaultStaff) {
+        console.log('⚠️ Staff di default - salvataggio solo nel localStorage');
+        
+        // Per staff di default, salva solo nel localStorage
+        const success = saveBarberProfile(staffId, profileData);
+        
+        if (success) {
+          console.log('✅ Profilo barbiere di default salvato nel localStorage:', profileData);
+          
+          // Aggiorna anche i dati del barbiere nel localStorage generale
+          const allStaff = localStorage.getItem('staff_data');
+          if (allStaff) {
+            const staffArray: Staff[] = JSON.parse(allStaff);
+            const updatedStaffArray = staffArray.map(staff => 
+              staff.id === staffId 
+                ? { 
+                    ...staff, 
+                    full_name: profileData.full_name,
+                    role: profileData.role,
+                    email: profileData.email,
+                    chair_id: profileData.chair_id,
+                    profile_photo_url: profileData.profile_photo_url
+                  }
+                : staff
+            );
+            localStorage.setItem('staff_data', JSON.stringify(updatedStaffArray));
+          }
+        }
+        
+        return success;
+      }
+
+      // Per staff esistenti nel database, prova a salvare via API
       // Prepara i dati per l'API (solo i campi che esistono nella tabella staff)
       const staffUpdateData: Partial<Staff> = {
         id: staffId,
         full_name: profileData.full_name,
         role: profileData.role,
-        phone: profileData.phone,
         email: profileData.email,
         chair_id: profileData.chair_id,
         profile_photo_url: profileData.profile_photo_url,
-        updated_at: new Date().toISOString()
       };
 
       // Chiama l'API per aggiornare il profilo nel database
@@ -72,7 +106,14 @@ export const useBarberProfile = () => {
           const staffArray: Staff[] = JSON.parse(allStaff);
           const updatedStaffArray = staffArray.map(staff => 
             staff.id === staffId 
-              ? { ...staff, ...profileData }
+              ? { 
+                  ...staff, 
+                  full_name: profileData.full_name,
+                  role: profileData.role,
+                  email: profileData.email,
+                  chair_id: profileData.chair_id,
+                  profile_photo_url: profileData.profile_photo_url
+                }
               : staff
           );
           localStorage.setItem('staff_data', JSON.stringify(updatedStaffArray));
@@ -87,7 +128,7 @@ export const useBarberProfile = () => {
       if (fallbackSuccess) {
         console.log('⚠️ Profilo salvato solo nel localStorage a causa di errore API');
       }
-      return false;
+      return fallbackSuccess;
     } finally {
       setIsLoading(false);
     }
