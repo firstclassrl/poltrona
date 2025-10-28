@@ -112,6 +112,26 @@ export const apiService = {
     }
   },
 
+  // Cancel appointments in date range (for vacation mode)
+  async cancelAppointmentsInRange(startDate: string, endDate: string): Promise<void> {
+    if (!isSupabaseConfigured() || !API_CONFIG.N8N_BASE_URL) throw new Error('Backend non configurato');
+    
+    try {
+      // First, get all appointments in the date range
+      const appointments = await this.getAppointments(startDate, endDate);
+      
+      // Cancel each appointment
+      const cancelPromises = appointments.map(appointment => 
+        this.cancelAppointment(appointment.id)
+      );
+      
+      await Promise.all(cancelPromises);
+    } catch (error) {
+      console.error('Error canceling appointments in range:', error);
+      throw error;
+    }
+  },
+
   // Get user profile
   async getUserProfile(): Promise<Profile> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');

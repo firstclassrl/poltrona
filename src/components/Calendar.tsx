@@ -8,6 +8,7 @@ import { formatTime, formatDate } from '../utils/date';
 import { useDailyShopHours } from '../hooks/useDailyShopHours';
 import { useChairAssignment } from '../hooks/useChairAssignment';
 import { useAppointments } from '../hooks/useAppointments';
+import { useVacationMode } from '../hooks/useVacationMode';
 import { AppointmentForm } from './AppointmentForm';
 
 export const Calendar = () => {
@@ -17,6 +18,7 @@ export const Calendar = () => {
   const { shopHours, getAvailableTimeSlots, isDateOpen, getShopHoursSummary } = useDailyShopHours();
   const { getAssignedChairs } = useChairAssignment();
   const { appointments } = useAppointments();
+  const { isDateInVacation } = useVacationMode();
   
   // Mobile-specific states
   const [isMobile, setIsMobile] = useState(false);
@@ -31,7 +33,7 @@ export const Calendar = () => {
       const day = new Date(start);
       day.setDate(start.getDate() + i);
       return day;
-    }).filter(day => isDateOpen(day)); // Filtra solo i giorni aperti
+    }).filter(day => isDateOpen(day)); // Mostra tutti i giorni aperti (inclusi quelli in ferie)
   };
 
   const weekDays = getWeekDays();
@@ -283,7 +285,7 @@ export const Calendar = () => {
                       return (
                         <div
                           key={`${time}-${dayIndex}`}
-                          className={`min-h-[60px] p-1 border border-gray-100 transition-colors ${
+                          className={`min-h-[60px] p-1 border border-gray-100 transition-colors relative ${
                             isTimeSlotAvailable 
                               ? 'hover:bg-gray-50 cursor-pointer' 
                               : 'bg-gray-200 text-gray-600 cursor-not-allowed'
@@ -327,6 +329,15 @@ export const Calendar = () => {
                               </div>
                             ))
                           }
+                          
+                          {/* Overlay per giorni in ferie */}
+                          {isDateInVacation(day) && (
+                            <div className="absolute inset-0 bg-red-500/10 flex items-center justify-center">
+                              <span className="text-red-600 font-bold text-sm transform -rotate-45">
+                                CHIUSO PER FERIE
+                              </span>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -457,7 +468,14 @@ export const Calendar = () => {
 
           {/* Appointments List */}
           <div className="space-y-3">
-            {isDateOpen(currentDay) ? (
+            {isDateInVacation(currentDay) ? (
+              <Card className="p-8 text-center bg-red-50 border-red-300">
+                <div className="text-red-600">
+                  <Clock className="w-12 h-12 mx-auto mb-3" />
+                  <p className="text-lg font-bold">CHIUSO PER FERIE</p>
+                </div>
+              </Card>
+            ) : isDateOpen(currentDay) ? (
               getFilteredAppointmentsForDay(currentDay, timePeriod).length > 0 ? (
                 getFilteredAppointmentsForDay(currentDay, timePeriod).map((appointment) => (
                   <Card key={appointment.id} className="p-4">

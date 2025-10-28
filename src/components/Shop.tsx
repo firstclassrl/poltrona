@@ -3,8 +3,10 @@ import { Building2, MapPin, Edit, Save, X, Lock } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
+import { Modal } from './ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
 import { DailyHoursManager } from './DailyHoursManager';
+import { useVacationMode } from '../hooks/useVacationMode';
 import { apiService } from '../services/api';
 import type { Shop } from '../types';
 
@@ -30,6 +32,11 @@ export const ShopManagement = () => {
   const [advancedFormData, setAdvancedFormData] = useState({
     products_enabled: true,
   });
+  const [vacationStartDate, setVacationStartDate] = useState('');
+  const [vacationEndDate, setVacationEndDate] = useState('');
+  const [showVacationConfirm, setShowVacationConfirm] = useState(false);
+  
+  const { vacationPeriod, setVacationPeriod, clearVacationPeriod } = useVacationMode();
 
   useEffect(() => {
     loadShopData();
@@ -176,7 +183,28 @@ export const ShopManagement = () => {
     setIsEditingAdvanced(false);
   };
 
-
+  const handleActivateVacation = async () => {
+    if (!vacationStartDate || !vacationEndDate) return;
+    
+    setIsLoading(true);
+    try {
+      // Cancel all appointments in the vacation period
+      await apiService.cancelAppointmentsInRange(vacationStartDate, vacationEndDate);
+      
+      // Set vacation period
+      setVacationPeriod(vacationStartDate, vacationEndDate);
+      
+      setShowVacationConfirm(false);
+      setVacationStartDate('');
+      setVacationEndDate('');
+      setMessage({ type: 'success', text: 'Modalità ferie attivata! Tutti gli appuntamenti nel periodo sono stati cancellati.' });
+    } catch (error) {
+      console.error('Error activating vacation mode:', error);
+      setMessage({ type: 'error', text: 'Errore durante l\'attivazione della modalità ferie' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-4 max-w-7xl mx-auto">
@@ -421,6 +449,45 @@ export const ShopManagement = () => {
               </div>
             </div>
             
+            {/* Modalità Ferie */}
+            <div className="mb-6">
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <h3 className="text-base font-medium text-gray-900 mb-2">
+                  Modalità Ferie
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Imposta un periodo di chiusura per ferie
+                </p>
+                
+                {/* Form date range */}
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <Input
+                    label="Data Inizio"
+                    type="date"
+                    value={vacationStartDate}
+                    onChange={(e) => setVacationStartDate(e.target.value)}
+                    disabled={!isEditingAdvanced}
+                  />
+                  <Input
+                    label="Data Fine"
+                    type="date"
+                    value={vacationEndDate}
+                    onChange={(e) => setVacationEndDate(e.target.value)}
+                    disabled={!isEditingAdvanced}
+                  />
+                </div>
+                
+                {/* Bottone attivazione */}
+                <Button
+                  onClick={() => setShowVacationConfirm(true)}
+                  variant="danger"
+                  disabled={!isEditingAdvanced || !vacationStartDate || !vacationEndDate}
+                >
+                  Attiva Modalità Ferie
+                </Button>
+              </div>
+            </div>
+            
             <DailyHoursManager />
           </div>
         </Card>
@@ -437,6 +504,26 @@ export const ShopManagement = () => {
           </div>
         </Card>
       )}
+
+      {/* Modal Conferma Attivazione Ferie */}
+      <Modal
+        isOpen={showVacationConfirm}
+        onClose={() => setShowVacationConfirm(false)}
+        title="Conferma Attivazione Ferie"
+      >
+        <div className="text-red-600 font-semibold mb-4">
+          ⚠️ ATTENZIONE: Tutti gli appuntamenti nel periodo selezionato verranno cancellati
+        </div>
+        <p className="mb-4">Periodo ferie: {vacationStartDate} - {vacationEndDate}</p>
+        <div className="flex space-x-3 mt-6">
+          <Button variant="secondary" onClick={() => setShowVacationConfirm(false)}>
+            Annulla
+          </Button>
+          <Button variant="danger" onClick={handleActivateVacation} loading={isLoading}>
+            Conferma e Cancella Appuntamenti
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 };

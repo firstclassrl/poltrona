@@ -79,6 +79,13 @@ export interface Profile {
   created_at: string;
 }
 
+export interface VacationPeriod {
+  id?: string;
+  start_date: string; // formato ISO
+  end_date: string;   // formato ISO
+  created_at?: string;
+}
+
 export interface Shop {
   id: string;
   name: string;
@@ -94,6 +101,7 @@ export interface Shop {
   opening_date?: string;
   description?: string;
   products_enabled?: boolean; // Controlla se il sistema prodotti è abilitato
+  vacation_period?: VacationPeriod | null;
   created_at: string;
   updated_at?: string;
 }

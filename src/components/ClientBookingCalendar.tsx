@@ -8,6 +8,7 @@ import { useChairAssignment } from '../hooks/useChairAssignment';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useAppointments } from '../hooks/useAppointments';
+import { useVacationMode } from '../hooks/useVacationMode';
 import { emailService } from '../services/emailServiceBrowser';
 import { apiService } from '../services/api';
 import type { Service, Staff, Shop } from '../types';
@@ -18,6 +19,7 @@ export const ClientBookingCalendar: React.FC = () => {
   const { addNotification } = useNotifications();
   const { user } = useAuth();
   const { createAppointment, isTimeSlotBooked } = useAppointments();
+  const { isDateInVacation } = useVacationMode();
   const [currentWeek, setCurrentWeek] = useState(0);
   // Removed timePeriod state - now using daily configured hours
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -88,8 +90,8 @@ export const ClientBookingCalendar: React.FC = () => {
         const date = new Date(weekStart);
         date.setDate(weekStart.getDate() + day);
         
-        // Only include days that are not closed
-        if (isDateOpen(date)) {
+        // Only include days that are not closed and not in vacation
+        if (isDateOpen(date) && !isDateInVacation(date)) {
           days.push(date);
         }
       }
@@ -108,7 +110,7 @@ export const ClientBookingCalendar: React.FC = () => {
 
   // Check if a time slot is available
   const isTimeSlotAvailable = (date: Date, time: string) => {
-    if (!isDateOpen(date)) return false;
+    if (!isDateOpen(date) || isDateInVacation(date)) return false;
     
     const timeSlots = getTimeSlotsForDate(date);
     if (!timeSlots.includes(time)) return false;
@@ -136,6 +138,9 @@ export const ClientBookingCalendar: React.FC = () => {
 
   // Filter time slots by period (morning/afternoon)
   const getFilteredTimeSlots = (date: Date, period: 'morning' | 'afternoon') => {
+    // Don't show time slots if date is in vacation
+    if (isDateInVacation(date)) return [];
+    
     const allSlots = getTimeSlotsForDate(date);
     return allSlots.filter(time => {
       const [hours] = time.split(':').map(Number);
@@ -357,7 +362,12 @@ export const ClientBookingCalendar: React.FC = () => {
 
           {/* Time Slots List */}
           <div className="space-y-3">
-            {isDateOpen(currentDay) ? (
+            {isDateInVacation(currentDay) ? (
+              <div className="text-center py-8 text-red-600 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-lg font-semibold">CHIUSO PER FERIE</p>
+                <p className="text-sm">Il negozio è chiuso per le vacanze in questa data</p>
+              </div>
+            ) : isDateOpen(currentDay) ? (
               getFilteredTimeSlots(currentDay, timePeriod).map((time) => {
                 const isAvailable = isTimeSlotAvailable(currentDay, time);
                 
@@ -437,13 +447,13 @@ export const ClientBookingCalendar: React.FC = () => {
         {/* Info banner rimosso per visualizzazione cliente */}
 
         {/* Calendar Grid */}
-        <div 
-          className="grid gap-2"
-          style={{ gridTemplateColumns: `repeat(${currentWeekDays.length}, 1fr)` }}
-        >
-
-          {/* Calendar Days */}
-          {currentWeekDays.map((date, index) => {
+        {currentWeekDays.length > 0 ? (
+          <div 
+            className="grid gap-2"
+            style={{ gridTemplateColumns: `repeat(${currentWeekDays.length}, 1fr)` }}
+          >
+            {/* Calendar Days */}
+            {currentWeekDays.map((date, index) => {
             const timeSlots = getTimeSlotsForDate(date);
             const isToday = date.toDateString() === new Date().toDateString();
             
@@ -481,7 +491,13 @@ export const ClientBookingCalendar: React.FC = () => {
               </div>
             );
           })}
-        </div>
+          </div>
+        ) : (
+          <div className="text-center py-12 text-red-600 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-lg font-semibold">CHIUSO PER FERIE</p>
+            <p className="text-sm">Il negozio è chiuso per le vacanze in questa settimana</p>
+          </div>
+        )}
 
         {/* Legend */}
         <div className="flex items-center justify-center space-x-6 text-sm">
