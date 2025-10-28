@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import type { Staff } from '../types';
+import { apiService } from '../services/api';
 
 export interface BarberProfileData {
   full_name: string;
@@ -44,14 +45,26 @@ export const useBarberProfile = () => {
     setIsLoading(true);
     
     try {
-      // Simula chiamata API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Prepara i dati per l'API (solo i campi che esistono nella tabella staff)
+      const staffUpdateData: Partial<Staff> = {
+        id: staffId,
+        full_name: profileData.full_name,
+        role: profileData.role,
+        phone: profileData.phone,
+        email: profileData.email,
+        chair_id: profileData.chair_id,
+        profile_photo_url: profileData.profile_photo_url,
+        updated_at: new Date().toISOString()
+      };
+
+      // Chiama l'API per aggiornare il profilo nel database
+      await apiService.updateStaffProfile(staffUpdateData as Staff);
       
-      // Salva nel localStorage
+      // Salva anche nel localStorage per backup e accesso offline
       const success = saveBarberProfile(staffId, profileData);
       
       if (success) {
-        console.log('✅ Profilo barbiere aggiornato con successo:', profileData);
+        console.log('✅ Profilo barbiere aggiornato con successo nel database:', profileData);
         
         // Aggiorna anche i dati del barbiere nel localStorage generale
         const allStaff = localStorage.getItem('staff_data');
@@ -69,6 +82,11 @@ export const useBarberProfile = () => {
       return success;
     } catch (error) {
       console.error('❌ Errore nell\'aggiornamento del profilo barbiere:', error);
+      // In caso di errore API, prova comunque a salvare nel localStorage
+      const fallbackSuccess = saveBarberProfile(staffId, profileData);
+      if (fallbackSuccess) {
+        console.log('⚠️ Profilo salvato solo nel localStorage a causa di errore API');
+      }
       return false;
     } finally {
       setIsLoading(false);
@@ -76,7 +94,7 @@ export const useBarberProfile = () => {
   };
 
   // Ottieni il profilo barbiere con fallback ai dati di base
-  const getBarberProfile = (staff: Staff | null): BarberProfileData => {
+  const getBarberProfile = useCallback((staff: Staff | null): BarberProfileData => {
     if (!staff) {
       return {
         full_name: '',
@@ -108,7 +126,7 @@ export const useBarberProfile = () => {
       chair_id: staff.chair_id || '',
       profile_photo_url: staff.profile_photo_url || ''
     };
-  };
+  }, []);
 
   // Elimina il profilo barbiere
   const deleteBarberProfile = (staffId: string): boolean => {

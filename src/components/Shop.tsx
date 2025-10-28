@@ -449,6 +449,8 @@ export const ShopManagement = () => {
               </div>
             </div>
             
+            <DailyHoursManager />
+            
             {/* Modalità Ferie */}
             <div className="mb-6">
               <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -461,20 +463,32 @@ export const ShopManagement = () => {
                 
                 {/* Form date range */}
                 <div className="grid grid-cols-2 gap-4 mb-4">
-                  <Input
-                    label="Data Inizio"
-                    type="date"
-                    value={vacationStartDate}
-                    onChange={(e) => setVacationStartDate(e.target.value)}
-                    disabled={!isEditingAdvanced}
-                  />
-                  <Input
-                    label="Data Fine"
-                    type="date"
-                    value={vacationEndDate}
-                    onChange={(e) => setVacationEndDate(e.target.value)}
-                    disabled={!isEditingAdvanced}
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Data Inizio
+                    </label>
+                    <input
+                      type="date"
+                      value={vacationStartDate}
+                      onChange={(e) => setVacationStartDate(e.target.value)}
+                      disabled={!isEditingAdvanced}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      placeholder="gg/mm/aaaa"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Data Fine
+                    </label>
+                    <input
+                      type="date"
+                      value={vacationEndDate}
+                      onChange={(e) => setVacationEndDate(e.target.value)}
+                      disabled={!isEditingAdvanced}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      placeholder="gg/mm/aaaa"
+                    />
+                  </div>
                 </div>
                 
                 {/* Bottone attivazione */}
@@ -487,8 +501,6 @@ export const ShopManagement = () => {
                 </Button>
               </div>
             </div>
-            
-            <DailyHoursManager />
           </div>
         </Card>
       ) : (
@@ -514,7 +526,9 @@ export const ShopManagement = () => {
         <div className="text-red-600 font-semibold mb-4">
           ⚠️ ATTENZIONE: Tutti gli appuntamenti nel periodo selezionato verranno cancellati
         </div>
-        <p className="mb-4">Periodo ferie: {vacationStartDate} - {vacationEndDate}</p>
+        <p className="mb-4">
+          Periodo ferie: {vacationStartDate ? new Date(vacationStartDate).toLocaleDateString('it-IT') : ''} - {vacationEndDate ? new Date(vacationEndDate).toLocaleDateString('it-IT') : ''}
+        </p>
         <div className="flex space-x-3 mt-6">
           <Button variant="secondary" onClick={() => setShowVacationConfirm(false)}>
             Annulla

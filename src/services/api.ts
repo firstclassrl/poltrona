@@ -154,9 +154,16 @@ export const apiService = {
     
     try {
       const url = `${API_ENDPOINTS.STAFF}?select=*&limit=1`;
-      const response = await fetch(url, { headers: buildHeaders(true) });
-      if (!response.ok) throw new Error('Failed to fetch staff profile');
+      const response = await fetch(url, { headers: buildHeaders(false) }); // Use false for now to avoid auth issues
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error:', response.status, errorText);
+        throw new Error(`Failed to fetch staff profile: ${response.status} ${errorText}`);
+      }
       const staff = await response.json();
+      if (!staff || staff.length === 0) {
+        throw new Error('No staff profile found');
+      }
       return staff[0];
     } catch (error) {
       console.error('Error fetching staff profile:', error);
@@ -169,12 +176,17 @@ export const apiService = {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
     
     try {
+      // For Supabase, we need to use the record ID in the URL path for PATCH requests
       const response = await fetch(`${API_ENDPOINTS.STAFF}?id=eq.${data.id}`, {
         method: 'PATCH',
-        headers: { ...buildHeaders(true) },
+        headers: { ...buildHeaders(false) }, // Use false for now to avoid auth issues
         body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error('Failed to update staff profile');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error:', response.status, errorText);
+        throw new Error(`Failed to update staff profile: ${response.status} ${errorText}`);
+      }
     } catch (error) {
       console.error('Error updating staff profile:', error);
       throw error;

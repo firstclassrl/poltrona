@@ -48,9 +48,12 @@ export const BarberProfile = () => {
 
   const loadProfileData = async () => {
     try {
+      console.log('Loading profile data...');
+      
       // Prima prova a caricare dal localStorage
       const savedProfile = localStorage.getItem('barberProfile');
       if (savedProfile) {
+        console.log('Found saved profile in localStorage:', savedProfile);
         const parsedProfile = JSON.parse(savedProfile);
         setStaffData(parsedProfile);
         setFormData({
@@ -66,12 +69,15 @@ export const BarberProfile = () => {
       }
 
       // Carica i dati del barbiere
+      console.log('Loading staff profile from API...');
       const staff = await apiService.getStaffProfile();
+      console.log('Staff profile loaded:', staff);
       setStaffData(staff);
       
       // Popola il form con i dati esistenti
       if (staff) {
         const profileData = getBarberProfile(staff);
+        console.log('Profile data for form:', profileData);
         setFormData(profileData);
       }
     } catch (error) {
@@ -81,7 +87,13 @@ export const BarberProfile = () => {
   };
 
   const handleSave = async () => {
-    if (!staffData) return;
+    if (!staffData) {
+      console.error('No staff data available for saving');
+      setMessage({ type: 'error', text: 'Nessun dato barbiere disponibile per il salvataggio' });
+      return;
+    }
+    
+    console.log('Saving profile for staff:', staffData.id, formData);
     
     try {
       // Prepara i dati del profilo con l'immagine aggiornata
@@ -89,6 +101,8 @@ export const BarberProfile = () => {
         ...formData,
         profile_photo_url: profileImageUrl,
       };
+
+      console.log('Profile data to save:', profileData);
 
       // Salva il profilo barbiere
       const success = await updateBarberProfile(staffData.id, profileData);
@@ -112,7 +126,7 @@ export const BarberProfile = () => {
       }
     } catch (error) {
       console.error('Error saving profile:', error);
-      setMessage({ type: 'error', text: 'Errore nel salvataggio del profilo' });
+      setMessage({ type: 'error', text: `Errore nel salvataggio del profilo: ${error instanceof Error ? error.message : 'Errore sconosciuto'}` });
     }
   };
 
