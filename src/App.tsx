@@ -4,6 +4,7 @@ import { Dashboard } from './components/Dashboard';
 import { Calendar } from './components/Calendar';
 import { Clients } from './components/Clients';
 import { Products } from './components/Products';
+import { Services } from './components/Services';
 // import { Analytics } from './components/Analytics'; // Temporaneamente nascosto
 import { BarberProfile } from './components/BarberProfile';
 import { ShopManagement } from './components/Shop';
@@ -82,6 +83,8 @@ const AppContent: React.FC = () => {
         return user?.role === 'client' ? (
           <ClientProducts onNavigateToBooking={() => setActiveTab('client_booking')} />
         ) : <Products />;
+      case 'services':
+        return <Services />;
       case 'chat':
         return <Chat />;
       case 'profile':

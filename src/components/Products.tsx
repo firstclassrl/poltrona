@@ -89,19 +89,19 @@ const convertUIToDatabase = (uiProduct: Partial<Product>): Partial<DatabaseProdu
 export const Products: React.FC = () => {
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
+  // Servizi spostati in pagina dedicata
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-  const [showServiceForm, setShowServiceForm] = useState(false);
+  // Modale servizi rimossa (gestita in Services)
   // const [showProductForm, setShowProductForm] = useState(false);
-  const [editingService, setEditingService] = useState<Service | null>(null);
+  // editingService rimosso (gestito in Services)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [, setUserProfile] = useState<Profile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [activeTab, setActiveTab] = useState<'products' | 'services'>('products');
+  // Nessun tab: questa pagina gestisce solo i prodotti
   const [showStockManagement, setShowStockManagement] = useState(false);
   const [tempStockChanges, setTempStockChanges] = useState<Record<string, number>>({});
   const [hasStockChanges, setHasStockChanges] = useState(false);
@@ -125,14 +125,12 @@ export const Products: React.FC = () => {
   useEffect(() => {
     setIsAdmin(user?.role === 'admin' || (user as any)?.role === 'manager');
     const loadCatalog = async () => {
-      const [dbProds, servs] = await Promise.all([
+      const [dbProds] = await Promise.all([
         apiService.getProducts(),
-        apiService.getServices(),
       ]);
       // Convert database products to UI products
       const uiProducts = (dbProds as any).map(convertDatabaseToUI as any);
       setProducts(uiProducts);
-      setServices(servs);
     };
     loadCatalog();
     console.log('Products mounted. isAdmin:', user?.role);
@@ -149,38 +147,7 @@ export const Products: React.FC = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [sortBy, setSortBy] = useState('name');
 
-  const handleSaveService = async (serviceData: Partial<Service>) => {
-    try {
-      if (editingService) {
-        // Aggiorna servizio esistente
-        const updatedService = { ...editingService, ...serviceData };
-        const saved = await apiService.updateService(updatedService as any);
-        setServices(prev => prev.map(s => s.id === editingService.id ? saved : s));
-      } else {
-        // Crea nuovo servizio
-        const saved = await apiService.createService(serviceData as any);
-        setServices(prev => [...prev, saved]);
-      }
-      setShowServiceForm(false);
-      setEditingService(null);
-    } catch (error) {
-      console.error('Error saving service:', error);
-    }
-  };
-
-  const handleEditService = (service: Service) => {
-    setEditingService(service);
-    setShowServiceForm(true);
-  };
-
-  const handleDeleteService = async (serviceId: string) => {
-    try {
-      await apiService.deleteService(serviceId);
-      setServices(prev => prev.filter(s => s.id !== serviceId));
-    } catch (error) {
-      console.error('Error deleting service:', error);
-    }
-  };
+  // Gestione servizi rimossa
 
   const handleSaveProduct = async (productData: Partial<Product>) => {
     try {
@@ -369,11 +336,11 @@ export const Products: React.FC = () => {
       <Toast message={toast.message} type={toast.type} isVisible={toast.isVisible} onClose={hideToast} />
       {/* debug button removed */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Prodotti & Servizi</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Prodotti</h1>
         <div className="flex space-x-3">
           {isAdmin && (
             <>
-              {activeTab === 'products' && (
+              {
                 <>
                   <button
                     onClick={() => setIsAddModalOpen(true)}
@@ -392,16 +359,7 @@ export const Products: React.FC = () => {
                     Gestione Stock
                   </Button>
                 </>
-              )}
-              {activeTab === 'services' && (
-                <Button
-                  onClick={() => setShowServiceForm(true)}
-                  variant="secondary"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Aggiungi Servizio
-                </Button>
-              )}
+              }
             </>
           )}
           <Button
@@ -419,29 +377,7 @@ export const Products: React.FC = () => {
         </div>
       </div>
 
-      {/* Tab Navigation */}
-        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg shadow-sm shadow-green-500/20">
-        <button
-          onClick={() => setActiveTab('products')}
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'products'
-              ? 'bg-green-100 text-green-900 shadow-sm border-2 border-green-300'
-              : 'text-gray-600 hover:text-gray-900 bg-green-50 hover:bg-green-100'
-          }`}
-        >
-          Prodotti ({products.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('services')}
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'services'
-              ? 'bg-green-100 text-green-900 shadow-sm border-2 border-green-300'
-              : 'text-gray-600 hover:text-gray-900 bg-green-50 hover:bg-green-100'
-          }`}
-        >
-          Servizi ({services.length})
-        </button>
-      </div>
+      {/* Navigazione tab rimossa: pagina solo Prodotti */}
 
       {/* Filters and Search */}
       <Card>
@@ -480,48 +416,7 @@ export const Products: React.FC = () => {
         </div>
       </Card>
 
-      {/* Content based on active tab */}
-      {activeTab === 'services' ? (
-        /* Services Section */
-        <div className="space-y-4">
-          <h2 className="text-2xl font-semibold text-gray-900">Servizi</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {services.map((service) => (
-              <Card key={service.id} className="p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-gray-900">{service.name}</h3>
-                  {isAdmin && (
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => handleEditService(service)}
-                      >
-                        <Edit className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => handleDeleteService(service.id)}
-                      >
-                        <X className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-                <div className="text-sm text-gray-600 space-y-1">
-                  <p>Durata: {service.duration_min} min</p>
-                  <p>Prezzo: €{(service.price_cents || 0) / 100}</p>
-                  <Badge className={service.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
-                    {service.active ? 'Attivo' : 'Inattivo'}
-                  </Badge>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      ) : (
-        /* Products Grid */
+      {/* Products Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredProducts.map((product) => (
           <Card key={product.id} className="group hover:scale-105 transition-transform">
@@ -629,7 +524,6 @@ export const Products: React.FC = () => {
           </Card>
         ))}
       </div>
-      )}
 
       {/* Product Detail Modal */}
       <Modal
@@ -829,17 +723,7 @@ export const Products: React.FC = () => {
           </Card>
         )}
 
-      {/* Service Form Modal */}
-      <ProductForm
-        isOpen={showServiceForm}
-        onClose={() => {
-          setShowServiceForm(false);
-          setEditingService(null);
-        }}
-        onSave={handleSaveService}
-        product={editingService}
-        mode={editingService ? 'edit' : 'add'}
-      />
+      {/* Modale servizi rimossa */}
 
       {/* Product Form Modal (basic) */}
       {/* Add Product Modal aligned to DB schema */}

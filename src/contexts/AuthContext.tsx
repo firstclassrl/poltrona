@@ -251,6 +251,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return role === 'admin' || role === 'barber';
       case 'products':
         return role === 'admin' || role === 'barber' || role === 'client';
+      case 'services':
+        return role === 'admin' || role === 'barber';
       case 'chat':
         return role === 'admin' || role === 'barber' || role === 'client';
       // case 'analytics':
