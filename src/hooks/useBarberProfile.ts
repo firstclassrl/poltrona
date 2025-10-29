@@ -89,6 +89,9 @@ export const useBarberProfile = () => {
         email: profileData.email,
         chair_id: profileData.chair_id,
         profile_photo_url: profileData.profile_photo_url,
+        phone: profileData.phone || null,
+        specialties: profileData.specialties || null,
+        bio: profileData.bio || null,
       };
 
       // Chiama l'API per aggiornare il profilo nel database

@@ -6,7 +6,7 @@ import { Badge } from './ui/Badge';
 import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/api';
 import type { Service } from '../types';
-import { ProductForm } from './ProductForm';
+import { ServiceForm } from './ServiceForm';
 
 export const Services: React.FC = () => {
   const { user } = useAuth();
@@ -98,14 +98,14 @@ export const Services: React.FC = () => {
         ))}
       </div>
 
-      <ProductForm
+      <ServiceForm
         isOpen={showServiceForm}
         onClose={() => {
           setShowServiceForm(false);
           setEditingService(null);
         }}
         onSave={handleSaveService}
-        product={editingService as any}
+        service={editingService as any}
         mode={editingService ? 'edit' : 'add'}
       />
     </div>

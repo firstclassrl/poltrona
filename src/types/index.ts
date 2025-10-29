@@ -20,6 +20,9 @@ export interface Staff {
   chair_id?: string | null;
   profile_photo_url?: string | null;
   email?: string;
+  phone?: string | null;
+  specialties?: string | null;
+  bio?: string | null;
   created_at: string;
 }
 

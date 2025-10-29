@@ -393,29 +393,7 @@ export const BarberProfile = () => {
         </Card>
       </div>
 
-      {/* Statistiche */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-blue-600 mb-2">156</div>
-            <div className="text-gray-600">Appuntamenti Completati</div>
-          </div>
-        </Card>
-        
-        <Card>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-green-600 mb-2">4.8</div>
-            <div className="text-gray-600">Valutazione Media</div>
-          </div>
-        </Card>
-        
-        <Card>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-purple-600 mb-2">2</div>
-            <div className="text-gray-600">Anni di Esperienza</div>
-          </div>
-        </Card>
-          </div>
+      {/* Sezione statistiche rimossa su richiesta */}
         </div>
       ) : (
         <ChairAssignment />
