@@ -174,24 +174,22 @@ export const apiService = {
     }
   },
 
-  // Update staff profile
+  // Upsert staff profile (create if missing, update otherwise)
   async updateStaffProfile(data: Staff): Promise<void> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
     try {
-      // For Supabase, we need to use the record ID in the URL path for PATCH requests
-      const response = await fetch(`${API_ENDPOINTS.STAFF}?id=eq.${data.id}`, {
-        method: 'PATCH',
-        headers: { ...buildHeaders(false) }, // Use false for now to avoid auth issues
+      const response = await fetch(API_ENDPOINTS.STAFF, {
+        method: 'POST',
+        headers: { ...buildHeaders(false), Prefer: 'resolution=merge-duplicates,return=minimal' },
         body: JSON.stringify(data),
       });
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('API Error:', response.status, errorText);
-        throw new Error(`Failed to update staff profile: ${response.status} ${errorText}`);
+        console.error('API Error (upsert staff):', response.status, errorText);
+        throw new Error(`Failed to upsert staff profile: ${response.status} ${errorText}`);
       }
     } catch (error) {
-      console.error('Error updating staff profile:', error);
+      console.error('Error upserting staff profile:', error);
       throw error;
     }
   },
@@ -410,7 +408,8 @@ export const apiService = {
     if (!isSupabaseConfigured()) return [];
     
     try {
-      const url = `${API_ENDPOINTS.SERVICES}?select=*&active=eq.true&order=name.asc`;
+      // Mostra tutti i servizi (attivi e non), ordinati per nome
+      const url = `${API_ENDPOINTS.SERVICES}?select=*&order=name.asc`;
       const response = await fetch(url, { headers: buildHeaders(true) });
       if (!response.ok) throw new Error('Failed to fetch services');
       return await response.json();
