@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Building2, MapPin, Edit, Save, X, Lock, CalendarPlus } from 'lucide-react';
+import { Building2, MapPin, Edit, Save, X, Lock, CalendarPlus, Package, Clock, Sun } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -14,9 +14,8 @@ export const ShopManagement = () => {
   const { user } = useAuth();
   const [shop, setShop] = useState<Shop | null>(null);
   const [isEditingBasic, setIsEditingBasic] = useState(false);
-  const [isEditingAdvanced, setIsEditingAdvanced] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isSavingBasic, setIsSavingBasic] = useState(false);
+  const [basicMessage, setBasicMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [basicFormData, setBasicFormData] = useState({
     name: '',
     address: '',
@@ -29,23 +28,38 @@ export const ShopManagement = () => {
     notification_email: '',
     description: '',
   });
-  const [advancedFormData, setAdvancedFormData] = useState({
-    products_enabled: true,
-    extra_opening_date: '',
-    extra_morning_start: '',
-    extra_morning_end: '',
-    extra_afternoon_start: '',
-    extra_afternoon_end: '',
+  const [productsEnabled, setProductsEnabled] = useState(true);
+  const [extraOpeningForm, setExtraOpeningForm] = useState({
+    date: '',
+    morningStart: '',
+    morningEnd: '',
+    afternoonStart: '',
+    afternoonEnd: '',
   });
+  const [productsMessage, setProductsMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [extraOpeningMessage, setExtraOpeningMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [vacationMessage, setVacationMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isEditingProducts, setIsEditingProducts] = useState(false);
+  const [isSavingProducts, setIsSavingProducts] = useState(false);
+  const [isEditingHours, setIsEditingHours] = useState(false);
+  const [isEditingExtraOpening, setIsEditingExtraOpening] = useState(false);
+  const [isSavingExtraOpening, setIsSavingExtraOpening] = useState(false);
+  const [isEditingVacation, setIsEditingVacation] = useState(false);
+  const [isSavingVacation, setIsSavingVacation] = useState(false);
   const [vacationStartDate, setVacationStartDate] = useState('');
   const [vacationEndDate, setVacationEndDate] = useState('');
   const [showVacationConfirm, setShowVacationConfirm] = useState(false);
   
   const { vacationPeriod, setVacationPeriod, clearVacationPeriod } = useVacationMode();
 
-  const showErrorMessage = (text: string) => {
-    setMessage({ type: 'error', text });
-    setTimeout(() => setMessage(null), 5000);
+  const showMessage = (
+    setter: (value: { type: 'success' | 'error'; text: string } | null) => void,
+    type: 'success' | 'error',
+    text: string,
+    timeout: number = 3000
+  ) => {
+    setter({ type, text });
+    setTimeout(() => setter(null), timeout);
   };
 
   const syncExtraOpeningStorage = (shopData: Shop) => {
@@ -96,16 +110,16 @@ export const ShopManagement = () => {
         description: shopData.description || '',
       });
       
-      const productsEnabled = shopData.products_enabled ?? true;
-      console.log('🔧 [DEBUG] Setting advancedFormData.products_enabled to:', productsEnabled);
-      
-      setAdvancedFormData({
-        products_enabled: productsEnabled,
-        extra_opening_date: shopData.extra_opening_date ?? '',
-        extra_morning_start: shopData.extra_morning_start ?? '',
-        extra_morning_end: shopData.extra_morning_end ?? '',
-        extra_afternoon_start: shopData.extra_afternoon_start ?? '',
-        extra_afternoon_end: shopData.extra_afternoon_end ?? '',
+      const enabled = shopData.products_enabled ?? true;
+      console.log('🔧 [DEBUG] Setting productsEnabled to:', enabled);
+
+      setProductsEnabled(enabled);
+      setExtraOpeningForm({
+        date: shopData.extra_opening_date ?? '',
+        morningStart: shopData.extra_morning_start ?? '',
+        morningEnd: shopData.extra_morning_end ?? '',
+        afternoonStart: shopData.extra_afternoon_start ?? '',
+        afternoonEnd: shopData.extra_afternoon_end ?? '',
       });
     } catch (error) {
       console.error('❌ [DEBUG] Error loading shop data:', error);
@@ -116,7 +130,7 @@ export const ShopManagement = () => {
   const handleSaveBasic = async () => {
     if (!shop) return;
     
-    setIsLoading(true);
+    setIsSavingBasic(true);
     try {
       const updatedShop: Shop = {
         ...shop,
@@ -137,112 +151,12 @@ export const ShopManagement = () => {
       syncExtraOpeningStorage(updatedShop);
       
       setIsEditingBasic(false);
-      setMessage({ type: 'success', text: 'Informazioni negozio salvate con successo!' });
-      
-      // Rimuovi il messaggio dopo 3 secondi
-      setTimeout(() => setMessage(null), 3000);
+      showMessage(setBasicMessage, 'success', 'Informazioni negozio salvate con successo!');
     } catch (error) {
       console.error('Error saving shop:', error);
-      setMessage({ type: 'error', text: 'Errore durante il salvataggio. Riprova.' });
-      
-      // Rimuovi il messaggio dopo 5 secondi
-      setTimeout(() => setMessage(null), 5000);
+      showMessage(setBasicMessage, 'error', 'Errore durante il salvataggio. Riprova.', 5000);
     } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSaveAdvanced = async () => {
-    if (!shop) return;
-    
-    setIsLoading(true);
-    try {
-      console.log('🔧 [DEBUG] Saving advanced settings:', {
-        currentShop: shop,
-        advancedFormData: advancedFormData,
-        products_enabled: advancedFormData.products_enabled
-      });
-
-      const hasMorningRange = Boolean(
-        advancedFormData.extra_opening_date &&
-        advancedFormData.extra_morning_start &&
-        advancedFormData.extra_morning_end
-      );
-      const hasAfternoonRange = Boolean(
-        advancedFormData.extra_opening_date &&
-        advancedFormData.extra_afternoon_start &&
-        advancedFormData.extra_afternoon_end
-      );
-
-      if (advancedFormData.extra_opening_date) {
-        if ((advancedFormData.extra_morning_start && !advancedFormData.extra_morning_end) || (!advancedFormData.extra_morning_start && advancedFormData.extra_morning_end)) {
-          showErrorMessage('Completa sia apertura che chiusura della fascia mattina oppure lasciala vuota.');
-          setIsLoading(false);
-          return;
-        }
-
-        if ((advancedFormData.extra_afternoon_start && !advancedFormData.extra_afternoon_end) || (!advancedFormData.extra_afternoon_start && advancedFormData.extra_afternoon_end)) {
-          showErrorMessage('Completa sia apertura che chiusura della fascia pomeriggio oppure lasciala vuota.');
-          setIsLoading(false);
-          return;
-        }
-
-        const isRangeValid = (start: string, end: string) => {
-          if (!start || !end) return true;
-          const [startH, startM] = start.split(':').map(Number);
-          const [endH, endM] = end.split(':').map(Number);
-          return startH * 60 + startM < endH * 60 + endM;
-        };
-
-        if (!isRangeValid(advancedFormData.extra_morning_start, advancedFormData.extra_morning_end)) {
-          showErrorMessage('La fascia mattina deve avere orario di chiusura successivo all’apertura.');
-          setIsLoading(false);
-          return;
-        }
-
-        if (!isRangeValid(advancedFormData.extra_afternoon_start, advancedFormData.extra_afternoon_end)) {
-          showErrorMessage('La fascia pomeriggio deve avere orario di chiusura successivo all’apertura.');
-          setIsLoading(false);
-          return;
-        }
-
-        if (!hasMorningRange && !hasAfternoonRange) {
-          showErrorMessage('Imposta almeno una fascia oraria (mattina o pomeriggio) per il giorno straordinario.');
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      const updatedShop: Shop = {
-        ...shop,
-        products_enabled: advancedFormData.products_enabled,
-        extra_opening_date: advancedFormData.extra_opening_date || null,
-        extra_morning_start: hasMorningRange ? advancedFormData.extra_morning_start : null,
-        extra_morning_end: hasMorningRange ? advancedFormData.extra_morning_end : null,
-        extra_afternoon_start: hasAfternoonRange ? advancedFormData.extra_afternoon_start : null,
-        extra_afternoon_end: hasAfternoonRange ? advancedFormData.extra_afternoon_end : null,
-      };
-
-      console.log('🔧 [DEBUG] Updated shop data to save:', updatedShop);
-
-      await apiService.updateShop(updatedShop);
-      setShop(updatedShop);
-      
-      console.log('✅ [DEBUG] Advanced settings saved successfully');
-      
-      setIsEditingAdvanced(false);
-      setMessage({ type: 'success', text: 'Impostazioni avanzate salvate con successo!' });
-      
-      // Rimuovi il messaggio dopo 3 secondi
-      setTimeout(() => setMessage(null), 3000);
-    } catch (error) {
-      console.error('❌ [DEBUG] Error saving advanced settings:', error);
-      setMessage({ type: 'error', text: 'Errore durante il salvataggio delle impostazioni avanzate. Riprova.' });
-      
-      // Rimuovi il messaggio dopo 5 secondi
-      setTimeout(() => setMessage(null), 5000);
-    } finally {
-      setIsLoading(false);
+      setIsSavingBasic(false);
     }
   };
 
@@ -265,36 +179,144 @@ export const ShopManagement = () => {
     setIsEditingBasic(false);
   };
 
-  const handleCancelAdvanced = () => {
-    // Ripristina i dati originali
+  const handleCancelProducts = () => {
     if (shop) {
-      setAdvancedFormData({
-        products_enabled: shop.products_enabled ?? true,
-        extra_opening_date: shop.extra_opening_date ?? '',
-        extra_morning_start: shop.extra_morning_start ?? '',
-        extra_morning_end: shop.extra_morning_end ?? '',
-        extra_afternoon_start: shop.extra_afternoon_start ?? '',
-        extra_afternoon_end: shop.extra_afternoon_end ?? '',
-      });
+      setProductsEnabled(shop.products_enabled ?? true);
     }
-    setIsEditingAdvanced(false);
+    setIsEditingProducts(false);
+  };
+
+  const handleSaveProducts = async () => {
+    if (!shop) return;
+
+    setIsSavingProducts(true);
+    try {
+      const updatedShop: Shop = {
+        ...shop,
+        products_enabled: productsEnabled,
+      };
+
+      await apiService.updateShop(updatedShop);
+      setShop(updatedShop);
+      setIsEditingProducts(false);
+      showMessage(setProductsMessage, 'success', 'Sistema prodotti aggiornato!');
+    } catch (error) {
+      console.error('❌ [DEBUG] Error saving products setting:', error);
+      showMessage(setProductsMessage, 'error', 'Errore durante il salvataggio del sistema prodotti.', 5000);
+    } finally {
+      setIsSavingProducts(false);
+    }
+  };
+
+  const resetExtraOpeningFromShop = () => {
+    if (!shop) return;
+    setExtraOpeningForm({
+      date: shop.extra_opening_date ?? '',
+      morningStart: shop.extra_morning_start ?? '',
+      morningEnd: shop.extra_morning_end ?? '',
+      afternoonStart: shop.extra_afternoon_start ?? '',
+      afternoonEnd: shop.extra_afternoon_end ?? '',
+    });
+  };
+
+  const handleCancelExtraOpening = () => {
+    resetExtraOpeningFromShop();
+    setIsEditingExtraOpening(false);
   };
 
   const handleClearExtraOpening = () => {
-    setAdvancedFormData(prev => ({
-      ...prev,
-      extra_opening_date: '',
-      extra_morning_start: '',
-      extra_morning_end: '',
-      extra_afternoon_start: '',
-      extra_afternoon_end: '',
-    }));
+    setExtraOpeningForm({
+      date: '',
+      morningStart: '',
+      morningEnd: '',
+      afternoonStart: '',
+      afternoonEnd: '',
+    });
+  };
+
+  const handleSaveExtraOpening = async () => {
+    if (!shop) return;
+
+    const hasMorningRange = Boolean(extraOpeningForm.morningStart && extraOpeningForm.morningEnd);
+    const hasAfternoonRange = Boolean(extraOpeningForm.afternoonStart && extraOpeningForm.afternoonEnd);
+
+    if (extraOpeningForm.date) {
+      if ((extraOpeningForm.morningStart && !extraOpeningForm.morningEnd) || (!extraOpeningForm.morningStart && extraOpeningForm.morningEnd)) {
+        showMessage(setExtraOpeningMessage, 'error', 'Completa sia apertura che chiusura della fascia mattina oppure lasciala vuota.', 5000);
+        return;
+      }
+
+      if ((extraOpeningForm.afternoonStart && !extraOpeningForm.afternoonEnd) || (!extraOpeningForm.afternoonStart && extraOpeningForm.afternoonEnd)) {
+        showMessage(setExtraOpeningMessage, 'error', 'Completa sia apertura che chiusura della fascia pomeriggio oppure lasciala vuota.', 5000);
+        return;
+      }
+
+      const isRangeValid = (start: string, end: string) => {
+        if (!start || !end) return true;
+        const [startH, startM] = start.split(':').map(Number);
+        const [endH, endM] = end.split(':').map(Number);
+        return startH * 60 + startM < endH * 60 + endM;
+      };
+
+      if (!isRangeValid(extraOpeningForm.morningStart, extraOpeningForm.morningEnd)) {
+        showMessage(setExtraOpeningMessage, 'error', 'La fascia mattina deve avere orario di chiusura successivo all’apertura.', 5000);
+        return;
+      }
+
+      if (!isRangeValid(extraOpeningForm.afternoonStart, extraOpeningForm.afternoonEnd)) {
+        showMessage(setExtraOpeningMessage, 'error', 'La fascia pomeriggio deve avere orario di chiusura successivo all’apertura.', 5000);
+        return;
+      }
+
+      if (!hasMorningRange && !hasAfternoonRange) {
+        showMessage(setExtraOpeningMessage, 'error', 'Imposta almeno una fascia oraria (mattina o pomeriggio) per il giorno straordinario.', 5000);
+        return;
+      }
+    }
+
+    setIsSavingExtraOpening(true);
+    try {
+      const updatedShop: Shop = {
+        ...shop,
+        extra_opening_date: extraOpeningForm.date || null,
+        extra_morning_start: extraOpeningForm.date && hasMorningRange ? extraOpeningForm.morningStart : null,
+        extra_morning_end: extraOpeningForm.date && hasMorningRange ? extraOpeningForm.morningEnd : null,
+        extra_afternoon_start: extraOpeningForm.date && hasAfternoonRange ? extraOpeningForm.afternoonStart : null,
+        extra_afternoon_end: extraOpeningForm.date && hasAfternoonRange ? extraOpeningForm.afternoonEnd : null,
+      };
+
+      await apiService.updateShop(updatedShop);
+      setShop(updatedShop);
+      syncExtraOpeningStorage(updatedShop);
+      setExtraOpeningForm({
+        date: updatedShop.extra_opening_date ?? '',
+        morningStart: updatedShop.extra_morning_start ?? '',
+        morningEnd: updatedShop.extra_morning_end ?? '',
+        afternoonStart: updatedShop.extra_afternoon_start ?? '',
+        afternoonEnd: updatedShop.extra_afternoon_end ?? '',
+      });
+
+      setIsEditingExtraOpening(false);
+      const successMessage = extraOpeningForm.date
+        ? 'Apertura straordinaria aggiornata con successo!'
+        : 'Apertura straordinaria rimossa.';
+      showMessage(setExtraOpeningMessage, 'success', successMessage);
+    } catch (error) {
+      console.error('❌ [DEBUG] Error saving extra opening:', error);
+      showMessage(setExtraOpeningMessage, 'error', 'Errore durante il salvataggio dell’apertura straordinaria.', 5000);
+    } finally {
+      setIsSavingExtraOpening(false);
+    }
   };
 
   const handleActivateVacation = async () => {
+    if (!isEditingVacation) {
+      setShowVacationConfirm(false);
+      return;
+    }
     if (!vacationStartDate || !vacationEndDate) return;
     
-    setIsLoading(true);
+    setIsSavingVacation(true);
     try {
       // Try to cancel appointments (will skip if backend not configured)
       await apiService.cancelAppointmentsInRange(vacationStartDate, vacationEndDate);
@@ -312,18 +334,19 @@ export const ShopManagement = () => {
         ? 'Modalità ferie attivata! Tutti gli appuntamenti nel periodo sono stati cancellati.'
         : 'Modalità ferie attivata! (Backend non configurato - appuntamenti non cancellati)';
       
-      setMessage({ type: 'success', text: messageText });
+      showMessage(setVacationMessage, 'success', messageText, 4000);
     } catch (error) {
       console.error('Error activating vacation mode:', error);
-      setMessage({ type: 'error', text: 'Errore durante l\'attivazione della modalità ferie' });
+      showMessage(setVacationMessage, 'error', 'Errore durante l\'attivazione della modalità ferie', 5000);
     } finally {
-      setIsLoading(false);
+      setIsSavingVacation(false);
     }
   };
 
   const handleDeactivateVacation = () => {
+    if (!isEditingVacation) return;
     clearVacationPeriod();
-    setMessage({ type: 'success', text: 'Modalità ferie disattivata!' });
+    showMessage(setVacationMessage, 'success', 'Modalità ferie disattivata!', 4000);
   };
 
   return (
@@ -331,17 +354,6 @@ export const ShopManagement = () => {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold text-gray-900">Gestione Negozio</h1>
       </div>
-
-      {/* Messaggio di feedback */}
-      {message && (
-        <div className={`p-3 rounded-lg ${
-          message.type === 'success' 
-            ? 'bg-green-50 border border-green-200 text-green-800' 
-            : 'bg-red-50 border border-red-200 text-red-800'
-        }`}>
-          <p className="text-sm font-medium">{message.text}</p>
-        </div>
-      )}
 
       {/* Card Unica: Informazioni Negozio e Contatti */}
       <Card className="!border-2 !border-green-500">
@@ -368,7 +380,7 @@ export const ShopManagement = () => {
                   variant="secondary"
                   onClick={handleCancelBasic}
                   size="sm"
-                  disabled={isLoading}
+                  disabled={isSavingBasic}
                 >
                   <X className="w-4 h-4 mr-2" />
                   Annulla
@@ -376,8 +388,8 @@ export const ShopManagement = () => {
                 <Button
                   onClick={handleSaveBasic}
                   size="sm"
-                  loading={isLoading}
-                  disabled={isLoading}
+                  loading={isSavingBasic}
+                  disabled={isSavingBasic}
                   className="bg-green-600 hover:bg-green-700 text-white border-green-600"
                 >
                   <Save className="w-4 h-4 mr-2" />
@@ -386,6 +398,17 @@ export const ShopManagement = () => {
               </div>
             )}
           </div>
+          {basicMessage && (
+            <div
+              className={`mb-4 p-3 rounded-lg ${
+                basicMessage.type === 'success'
+                  ? 'bg-green-50 border border-green-200 text-green-800'
+                  : 'bg-red-50 border border-red-200 text-red-800'
+              }`}
+            >
+              <p className="text-sm font-medium">{basicMessage.text}</p>
+            </div>
+          )}
 
           {/* Informazioni Principali */}
           <div className="mb-6">
@@ -504,92 +527,192 @@ export const ShopManagement = () => {
 
       {/* Card Impostazioni Avanzate - Solo Admin */}
       {user?.role === 'admin' ? (
-        <Card className="!border-2 !border-purple-500">
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center mr-3">
-                  <Lock className="w-5 h-5 text-white" />
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold text-gray-900">Impostazioni Avanzate</h2>
+
+          <Card className="!border-2 !border-purple-400">
+            <div className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                    <Package className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900">Sistema Prodotti</h3>
+                    <p className="text-sm text-gray-600">Attiva o disattiva il catalogo prodotti e l'upsell.</p>
+                  </div>
                 </div>
-                <h2 className="text-lg font-semibold text-gray-900">Impostazioni Avanzate</h2>
-              </div>
-              {!isEditingAdvanced ? (
-                <Button 
-                  onClick={() => setIsEditingAdvanced(true)} 
-                  size="sm"
-                  className="bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
-                >
-                  <Edit className="w-4 h-4 mr-2 text-white" />
-                  Modifica
-                </Button>
-              ) : (
-                <div className="flex space-x-2">
+                {!isEditingProducts ? (
                   <Button
-                    variant="secondary"
-                    onClick={handleCancelAdvanced}
+                    onClick={() => setIsEditingProducts(true)}
                     size="sm"
-                    disabled={isLoading}
-                  >
-                    <X className="w-4 h-4 mr-2" />
-                    Annulla
-                  </Button>
-                  <Button
-                    onClick={handleSaveAdvanced}
-                    size="sm"
-                    loading={isLoading}
-                    disabled={isLoading}
                     className="bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
                   >
-                    <Save className="w-4 h-4 mr-2 text-white" />
-                    Salva
+                    <Edit className="w-4 h-4 mr-2" />
+                    Modifica
                   </Button>
+                ) : (
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleCancelProducts}
+                      disabled={isSavingProducts}
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Annulla
+                    </Button>
+                    <Button
+                      onClick={handleSaveProducts}
+                      size="sm"
+                      loading={isSavingProducts}
+                      disabled={isSavingProducts}
+                      className="bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      Salva
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {productsMessage && (
+                <div
+                  className={`p-3 rounded-lg ${
+                    productsMessage.type === 'success'
+                      ? 'bg-purple-50 border border-purple-200 text-purple-800'
+                      : 'bg-red-50 border border-red-200 text-red-800'
+                  }`}
+                >
+                  <p className="text-sm font-medium">{productsMessage.text}</p>
                 </div>
               )}
-            </div>
-            
-            {/* Toggle Sistema Prodotti */}
-            <div className="mb-6">
+
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <h3 className="text-base font-medium text-gray-900">Sistema Prodotti</h3>
-                  <p className="text-sm text-gray-600">
-                    Attiva/disattiva il catalogo prodotti e l'upsell durante le prenotazioni
-                  </p>
-                </div>
+                <p className="text-sm text-gray-700">
+                  {productsEnabled ? 'Il catalogo prodotti è attivo.' : 'Il catalogo prodotti è disattivato.'}
+                </p>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={advancedFormData.products_enabled}
-                    onChange={(e) => setAdvancedFormData(prev => ({ ...prev, products_enabled: e.target.checked }))}
-                    disabled={!isEditingAdvanced}
+                    checked={productsEnabled}
+                    onChange={(e) => setProductsEnabled(e.target.checked)}
+                    disabled={!isEditingProducts}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
                 </label>
               </div>
             </div>
-            
-            <DailyHoursManager />
-            
-            {/* Apertura Straordinaria */}
-            <div className="mt-6">
-              <div className="flex items-start justify-between mb-3">
+          </Card>
+
+          <Card className="!border-2 !border-indigo-400">
+            <div className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                    <CalendarPlus className="w-5 h-5 text-purple-600" />
+                  <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-indigo-600" />
                   </div>
                   <div>
-                    <h3 className="text-base font-medium text-gray-900">Apertura Straordinaria</h3>
-                    <p className="text-sm text-gray-600">
-                      Scegli un giorno aggiuntivo di apertura rispetto al calendario abituale.
-                    </p>
+                    <h3 className="text-base font-semibold text-gray-900">Orari di Apertura</h3>
+                    <p className="text-sm text-gray-600">Gestisci l’apertura giornaliera del negozio.</p>
                   </div>
                 </div>
+                {!isEditingHours ? (
+                  <Button
+                    onClick={() => setIsEditingHours(true)}
+                    size="sm"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Modifica
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => setIsEditingHours(false)}
+                    size="sm"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Termina
+                  </Button>
+                )}
+              </div>
+
+              <DailyHoursManager disabled={!isEditingHours} />
+
+              {!isEditingHours && (
+                <p className="text-xs text-gray-500">
+                  Clicca su Modifica per aggiornare i giorni e le fasce orarie.
+                </p>
+              )}
+            </div>
+          </Card>
+
+          <Card className="!border-2 !border-pink-400">
+            <div className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
+                    <CalendarPlus className="w-5 h-5 text-pink-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900">Apertura Straordinaria</h3>
+                    <p className="text-sm text-gray-600">Apri in un giorno extra rispetto al calendario standard.</p>
+                  </div>
+                </div>
+                {!isEditingExtraOpening ? (
+                  <Button
+                    onClick={() => setIsEditingExtraOpening(true)}
+                    size="sm"
+                    className="bg-pink-600 hover:bg-pink-700 text-white border-pink-600"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Modifica
+                  </Button>
+                ) : (
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleCancelExtraOpening}
+                      disabled={isSavingExtraOpening}
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Annulla
+                    </Button>
+                    <Button
+                      onClick={handleSaveExtraOpening}
+                      size="sm"
+                      loading={isSavingExtraOpening}
+                      disabled={isSavingExtraOpening}
+                      className="bg-pink-600 hover:bg-pink-700 text-white border-pink-600"
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      Salva
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {extraOpeningMessage && (
+                <div
+                  className={`p-3 rounded-lg ${
+                    extraOpeningMessage.type === 'success'
+                      ? 'bg-pink-50 border border-pink-200 text-pink-800'
+                      : 'bg-red-50 border border-red-200 text-red-800'
+                  }`}
+                >
+                  <p className="text-sm font-medium">{extraOpeningMessage.text}</p>
+                </div>
+              )}
+
+              <div className="flex justify-end">
                 <Button
                   variant="secondary"
                   size="sm"
                   onClick={handleClearExtraOpening}
-                  disabled={!isEditingAdvanced || (!advancedFormData.extra_opening_date && !advancedFormData.extra_morning_start && !advancedFormData.extra_morning_end && !advancedFormData.extra_afternoon_start && !advancedFormData.extra_afternoon_end)}
+                  disabled={!isEditingExtraOpening || (!extraOpeningForm.date && !extraOpeningForm.morningStart && !extraOpeningForm.morningEnd && !extraOpeningForm.afternoonStart && !extraOpeningForm.afternoonEnd)}
                 >
                   Rimuovi apertura
                 </Button>
@@ -597,15 +720,13 @@ export const ShopManagement = () => {
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Data
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Data</label>
                   <input
                     type="date"
-                    value={advancedFormData.extra_opening_date}
-                    onChange={(e) => setAdvancedFormData(prev => ({ ...prev, extra_opening_date: e.target.value }))}
-                    disabled={!isEditingAdvanced}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+                    value={extraOpeningForm.date}
+                    onChange={(e) => setExtraOpeningForm(prev => ({ ...prev, date: e.target.value }))}
+                    disabled={!isEditingExtraOpening}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:bg-gray-100"
                     placeholder="gg/mm/aaaa"
                     lang="it-IT"
                   />
@@ -618,20 +739,20 @@ export const ShopManagement = () => {
                       <label className="block text-xs font-medium text-gray-600 mb-1">Apertura</label>
                       <input
                         type="time"
-                        value={advancedFormData.extra_morning_start}
-                        onChange={(e) => setAdvancedFormData(prev => ({ ...prev, extra_morning_start: e.target.value }))}
-                        disabled={!isEditingAdvanced || !advancedFormData.extra_opening_date}
-                        className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+                        value={extraOpeningForm.morningStart}
+                        onChange={(e) => setExtraOpeningForm(prev => ({ ...prev, morningStart: e.target.value }))}
+                        disabled={!isEditingExtraOpening || !extraOpeningForm.date}
+                        className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:bg-gray-100"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Chiusura</label>
                       <input
                         type="time"
-                        value={advancedFormData.extra_morning_end}
-                        onChange={(e) => setAdvancedFormData(prev => ({ ...prev, extra_morning_end: e.target.value }))}
-                        disabled={!isEditingAdvanced || !advancedFormData.extra_opening_date}
-                        className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+                        value={extraOpeningForm.morningEnd}
+                        onChange={(e) => setExtraOpeningForm(prev => ({ ...prev, morningEnd: e.target.value }))}
+                        disabled={!isEditingExtraOpening || !extraOpeningForm.date}
+                        className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:bg-gray-100"
                       />
                     </div>
                   </div>
@@ -644,123 +765,149 @@ export const ShopManagement = () => {
                       <label className="block text-xs font-medium text-gray-600 mb-1">Apertura</label>
                       <input
                         type="time"
-                        value={advancedFormData.extra_afternoon_start}
-                        onChange={(e) => setAdvancedFormData(prev => ({ ...prev, extra_afternoon_start: e.target.value }))}
-                        disabled={!isEditingAdvanced || !advancedFormData.extra_opening_date}
-                        className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+                        value={extraOpeningForm.afternoonStart}
+                        onChange={(e) => setExtraOpeningForm(prev => ({ ...prev, afternoonStart: e.target.value }))}
+                        disabled={!isEditingExtraOpening || !extraOpeningForm.date}
+                        className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:bg-gray-100"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Chiusura</label>
                       <input
                         type="time"
-                        value={advancedFormData.extra_afternoon_end}
-                        onChange={(e) => setAdvancedFormData(prev => ({ ...prev, extra_afternoon_end: e.target.value }))}
-                        disabled={!isEditingAdvanced || !advancedFormData.extra_opening_date}
-                        className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+                        value={extraOpeningForm.afternoonEnd}
+                        onChange={(e) => setExtraOpeningForm(prev => ({ ...prev, afternoonEnd: e.target.value }))}
+                        disabled={!isEditingExtraOpening || !extraOpeningForm.date}
+                        className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:bg-gray-100"
                       />
                     </div>
                   </div>
                 </div>
               </div>
 
-              <p className="mt-3 text-xs text-gray-500">
-                Lascia vuoto il campo data per rimuovere l\'apertura straordinaria. Le fasce orarie sono opzionali: puoi inserire solo mattina o solo pomeriggio.
+              <p className="text-xs text-gray-500">
+                Lascia vuoto il campo data per rimuovere l'apertura straordinaria. Puoi specificare solo la mattina o solo il pomeriggio.
               </p>
             </div>
+          </Card>
 
-            {/* Modalità Ferie */}
-            <div className="mb-6">
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                <h3 className="text-base font-medium text-gray-900 mb-2">
-                  Modalità Ferie
-                </h3>
-                
-                {vacationPeriod ? (
-                  // Periodo ferie attivo
-                  <div className="space-y-4">
-                    <div className="p-3 bg-red-100 border border-red-300 rounded-lg">
-                      <p className="text-sm text-red-800 font-medium mb-1">
-                        Modalità ferie attiva
-                      </p>
-                      <p className="text-sm text-red-700">
-                        Periodo: {new Date(vacationPeriod.start_date).toLocaleDateString('it-IT')} - {new Date(vacationPeriod.end_date).toLocaleDateString('it-IT')}
-                      </p>
-                    </div>
-                    
+          <Card className="!border-2 !border-orange-400">
+            <div className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                    <Sun className="w-5 h-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900">Modalità Ferie</h3>
+                    <p className="text-sm text-gray-600">Imposta un periodo di chiusura temporanea.</p>
+                  </div>
+                </div>
+                {!isEditingVacation ? (
+                  <Button
+                    onClick={() => {
+                      setIsEditingVacation(true);
+                      if (vacationPeriod) {
+                        setVacationStartDate(vacationPeriod.start_date ? vacationPeriod.start_date.substring(0, 10) : '');
+                        setVacationEndDate(vacationPeriod.end_date ? vacationPeriod.end_date.substring(0, 10) : '');
+                      }
+                    }}
+                    size="sm"
+                    className="bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Modifica
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => {
+                      setIsEditingVacation(false);
+                      setVacationStartDate('');
+                      setVacationEndDate('');
+                      setShowVacationConfirm(false);
+                    }}
+                    size="sm"
+                    className="bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Termina
+                  </Button>
+                )}
+              </div>
+
+              {vacationMessage && (
+                <div
+                  className={`p-3 rounded-lg ${
+                    vacationMessage.type === 'success'
+                      ? 'bg-orange-50 border border-orange-200 text-orange-800'
+                      : 'bg-red-50 border border-red-200 text-red-800'
+                  }`}
+                >
+                  <p className="text-sm font-medium">{vacationMessage.text}</p>
+                </div>
+              )}
+
+              <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg space-y-4">
+                {vacationPeriod && (
+                  <div className="p-3 bg-white border border-orange-200 rounded-lg">
+                    <p className="text-sm font-medium text-orange-700">Modalità ferie attiva</p>
+                    <p className="text-xs text-orange-600">
+                      Periodo corrente: {new Date(vacationPeriod.start_date).toLocaleDateString('it-IT')} - {new Date(vacationPeriod.end_date).toLocaleDateString('it-IT')}
+                    </p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Data inizio</label>
+                    <input
+                      type="date"
+                      value={vacationStartDate}
+                      onChange={(e) => setVacationStartDate(e.target.value)}
+                      disabled={!isEditingVacation}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Data fine</label>
+                    <input
+                      type="date"
+                      value={vacationEndDate}
+                      onChange={(e) => setVacationEndDate(e.target.value)}
+                      disabled={!isEditingVacation}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    variant="danger"
+                    onClick={() => setShowVacationConfirm(true)}
+                    disabled={!isEditingVacation || !vacationStartDate || !vacationEndDate}
+                  >
+                    Attiva Modalità Ferie
+                  </Button>
+                  {vacationPeriod && (
                     <Button
-                      onClick={handleDeactivateVacation}
                       variant="secondary"
-                      disabled={!isEditingAdvanced}
+                      onClick={handleDeactivateVacation}
+                      disabled={!isEditingVacation}
                     >
                       Disattiva Modalità Ferie
                     </Button>
-                  </div>
-                ) : (
-                  // Form per attivare modalità ferie
-                  <div className="space-y-4">
-                    <p className="text-sm text-gray-600">
-                      Imposta un periodo di chiusura per ferie
-                    </p>
-                    
-                    {/* Form date range */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Data Inizio
-                        </label>
-                        <input
-                          type="date"
-                          value={vacationStartDate}
-                          onChange={(e) => setVacationStartDate(e.target.value)}
-                          disabled={!isEditingAdvanced}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                          placeholder="gg/mm/aaaa"
-                          lang="it-IT"
-                          data-format="dd/mm/yyyy"
-                          style={{ 
-                            colorScheme: 'light',
-                            WebkitAppearance: 'none',
-                            MozAppearance: 'textfield'
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Data Fine
-                        </label>
-                        <input
-                          type="date"
-                          value={vacationEndDate}
-                          onChange={(e) => setVacationEndDate(e.target.value)}
-                          disabled={!isEditingAdvanced}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                          placeholder="gg/mm/aaaa"
-                          lang="it-IT"
-                          data-format="dd/mm/yyyy"
-                          style={{ 
-                            colorScheme: 'light',
-                            WebkitAppearance: 'none',
-                            MozAppearance: 'textfield'
-                          }}
-                        />
-                      </div>
-                    </div>
-                    
-                    {/* Bottone attivazione */}
-                    <Button
-                      onClick={() => setShowVacationConfirm(true)}
-                      variant="danger"
-                      disabled={!isEditingAdvanced || !vacationStartDate || !vacationEndDate}
-                    >
-                      Attiva Modalità Ferie
-                    </Button>
-                  </div>
+                  )}
+                </div>
+
+                {!isEditingVacation && (
+                  <p className="text-xs text-gray-500">
+                    Clicca su Modifica per impostare o disattivare il periodo di ferie.
+                  </p>
                 )}
               </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+        </div>
       ) : (
         <Card>
           <div className="p-4 text-center">
@@ -791,7 +938,7 @@ export const ShopManagement = () => {
           <Button variant="secondary" onClick={() => setShowVacationConfirm(false)}>
             Annulla
           </Button>
-          <Button variant="danger" onClick={handleActivateVacation} loading={isLoading}>
+          <Button variant="danger" onClick={handleActivateVacation} loading={isSavingVacation}>
             Conferma e Cancella Appuntamenti
           </Button>
         </div>

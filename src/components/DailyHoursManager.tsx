@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Clock, Plus, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useDailyShopHours } from '../hooks/useDailyShopHours';
 import type { TimeSlot } from '../types';
 
-export const DailyHoursManager: React.FC = () => {
+interface DailyHoursManagerProps {
+  disabled?: boolean;
+}
+
+export const DailyHoursManager: React.FC<DailyHoursManagerProps> = ({ disabled = false }) => {
   const {
     shopHours,
     DAYS_OF_WEEK,
@@ -15,18 +19,23 @@ export const DailyHoursManager: React.FC = () => {
     toggleDayOpen,
   } = useDailyShopHours();
 
-  const [editingSlot, setEditingSlot] = useState<{ day: number; slotIndex: number } | null>(null);
-
   const handleAddTimeSlot = (dayOfWeek: number) => {
+    if (disabled) return;
     const newSlot: TimeSlot = { start: '09:00', end: '18:00' }; // 24-hour format
     addTimeSlot(dayOfWeek, newSlot);
   };
 
   const handleTimeSlotChange = (dayOfWeek: number, slotIndex: number, field: 'start' | 'end', value: string) => {
+    if (disabled) return;
     const dayHours = shopHours[dayOfWeek];
     const timeSlot = dayHours.timeSlots[slotIndex];
     const updatedSlot = { ...timeSlot, [field]: value };
     updateTimeSlot(dayOfWeek, slotIndex, updatedSlot);
+  };
+  
+  const handleRemoveTimeSlot = (dayOfWeek: number, slotIndex: number) => {
+    if (disabled) return;
+    removeTimeSlot(dayOfWeek, slotIndex);
   };
 
   const validateTimeSlot = (slot: TimeSlot): boolean => {
@@ -58,7 +67,8 @@ export const DailyHoursManager: React.FC = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => toggleDayOpen(day.key)}
+                  onClick={() => !disabled && toggleDayOpen(day.key)}
+                  disabled={disabled}
                   className="flex items-center space-x-1 px-2 py-1"
                 >
                   {isOpen ? (
@@ -85,6 +95,7 @@ export const DailyHoursManager: React.FC = () => {
                         variant="secondary"
                         size="sm"
                         onClick={() => handleAddTimeSlot(day.key)}
+                        disabled={disabled}
                         className="mt-2 text-xs px-2 py-1"
                       >
                         <Plus className="w-3 h-3 mr-1" />
@@ -109,6 +120,7 @@ export const DailyHoursManager: React.FC = () => {
                                 value={slot.start}
                                 onChange={(e) => handleTimeSlotChange(day.key, slotIndex, 'start', e.target.value)}
                                 className="w-20 px-2 py-1 border border-gray-300 rounded text-sm time-24h"
+                                disabled={disabled}
                               />
                               <span className="text-gray-400 text-sm">-</span>
                               <input
@@ -116,13 +128,15 @@ export const DailyHoursManager: React.FC = () => {
                                 value={slot.end}
                                 onChange={(e) => handleTimeSlotChange(day.key, slotIndex, 'end', e.target.value)}
                                 className="w-20 px-2 py-1 border border-gray-300 rounded text-sm time-24h"
+                                disabled={disabled}
                               />
                             </div>
                             
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => removeTimeSlot(day.key, slotIndex)}
+                              onClick={() => handleRemoveTimeSlot(day.key, slotIndex)}
+                              disabled={disabled}
                               className="text-red-500 hover:text-red-700 p-1"
                             >
                               <Trash2 className="w-3 h-3" />
@@ -134,6 +148,7 @@ export const DailyHoursManager: React.FC = () => {
                         variant="secondary"
                         size="sm"
                         onClick={() => handleAddTimeSlot(day.key)}
+                        disabled={disabled}
                         className="w-full text-xs px-2 py-1 mt-1"
                       >
                         <Plus className="w-3 h-3 mr-1" />
@@ -154,7 +169,7 @@ export const DailyHoursManager: React.FC = () => {
 
       <div className="mt-3 p-3 bg-blue-50 rounded-lg">
         <p className="text-blue-800 text-xs">
-          💡 Clicca su Aperto/Chiuso per attivare il giorno. Aggiungi più fasce orarie (es. mattina e pomeriggio).
+          💡 {disabled ? 'Clicca su Modifica per aggiornare gli orari.' : 'Aggiorna gli orari cliccando su Aperto/Chiuso o aggiungendo nuove fasce orarie.'}
         </p>
       </div>
     </div>
