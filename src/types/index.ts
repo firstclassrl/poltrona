@@ -105,6 +105,11 @@ export interface Shop {
   description?: string;
   products_enabled?: boolean; // Controlla se il sistema prodotti è abilitato
   vacation_period?: VacationPeriod | null;
+  extra_opening_date?: string | null;
+  extra_morning_start?: string | null;
+  extra_morning_end?: string | null;
+  extra_afternoon_start?: string | null;
+  extra_afternoon_end?: string | null;
   created_at: string;
   updated_at?: string;
 }

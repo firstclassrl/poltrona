@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Building2, MapPin, Edit, Save, X, Lock } from 'lucide-react';
+import { Building2, MapPin, Edit, Save, X, Lock, CalendarPlus } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -31,12 +31,42 @@ export const ShopManagement = () => {
   });
   const [advancedFormData, setAdvancedFormData] = useState({
     products_enabled: true,
+    extra_opening_date: '',
+    extra_morning_start: '',
+    extra_morning_end: '',
+    extra_afternoon_start: '',
+    extra_afternoon_end: '',
   });
   const [vacationStartDate, setVacationStartDate] = useState('');
   const [vacationEndDate, setVacationEndDate] = useState('');
   const [showVacationConfirm, setShowVacationConfirm] = useState(false);
   
   const { vacationPeriod, setVacationPeriod, clearVacationPeriod } = useVacationMode();
+
+  const showErrorMessage = (text: string) => {
+    setMessage({ type: 'error', text });
+    setTimeout(() => setMessage(null), 5000);
+  };
+
+  const syncExtraOpeningStorage = (shopData: Shop) => {
+    if (typeof window === 'undefined') return;
+
+    const hasExtraDate = Boolean(shopData.extra_opening_date);
+    if (hasExtraDate) {
+      const detail = {
+        date: shopData.extra_opening_date as string,
+        morningStart: shopData.extra_morning_start ?? null,
+        morningEnd: shopData.extra_morning_end ?? null,
+        afternoonStart: shopData.extra_afternoon_start ?? null,
+        afternoonEnd: shopData.extra_afternoon_end ?? null,
+      };
+      localStorage.setItem('extraShopOpening', JSON.stringify(detail));
+      window.dispatchEvent(new CustomEvent('extra-opening-updated', { detail }));
+    } else {
+      localStorage.removeItem('extraShopOpening');
+      window.dispatchEvent(new CustomEvent('extra-opening-updated', { detail: null }));
+    }
+  };
 
   useEffect(() => {
     loadShopData();
@@ -52,6 +82,7 @@ export const ShopManagement = () => {
       console.log('🔧 [DEBUG] products_enabled type:', typeof shopData.products_enabled);
       
       setShop(shopData);
+      syncExtraOpeningStorage(shopData);
       setBasicFormData({
         name: shopData.name || '',
         address: shopData.address || '',
@@ -70,6 +101,11 @@ export const ShopManagement = () => {
       
       setAdvancedFormData({
         products_enabled: productsEnabled,
+        extra_opening_date: shopData.extra_opening_date ?? '',
+        extra_morning_start: shopData.extra_morning_start ?? '',
+        extra_morning_end: shopData.extra_morning_end ?? '',
+        extra_afternoon_start: shopData.extra_afternoon_start ?? '',
+        extra_afternoon_end: shopData.extra_afternoon_end ?? '',
       });
     } catch (error) {
       console.error('❌ [DEBUG] Error loading shop data:', error);
@@ -98,6 +134,7 @@ export const ShopManagement = () => {
 
       await apiService.updateShop(updatedShop);
       setShop(updatedShop);
+      syncExtraOpeningStorage(updatedShop);
       
       setIsEditingBasic(false);
       setMessage({ type: 'success', text: 'Informazioni negozio salvate con successo!' });
@@ -126,9 +163,64 @@ export const ShopManagement = () => {
         products_enabled: advancedFormData.products_enabled
       });
 
+      const hasMorningRange = Boolean(
+        advancedFormData.extra_opening_date &&
+        advancedFormData.extra_morning_start &&
+        advancedFormData.extra_morning_end
+      );
+      const hasAfternoonRange = Boolean(
+        advancedFormData.extra_opening_date &&
+        advancedFormData.extra_afternoon_start &&
+        advancedFormData.extra_afternoon_end
+      );
+
+      if (advancedFormData.extra_opening_date) {
+        if ((advancedFormData.extra_morning_start && !advancedFormData.extra_morning_end) || (!advancedFormData.extra_morning_start && advancedFormData.extra_morning_end)) {
+          showErrorMessage('Completa sia apertura che chiusura della fascia mattina oppure lasciala vuota.');
+          setIsLoading(false);
+          return;
+        }
+
+        if ((advancedFormData.extra_afternoon_start && !advancedFormData.extra_afternoon_end) || (!advancedFormData.extra_afternoon_start && advancedFormData.extra_afternoon_end)) {
+          showErrorMessage('Completa sia apertura che chiusura della fascia pomeriggio oppure lasciala vuota.');
+          setIsLoading(false);
+          return;
+        }
+
+        const isRangeValid = (start: string, end: string) => {
+          if (!start || !end) return true;
+          const [startH, startM] = start.split(':').map(Number);
+          const [endH, endM] = end.split(':').map(Number);
+          return startH * 60 + startM < endH * 60 + endM;
+        };
+
+        if (!isRangeValid(advancedFormData.extra_morning_start, advancedFormData.extra_morning_end)) {
+          showErrorMessage('La fascia mattina deve avere orario di chiusura successivo all’apertura.');
+          setIsLoading(false);
+          return;
+        }
+
+        if (!isRangeValid(advancedFormData.extra_afternoon_start, advancedFormData.extra_afternoon_end)) {
+          showErrorMessage('La fascia pomeriggio deve avere orario di chiusura successivo all’apertura.');
+          setIsLoading(false);
+          return;
+        }
+
+        if (!hasMorningRange && !hasAfternoonRange) {
+          showErrorMessage('Imposta almeno una fascia oraria (mattina o pomeriggio) per il giorno straordinario.');
+          setIsLoading(false);
+          return;
+        }
+      }
+
       const updatedShop: Shop = {
         ...shop,
-        products_enabled: advancedFormData.products_enabled
+        products_enabled: advancedFormData.products_enabled,
+        extra_opening_date: advancedFormData.extra_opening_date || null,
+        extra_morning_start: hasMorningRange ? advancedFormData.extra_morning_start : null,
+        extra_morning_end: hasMorningRange ? advancedFormData.extra_morning_end : null,
+        extra_afternoon_start: hasAfternoonRange ? advancedFormData.extra_afternoon_start : null,
+        extra_afternoon_end: hasAfternoonRange ? advancedFormData.extra_afternoon_end : null,
       };
 
       console.log('🔧 [DEBUG] Updated shop data to save:', updatedShop);
@@ -178,9 +270,25 @@ export const ShopManagement = () => {
     if (shop) {
       setAdvancedFormData({
         products_enabled: shop.products_enabled ?? true,
+        extra_opening_date: shop.extra_opening_date ?? '',
+        extra_morning_start: shop.extra_morning_start ?? '',
+        extra_morning_end: shop.extra_morning_end ?? '',
+        extra_afternoon_start: shop.extra_afternoon_start ?? '',
+        extra_afternoon_end: shop.extra_afternoon_end ?? '',
       });
     }
     setIsEditingAdvanced(false);
+  };
+
+  const handleClearExtraOpening = () => {
+    setAdvancedFormData(prev => ({
+      ...prev,
+      extra_opening_date: '',
+      extra_morning_start: '',
+      extra_morning_end: '',
+      extra_afternoon_start: '',
+      extra_afternoon_end: '',
+    }));
   };
 
   const handleActivateVacation = async () => {
@@ -463,6 +571,104 @@ export const ShopManagement = () => {
             
             <DailyHoursManager />
             
+            {/* Apertura Straordinaria */}
+            <div className="mt-6">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                    <CalendarPlus className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-medium text-gray-900">Apertura Straordinaria</h3>
+                    <p className="text-sm text-gray-600">
+                      Scegli un giorno aggiuntivo di apertura rispetto al calendario abituale.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleClearExtraOpening}
+                  disabled={!isEditingAdvanced || (!advancedFormData.extra_opening_date && !advancedFormData.extra_morning_start && !advancedFormData.extra_morning_end && !advancedFormData.extra_afternoon_start && !advancedFormData.extra_afternoon_end)}
+                >
+                  Rimuovi apertura
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Data
+                  </label>
+                  <input
+                    type="date"
+                    value={advancedFormData.extra_opening_date}
+                    onChange={(e) => setAdvancedFormData(prev => ({ ...prev, extra_opening_date: e.target.value }))}
+                    disabled={!isEditingAdvanced}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+                    placeholder="gg/mm/aaaa"
+                    lang="it-IT"
+                  />
+                </div>
+
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                  <h4 className="text-sm font-medium text-gray-900 mb-2">Fascia mattina</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Apertura</label>
+                      <input
+                        type="time"
+                        value={advancedFormData.extra_morning_start}
+                        onChange={(e) => setAdvancedFormData(prev => ({ ...prev, extra_morning_start: e.target.value }))}
+                        disabled={!isEditingAdvanced || !advancedFormData.extra_opening_date}
+                        className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Chiusura</label>
+                      <input
+                        type="time"
+                        value={advancedFormData.extra_morning_end}
+                        onChange={(e) => setAdvancedFormData(prev => ({ ...prev, extra_morning_end: e.target.value }))}
+                        disabled={!isEditingAdvanced || !advancedFormData.extra_opening_date}
+                        className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                  <h4 className="text-sm font-medium text-gray-900 mb-2">Fascia pomeriggio</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Apertura</label>
+                      <input
+                        type="time"
+                        value={advancedFormData.extra_afternoon_start}
+                        onChange={(e) => setAdvancedFormData(prev => ({ ...prev, extra_afternoon_start: e.target.value }))}
+                        disabled={!isEditingAdvanced || !advancedFormData.extra_opening_date}
+                        className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Chiusura</label>
+                      <input
+                        type="time"
+                        value={advancedFormData.extra_afternoon_end}
+                        onChange={(e) => setAdvancedFormData(prev => ({ ...prev, extra_afternoon_end: e.target.value }))}
+                        disabled={!isEditingAdvanced || !advancedFormData.extra_opening_date}
+                        className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <p className="mt-3 text-xs text-gray-500">
+                Lascia vuoto il campo data per rimuovere l\'apertura straordinaria. Le fasce orarie sono opzionali: puoi inserire solo mattina o solo pomeriggio.
+              </p>
+            </div>
+
             {/* Modalità Ferie */}
             <div className="mb-6">
               <div className="p-4 bg-red-50 border border-red-200 rounded-lg">

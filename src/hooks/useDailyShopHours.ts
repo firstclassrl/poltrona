@@ -1,6 +1,22 @@
 import { useState, useEffect } from 'react';
 import type { ShopHoursConfig, DailyHours, TimeSlot } from '../types';
 
+const EXTRA_OPENING_STORAGE_KEY = 'extraShopOpening';
+const EXTRA_OPENING_EVENT = 'extra-opening-updated';
+
+interface ExtraOpeningConfig {
+  date: string;
+  morningStart?: string | null;
+  morningEnd?: string | null;
+  afternoonStart?: string | null;
+  afternoonEnd?: string | null;
+}
+
+const getMinutesFromTime = (time: string): number => {
+  const [hours, minutes] = time.split(':').map(Number);
+  return hours * 60 + minutes;
+};
+
 const DAYS_OF_WEEK = [
   { key: 0, name: 'Domenica', shortName: 'Dom' },
   { key: 1, name: 'Lunedì', shortName: 'Lun' },
@@ -24,6 +40,20 @@ const getDefaultShopHours = (): ShopHoursConfig => ({
 
 export const useDailyShopHours = () => {
   const [shopHours, setShopHours] = useState<ShopHoursConfig>(getDefaultShopHours());
+  const [extraOpening, setExtraOpening] = useState<ExtraOpeningConfig | null>(null);
+
+  const readExtraOpeningFromStorage = (): ExtraOpeningConfig | null => {
+    const stored = localStorage.getItem(EXTRA_OPENING_STORAGE_KEY);
+    if (!stored) return null;
+    try {
+      const parsed = JSON.parse(stored) as ExtraOpeningConfig;
+      if (!parsed?.date) return null;
+      return parsed;
+    } catch (error) {
+      console.error('Error parsing extra opening data:', error);
+      return null;
+    }
+  };
 
   useEffect(() => {
     // Load shop hours from localStorage
@@ -37,11 +67,82 @@ export const useDailyShopHours = () => {
         setShopHours(getDefaultShopHours());
       }
     }
+
+    setExtraOpening(readExtraOpeningFromStorage());
   }, []);
 
   const updateShopHours = (newHours: ShopHoursConfig) => {
     setShopHours(newHours);
     localStorage.setItem('dailyShopHours', JSON.stringify(newHours));
+  };
+
+  const applyExtraOpening = (config: ExtraOpeningConfig | null) => {
+    setExtraOpening(config);
+    if (config) {
+      localStorage.setItem(EXTRA_OPENING_STORAGE_KEY, JSON.stringify(config));
+    } else {
+      localStorage.removeItem(EXTRA_OPENING_STORAGE_KEY);
+    }
+  };
+
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === EXTRA_OPENING_STORAGE_KEY) {
+        setExtraOpening(readExtraOpeningFromStorage());
+      }
+    };
+
+    const handleExtraOpeningEvent = (event: Event) => {
+      const customEvent = event as CustomEvent<ExtraOpeningConfig | null>;
+      setExtraOpening(customEvent.detail ?? null);
+    };
+
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener(EXTRA_OPENING_EVENT, handleExtraOpeningEvent as EventListener);
+
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener(EXTRA_OPENING_EVENT, handleExtraOpeningEvent as EventListener);
+    };
+  }, []);
+
+  const getIsoDate = (date: Date) => date.toISOString().split('T')[0];
+
+  const isExtraOpeningActiveForDate = (date: Date): boolean => {
+    if (!extraOpening?.date) return false;
+    const matches = extraOpening.date === getIsoDate(date);
+    if (!matches) return false;
+
+    const hasMorning = extraOpening.morningStart && extraOpening.morningEnd;
+    const hasAfternoon = extraOpening.afternoonStart && extraOpening.afternoonEnd;
+    return Boolean(hasMorning || hasAfternoon);
+  };
+
+  const getExtraTimeSlots = (date: Date, slotDurationMinutes: number = 30): string[] => {
+    if (!isExtraOpeningActiveForDate(date) || !extraOpening) return [];
+
+    const slots: string[] = [];
+
+    const pushRange = (start?: string | null, end?: string | null) => {
+      if (!start || !end) return;
+      const [startHours, startMinutes] = start.split(':').map(Number);
+      const [endHours, endMinutes] = end.split(':').map(Number);
+      let currentTime = startHours * 60 + startMinutes;
+      const endTime = endHours * 60 + endMinutes;
+
+      while (currentTime + slotDurationMinutes <= endTime) {
+        const hours = Math.floor(currentTime / 60);
+        const minutes = currentTime % 60;
+        const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        slots.push(timeString);
+        currentTime += slotDurationMinutes;
+      }
+    };
+
+    pushRange(extraOpening.morningStart, extraOpening.morningEnd);
+    pushRange(extraOpening.afternoonStart, extraOpening.afternoonEnd);
+
+    return slots;
   };
 
   const updateDayHours = (dayOfWeek: number, dayHours: DailyHours) => {
@@ -76,12 +177,32 @@ export const useDailyShopHours = () => {
 
   // Check if a specific date is open
   const isDateOpen = (date: Date): boolean => {
+    if (isExtraOpeningActiveForDate(date)) return true;
     const dayOfWeek = date.getDay();
     return shopHours[dayOfWeek]?.isOpen || false;
   };
 
   // Check if a specific time is within opening hours for a date
   const isTimeWithinHours = (date: Date, time: string): boolean => {
+    if (isExtraOpeningActiveForDate(date)) {
+      if (!extraOpening) return false;
+
+      const checkRange = (start?: string | null, end?: string | null) => {
+        if (!start || !end) return false;
+        const [startHours, startMinutes] = start.split(':').map(Number);
+        const [endHours, endMinutes] = end.split(':').map(Number);
+        const timeInMinutes = getMinutesFromTime(time);
+        const startTime = startHours * 60 + startMinutes;
+        const endTime = endHours * 60 + endMinutes;
+        return timeInMinutes >= startTime && timeInMinutes < endTime;
+      };
+
+      return (
+        checkRange(extraOpening.morningStart, extraOpening.morningEnd) ||
+        checkRange(extraOpening.afternoonStart, extraOpening.afternoonEnd)
+      );
+    }
+
     if (!isDateOpen(date)) return false;
     
     const dayOfWeek = date.getDay();
@@ -104,6 +225,10 @@ export const useDailyShopHours = () => {
 
   // Get available time slots for a specific date
   const getAvailableTimeSlots = (date: Date, slotDurationMinutes: number = 30): string[] => {
+    if (isExtraOpeningActiveForDate(date)) {
+      return getExtraTimeSlots(date, slotDurationMinutes);
+    }
+
     if (!isDateOpen(date)) return [];
     
     const dayOfWeek = date.getDay();
@@ -165,5 +290,8 @@ export const useDailyShopHours = () => {
     isTimeWithinHours,
     getAvailableTimeSlots,
     getShopHoursSummary,
+    extraOpening,
+    applyExtraOpening,
+    refreshExtraOpening: () => setExtraOpening(readExtraOpeningFromStorage()),
   };
 };

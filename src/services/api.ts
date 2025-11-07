@@ -272,6 +272,11 @@ export const apiService = {
           email: '',
           description: '',
           opening_hours: '',
+          extra_opening_date: null,
+          extra_morning_start: null,
+          extra_morning_end: null,
+          extra_afternoon_start: null,
+          extra_afternoon_end: null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
