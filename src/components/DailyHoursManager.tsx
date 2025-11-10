@@ -119,7 +119,7 @@ export const DailyHoursManager: React.FC<DailyHoursManagerProps> = ({ disabled =
                                 type="time"
                                 value={slot.start}
                                 onChange={(e) => handleTimeSlotChange(day.key, slotIndex, 'start', e.target.value)}
-                                className="w-20 px-2 py-1 border border-gray-300 rounded text-sm time-24h"
+                                className="w-24 min-w-[6rem] px-2 py-1 border border-gray-300 rounded text-sm font-mono text-center time-24h"
                                 disabled={disabled}
                               />
                               <span className="text-gray-400 text-sm">-</span>
@@ -127,7 +127,7 @@ export const DailyHoursManager: React.FC<DailyHoursManagerProps> = ({ disabled =
                                 type="time"
                                 value={slot.end}
                                 onChange={(e) => handleTimeSlotChange(day.key, slotIndex, 'end', e.target.value)}
-                                className="w-20 px-2 py-1 border border-gray-300 rounded text-sm time-24h"
+                                className="w-24 min-w-[6rem] px-2 py-1 border border-gray-300 rounded text-sm font-mono text-center time-24h"
                                 disabled={disabled}
                               />
                             </div>
