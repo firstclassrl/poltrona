@@ -6,7 +6,6 @@ import { Select } from './ui/Select';
 import { Modal } from './ui/Modal';
 import { apiService } from '../services/api';
 // removed mock clients: all data comes from API
-import { generateTimeSlots } from '../utils/date';
 import { useDailyShopHours } from '../hooks/useDailyShopHours';
 import type { Client, CreateAppointmentRequest, UpdateAppointmentRequest, Service, Staff } from '../types';
 
@@ -41,7 +40,7 @@ export const AppointmentForm = ({
   const [staff, setStaff] = useState<Staff[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const { isTimeWithinHours, isDateOpen, getAvailableTimeSlots } = useDailyShopHours();
+  const { isTimeWithinHours, isDateOpen, getAvailableTimeSlots, shopHoursLoaded } = useDailyShopHours();
 
   // Load services and staff from API
   useEffect(() => {
@@ -67,7 +66,7 @@ export const AppointmentForm = ({
   }, [isOpen]);
 
   // Generate time slots based on shop hours
-  const timeSlots = formData.date ? getAvailableTimeSlots(new Date(formData.date)) : generateTimeSlots();
+  const timeSlots = formData.date && shopHoursLoaded ? getAvailableTimeSlots(new Date(formData.date)) : [];
   const isEditing = !!appointment;
 
   useEffect(() => {
@@ -91,13 +90,14 @@ export const AppointmentForm = ({
 
   // Reset time when date changes and time is not valid for new date
   useEffect(() => {
+    if (!shopHoursLoaded) return;
     if (formData.date && formData.time) {
       const selectedDate = new Date(formData.date);
       if (!isDateOpen(selectedDate) || !isTimeWithinHours(selectedDate, formData.time)) {
         setFormData(prev => ({ ...prev, time: '' }));
       }
     }
-  }, [formData.date, isDateOpen, isTimeWithinHours]);
+  }, [formData.date, formData.time, isDateOpen, isTimeWithinHours, shopHoursLoaded]);
 
   const resetForm = () => {
     setFormData({
@@ -146,6 +146,12 @@ export const AppointmentForm = ({
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
+    if (!shopHoursLoaded) {
+      newErrors.date = 'Caricamento orari del negozio...';
+      setErrors(newErrors);
+      return false;
+    }
+
     if (!formData.client_id) newErrors.client_id = 'Seleziona cliente';
     if (!formData.staff_id) newErrors.staff_id = 'Seleziona barbiere';
     if (!formData.service_id) newErrors.service_id = 'Seleziona servizio';
@@ -158,14 +164,16 @@ export const AppointmentForm = ({
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const selectedDate = new Date(selectedDateTime.getFullYear(), selectedDateTime.getMonth(), selectedDateTime.getDate());
     
-    // Check if date is valid (not Sunday)
-    if (selectedDate.getDay() === 0) {
-      newErrors.date = 'Il negozio è chiuso la domenica';
+    // Check if date is valid according to shop hours
+    if (!isDateOpen(selectedDate)) {
+      newErrors.date = 'Il negozio è chiuso in questa data';
     }
     
     // Check if time is within shop hours (basic validation)
     if (!formData.time) {
       newErrors.time = 'Seleziona un orario';
+    } else if (!isTimeWithinHours(selectedDate, formData.time)) {
+      newErrors.time = 'Orario fuori dagli orari di apertura';
     }
     
     // Allow appointments for today if they are at least 1 hour in the future
@@ -301,6 +309,7 @@ export const AppointmentForm = ({
             onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
             error={errors.date}
             min={new Date().toISOString().split('T')[0]}
+            disabled={!shopHoursLoaded}
           />
           
           <div>
@@ -313,8 +322,9 @@ export const AppointmentForm = ({
                 ...timeSlots.map(time => ({ value: time, label: time }))
               ]}
               error={errors.time}
+            disabled={!shopHoursLoaded || !formData.date}
             />
-            {formData.date && (
+          {formData.date && shopHoursLoaded && (
               <p className="text-xs text-gray-500 mt-1">
                 Orari disponibili: {timeSlots.length > 0 ? timeSlots[0] + ' - ' + timeSlots[timeSlots.length - 1] : 'Nessuno'}
               </p>

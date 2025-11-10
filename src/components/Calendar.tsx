@@ -15,7 +15,7 @@ export const Calendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedChair, setSelectedChair] = useState('all');
   const [timePeriod, setTimePeriod] = useState<'morning' | 'afternoon'>('morning');
-  const { shopHours, getAvailableTimeSlots, isDateOpen, getShopHoursSummary } = useDailyShopHours();
+  const { shopHours, getAvailableTimeSlots, isDateOpen, getShopHoursSummary, shopHoursLoaded } = useDailyShopHours();
   const { getAssignedChairs } = useChairAssignment();
   const { appointments } = useAppointments();
   const { isDateInVacation } = useVacationMode();
@@ -27,6 +27,7 @@ export const Calendar = () => {
   const [showCreateAppointmentModal, setShowCreateAppointmentModal] = useState(false);
 
   const getWeekDays = () => {
+    if (!shopHoursLoaded) return [];
     const start = new Date(currentDate);
     start.setDate(currentDate.getDate() - currentDate.getDay() + 1); // Monday
     return Array.from({ length: 7 }, (_, i) => {
@@ -92,6 +93,7 @@ export const Calendar = () => {
   
   // Usa gli orari del negozio per generare i time slots filtrati per periodo
   const getTimeSlotsForDate = (date: Date, period: 'morning' | 'afternoon') => {
+    if (!shopHoursLoaded) return [];
     const dayOfWeek = date.getDay();
     const dayHours = shopHours[dayOfWeek];
     
@@ -171,6 +173,11 @@ export const Calendar = () => {
             Orari configurati per ogni giorno della settimana
           </p>
         </div>
+        {!shopHoursLoaded && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center text-gray-600 mt-4 md:mt-0 md:ml-4">
+            Caricamento orari del negozio...
+          </div>
+        )}
         {/* Desktop Controls */}
         <div className="hidden md:flex items-center space-x-4">
           <Select

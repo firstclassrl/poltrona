@@ -14,7 +14,7 @@ import { apiService } from '../services/api';
 import type { Service, Staff, Shop } from '../types';
 
 export const ClientBookingCalendar: React.FC = () => {
-  const { getAvailableTimeSlots, isDateOpen } = useDailyShopHours();
+  const { getAvailableTimeSlots, isDateOpen, shopHoursLoaded } = useDailyShopHours();
   const { availableStaff } = useChairAssignment();
   const { addNotification } = useNotifications();
   const { user } = useAuth();
@@ -78,6 +78,10 @@ export const ClientBookingCalendar: React.FC = () => {
 
   // Generate 2 weeks from today, filtering out closed days
   const generateWeeks = () => {
+    if (!shopHoursLoaded) {
+      return [];
+    }
+
     const weeks = [];
     const today = new Date();
     
@@ -110,7 +114,7 @@ export const ClientBookingCalendar: React.FC = () => {
 
   // Check if a time slot is available
   const isTimeSlotAvailable = (date: Date, time: string) => {
-    if (!isDateOpen(date) || isDateInVacation(date)) return false;
+    if (!shopHoursLoaded || !isDateOpen(date) || isDateInVacation(date)) return false;
     
     const timeSlots = getTimeSlotsForDate(date);
     if (!timeSlots.includes(time)) return false;
@@ -122,6 +126,7 @@ export const ClientBookingCalendar: React.FC = () => {
   // Get time slots for a specific date using daily configured hours
   const getTimeSlotsForDate = (date: Date) => {
     // Use the new daily shop hours system
+    if (!shopHoursLoaded) return [];
     return getAvailableTimeSlots(date, 30); // 30 minutes slots
   };
 
@@ -139,7 +144,7 @@ export const ClientBookingCalendar: React.FC = () => {
   // Filter time slots by period (morning/afternoon)
   const getFilteredTimeSlots = (date: Date, period: 'morning' | 'afternoon') => {
     // Don't show time slots if date is in vacation
-    if (isDateInVacation(date)) return [];
+    if (!shopHoursLoaded || isDateInVacation(date)) return [];
     
     const allSlots = getTimeSlotsForDate(date);
     return allSlots.filter(time => {
@@ -301,6 +306,12 @@ export const ClientBookingCalendar: React.FC = () => {
       </div>
 
       {/* Mobile Daily View */}
+      {!shopHoursLoaded ? (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center text-gray-600">
+          Caricamento orari del negozio...
+        </div>
+      ) : (
+        <>
       {isMobile && (
         <div className="md:hidden space-y-6">
           {/* Day Navigation */}
@@ -607,6 +618,8 @@ export const ClientBookingCalendar: React.FC = () => {
           onConfirm={handleUpsellConfirm}
           isSubmitting={isSubmitting}
         />
+      )}
+        </>
       )}
     </div>
   );

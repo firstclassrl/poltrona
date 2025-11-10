@@ -8,7 +8,7 @@ import { apiService } from '../services/api';
 import type { Service, Staff } from '../types';
 
 export const ClientBooking: React.FC = () => {
-  const { getAvailableTimeSlots, isDateOpen } = useDailyShopHours();
+  const { getAvailableTimeSlots, isDateOpen, shopHoursLoaded } = useDailyShopHours();
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [selectedService, setSelectedService] = useState('');
@@ -41,7 +41,7 @@ export const ClientBooking: React.FC = () => {
   }, []);
 
   // Get available time slots for selected date
-  const timeSlots = selectedDate ? getAvailableTimeSlots(new Date(selectedDate)) : [];
+  const timeSlots = selectedDate && shopHoursLoaded ? getAvailableTimeSlots(new Date(selectedDate)) : [];
 
   // Filter barbers based on selected service and availability
   const availableBarbers = staff.filter(staff => 
@@ -50,7 +50,7 @@ export const ClientBooking: React.FC = () => {
 
   // Check if date is valid (shop is open)
   const isDateValid = (date: Date) => {
-    return isDateOpen(date);
+    return shopHoursLoaded && isDateOpen(date);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -77,7 +77,7 @@ export const ClientBooking: React.FC = () => {
     }
   };
 
-  const isFormValid = selectedDate && selectedTime && selectedService && selectedBarber;
+  const isFormValid = shopHoursLoaded && selectedDate && selectedTime && selectedService && selectedBarber;
 
   return (
     <div className="space-y-8">
@@ -85,6 +85,12 @@ export const ClientBooking: React.FC = () => {
         <h1 className="text-3xl font-bold text-gray-900">Prenota Appuntamento</h1>
         <p className="text-gray-600 mt-2">Scegli il servizio e prenota il tuo appuntamento</p>
       </div>
+
+      {!shopHoursLoaded && (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center text-gray-600">
+          Caricamento orari del negozio...
+        </div>
+      )}
 
       {isSuccess && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
@@ -160,9 +166,12 @@ export const ClientBooking: React.FC = () => {
               min={new Date().toISOString().split('T')[0]}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
+              disabled={!shopHoursLoaded}
             />
             {selectedDate && !isDateValid(new Date(selectedDate)) && (
-              <p className="text-red-500 text-sm mt-1">Il negozio è chiuso la domenica</p>
+              <p className="text-red-500 text-sm mt-1">
+                {shopHoursLoaded ? 'Il negozio è chiuso in questa data' : 'Caricamento orari del negozio...'}
+              </p>
             )}
           </div>
 
@@ -180,9 +189,9 @@ export const ClientBooking: React.FC = () => {
                 ...timeSlots.map(time => ({ value: time, label: time })),
               ]}
               required
-              disabled={!selectedDate || !isDateValid(new Date(selectedDate))}
+              disabled={!shopHoursLoaded || !selectedDate || !isDateValid(new Date(selectedDate))}
             />
-            {selectedDate && timeSlots.length === 0 && isDateValid(new Date(selectedDate)) && (
+            {selectedDate && shopHoursLoaded && timeSlots.length === 0 && isDateValid(new Date(selectedDate)) && (
               <p className="text-gray-500 text-sm mt-1">Nessun orario disponibile per questa data</p>
             )}
           </div>
