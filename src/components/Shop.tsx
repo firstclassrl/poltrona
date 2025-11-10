@@ -39,31 +39,6 @@ const parseDisplayDate = (displayDate: string): string | null => {
 
 const LOCAL_SHOP_STORAGE_KEY = 'localShopData';
 
-const createFallbackShop = (): Shop => ({
-  id: 'local-shop',
-  name: 'Il tuo negozio',
-  address: '',
-  postal_code: '',
-  city: '',
-  province: '',
-  phone: '',
-  whatsapp: '',
-  email: '',
-  notification_email: '',
-  description: '',
-  opening_hours: '',
-  opening_date: '',
-  products_enabled: true,
-  vacation_period: null,
-  extra_opening_date: null,
-  extra_morning_start: null,
-  extra_morning_end: null,
-  extra_afternoon_start: null,
-  extra_afternoon_end: null,
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
-});
-
 const loadShopFromLocal = (): Shop | null => {
   if (typeof window === 'undefined') return null;
   const raw = localStorage.getItem(LOCAL_SHOP_STORAGE_KEY);
@@ -214,28 +189,30 @@ export const ShopManagement = () => {
       });
     } catch (error) {
       console.error('❌ [DEBUG] Error loading shop data:', error);
-      const localShop = loadShopFromLocal() ?? createFallbackShop();
-      const syncedShop = persistShopState(localShop, false);
-      setBasicFormData({
-        name: syncedShop.name || '',
-        address: syncedShop.address || '',
-        postal_code: (syncedShop as any).postal_code || '',
-        city: (syncedShop as any).city || '',
-        province: (syncedShop as any).province || '',
-        phone: syncedShop.phone || '',
-        whatsapp: (syncedShop as any).whatsapp || '',
-        email: syncedShop.email || '',
-        notification_email: (syncedShop as any).notification_email || '',
-        description: syncedShop.description || '',
-      });
-      setProductsEnabled(syncedShop.products_enabled ?? true);
-      setExtraOpeningForm({
-        date: formatDateForDisplay(syncedShop.extra_opening_date),
-        morningStart: syncedShop.extra_morning_start ?? '',
-        morningEnd: syncedShop.extra_morning_end ?? '',
-        afternoonStart: syncedShop.extra_afternoon_start ?? '',
-        afternoonEnd: syncedShop.extra_afternoon_end ?? '',
-      });
+      const localShop = loadShopFromLocal();
+      if (localShop) {
+        const syncedShop = persistShopState(localShop, false);
+        setBasicFormData({
+          name: syncedShop.name || '',
+          address: syncedShop.address || '',
+          postal_code: (syncedShop as any).postal_code || '',
+          city: (syncedShop as any).city || '',
+          province: (syncedShop as any).province || '',
+          phone: syncedShop.phone || '',
+          whatsapp: (syncedShop as any).whatsapp || '',
+          email: syncedShop.email || '',
+          notification_email: (syncedShop as any).notification_email || '',
+          description: syncedShop.description || '',
+        });
+        setProductsEnabled(syncedShop.products_enabled ?? true);
+        setExtraOpeningForm({
+          date: formatDateForDisplay(syncedShop.extra_opening_date),
+          morningStart: syncedShop.extra_morning_start ?? '',
+          morningEnd: syncedShop.extra_morning_end ?? '',
+          afternoonStart: syncedShop.extra_afternoon_start ?? '',
+          afternoonEnd: syncedShop.extra_afternoon_end ?? '',
+        });
+      }
     }
   };
 
@@ -246,39 +223,27 @@ export const ShopManagement = () => {
      }
  
      setIsSavingBasic(true);
-    const updatedShop: Shop = {
-      ...shop,
-      name: basicFormData.name,
-      address: basicFormData.address,
-      postal_code: basicFormData.postal_code,
-      city: basicFormData.city,
-      province: basicFormData.province,
-      phone: basicFormData.phone,
-      whatsapp: basicFormData.whatsapp,
-      email: basicFormData.email,
-      notification_email: basicFormData.notification_email,
-      description: basicFormData.description,
-    };
+     const updatedShop: Shop = {
+       ...shop,
+       name: basicFormData.name,
+       address: basicFormData.address,
+       postal_code: basicFormData.postal_code,
+       city: basicFormData.city,
+       province: basicFormData.province,
+       phone: basicFormData.phone,
+       whatsapp: basicFormData.whatsapp,
+       email: basicFormData.email,
+       notification_email: basicFormData.notification_email,
+       description: basicFormData.description,
+     };
      try {
        await apiService.updateShop(updatedShop);
        persistShopState(updatedShop);
-       
        setIsEditingBasic(false);
        showMessage(setBasicMessage, 'success', 'Informazioni negozio salvate con successo!');
      } catch (error) {
        console.error('Error saving shop:', error);
-       if (isOfflineSaveError(error)) {
-        persistShopState(updatedShop);
-         setIsEditingBasic(false);
-         showMessage(
-           setBasicMessage,
-           'success',
-           'Informazioni salvate localmente. Configura il backend per sincronizzarle.',
-           5000
-         );
-       } else {
-         showMessage(setBasicMessage, 'error', 'Errore durante il salvataggio. Riprova.', 5000);
-       }
+       showMessage(setBasicMessage, 'error', 'Errore durante il salvataggio. Riprova.', 5000);
      } finally {
        setIsSavingBasic(false);
      }
@@ -311,39 +276,28 @@ export const ShopManagement = () => {
   };
 
   const handleSaveProducts = async () => {
-    if (!shop) {
-      showMessage(setProductsMessage, 'error', 'Impossibile salvare: dati negozio non disponibili.', 5000);
-      return;
-    }
+     if (!shop) {
+       showMessage(setProductsMessage, 'error', 'Impossibile salvare: dati negozio non disponibili.', 5000);
+       return;
+     }
  
      setIsSavingProducts(true);
-    const updatedShop: Shop = {
-      ...shop,
-      products_enabled: productsEnabled,
-    };
-    try {
-      await apiService.updateShop(updatedShop);
-      persistShopState(updatedShop);
-      setIsEditingProducts(false);
-      showMessage(setProductsMessage, 'success', 'Sistema prodotti aggiornato!');
-    } catch (error) {
-      console.error('❌ [DEBUG] Error saving products setting:', error);
-      if (isOfflineSaveError(error)) {
-        persistShopState(updatedShop);
-        setIsEditingProducts(false);
-        showMessage(
-          setProductsMessage,
-          'success',
-          'Impostazione salvata localmente. Configura il backend per sincronizzarla.',
-          5000
-        );
-      } else {
-        showMessage(setProductsMessage, 'error', 'Errore durante il salvataggio del sistema prodotti.', 5000);
-      }
-    } finally {
-      setIsSavingProducts(false);
-    }
-  };
+     const updatedShop: Shop = {
+       ...shop,
+       products_enabled: productsEnabled,
+     };
+     try {
+       await apiService.updateShop(updatedShop);
+       persistShopState(updatedShop);
+       setIsEditingProducts(false);
+       showMessage(setProductsMessage, 'success', 'Sistema prodotti aggiornato!');
+     } catch (error) {
+       console.error('❌ [DEBUG] Error saving products setting:', error);
+       showMessage(setProductsMessage, 'error', 'Errore durante il salvataggio del sistema prodotti.', 5000);
+     } finally {
+       setIsSavingProducts(false);
+     }
+   };
 
   const resetExtraOpeningFromShop = () => {
      if (!shop) return;
@@ -372,10 +326,10 @@ export const ShopManagement = () => {
   };
 
   const handleSaveExtraOpening = async () => {
-    if (!shop) {
-      showMessage(setExtraOpeningMessage, 'error', 'Impossibile salvare: dati negozio non disponibili.', 5000);
-      return;
-    }
+     if (!shop) {
+       showMessage(setExtraOpeningMessage, 'error', 'Impossibile salvare: dati negozio non disponibili.', 5000);
+       return;
+     }
  
      const hasMorningRange = Boolean(extraOpeningForm.morningStart && extraOpeningForm.morningEnd);
      const hasAfternoonRange = Boolean(extraOpeningForm.afternoonStart && extraOpeningForm.afternoonEnd);
@@ -447,23 +401,7 @@ export const ShopManagement = () => {
        showMessage(setExtraOpeningMessage, 'success', successMessage);
      } catch (error) {
        console.error('❌ [DEBUG] Error saving extra opening:', error);
-       if (isOfflineSaveError(error)) {
-         const storedShop = persistShopState(updatedShop);
-         setExtraOpeningForm({
-           date: formatDateForDisplay(storedShop.extra_opening_date),
-           morningStart: storedShop.extra_morning_start ?? '',
-           morningEnd: storedShop.extra_morning_end ?? '',
-           afternoonStart: storedShop.extra_afternoon_start ?? '',
-           afternoonEnd: storedShop.extra_afternoon_end ?? '',
-         });
-         setIsEditingExtraOpening(false);
-         const message = isoDate
-           ? 'Apertura straordinaria salvata localmente. Configura il backend per sincronizzarla.'
-           : 'Apertura straordinaria rimossa localmente.';
-         showMessage(setExtraOpeningMessage, 'success', message, 5000);
-       } else {
-         showMessage(setExtraOpeningMessage, 'error', 'Errore durante il salvataggio dell’apertura straordinaria.', 5000);
-       }
+       showMessage(setExtraOpeningMessage, 'error', 'Errore durante il salvataggio dell’apertura straordinaria.', 5000);
      } finally {
        setIsSavingExtraOpening(false);
      }
