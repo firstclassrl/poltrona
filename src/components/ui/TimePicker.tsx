@@ -8,6 +8,7 @@ interface TimePickerProps {
   label?: string;
   className?: string;
   disabled?: boolean;
+  placeholder?: string;
 }
 
 export const TimePicker: React.FC<TimePickerProps> = ({
@@ -16,6 +17,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
   label,
   className,
   disabled = false,
+  placeholder,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [hours, setHours] = useState('09');
@@ -61,7 +63,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
     return Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
   };
 
-  const currentDisplayValue = formatDisplayValue(hours, minutes);
+  const currentDisplayValue = value ? formatDisplayValue(hours, minutes) : (placeholder ?? '--:--');
 
   return (
     <div className={cn('space-y-1', className)}>
@@ -84,7 +86,9 @@ export const TimePicker: React.FC<TimePickerProps> = ({
         >
           <div className="flex items-center space-x-2">
             <Clock className="w-4 h-4 text-gray-400" />
-            <span className="font-mono text-sm">{currentDisplayValue}</span>
+            <span className="font-mono text-sm">
+              {currentDisplayValue}
+            </span>
           </div>
           <svg
             className={cn('w-4 h-4 text-gray-400 transition-transform', isOpen && 'rotate-180')}

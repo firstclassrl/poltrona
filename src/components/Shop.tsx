@@ -4,11 +4,90 @@ import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Modal } from './ui/Modal';
+import { TimePicker } from './ui/TimePicker';
 import { useAuth } from '../contexts/AuthContext';
 import { DailyHoursManager } from './DailyHoursManager';
 import { useVacationMode } from '../hooks/useVacationMode';
 import { apiService } from '../services/api';
 import type { Shop } from '../types';
+
+const formatDateForDisplay = (isoDate?: string | null): string => {
+  if (!isoDate) return '';
+  const [year, month, day] = isoDate.split('-');
+  if (!year || !month || !day) return '';
+  return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`;
+};
+
+const parseDisplayDate = (displayDate: string): string | null => {
+  if (!displayDate) return null;
+  const trimmed = displayDate.trim();
+  if (!trimmed) return null;
+
+  const match = /^([0-3]?\d)\/([0-1]?\d)\/(\d{4})$/.exec(trimmed);
+  if (!match) return null;
+
+  const day = parseInt(match[1], 10);
+  const month = parseInt(match[2], 10);
+  const year = parseInt(match[3], 10);
+
+  if (day < 1 || day > 31 || month < 1 || month > 12) return null;
+
+  return `${year.toString().padStart(4, '0')}-${month.toString().padStart(2, '0')}-${day
+    .toString()
+    .padStart(2, '0')}`;
+};
+
+const LOCAL_SHOP_STORAGE_KEY = 'localShopData';
+
+const createFallbackShop = (): Shop => ({
+  id: 'local-shop',
+  name: 'Il tuo negozio',
+  address: '',
+  postal_code: '',
+  city: '',
+  province: '',
+  phone: '',
+  whatsapp: '',
+  email: '',
+  notification_email: '',
+  description: '',
+  opening_hours: '',
+  opening_date: '',
+  products_enabled: true,
+  vacation_period: null,
+  extra_opening_date: null,
+  extra_morning_start: null,
+  extra_morning_end: null,
+  extra_afternoon_start: null,
+  extra_afternoon_end: null,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+});
+
+const loadShopFromLocal = (): Shop | null => {
+  if (typeof window === 'undefined') return null;
+  const raw = localStorage.getItem(LOCAL_SHOP_STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as Shop;
+  } catch (error) {
+    console.error('Errore nel parsing dei dati shop locali:', error);
+    return null;
+  }
+};
+
+const persistShopLocally = (shopData: Shop) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(LOCAL_SHOP_STORAGE_KEY, JSON.stringify(shopData));
+  } catch (error) {
+    console.error('Errore nel salvataggio locale dello shop:', error);
+  }
+};
+
+const isOfflineSaveError = (error: unknown): boolean => {
+  return error instanceof Error && error.message?.toLowerCase().includes('supabase non configurato');
+};
 
 export const ShopManagement = () => {
   const { user } = useAuth();
@@ -82,83 +161,128 @@ export const ShopManagement = () => {
     }
   };
 
+  const persistShopState = (shopData: Shop, updateTimestamp: boolean = true) => {
+    const shopWithTimestamp: Shop = updateTimestamp
+      ? {
+          ...shopData,
+          updated_at: new Date().toISOString(),
+        }
+      : shopData;
+    persistShopLocally(shopWithTimestamp);
+    setShop(shopWithTimestamp);
+    syncExtraOpeningStorage(shopWithTimestamp);
+    return shopWithTimestamp;
+  };
+
   useEffect(() => {
     loadShopData();
   }, []);
 
 
   const loadShopData = async () => {
-    try {
-      console.log('🔄 [DEBUG] Loading shop data...');
-      const shopData = await apiService.getShop();
-      console.log('📊 [DEBUG] Shop data loaded:', shopData);
-      console.log('🔧 [DEBUG] products_enabled value:', shopData.products_enabled);
-      console.log('🔧 [DEBUG] products_enabled type:', typeof shopData.products_enabled);
+     try {
+       console.log('🔄 [DEBUG] Loading shop data...');
+       const shopData = await apiService.getShop();
+       console.log('📊 [DEBUG] Shop data loaded:', shopData);
+       console.log('🔧 [DEBUG] products_enabled value:', shopData.products_enabled);
+       console.log('🔧 [DEBUG] products_enabled type:', typeof shopData.products_enabled);
       
-      setShop(shopData);
-      syncExtraOpeningStorage(shopData);
+      const syncedShop = persistShopState(shopData, false);
       setBasicFormData({
-        name: shopData.name || '',
-        address: shopData.address || '',
-        postal_code: (shopData as any).postal_code || '',
-        city: (shopData as any).city || '',
-        province: (shopData as any).province || '',
-        phone: shopData.phone || '',
-        whatsapp: (shopData as any).whatsapp || '',
-        email: shopData.email || '',
-        notification_email: (shopData as any).notification_email || '',
-        description: shopData.description || '',
+        name: syncedShop.name || '',
+        address: syncedShop.address || '',
+        postal_code: (syncedShop as any).postal_code || '',
+        city: (syncedShop as any).city || '',
+        province: (syncedShop as any).province || '',
+        phone: syncedShop.phone || '',
+        whatsapp: (syncedShop as any).whatsapp || '',
+        email: syncedShop.email || '',
+        notification_email: (syncedShop as any).notification_email || '',
+        description: syncedShop.description || '',
       });
       
-      const enabled = shopData.products_enabled ?? true;
+      const enabled = syncedShop.products_enabled ?? true;
       console.log('🔧 [DEBUG] Setting productsEnabled to:', enabled);
-
+ 
       setProductsEnabled(enabled);
       setExtraOpeningForm({
-        date: shopData.extra_opening_date ?? '',
-        morningStart: shopData.extra_morning_start ?? '',
-        morningEnd: shopData.extra_morning_end ?? '',
-        afternoonStart: shopData.extra_afternoon_start ?? '',
-        afternoonEnd: shopData.extra_afternoon_end ?? '',
+        date: formatDateForDisplay(syncedShop.extra_opening_date),
+        morningStart: syncedShop.extra_morning_start ?? '',
+        morningEnd: syncedShop.extra_morning_end ?? '',
+        afternoonStart: syncedShop.extra_afternoon_start ?? '',
+        afternoonEnd: syncedShop.extra_afternoon_end ?? '',
       });
     } catch (error) {
       console.error('❌ [DEBUG] Error loading shop data:', error);
-      setShop(null);
+      const localShop = loadShopFromLocal() ?? createFallbackShop();
+      const syncedShop = persistShopState(localShop, false);
+      setBasicFormData({
+        name: syncedShop.name || '',
+        address: syncedShop.address || '',
+        postal_code: (syncedShop as any).postal_code || '',
+        city: (syncedShop as any).city || '',
+        province: (syncedShop as any).province || '',
+        phone: syncedShop.phone || '',
+        whatsapp: (syncedShop as any).whatsapp || '',
+        email: syncedShop.email || '',
+        notification_email: (syncedShop as any).notification_email || '',
+        description: syncedShop.description || '',
+      });
+      setProductsEnabled(syncedShop.products_enabled ?? true);
+      setExtraOpeningForm({
+        date: formatDateForDisplay(syncedShop.extra_opening_date),
+        morningStart: syncedShop.extra_morning_start ?? '',
+        morningEnd: syncedShop.extra_morning_end ?? '',
+        afternoonStart: syncedShop.extra_afternoon_start ?? '',
+        afternoonEnd: syncedShop.extra_afternoon_end ?? '',
+      });
     }
   };
 
   const handleSaveBasic = async () => {
-    if (!shop) return;
-    
-    setIsSavingBasic(true);
-    try {
-      const updatedShop: Shop = {
-        ...shop,
-        name: basicFormData.name,
-        address: basicFormData.address,
-        postal_code: basicFormData.postal_code,
-        city: basicFormData.city,
-        province: basicFormData.province,
-        phone: basicFormData.phone,
-        whatsapp: basicFormData.whatsapp,
-        email: basicFormData.email,
-        notification_email: basicFormData.notification_email,
-        description: basicFormData.description,
-      };
-
-      await apiService.updateShop(updatedShop);
-      setShop(updatedShop);
-      syncExtraOpeningStorage(updatedShop);
-      
-      setIsEditingBasic(false);
-      showMessage(setBasicMessage, 'success', 'Informazioni negozio salvate con successo!');
-    } catch (error) {
-      console.error('Error saving shop:', error);
-      showMessage(setBasicMessage, 'error', 'Errore durante il salvataggio. Riprova.', 5000);
-    } finally {
-      setIsSavingBasic(false);
-    }
-  };
+     if (!shop) {
+       showMessage(setBasicMessage, 'error', 'Impossibile salvare: dati negozio non disponibili.', 5000);
+       return;
+     }
+ 
+     setIsSavingBasic(true);
+    const updatedShop: Shop = {
+      ...shop,
+      name: basicFormData.name,
+      address: basicFormData.address,
+      postal_code: basicFormData.postal_code,
+      city: basicFormData.city,
+      province: basicFormData.province,
+      phone: basicFormData.phone,
+      whatsapp: basicFormData.whatsapp,
+      email: basicFormData.email,
+      notification_email: basicFormData.notification_email,
+      description: basicFormData.description,
+    };
+     try {
+       await apiService.updateShop(updatedShop);
+       persistShopState(updatedShop);
+       
+       setIsEditingBasic(false);
+       showMessage(setBasicMessage, 'success', 'Informazioni negozio salvate con successo!');
+     } catch (error) {
+       console.error('Error saving shop:', error);
+       if (isOfflineSaveError(error)) {
+        persistShopState(updatedShop);
+         setIsEditingBasic(false);
+         showMessage(
+           setBasicMessage,
+           'success',
+           'Informazioni salvate localmente. Configura il backend per sincronizzarle.',
+           5000
+         );
+       } else {
+         showMessage(setBasicMessage, 'error', 'Errore durante il salvataggio. Riprova.', 5000);
+       }
+     } finally {
+       setIsSavingBasic(false);
+     }
+   };
 
   const handleCancelBasic = () => {
     // Ripristina i dati originali
@@ -187,31 +311,44 @@ export const ShopManagement = () => {
   };
 
   const handleSaveProducts = async () => {
-    if (!shop) return;
-
-    setIsSavingProducts(true);
+    if (!shop) {
+      showMessage(setProductsMessage, 'error', 'Impossibile salvare: dati negozio non disponibili.', 5000);
+      return;
+    }
+ 
+     setIsSavingProducts(true);
+    const updatedShop: Shop = {
+      ...shop,
+      products_enabled: productsEnabled,
+    };
     try {
-      const updatedShop: Shop = {
-        ...shop,
-        products_enabled: productsEnabled,
-      };
-
       await apiService.updateShop(updatedShop);
-      setShop(updatedShop);
+      persistShopState(updatedShop);
       setIsEditingProducts(false);
       showMessage(setProductsMessage, 'success', 'Sistema prodotti aggiornato!');
     } catch (error) {
       console.error('❌ [DEBUG] Error saving products setting:', error);
-      showMessage(setProductsMessage, 'error', 'Errore durante il salvataggio del sistema prodotti.', 5000);
+      if (isOfflineSaveError(error)) {
+        persistShopState(updatedShop);
+        setIsEditingProducts(false);
+        showMessage(
+          setProductsMessage,
+          'success',
+          'Impostazione salvata localmente. Configura il backend per sincronizzarla.',
+          5000
+        );
+      } else {
+        showMessage(setProductsMessage, 'error', 'Errore durante il salvataggio del sistema prodotti.', 5000);
+      }
     } finally {
       setIsSavingProducts(false);
     }
   };
 
   const resetExtraOpeningFromShop = () => {
-    if (!shop) return;
-    setExtraOpeningForm({
-      date: shop.extra_opening_date ?? '',
+     if (!shop) return;
+     setExtraOpeningForm({
+      date: formatDateForDisplay(shop.extra_opening_date),
       morningStart: shop.extra_morning_start ?? '',
       morningEnd: shop.extra_morning_end ?? '',
       afternoonStart: shop.extra_afternoon_start ?? '',
@@ -235,79 +372,102 @@ export const ShopManagement = () => {
   };
 
   const handleSaveExtraOpening = async () => {
-    if (!shop) return;
-
-    const hasMorningRange = Boolean(extraOpeningForm.morningStart && extraOpeningForm.morningEnd);
-    const hasAfternoonRange = Boolean(extraOpeningForm.afternoonStart && extraOpeningForm.afternoonEnd);
-
-    if (extraOpeningForm.date) {
-      if ((extraOpeningForm.morningStart && !extraOpeningForm.morningEnd) || (!extraOpeningForm.morningStart && extraOpeningForm.morningEnd)) {
-        showMessage(setExtraOpeningMessage, 'error', 'Completa sia apertura che chiusura della fascia mattina oppure lasciala vuota.', 5000);
-        return;
-      }
-
-      if ((extraOpeningForm.afternoonStart && !extraOpeningForm.afternoonEnd) || (!extraOpeningForm.afternoonStart && extraOpeningForm.afternoonEnd)) {
-        showMessage(setExtraOpeningMessage, 'error', 'Completa sia apertura che chiusura della fascia pomeriggio oppure lasciala vuota.', 5000);
-        return;
-      }
-
-      const isRangeValid = (start: string, end: string) => {
-        if (!start || !end) return true;
-        const [startH, startM] = start.split(':').map(Number);
-        const [endH, endM] = end.split(':').map(Number);
-        return startH * 60 + startM < endH * 60 + endM;
-      };
-
-      if (!isRangeValid(extraOpeningForm.morningStart, extraOpeningForm.morningEnd)) {
-        showMessage(setExtraOpeningMessage, 'error', 'La fascia mattina deve avere orario di chiusura successivo all’apertura.', 5000);
-        return;
-      }
-
-      if (!isRangeValid(extraOpeningForm.afternoonStart, extraOpeningForm.afternoonEnd)) {
-        showMessage(setExtraOpeningMessage, 'error', 'La fascia pomeriggio deve avere orario di chiusura successivo all’apertura.', 5000);
-        return;
-      }
-
-      if (!hasMorningRange && !hasAfternoonRange) {
-        showMessage(setExtraOpeningMessage, 'error', 'Imposta almeno una fascia oraria (mattina o pomeriggio) per il giorno straordinario.', 5000);
-        return;
-      }
+    if (!shop) {
+      showMessage(setExtraOpeningMessage, 'error', 'Impossibile salvare: dati negozio non disponibili.', 5000);
+      return;
     }
+ 
+     const hasMorningRange = Boolean(extraOpeningForm.morningStart && extraOpeningForm.morningEnd);
+     const hasAfternoonRange = Boolean(extraOpeningForm.afternoonStart && extraOpeningForm.afternoonEnd);
+ 
+     const isoDate = extraOpeningForm.date ? parseDisplayDate(extraOpeningForm.date) : null;
+     if (extraOpeningForm.date && !isoDate) {
+       showMessage(setExtraOpeningMessage, 'error', 'Inserisci una data valida nel formato gg/mm/aaaa.', 5000);
+       return;
+     }
+ 
+     if (isoDate) {
+       if ((extraOpeningForm.morningStart && !extraOpeningForm.morningEnd) || (!extraOpeningForm.morningStart && extraOpeningForm.morningEnd)) {
+         showMessage(setExtraOpeningMessage, 'error', 'Completa sia apertura che chiusura della fascia mattina oppure lasciala vuota.', 5000);
+         return;
+       }
 
-    setIsSavingExtraOpening(true);
-    try {
-      const updatedShop: Shop = {
-        ...shop,
-        extra_opening_date: extraOpeningForm.date || null,
-        extra_morning_start: extraOpeningForm.date && hasMorningRange ? extraOpeningForm.morningStart : null,
-        extra_morning_end: extraOpeningForm.date && hasMorningRange ? extraOpeningForm.morningEnd : null,
-        extra_afternoon_start: extraOpeningForm.date && hasAfternoonRange ? extraOpeningForm.afternoonStart : null,
-        extra_afternoon_end: extraOpeningForm.date && hasAfternoonRange ? extraOpeningForm.afternoonEnd : null,
-      };
+       if ((extraOpeningForm.afternoonStart && !extraOpeningForm.afternoonEnd) || (!extraOpeningForm.afternoonStart && extraOpeningForm.afternoonEnd)) {
+         showMessage(setExtraOpeningMessage, 'error', 'Completa sia apertura che chiusura della fascia pomeriggio oppure lasciala vuota.', 5000);
+         return;
+       }
 
-      await apiService.updateShop(updatedShop);
-      setShop(updatedShop);
-      syncExtraOpeningStorage(updatedShop);
-      setExtraOpeningForm({
-        date: updatedShop.extra_opening_date ?? '',
-        morningStart: updatedShop.extra_morning_start ?? '',
-        morningEnd: updatedShop.extra_morning_end ?? '',
-        afternoonStart: updatedShop.extra_afternoon_start ?? '',
-        afternoonEnd: updatedShop.extra_afternoon_end ?? '',
-      });
+       const isRangeValid = (start: string, end: string) => {
+         if (!start || !end) return true;
+         const [startH, startM] = start.split(':').map(Number);
+         const [endH, endM] = end.split(':').map(Number);
+         return startH * 60 + startM < endH * 60 + endM;
+       };
 
-      setIsEditingExtraOpening(false);
-      const successMessage = extraOpeningForm.date
-        ? 'Apertura straordinaria aggiornata con successo!'
-        : 'Apertura straordinaria rimossa.';
-      showMessage(setExtraOpeningMessage, 'success', successMessage);
-    } catch (error) {
-      console.error('❌ [DEBUG] Error saving extra opening:', error);
-      showMessage(setExtraOpeningMessage, 'error', 'Errore durante il salvataggio dell’apertura straordinaria.', 5000);
-    } finally {
-      setIsSavingExtraOpening(false);
-    }
-  };
+       if (!isRangeValid(extraOpeningForm.morningStart, extraOpeningForm.morningEnd)) {
+         showMessage(setExtraOpeningMessage, 'error', 'La fascia mattina deve avere orario di chiusura successivo all’apertura.', 5000);
+         return;
+       }
+
+       if (!isRangeValid(extraOpeningForm.afternoonStart, extraOpeningForm.afternoonEnd)) {
+         showMessage(setExtraOpeningMessage, 'error', 'La fascia pomeriggio deve avere orario di chiusura successivo all’apertura.', 5000);
+         return;
+       }
+
+       if (!hasMorningRange && !hasAfternoonRange) {
+         showMessage(setExtraOpeningMessage, 'error', 'Imposta almeno una fascia oraria (mattina o pomeriggio) per il giorno straordinario.', 5000);
+         return;
+       }
+     }
+
+     setIsSavingExtraOpening(true);
+     const updatedShop: Shop = {
+       ...shop,
+       extra_opening_date: isoDate,
+       extra_morning_start: isoDate && hasMorningRange ? extraOpeningForm.morningStart : null,
+       extra_morning_end: isoDate && hasMorningRange ? extraOpeningForm.morningEnd : null,
+       extra_afternoon_start: isoDate && hasAfternoonRange ? extraOpeningForm.afternoonStart : null,
+       extra_afternoon_end: isoDate && hasAfternoonRange ? extraOpeningForm.afternoonEnd : null,
+     };
+     try {
+       await apiService.updateShop(updatedShop);
+       const storedShop = persistShopState(updatedShop);
+       setExtraOpeningForm({
+         date: formatDateForDisplay(storedShop.extra_opening_date),
+         morningStart: storedShop.extra_morning_start ?? '',
+         morningEnd: storedShop.extra_morning_end ?? '',
+         afternoonStart: storedShop.extra_afternoon_start ?? '',
+         afternoonEnd: storedShop.extra_afternoon_end ?? '',
+       });
+ 
+       setIsEditingExtraOpening(false);
+       const successMessage = isoDate
+         ? 'Apertura straordinaria aggiornata con successo!'
+         : 'Apertura straordinaria rimossa.';
+       showMessage(setExtraOpeningMessage, 'success', successMessage);
+     } catch (error) {
+       console.error('❌ [DEBUG] Error saving extra opening:', error);
+       if (isOfflineSaveError(error)) {
+         const storedShop = persistShopState(updatedShop);
+         setExtraOpeningForm({
+           date: formatDateForDisplay(storedShop.extra_opening_date),
+           morningStart: storedShop.extra_morning_start ?? '',
+           morningEnd: storedShop.extra_morning_end ?? '',
+           afternoonStart: storedShop.extra_afternoon_start ?? '',
+           afternoonEnd: storedShop.extra_afternoon_end ?? '',
+         });
+         setIsEditingExtraOpening(false);
+         const message = isoDate
+           ? 'Apertura straordinaria salvata localmente. Configura il backend per sincronizzarla.'
+           : 'Apertura straordinaria rimossa localmente.';
+         showMessage(setExtraOpeningMessage, 'success', message, 5000);
+       } else {
+         showMessage(setExtraOpeningMessage, 'error', 'Errore durante il salvataggio dell’apertura straordinaria.', 5000);
+       }
+     } finally {
+       setIsSavingExtraOpening(false);
+     }
+   };
 
   const handleActivateVacation = async () => {
     if (!isEditingVacation) {
@@ -720,67 +880,90 @@ export const ShopManagement = () => {
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Data</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Data (gg/mm/aaaa)</label>
                   <input
-                    type="date"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="\d{1,2}/\d{1,2}/\d{4}"
+                    placeholder="gg/mm/aaaa"
                     value={extraOpeningForm.date}
-                    onChange={(e) => setExtraOpeningForm(prev => ({ ...prev, date: e.target.value }))}
+                    onChange={(e) =>
+                      setExtraOpeningForm(prev => ({
+                        ...prev,
+                        date: e.target.value.replace(/[^0-9/]/g, ''),
+                      }))
+                    }
+                    onBlur={() => {
+                      const iso = parseDisplayDate(extraOpeningForm.date);
+                      if (extraOpeningForm.date && iso) {
+                        setExtraOpeningForm(prev => ({
+                          ...prev,
+                          date: formatDateForDisplay(iso),
+                        }));
+                      }
+                    }}
                     disabled={!isEditingExtraOpening}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:bg-gray-100"
-                    placeholder="gg/mm/aaaa"
-                    lang="it-IT"
                   />
                 </div>
 
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                   <h4 className="text-sm font-medium text-gray-900 mb-2">Fascia mattina</h4>
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Apertura</label>
-                      <input
-                        type="time"
-                        value={extraOpeningForm.morningStart}
-                        onChange={(e) => setExtraOpeningForm(prev => ({ ...prev, morningStart: e.target.value }))}
-                        disabled={!isEditingExtraOpening || !extraOpeningForm.date}
-                        className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:bg-gray-100"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Chiusura</label>
-                      <input
-                        type="time"
-                        value={extraOpeningForm.morningEnd}
-                        onChange={(e) => setExtraOpeningForm(prev => ({ ...prev, morningEnd: e.target.value }))}
-                        disabled={!isEditingExtraOpening || !extraOpeningForm.date}
-                        className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:bg-gray-100"
-                      />
-                    </div>
+                    <TimePicker
+                      label="Apertura"
+                      value={extraOpeningForm.morningStart}
+                      onChange={(value) =>
+                        setExtraOpeningForm(prev => ({
+                          ...prev,
+                          morningStart: value,
+                        }))
+                      }
+                      disabled={!isEditingExtraOpening || !extraOpeningForm.date}
+                      placeholder="--:--"
+                    />
+                    <TimePicker
+                      label="Chiusura"
+                      value={extraOpeningForm.morningEnd}
+                      onChange={(value) =>
+                        setExtraOpeningForm(prev => ({
+                          ...prev,
+                          morningEnd: value,
+                        }))
+                      }
+                      disabled={!isEditingExtraOpening || !extraOpeningForm.date}
+                      placeholder="--:--"
+                    />
                   </div>
                 </div>
 
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                   <h4 className="text-sm font-medium text-gray-900 mb-2">Fascia pomeriggio</h4>
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Apertura</label>
-                      <input
-                        type="time"
-                        value={extraOpeningForm.afternoonStart}
-                        onChange={(e) => setExtraOpeningForm(prev => ({ ...prev, afternoonStart: e.target.value }))}
-                        disabled={!isEditingExtraOpening || !extraOpeningForm.date}
-                        className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:bg-gray-100"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Chiusura</label>
-                      <input
-                        type="time"
-                        value={extraOpeningForm.afternoonEnd}
-                        onChange={(e) => setExtraOpeningForm(prev => ({ ...prev, afternoonEnd: e.target.value }))}
-                        disabled={!isEditingExtraOpening || !extraOpeningForm.date}
-                        className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:bg-gray-100"
-                      />
-                    </div>
+                    <TimePicker
+                      label="Apertura"
+                      value={extraOpeningForm.afternoonStart}
+                      onChange={(value) =>
+                        setExtraOpeningForm(prev => ({
+                          ...prev,
+                          afternoonStart: value,
+                        }))
+                      }
+                      disabled={!isEditingExtraOpening || !extraOpeningForm.date}
+                      placeholder="--:--"
+                    />
+                    <TimePicker
+                      label="Chiusura"
+                      value={extraOpeningForm.afternoonEnd}
+                      onChange={(value) =>
+                        setExtraOpeningForm(prev => ({
+                          ...prev,
+                          afternoonEnd: value,
+                        }))
+                      }
+                      disabled={!isEditingExtraOpening || !extraOpeningForm.date}
+                      placeholder="--:--"
+                    />
                   </div>
                 </div>
               </div>
