@@ -38,23 +38,27 @@ for each row execute function public.set_updated_at();
 alter table public.shop_daily_hours enable row level security;
 alter table public.shop_daily_time_slots enable row level security;
 
-create policy if not exists shop_daily_hours_select
+drop policy if exists shop_daily_hours_select on public.shop_daily_hours;
+create policy shop_daily_hours_select
 on public.shop_daily_hours
 for select
 using (true);
 
-create policy if not exists shop_daily_time_slots_select
+drop policy if exists shop_daily_time_slots_select on public.shop_daily_time_slots;
+create policy shop_daily_time_slots_select
 on public.shop_daily_time_slots
 for select
 using (true);
 
-create policy if not exists shop_daily_hours_modify
+drop policy if exists shop_daily_hours_modify on public.shop_daily_hours;
+create policy shop_daily_hours_modify
 on public.shop_daily_hours
 for all
 using (auth.role() = 'authenticated')
 with check (auth.role() = 'authenticated');
 
-create policy if not exists shop_daily_time_slots_modify
+drop policy if exists shop_daily_time_slots_modify on public.shop_daily_time_slots;
+create policy shop_daily_time_slots_modify
 on public.shop_daily_time_slots
 for all
 using (auth.role() = 'authenticated')
