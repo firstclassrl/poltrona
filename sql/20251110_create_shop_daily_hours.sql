@@ -65,42 +65,56 @@ using (auth.role() = 'authenticated')
 with check (auth.role() = 'authenticated');
 
 -- Optional: migrate legacy JSON from shops.opening_hours into the new structure
-with legacy as (
-  select id as shop_id, opening_hours::jsonb as config
-  from public.shops
-  where opening_hours is not null
-)
-insert into public.shop_daily_hours (shop_id, day_of_week, is_open)
-select
-  l.shop_id,
-  (day_entry.key)::int as day_of_week,
-  coalesce((day_entry.value->>'isOpen')::boolean, false) as is_open
-from legacy l
-cross join jsonb_each(l.config->'shopHours') as day_entry
-on conflict (shop_id, day_of_week) do update
-set is_open = excluded.is_open;
+do $$
+declare
+  legacy_has_rows boolean;
+begin
+  select exists(
+    select 1 from public.shops
+    where opening_hours is not null
+      and opening_hours <> ''
+  ) into legacy_has_rows;
 
-with legacy_slots as (
-  select
-    l.shop_id,
-    (day_entry.key)::int as day_of_week,
-    slot.value as slot_value,
-    slot.ordinality - 1 as slot_position
-  from legacy l
-  cross join jsonb_each(l.config->'shopHours') as day_entry
-  cross join lateral jsonb_array_elements(day_entry.value->'timeSlots') with ordinality as slot(value, ordinality)
-)
-insert into public.shop_daily_time_slots (daily_hours_id, start_time, end_time, position)
-select
-  h.id,
-  (slot_value->>'start')::time,
-  (slot_value->>'end')::time,
-  slot_position
-from legacy_slots ls
-join public.shop_daily_hours h
-  on h.shop_id = ls.shop_id
- and h.day_of_week = ls.day_of_week
-on conflict do nothing;
+  if legacy_has_rows then
+    with legacy as (
+      select id as shop_id, opening_hours::jsonb as config
+      from public.shops
+      where opening_hours is not null
+        and opening_hours <> ''
+    )
+    insert into public.shop_daily_hours (shop_id, day_of_week, is_open)
+    select
+      l.shop_id,
+      (day_entry.key)::int as day_of_week,
+      coalesce((day_entry.value->>'isOpen')::boolean, false) as is_open
+    from legacy l
+    cross join jsonb_each(l.config->'shopHours') as day_entry
+    on conflict (shop_id, day_of_week) do update
+    set is_open = excluded.is_open;
+
+    with legacy_slots as (
+      select
+        l.shop_id,
+        (day_entry.key)::int as day_of_week,
+        slot.value as slot_value,
+        slot.ordinality - 1 as slot_position
+      from legacy l
+      cross join jsonb_each(l.config->'shopHours') as day_entry
+      cross join lateral jsonb_array_elements(day_entry.value->'timeSlots') with ordinality as slot(value, ordinality)
+    )
+    insert into public.shop_daily_time_slots (daily_hours_id, start_time, end_time, position)
+    select
+      h.id,
+      (slot_value->>'start')::time,
+      (slot_value->>'end')::time,
+      slot_position
+    from legacy_slots ls
+    join public.shop_daily_hours h
+      on h.shop_id = ls.shop_id
+     and h.day_of_week = ls.day_of_week
+    on conflict do nothing;
+  end if;
+end $$;
 
 -- Reset legacy column once migrated (optional, comment if you prefer to keep it)
 -- update public.shops set opening_hours = null where opening_hours is not null;
