@@ -5,6 +5,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   containerClassName?: string;
+  'data-format'?: string;
 }
 
 export const Input: React.FC<InputProps> = ({
@@ -28,6 +29,9 @@ export const Input: React.FC<InputProps> = ({
           props.type === 'time' && 'time-24h', // Add class for time inputs
           className
         )}
+        lang={props.type === 'time' ? 'it-IT' : props.lang}
+        step={props.type === 'time' && props.step === undefined ? 60 : props.step}
+        data-format={props.type === 'time' ? '24' : props['data-format']}
         {...props}
       />
       {error && (
