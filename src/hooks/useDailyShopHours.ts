@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import type { ShopHoursConfig, DailyHours, TimeSlot, Shop } from '../types';
+import type { ShopHoursConfig, DailyHours, TimeSlot } from '../types';
 import { apiService } from '../services/api';
+import { createDefaultShopHoursConfig } from '../utils/shopHours';
 
 const EXTRA_OPENING_STORAGE_KEY = 'extraShopOpening';
 const EXTRA_OPENING_EVENT = 'extra-opening-updated';
 const SHOP_HOURS_STORAGE_KEY = 'dailyShopHours';
-const LOCAL_SHOP_STORAGE_KEY = 'localShopData';
-const SHOP_HOURS_VERSION = 1;
+const SHOP_HOURS_CACHE_VERSION = 1;
 
 interface ExtraOpeningConfig {
   date: string;
@@ -16,79 +16,62 @@ interface ExtraOpeningConfig {
   afternoonEnd?: string | null;
 }
 
+interface PersistedHoursPayload {
+  version: number;
+  data: ShopHoursConfig;
+}
+
+const isBrowser = typeof window !== 'undefined';
+
 const getMinutesFromTime = (time: string): number => {
   const [hours, minutes] = time.split(':').map(Number);
   return hours * 60 + minutes;
 };
 
-const isBrowser = typeof window !== 'undefined';
-
-interface PersistedShopHoursPayload {
-  version: number;
-  shopHours: ShopHoursConfig;
-}
-
-const serializeShopHours = (hours: ShopHoursConfig): string =>
-  JSON.stringify({ version: SHOP_HOURS_VERSION, shopHours: hours });
-
-const isPlainShopHoursConfig = (value: unknown): value is ShopHoursConfig => {
-  if (!value || typeof value !== 'object') return false;
-  const keys = Object.keys(value as Record<string, unknown>);
-  return keys.length > 0 && keys.every(key => ['0', '1', '2', '3', '4', '5', '6'].includes(key));
-};
-
-const parsePersistedShopHours = (raw: string | null): ShopHoursConfig | null => {
-  if (!raw) return null;
-
-  try {
-    const parsed = JSON.parse(raw);
-
-    if (parsed && typeof parsed === 'object') {
-      if ('shopHours' in parsed && isPlainShopHoursConfig((parsed as PersistedShopHoursPayload).shopHours)) {
-        return (parsed as PersistedShopHoursPayload).shopHours;
-      }
-
-      // Backward compatibility: stored plain object without wrapper
-      if (isPlainShopHoursConfig(parsed)) {
-        return parsed as ShopHoursConfig;
-      }
-    }
-  } catch (error) {
-    console.error('Error parsing persisted shop hours:', error);
-  }
-
-  return null;
-};
-
-const readLocalShopData = (): Shop | null => {
+const readExtraOpeningFromStorage = (): ExtraOpeningConfig | null => {
   if (!isBrowser) return null;
-  const raw = window.localStorage.getItem(LOCAL_SHOP_STORAGE_KEY);
-  if (!raw) return null;
+  const stored = window.localStorage.getItem(EXTRA_OPENING_STORAGE_KEY);
+  if (!stored) return null;
   try {
-    return JSON.parse(raw) as Shop;
+    const parsed = JSON.parse(stored) as ExtraOpeningConfig;
+    if (!parsed?.date) return null;
+    return parsed;
   } catch (error) {
-    console.error('Error parsing local shop data:', error);
+    console.error('Error parsing extra opening data:', error);
     return null;
   }
 };
 
-const persistLocalShopData = (shop: Shop) => {
+const readCachedHours = (): ShopHoursConfig | null => {
+  if (!isBrowser) return null;
+  const raw = window.localStorage.getItem(SHOP_HOURS_STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as PersistedHoursPayload | ShopHoursConfig;
+    if ('data' in (parsed as PersistedHoursPayload)) {
+      const payload = parsed as PersistedHoursPayload;
+      if (payload.version === SHOP_HOURS_CACHE_VERSION) {
+        return payload.data;
+      }
+      return null;
+    }
+    return parsed as ShopHoursConfig;
+  } catch (error) {
+    console.error('Error parsing cached shop hours:', error);
+    return null;
+  }
+};
+
+const persistHoursLocally = (hours: ShopHoursConfig) => {
   if (!isBrowser) return;
   try {
-    window.localStorage.setItem(LOCAL_SHOP_STORAGE_KEY, JSON.stringify(shop));
+    const payload: PersistedHoursPayload = {
+      version: SHOP_HOURS_CACHE_VERSION,
+      data: hours,
+    };
+    window.localStorage.setItem(SHOP_HOURS_STORAGE_KEY, JSON.stringify(payload));
   } catch (error) {
-    console.error('Error persisting local shop data:', error);
-  }
-};
-
-const parseOpeningHoursFromShop = (openingHours?: string | null): ShopHoursConfig | null => {
-  if (!openingHours) return null;
-
-  try {
-    return parsePersistedShopHours(openingHours);
-  } catch (error) {
-    console.error('Error parsing shop opening hours:', error);
-    return null;
+    console.error('Error saving shop hours locally:', error);
   }
 };
 
@@ -102,172 +85,44 @@ const DAYS_OF_WEEK = [
   { key: 6, name: 'Sabato', shortName: 'Sab' },
 ];
 
-// Default shop hours configuration (24-hour format)
-const getDefaultShopHours = (): ShopHoursConfig => ({
-  0: { isOpen: false, timeSlots: [] }, // Domenica chiuso
-  1: { isOpen: true, timeSlots: [{ start: '09:00', end: '13:00' }, { start: '14:00', end: '19:00' }] }, // Lunedì
-  2: { isOpen: true, timeSlots: [{ start: '09:00', end: '13:00' }, { start: '14:00', end: '19:00' }] }, // Martedì
-  3: { isOpen: true, timeSlots: [{ start: '09:00', end: '13:00' }, { start: '14:00', end: '19:00' }] }, // Mercoledì
-  4: { isOpen: true, timeSlots: [{ start: '09:00', end: '13:00' }, { start: '14:00', end: '19:00' }] }, // Giovedì
-  5: { isOpen: true, timeSlots: [{ start: '09:00', end: '13:00' }, { start: '14:00', end: '19:00' }] }, // Venerdì
-  6: { isOpen: true, timeSlots: [{ start: '09:00', end: '13:00' }, { start: '14:00', end: '19:00' }] }, // Sabato
-});
-
 export const useDailyShopHours = () => {
-  const [shopHours, setShopHours] = useState<ShopHoursConfig>(getDefaultShopHours());
+  const [shopHours, setShopHours] = useState<ShopHoursConfig>(createDefaultShopHoursConfig());
   const [extraOpening, setExtraOpening] = useState<ExtraOpeningConfig | null>(null);
-  const [isInitialized, setIsInitialized] = useState(!isBrowser);
-
-  const persistHoursLocally = (hours: ShopHoursConfig) => {
-    if (!isBrowser) return;
-    try {
-      window.localStorage.setItem(SHOP_HOURS_STORAGE_KEY, serializeShopHours(hours));
-    } catch (error) {
-      console.error('Error saving shop hours locally:', error);
-    }
-  };
-
-  const syncHoursWithBackend = async (hours: ShopHoursConfig) => {
-    if (!isBrowser) return;
-
-    try {
-      const serialized = serializeShopHours(hours);
-      let currentShop = readLocalShopData();
-
-      if (!currentShop) {
-        try {
-          currentShop = await apiService.getShop();
-        } catch (error) {
-          console.warn('Unable to load shop from backend while syncing hours:', error);
-        }
-      }
-
-      if (!currentShop) return;
-
-      const updatedShop: Shop = {
-        ...currentShop,
-        opening_hours: serialized,
-        updated_at: new Date().toISOString(),
-      };
-
-      persistLocalShopData(updatedShop);
-
-      if (updatedShop.id && updatedShop.id !== 'local-shop') {
-        try {
-          await apiService.updateShop(updatedShop);
-        } catch (error) {
-          console.warn('Error syncing shop hours with backend:', error);
-        }
-      }
-    } catch (error) {
-      console.error('Unexpected error while syncing shop hours:', error);
-    }
-  };
-
-  const readExtraOpeningFromStorage = (): ExtraOpeningConfig | null => {
-    if (!isBrowser) return null;
-    const stored = window.localStorage.getItem(EXTRA_OPENING_STORAGE_KEY);
-    if (!stored) return null;
-    try {
-      const parsed = JSON.parse(stored) as ExtraOpeningConfig;
-      if (!parsed?.date) return null;
-      return parsed;
-    } catch (error) {
-      console.error('Error parsing extra opening data:', error);
-      return null;
-    }
-  };
+  const [shopHoursLoaded, setShopHoursLoaded] = useState(!isBrowser);
 
   useEffect(() => {
-    // Load shop hours from localStorage
     if (!isBrowser) return;
 
+    const cached = readCachedHours();
+    if (cached) {
+      setShopHours(cached);
+    }
     setExtraOpening(readExtraOpeningFromStorage());
 
     let isMounted = true;
-
-    const loadShopHours = async () => {
-      let loadedHours: ShopHoursConfig | null = null;
-      let source: 'localStorage' | 'localShop' | 'remote' | null = null;
-
-      const savedHours = window.localStorage.getItem(SHOP_HOURS_STORAGE_KEY);
-      const parsedLocal = parsePersistedShopHours(savedHours);
-      if (parsedLocal) {
-        loadedHours = parsedLocal;
-        source = 'localStorage';
-      }
-
-      if (!loadedHours) {
-        const localShop = readLocalShopData();
-        const parsedShop = parseOpeningHoursFromShop(localShop?.opening_hours);
-        if (parsedShop) {
-          loadedHours = parsedShop;
-          source = 'localShop';
+    (async () => {
+      try {
+        const remoteHours = await apiService.getDailyShopHours();
+        if (!isMounted) return;
+        setShopHours(remoteHours);
+        persistHoursLocally(remoteHours);
+      } catch (error) {
+        console.error('Error loading shop hours from backend:', error);
+      } finally {
+        if (isMounted) {
+          setShopHoursLoaded(true);
         }
       }
-
-      if (!loadedHours) {
-        try {
-          const remoteShop = await apiService.getShop();
-          const parsedRemote = parseOpeningHoursFromShop(remoteShop?.opening_hours);
-          if (parsedRemote) {
-            loadedHours = parsedRemote;
-            source = 'remote';
-            persistLocalShopData({
-              ...remoteShop,
-              opening_hours: serializeShopHours(parsedRemote),
-            });
-          }
-        } catch (error) {
-          console.warn('Unable to fetch shop hours from backend, using defaults:', error);
-        }
-      }
-
-      if (loadedHours) {
-        persistHoursLocally(loadedHours);
-        if (source === 'localStorage' || source === 'localShop') {
-          await syncHoursWithBackend(loadedHours);
-        }
-      }
-
-      if (isMounted) {
-        if (loadedHours) {
-          setShopHours(loadedHours);
-        }
-        setIsInitialized(true);
-      }
-    };
-
-    void loadShopHours();
+    })();
 
     return () => {
       isMounted = false;
     };
   }, []);
 
-  const updateShopHours = (newHours: ShopHoursConfig) => {
-    setShopHours(newHours);
-    if (isBrowser) {
-      persistHoursLocally(newHours);
-      void syncHoursWithBackend(newHours);
-    }
-  };
-
-  const applyExtraOpening = (config: ExtraOpeningConfig | null) => {
-    setExtraOpening(config);
-    if (config) {
-      if (isBrowser) {
-        window.localStorage.setItem(EXTRA_OPENING_STORAGE_KEY, JSON.stringify(config));
-      }
-    } else {
-      if (isBrowser) {
-        window.localStorage.removeItem(EXTRA_OPENING_STORAGE_KEY);
-      }
-    }
-  };
-
   useEffect(() => {
     if (!isBrowser) return;
+
     const handleStorage = (event: StorageEvent) => {
       if (event.key === EXTRA_OPENING_STORAGE_KEY) {
         setExtraOpening(readExtraOpeningFromStorage());
@@ -287,6 +142,24 @@ export const useDailyShopHours = () => {
       window.removeEventListener(EXTRA_OPENING_EVENT, handleExtraOpeningEvent as EventListener);
     };
   }, []);
+
+  const updateShopHours = (newHours: ShopHoursConfig) => {
+    setShopHours(newHours);
+    persistHoursLocally(newHours);
+    void apiService.saveDailyShopHours(newHours).catch((error) => {
+      console.error('Error saving daily shop hours:', error);
+    });
+  };
+
+  const applyExtraOpening = (config: ExtraOpeningConfig | null) => {
+    setExtraOpening(config);
+    if (!isBrowser) return;
+    if (config) {
+      window.localStorage.setItem(EXTRA_OPENING_STORAGE_KEY, JSON.stringify(config));
+    } else {
+      window.localStorage.removeItem(EXTRA_OPENING_STORAGE_KEY);
+    }
+  };
 
   const getIsoDate = (date: Date) => date.toISOString().split('T')[0];
 
@@ -475,6 +348,6 @@ export const useDailyShopHours = () => {
     extraOpening,
     applyExtraOpening,
     refreshExtraOpening: () => setExtraOpening(readExtraOpeningFromStorage()),
-    shopHoursLoaded: isInitialized,
+    shopHoursLoaded,
   };
 };

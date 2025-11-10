@@ -170,6 +170,26 @@ export interface CreateMessageRequest {
   message_type?: 'text' | 'image' | 'file';
 }
 
+export interface ShopDailyTimeSlotRow {
+  id: string;
+  daily_hours_id: string;
+  start_time: string;
+  end_time: string;
+  position?: number | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ShopDailyHoursEntity {
+  id: string;
+  shop_id: string;
+  day_of_week: number;
+  is_open: boolean;
+  created_at?: string;
+  updated_at?: string;
+  shop_daily_time_slots?: ShopDailyTimeSlotRow[];
+}
+
 // Daily shop hours configuration
 export interface DailyHours {
   isOpen: boolean;

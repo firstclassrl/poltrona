@@ -11,8 +11,13 @@ import type {
   Shop,
   Chat,
   ChatMessage,
-  CreateMessageRequest
+  CreateMessageRequest,
+  ShopHoursConfig,
+  TimeSlot,
+  ShopDailyHoursEntity,
+  ShopDailyTimeSlotRow
 } from '../types';
+import { createDefaultShopHoursConfig, formatTimeToHHMM, normalizeTimeString } from '../utils/shopHours';
 
 // Check if Supabase is configured
 const isSupabaseConfigured = () => {
@@ -43,6 +48,148 @@ export const apiService = {
     } catch (error) {
       console.error('Error searching clients:', error);
       return [];
+    }
+  },
+
+  async getDailyShopHours(): Promise<ShopHoursConfig> {
+    if (!isSupabaseConfigured()) {
+      console.warn('Supabase non configurato - uso configurazione orari di default');
+      return createDefaultShopHoursConfig();
+    }
+
+    try {
+      const shop = await this.getShop();
+      if (!shop?.id) {
+        return createDefaultShopHoursConfig();
+      }
+
+      const url = `${API_ENDPOINTS.SHOP_DAILY_HOURS}?select=*,shop_daily_time_slots(*)&shop_id=eq.${shop.id}&order=day_of_week.asc`;
+      const response = await fetch(url, { headers: buildHeaders(true) });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch shop daily hours: ${response.status}`);
+      }
+
+      const rows = await response.json() as ShopDailyHoursEntity[];
+      const config = createDefaultShopHoursConfig();
+
+      rows.forEach((row) => {
+        if (row.day_of_week < 0 || row.day_of_week > 6) return;
+        const timeSlots = (row.shop_daily_time_slots ?? [])
+          .sort((a, b) => {
+            const positionDiff = (a.position ?? 0) - (b.position ?? 0);
+            if (positionDiff !== 0) return positionDiff;
+            return (a.start_time ?? '').localeCompare(b.start_time ?? '');
+          })
+          .map((slot: ShopDailyTimeSlotRow): TimeSlot => ({
+            start: formatTimeToHHMM(slot.start_time ?? ''),
+            end: formatTimeToHHMM(slot.end_time ?? ''),
+          }))
+          .filter((slot) => Boolean(slot.start && slot.end));
+
+        config[row.day_of_week] = {
+          isOpen: row.is_open,
+          timeSlots,
+        };
+      });
+
+      return config;
+    } catch (error) {
+      console.error('Error loading daily shop hours:', error);
+      return createDefaultShopHoursConfig();
+    }
+  },
+
+  async saveDailyShopHours(hoursConfig: ShopHoursConfig): Promise<void> {
+    if (!isSupabaseConfigured()) {
+      console.warn('Supabase non configurato - impossibile salvare gli orari del negozio');
+      return;
+    }
+
+    try {
+      const shop = await this.getShop();
+      if (!shop?.id) {
+        throw new Error('Impossibile determinare l\'ID del negozio');
+      }
+
+      const headers = buildHeaders(true);
+
+      const existingRes = await fetch(
+        `${API_ENDPOINTS.SHOP_DAILY_HOURS}?select=*,shop_daily_time_slots(*)&shop_id=eq.${shop.id}`,
+        { headers }
+      );
+      if (!existingRes.ok) {
+        throw new Error(`Failed to load existing shop hours: ${existingRes.status}`);
+      }
+      const existingRows = await existingRes.json() as ShopDailyHoursEntity[];
+      const existingMap = new Map<number, ShopDailyHoursEntity>();
+      existingRows.forEach((row) => existingMap.set(row.day_of_week, row));
+
+      for (let day = 0; day < 7; day += 1) {
+        const dayConfig = hoursConfig[day] ?? { isOpen: false, timeSlots: [] };
+        let currentRow = existingMap.get(day);
+
+        if (currentRow) {
+          const updateRes = await fetch(`${API_ENDPOINTS.SHOP_DAILY_HOURS}?id=eq.${currentRow.id}`, {
+            method: 'PATCH',
+            headers,
+            body: JSON.stringify({ is_open: dayConfig.isOpen }),
+          });
+          if (!updateRes.ok) {
+            const errorText = await updateRes.text();
+            throw new Error(`Failed to update shop hours (${day}): ${errorText}`);
+          }
+        } else {
+          const createRes = await fetch(API_ENDPOINTS.SHOP_DAILY_HOURS, {
+            method: 'POST',
+            headers: { ...headers, Prefer: 'return=representation' },
+            body: JSON.stringify([{
+              shop_id: shop.id,
+              day_of_week: day,
+              is_open: dayConfig.isOpen,
+            }]),
+          });
+          if (!createRes.ok) {
+            const errorText = await createRes.text();
+            throw new Error(`Failed to create daily hours (${day}): ${errorText}`);
+          }
+          const created = await createRes.json() as ShopDailyHoursEntity[];
+          currentRow = created[0];
+          existingMap.set(day, currentRow);
+        }
+
+        if (!currentRow) continue;
+
+        const deleteSlotsRes = await fetch(`${API_ENDPOINTS.SHOP_DAILY_TIME_SLOTS}?daily_hours_id=eq.${currentRow.id}`, {
+          method: 'DELETE',
+          headers,
+        });
+        if (!deleteSlotsRes.ok) {
+          const errorText = await deleteSlotsRes.text();
+          throw new Error(`Failed to clear time slots (${day}): ${errorText}`);
+        }
+
+        if (dayConfig.isOpen && dayConfig.timeSlots.length > 0) {
+          const payload = dayConfig.timeSlots.map((slot, index) => ({
+            daily_hours_id: currentRow!.id,
+            start_time: normalizeTimeString(slot.start),
+            end_time: normalizeTimeString(slot.end),
+            position: index,
+          }));
+
+          const insertSlotsRes = await fetch(API_ENDPOINTS.SHOP_DAILY_TIME_SLOTS, {
+            method: 'POST',
+            headers: { ...headers, Prefer: 'return=minimal' },
+            body: JSON.stringify(payload),
+          });
+          if (!insertSlotsRes.ok) {
+            const errorText = await insertSlotsRes.text();
+            throw new Error(`Failed to insert time slots (${day}): ${errorText}`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error saving daily shop hours:', error);
+      throw error;
     }
   },
 
@@ -315,34 +462,6 @@ export const apiService = {
       }
     } catch (error) {
       console.error('Error updating shop:', error);
-      throw error;
-    }
-  },
-
-  // Update shop hours
-  async updateShopHours(hoursData: {
-    morningOpening: string;
-    morningClosing: string;
-    afternoonOpening: string;
-    afternoonClosing: string;
-    closedDays: number[];
-  }): Promise<void> {
-    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
-    try {
-      // Get current shop data
-      const shop = await this.getShop();
-      
-      // Update shop with hours data
-      const updatedShop = {
-        ...shop,
-        opening_hours: `${hoursData.morningOpening}-${hoursData.morningClosing} / ${hoursData.afternoonOpening}-${hoursData.afternoonClosing}`,
-        updated_at: new Date().toISOString()
-      };
-      
-      await this.updateShop(updatedShop);
-    } catch (error) {
-      console.error('Error updating shop hours:', error);
       throw error;
     }
   },
