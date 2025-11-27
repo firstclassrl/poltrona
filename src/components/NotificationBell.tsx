@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Bell } from 'lucide-react';
 import { useNotifications } from '../contexts/NotificationContext';
 import { NotificationPanel } from './NotificationPanel';
@@ -7,12 +8,31 @@ import { cn } from '../utils/cn';
 export const NotificationBell: React.FC = () => {
   const { unreadCount, loadNotifications } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Calculate panel position when opening
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setPanelPosition({
+        top: rect.bottom + 8, // 8px below the button
+        left: rect.left, // Align with button left
+      });
+    }
+  }, [isOpen]);
 
   // Close panel when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        buttonRef.current && 
+        !buttonRef.current.contains(target) &&
+        panelRef.current &&
+        !panelRef.current.contains(target)
+      ) {
         setIsOpen(false);
       }
     };
@@ -35,9 +55,10 @@ export const NotificationBell: React.FC = () => {
   };
 
   return (
-    <div ref={containerRef} className="relative">
+    <>
       {/* Bell Button */}
       <button
+        ref={buttonRef}
         onClick={handleToggle}
         className={cn(
           'relative p-2 rounded-lg transition-all duration-200',
@@ -56,10 +77,21 @@ export const NotificationBell: React.FC = () => {
         )}
       </button>
 
-      {/* Notification Panel */}
-      {isOpen && (
-        <NotificationPanel onClose={() => setIsOpen(false)} />
+      {/* Notification Panel - rendered via Portal to avoid sidebar overflow clipping */}
+      {isOpen && createPortal(
+        <div 
+          ref={panelRef}
+          style={{ 
+            position: 'fixed', 
+            top: panelPosition.top, 
+            left: panelPosition.left,
+            zIndex: 9999 
+          }}
+        >
+          <NotificationPanel onClose={() => setIsOpen(false)} />
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 };

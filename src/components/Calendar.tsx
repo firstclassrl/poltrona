@@ -170,6 +170,8 @@ export const Calendar = () => {
   const assignedChairs = getAssignedChairs();
   
   const filteredAppointments = appointments.filter(apt => {
+    // Escludi appuntamenti cancellati - liberano il posto per altri utenti
+    if (apt.status === 'cancelled') return false;
     const chairMatch = selectedChair === 'all' || apt.staff?.chair_id === selectedChair;
     return chairMatch;
   });
@@ -269,7 +271,7 @@ export const Calendar = () => {
         <div className="overflow-x-auto">
           <div className="min-w-full">
             {/* Week Header */}
-            <div className={`grid gap-1 mb-4`} style={{ gridTemplateColumns: `60px repeat(${weekDays.length}, 1fr)` }}>
+            <div className={`grid gap-1 mb-4 overflow-hidden`} style={{ gridTemplateColumns: `60px repeat(${weekDays.length}, minmax(0, 1fr))` }}>
               <div className="p-2 text-sm font-medium text-gray-600">Orario</div>
               {weekDays.map((day, index) => (
                 <div 
@@ -287,7 +289,7 @@ export const Calendar = () => {
             </div>
 
             {/* Time Slots */}
-            <div className="grid gap-1" style={{ gridTemplateColumns: `60px repeat(${weekDays.length}, 1fr)` }}>
+            <div className="grid gap-1 overflow-hidden" style={{ gridTemplateColumns: `60px repeat(${weekDays.length}, minmax(0, 1fr))` }}>
               {/* Usa l'unione degli slot della settimana per costruire la griglia */}
               {(() => {
                 const gridTimeSlots = getWeekTimeSlots(timePeriod);
@@ -303,7 +305,7 @@ export const Calendar = () => {
                       return (
                         <div
                           key={`${time}-${dayIndex}`}
-                          className={`min-h-[60px] p-1 border border-gray-100 transition-colors relative ${
+                          className={`min-h-[60px] max-h-[60px] p-1 border border-gray-100 transition-colors relative overflow-hidden ${
                             isTimeSlotAvailable 
                               ? 'hover:bg-gray-50 cursor-pointer' 
                               : 'bg-gray-200 text-gray-600 cursor-not-allowed'
@@ -322,20 +324,14 @@ export const Calendar = () => {
                             .map(apt => (
                               <div
                                 key={apt.id}
-                                className={`p-2 rounded text-xs border ${getStatusColor(apt.status || 'scheduled')} cursor-pointer hover:scale-105 transition-transform`}
+                                className={`p-1 rounded text-xs border w-full max-w-full overflow-hidden ${getStatusColor(apt.status || 'scheduled')} cursor-pointer hover:opacity-80 transition-opacity`}
                                 draggable
                                 onDragStart={(e) => e.dataTransfer.setData('appointmentId', apt.id || '')}
                                 onClick={() => handleAppointmentClick(apt)}
                                 title={`${apt.clients?.first_name} ${apt.clients?.last_name || ''} - ${apt.services?.name || 'Servizio'} - ${apt.staff?.full_name}`}
                               >
-                                <div className="font-medium truncate">
+                                <div className="font-medium truncate whitespace-nowrap overflow-hidden text-ellipsis">
                                   {apt.clients?.first_name} {apt.clients?.last_name || ''}
-                                </div>
-                                <div className="opacity-75 truncate text-xs">
-                                  {apt.services?.name || 'Servizio'}
-                                </div>
-                                <div className="opacity-60 truncate text-xs">
-                                  {apt.staff?.full_name}
                                 </div>
                               </div>
                             ))

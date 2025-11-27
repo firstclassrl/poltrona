@@ -1235,7 +1235,7 @@ export const apiService = {
       
       const response = await fetch(API_ENDPOINTS.NOTIFICATIONS, {
         method: 'POST',
-        headers: { ...buildHeaders(false), Prefer: 'return=representation' },
+        headers: { ...buildHeaders(true), Prefer: 'return=representation' },
         body: JSON.stringify(payload),
       });
       

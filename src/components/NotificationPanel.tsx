@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Check, CheckCheck, Trash2, Calendar, AlertCircle, Bell } from 'lucide-react';
+import { X, Check, CheckCheck, Trash2, Calendar, AlertCircle, Bell, Clock } from 'lucide-react';
 import { useNotifications } from '../contexts/NotificationContext';
 import type { Notification, NotificationType } from '../types';
 import { cn } from '../utils/cn';
@@ -16,6 +16,8 @@ const getNotificationIcon = (type: NotificationType) => {
       return <X className="w-5 h-5 text-red-400" />;
     case 'appointment_reminder':
       return <Bell className="w-5 h-5 text-blue-400" />;
+    case 'waitlist_available':
+      return <Clock className="w-5 h-5 text-amber-400" />;
     case 'system':
     default:
       return <AlertCircle className="w-5 h-5 text-yellow-400" />;
@@ -142,7 +144,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ onClose })
   };
 
   return (
-    <div className="absolute left-0 top-full mt-2 w-80 sm:w-96 max-h-[70vh] bg-slate-900/95 backdrop-blur-xl border border-yellow-400/30 rounded-xl shadow-2xl overflow-hidden z-[9999]">
+    <div className="w-80 sm:w-96 max-h-[70vh] bg-slate-900/95 backdrop-blur-xl border border-yellow-400/30 rounded-xl shadow-2xl overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-yellow-400/30 bg-slate-800/50">
         <div className="flex items-center gap-2">
