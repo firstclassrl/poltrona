@@ -1171,4 +1171,115 @@ export const apiService = {
       throw error;
     }
   },
+
+  // ============================================
+  // Client Appointment Cancellation
+  // ============================================
+
+  // Cancel appointment directly in Supabase (for client cancellations)
+  async cancelAppointmentDirect(appointmentId: string): Promise<void> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    
+    try {
+      const response = await fetch(`${API_ENDPOINTS.APPOINTMENTS_FEED}?id=eq.${appointmentId}`, {
+        method: 'PATCH',
+        headers: { ...buildHeaders(false), Prefer: 'return=minimal' },
+        body: JSON.stringify({ 
+          status: 'cancelled',
+          updated_at: new Date().toISOString()
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Errore cancellazione appuntamento:', response.status, errorText);
+        throw new Error(`Failed to cancel appointment: ${response.status} ${errorText}`);
+      }
+      
+      console.log('✅ Appuntamento cancellato:', appointmentId);
+    } catch (error) {
+      console.error('❌ Errore critico cancellazione appuntamento:', error);
+      throw error;
+    }
+  },
+
+  // Create a notification for a user
+  async createNotification(data: {
+    user_id: string;
+    user_type: 'staff' | 'client';
+    type: 'new_appointment' | 'appointment_cancelled' | 'appointment_reminder' | 'system';
+    title: string;
+    message: string;
+    data?: Record<string, unknown>;
+  }): Promise<Notification | null> {
+    if (!isSupabaseConfigured()) {
+      console.warn('Supabase non configurato - notifica non creata');
+      return null;
+    }
+    
+    try {
+      const shop = await this.getShop();
+      
+      const payload = {
+        shop_id: shop?.id && shop.id !== 'default' ? shop.id : null,
+        user_id: data.user_id,
+        user_type: data.user_type,
+        type: data.type,
+        title: data.title,
+        message: data.message,
+        data: data.data || {},
+      };
+      
+      const response = await fetch(API_ENDPOINTS.NOTIFICATIONS, {
+        method: 'POST',
+        headers: { ...buildHeaders(false), Prefer: 'return=representation' },
+        body: JSON.stringify(payload),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Errore creazione notifica:', response.status, errorText);
+        return null;
+      }
+      
+      const created = await response.json();
+      console.log('✅ Notifica creata:', created[0]);
+      return created[0];
+    } catch (error) {
+      console.error('❌ Errore critico creazione notifica:', error);
+      return null;
+    }
+  },
+
+  // Get staff member by ID
+  async getStaffById(staffId: string): Promise<Staff | null> {
+    if (!isSupabaseConfigured()) return null;
+    
+    try {
+      const url = `${API_ENDPOINTS.STAFF}?id=eq.${staffId}&select=*&limit=1`;
+      const response = await fetch(url, { headers: buildHeaders(false) });
+      if (!response.ok) return null;
+      const staff = await response.json();
+      return staff[0] || null;
+    } catch (error) {
+      console.error('Error fetching staff by id:', error);
+      return null;
+    }
+  },
+
+  // Get appointment by ID with full details
+  async getAppointmentById(appointmentId: string): Promise<Appointment | null> {
+    if (!isSupabaseConfigured()) return null;
+    
+    try {
+      const url = `${API_ENDPOINTS.APPOINTMENTS_FEED}?id=eq.${appointmentId}&select=*,clients(first_name,last_name,phone_e164,email),staff(id,full_name,email),services(id,name,duration_min)&limit=1`;
+      const response = await fetch(url, { headers: buildHeaders(false) });
+      if (!response.ok) return null;
+      const appointments = await response.json();
+      return appointments[0] || null;
+    } catch (error) {
+      console.error('Error fetching appointment by id:', error);
+      return null;
+    }
+  },
 };

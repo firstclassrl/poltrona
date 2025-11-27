@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Calendar, Clock, Edit, Save, X, Shield, FileText, Trash2 } from 'lucide-react';
+import { User, Calendar, Clock, Edit, Save, X, Shield, FileText, Trash2, XCircle, AlertTriangle } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Card } from './ui/Card';
@@ -8,7 +8,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile, type UserProfileData } from '../hooks/useUserProfile';
 import { useClientRegistration } from '../hooks/useClientRegistration';
 import { useAppointments } from '../hooks/useAppointments';
+import { apiService } from '../services/api';
+import { emailNotificationService } from '../services/emailNotificationService';
 import type { RegisteredClient } from '../types/auth';
+import type { Appointment } from '../types';
 
 export const ClientProfile: React.FC = () => {
   const { user, logout } = useAuth();
@@ -27,6 +30,8 @@ export const ClientProfile: React.FC = () => {
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [clientData, setClientData] = useState<RegisteredClient | null>(null);
+  const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   // Carica i dati del profilo all'inizializzazione
   useEffect(() => {
@@ -98,6 +103,100 @@ export const ClientProfile: React.FC = () => {
       setMessage({ type: 'error', text: 'Errore nell\'eliminazione dell\'account' });
     } finally {
       setShowDeleteConfirm(false);
+    }
+  };
+
+  // Verifica se un appuntamento può essere cancellato (almeno 2 ore prima)
+  const canCancelAppointment = (appointment: Appointment): boolean => {
+    const appointmentTime = new Date(appointment.start_at);
+    const now = new Date();
+    const hoursUntilAppointment = (appointmentTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+    return hoursUntilAppointment >= 2 && appointment.status !== 'cancelled' && appointment.status !== 'completed';
+  };
+
+  // Handle appointment cancellation
+  const handleCancelAppointment = async () => {
+    if (!appointmentToCancel || !user) return;
+    
+    setIsCancelling(true);
+    
+    try {
+      // 1. Annulla l'appuntamento nel database
+      await apiService.cancelAppointmentDirect(appointmentToCancel.id);
+      
+      // 2. Ottieni i dettagli completi dell'appuntamento per la notifica
+      const appointmentDetails = await apiService.getAppointmentById(appointmentToCancel.id);
+      
+      // 3. Crea una notifica per il barbiere
+      if (appointmentToCancel.staff_id) {
+        const clientName = appointmentToCancel.clients 
+          ? `${appointmentToCancel.clients.first_name} ${appointmentToCancel.clients.last_name || ''}`.trim()
+          : user.full_name || 'Cliente';
+        
+        const appointmentDate = new Date(appointmentToCancel.start_at).toLocaleDateString('it-IT', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        });
+        
+        const appointmentTime = new Date(appointmentToCancel.start_at).toLocaleTimeString('it-IT', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        });
+        
+        const serviceName = appointmentToCancel.services?.name || 'Servizio';
+        
+        // Crea notifica in-app per il barbiere
+        await apiService.createNotification({
+          user_id: appointmentToCancel.staff_id,
+          user_type: 'staff',
+          type: 'appointment_cancelled',
+          title: 'Appuntamento Annullato',
+          message: `${clientName} ha annullato l'appuntamento per ${serviceName} del ${appointmentDate} alle ${appointmentTime}`,
+          data: {
+            appointment_id: appointmentToCancel.id,
+            client_name: clientName,
+            client_phone: appointmentToCancel.clients?.phone_e164,
+            service_name: serviceName,
+            appointment_date: appointmentDate,
+            appointment_time: appointmentTime,
+          }
+        });
+        
+        // 4. Invia email al barbiere
+        const staffDetails = await apiService.getStaffById(appointmentToCancel.staff_id);
+        const shop = await apiService.getShop();
+        
+        if (staffDetails?.email) {
+          await emailNotificationService.sendCancellationNotification(
+            {
+              clientName: clientName,
+              clientEmail: appointmentToCancel.clients?.email || user.email || undefined,
+              clientPhone: appointmentToCancel.clients?.phone_e164,
+              serviceName: serviceName,
+              appointmentDate: appointmentDate,
+              appointmentTime: appointmentTime,
+              barberName: staffDetails.full_name,
+              shopName: shop?.name || 'Barbershop',
+            },
+            staffDetails.email
+          );
+        }
+      }
+      
+      setMessage({ type: 'success', text: 'Appuntamento annullato con successo!' });
+      setAppointmentToCancel(null);
+      
+      // Rimuovi il messaggio dopo 3 secondi
+      setTimeout(() => setMessage(null), 3000);
+      
+    } catch (error) {
+      console.error('Error cancelling appointment:', error);
+      setMessage({ type: 'error', text: 'Errore nell\'annullamento dell\'appuntamento. Riprova.' });
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -213,13 +312,23 @@ export const ClientProfile: React.FC = () => {
         {clientAppointments.length > 0 ? (
           <div className="space-y-4">
             {clientAppointments.map((appointment) => (
-              <div key={appointment.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div key={appointment.id} className={`flex items-center justify-between p-4 rounded-lg ${
+                appointment.status === 'cancelled' ? 'bg-red-50' : 'bg-gray-50'
+              }`}>
                 <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Calendar className="w-6 h-6 text-blue-600" />
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                    appointment.status === 'cancelled' ? 'bg-red-100' : 'bg-blue-100'
+                  }`}>
+                    {appointment.status === 'cancelled' ? (
+                      <XCircle className="w-6 h-6 text-red-600" />
+                    ) : (
+                      <Calendar className="w-6 h-6 text-blue-600" />
+                    )}
                   </div>
                   <div>
-                    <div className="font-medium text-gray-900">
+                    <div className={`font-medium ${
+                      appointment.status === 'cancelled' ? 'text-gray-500 line-through' : 'text-gray-900'
+                    }`}>
                       {appointment.services?.name || 'Servizio'}
                     </div>
                     <div className="text-sm text-gray-600">
@@ -228,15 +337,19 @@ export const ClientProfile: React.FC = () => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-medium text-gray-900">
+                  <div className={`font-medium ${
+                    appointment.status === 'cancelled' ? 'text-gray-500 line-through' : 'text-gray-900'
+                  }`}>
                     {new Date(appointment.start_at).toLocaleDateString('it-IT')}
                   </div>
-                  <div className="text-sm text-gray-600 flex items-center">
+                  <div className={`text-sm flex items-center ${
+                    appointment.status === 'cancelled' ? 'text-gray-500 line-through' : 'text-gray-600'
+                  }`}>
                     <Clock className="w-4 h-4 mr-1" />
                     {new Date(appointment.start_at).toLocaleTimeString('it-IT', { 
                       hour: '2-digit', 
                       minute: '2-digit',
-                      hour12: false // Forza formato 24 ore
+                      hour12: false
                     })}
                   </div>
                 </div>
@@ -246,12 +359,29 @@ export const ClientProfile: React.FC = () => {
                       ? 'bg-green-100 text-green-800'
                       : appointment.status === 'scheduled'
                       ? 'bg-blue-100 text-blue-800'
+                      : appointment.status === 'cancelled'
+                      ? 'bg-red-100 text-red-800'
+                      : appointment.status === 'completed'
+                      ? 'bg-purple-100 text-purple-800'
                       : 'bg-gray-100 text-gray-800'
                   }`}>
                     {appointment.status === 'confirmed' ? 'Confermato' : 
                      appointment.status === 'scheduled' ? 'Programmato' : 
+                     appointment.status === 'cancelled' ? 'Annullato' :
+                     appointment.status === 'completed' ? 'Completato' :
                      appointment.status}
                   </span>
+                  
+                  {/* Pulsante Annulla */}
+                  {canCancelAppointment(appointment) && (
+                    <button
+                      onClick={() => setAppointmentToCancel(appointment)}
+                      className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Annulla appuntamento"
+                    >
+                      <XCircle className="w-5 h-5" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -389,6 +519,93 @@ export const ClientProfile: React.FC = () => {
                 className="flex-1 bg-red-600 hover:bg-red-700 text-white"
               >
                 Elimina Definitivamente
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Conferma Annullamento Appuntamento */}
+      {appointmentToCancel && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-orange-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Conferma Annullamento</h3>
+            </div>
+            
+            <p className="text-gray-700 mb-4">
+              Sei sicuro di voler annullare questo appuntamento?
+            </p>
+            
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Servizio:</span>
+                  <span className="font-medium text-gray-900">
+                    {appointmentToCancel.services?.name || 'Servizio'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Barbiere:</span>
+                  <span className="font-medium text-gray-900">
+                    {appointmentToCancel.staff?.full_name || 'Barbiere'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Data:</span>
+                  <span className="font-medium text-gray-900">
+                    {new Date(appointmentToCancel.start_at).toLocaleDateString('it-IT', {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long'
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Orario:</span>
+                  <span className="font-medium text-gray-900">
+                    {new Date(appointmentToCancel.start_at).toLocaleTimeString('it-IT', { 
+                      hour: '2-digit', 
+                      minute: '2-digit',
+                      hour12: false
+                    })}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <p className="text-orange-600 text-sm mb-6">
+              Il barbiere verrà notificato dell'annullamento.
+            </p>
+            
+            <div className="flex space-x-3">
+              <Button
+                variant="secondary"
+                onClick={() => setAppointmentToCancel(null)}
+                className="flex-1"
+                disabled={isCancelling}
+              >
+                Indietro
+              </Button>
+              <Button
+                onClick={handleCancelAppointment}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                disabled={isCancelling}
+              >
+                {isCancelling ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    Annullamento...
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="w-4 h-4 mr-2" />
+                    Annulla Appuntamento
+                  </>
+                )}
               </Button>
             </div>
           </div>

@@ -322,29 +322,21 @@ export const Calendar = () => {
                             .map(apt => (
                               <div
                                 key={apt.id}
-                                className={`p-2 rounded text-xs border ${getStatusColor(apt.status || 'scheduled')} cursor-pointer hover:scale-105 transition-transform`}
+                                className={`p-1.5 rounded text-xs border h-[52px] overflow-hidden ${getStatusColor(apt.status || 'scheduled')} cursor-pointer hover:scale-105 transition-transform`}
                                 draggable
                                 onDragStart={(e) => e.dataTransfer.setData('appointmentId', apt.id || '')}
                                 onClick={() => handleAppointmentClick(apt)}
-                                title={`${apt.clients?.first_name} ${apt.clients?.last_name || ''} - ${apt.services?.name || 'Servizio'}`}
+                                title={`${apt.clients?.first_name} ${apt.clients?.last_name || ''} - ${apt.services?.name || 'Servizio'} - ${apt.staff?.full_name}`}
                               >
-                                <div className="font-medium truncate">
+                                <div className="font-medium truncate leading-tight">
                                   {apt.clients?.first_name} {apt.clients?.last_name || ''}
                                 </div>
-                                <div className="opacity-75 truncate text-xs">
+                                <div className="opacity-75 truncate text-xs leading-tight">
                                   {apt.services?.name || 'Servizio'}
                                 </div>
-                                <div className="opacity-60 truncate text-xs">
+                                <div className="opacity-60 truncate text-xs leading-tight">
                                   {apt.staff?.full_name}
                                 </div>
-                                {apt.products && apt.products.length > 0 && (
-                                  <div className="flex items-center justify-center mt-1">
-                                    <div className="flex items-center space-x-1 bg-green-100 text-green-700 px-1 py-0.5 rounded-full">
-                                      <Package className="w-2.5 h-2.5" />
-                                      <span className="text-xs font-medium">{apt.products.length}</span>
-                                    </div>
-                                  </div>
-                                )}
                               </div>
                             ))
                           }

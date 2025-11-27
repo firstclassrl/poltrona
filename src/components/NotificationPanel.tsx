@@ -142,7 +142,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ onClose })
   };
 
   return (
-    <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 max-h-[70vh] bg-slate-900/95 backdrop-blur-xl border border-yellow-400/30 rounded-xl shadow-2xl overflow-hidden z-50">
+    <div className="absolute left-0 top-full mt-2 w-80 sm:w-96 max-h-[70vh] bg-slate-900/95 backdrop-blur-xl border border-yellow-400/30 rounded-xl shadow-2xl overflow-hidden z-50">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-yellow-400/30 bg-slate-800/50">
         <div className="flex items-center gap-2">

@@ -13,7 +13,6 @@ import { Login } from './components/Login';
 import { ClientProfile } from './components/ClientProfile';
 import { ClientBookingCalendar } from './components/ClientBookingCalendar';
 import { ClientProducts } from './components/ClientProducts';
-import { NotificationBell } from './components/NotificationBell';
 import { Chat } from './components/Chat';
 import { Toast } from './components/ui/Toast';
 import { useToast } from './hooks/useToast';
@@ -127,13 +126,6 @@ const AppContent: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-purple-950/20 to-pink-950/20">
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
-      
-      {/* Notification Bell for Barbers and Admins */}
-      {user?.role !== 'client' && (
-        <div className="fixed top-4 right-4 z-50">
-          <NotificationBell />
-        </div>
-      )}
       
       {/* Main Content */}
       <div className="md:pl-64 pb-20 md:pb-0 bg-white">
