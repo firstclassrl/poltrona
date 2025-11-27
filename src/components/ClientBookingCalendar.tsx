@@ -16,7 +16,7 @@ import type { Service, Staff, Shop } from '../types';
 export const ClientBookingCalendar: React.FC = () => {
   const { getAvailableTimeSlots, isDateOpen, shopHoursLoaded } = useDailyShopHours();
   const { availableStaff } = useChairAssignment();
-  const { addNotification } = useNotifications();
+  const { refreshUnreadCount } = useNotifications();
   const { user } = useAuth();
   const { createAppointment, isTimeSlotBooked } = useAppointments();
   const { isDateInVacation } = useVacationMode();
@@ -217,16 +217,10 @@ export const ClientBookingCalendar: React.FC = () => {
       console.log('✅ Appuntamento salvato con successo:', savedAppointment);
       
       // Send notification to the barber
+      // Note: Notifications are automatically created by the backend when an appointment is created
       if (barber) {
-        const productNames = products.map(p => `${p.productId} (x${p.quantity})`).join(', ');
-        
-        addNotification({
-          type: 'appointment',
-          title: 'Nuova Prenotazione',
-          message: `Nuovo appuntamento prenotato per ${selectedDate?.toLocaleDateString('it-IT')} alle ${selectedTime}. Servizio: ${service?.name || 'N/A'}${products.length > 0 ? `. Prodotti: ${productNames}` : ''}`,
-          barberId: barber.id,
-          appointmentId: Date.now().toString(),
-        });
+        // Refresh notifications count for the barber
+        refreshUnreadCount();
 
         // Send email notification to the barber
         if (barber.email && user) {
