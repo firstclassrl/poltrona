@@ -26,6 +26,7 @@ export interface RegisterData {
   password: string;
   full_name: string;
   role: UserRole;
+  phone?: string;
 }
 
 export interface PrivacyConsent {

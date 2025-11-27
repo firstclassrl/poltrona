@@ -67,7 +67,8 @@ export const Login: React.FC = () => {
         email: registrationData.email,
         password: registrationData.password,
         full_name: `${registrationData.firstName} ${registrationData.lastName}`,
-        role: 'client'
+        role: 'client',
+        phone: registrationData.phone || undefined,
       });
       
       // Mostra messaggio di successo

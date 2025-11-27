@@ -96,7 +96,7 @@ const AppContent: React.FC = () => {
       case 'client_profile':
         return <ClientProfile />;
       case 'client_booking':
-        return <ClientBookingCalendar />;
+        return <ClientBookingCalendar onNavigateToProfile={() => setActiveTab('client_profile')} />;
       default:
         return (
           <Dashboard

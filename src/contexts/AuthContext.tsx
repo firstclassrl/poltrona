@@ -189,8 +189,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       const signupJson = await signupRes.json();
       
-      // Se l'utente è stato creato con successo, il trigger del database
-      // dovrebbe aver creato automaticamente il profilo
+      // Se l'utente è stato creato con successo, crea anche il record client
+      // per far apparire l'utente nella pagina Clienti
+      try {
+        await apiService.getOrCreateClientFromUser({
+          id: signupJson.user?.id || '',
+          email: data.email,
+          full_name: data.full_name,
+          phone: data.phone || undefined,
+        });
+        console.log('✅ Record client creato per:', data.email);
+      } catch (clientError) {
+        console.warn('⚠️ Errore nella creazione del record client:', clientError);
+        // Non bloccare la registrazione se la creazione client fallisce
+      }
+      
       setAuthState(prev => ({ ...prev, isLoading: false }));
       
       // Invia notifica email al negozio se configurata

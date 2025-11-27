@@ -214,7 +214,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
             <div className="space-y-3">
               {upcomingAppointments.slice(0, 3).map((appointment) => (
-                <Card key={appointment.id} className="p-3">
+                <Card 
+                  key={appointment.id} 
+                  className="p-3 cursor-pointer hover:bg-gray-50 transition-colors"
+                  onClick={() => handleAppointmentClick(appointment)}
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
@@ -533,6 +537,118 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <Button variant="secondary" onClick={() => setShowAppointmentModal(false)}>
                 Chiudi
               </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Appointment Details Modal */}
+      <Modal
+        isOpen={showAppointmentModal}
+        onClose={() => setShowAppointmentModal(false)}
+        title="Dettagli Appuntamento"
+      >
+        {selectedAppointment && (
+          <div className="space-y-6">
+            {/* Client Info */}
+            <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+              <div className="w-16 h-16 bg-gradient-to-br from-green-600 to-green-800 rounded-full flex items-center justify-center">
+                <span className="text-yellow-300 font-bold text-xl">
+                  {selectedAppointment.clients?.first_name?.[0]}{selectedAppointment.clients?.last_name?.[0]}
+                </span>
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900">
+                  {selectedAppointment.clients?.first_name} {selectedAppointment.clients?.last_name}
+                </h3>
+                <p className="text-gray-600">{selectedAppointment.clients?.phone_e164}</p>
+              </div>
+            </div>
+
+            {/* Appointment Details */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-600 font-medium">Data</p>
+                <p className="text-lg font-semibold text-gray-900">
+                  {new Date(selectedAppointment.start_at).toLocaleDateString('it-IT', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                  })}
+                </p>
+              </div>
+              <div className="p-4 bg-green-50 rounded-lg">
+                <p className="text-sm text-green-600 font-medium">Orario</p>
+                <p className="text-lg font-semibold text-gray-900">
+                  {formatTime(selectedAppointment.start_at)}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex justify-between items-center p-3 border-b">
+                <span className="text-gray-600">Servizio</span>
+                <span className="font-medium text-gray-900">{selectedAppointment.services?.name}</span>
+              </div>
+              <div className="flex justify-between items-center p-3 border-b">
+                <span className="text-gray-600">Barbiere</span>
+                <span className="font-medium text-gray-900">{selectedAppointment.staff?.full_name}</span>
+              </div>
+              <div className="flex justify-between items-center p-3 border-b">
+                <span className="text-gray-600">Durata</span>
+                <span className="font-medium text-gray-900">{selectedAppointment.services?.duration_min} minuti</span>
+              </div>
+              <div className="flex justify-between items-center p-3 border-b">
+                <span className="text-gray-600">Prezzo</span>
+                <span className="font-bold text-green-600 text-lg">€{(selectedAppointment.services?.price_cents || 0) / 100}</span>
+              </div>
+              <div className="flex justify-between items-center p-3">
+                <span className="text-gray-600">Stato</span>
+                {getStatusBadge(selectedAppointment.status || 'scheduled')}
+              </div>
+            </div>
+
+            {/* Notes */}
+            {selectedAppointment.notes && (
+              <div className="p-4 bg-yellow-50 rounded-lg">
+                <p className="text-sm text-yellow-700 font-medium mb-1">Note</p>
+                <p className="text-gray-700">{selectedAppointment.notes}</p>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex space-x-3 pt-4">
+              <Button 
+                variant="secondary" 
+                onClick={() => setShowAppointmentModal(false)}
+                className="flex-1"
+              >
+                Chiudi
+              </Button>
+              {selectedAppointment.status !== 'no_show' && selectedAppointment.status !== 'completed' && (
+                <Button 
+                  variant="danger" 
+                  onClick={() => {
+                    setShowAppointmentModal(false);
+                    handleNoShowClick();
+                  }}
+                  className="flex-1 bg-red-600 hover:bg-red-700"
+                >
+                  Segna No-Show
+                </Button>
+              )}
+              {onEditAppointment && (
+                <Button 
+                  onClick={() => {
+                    setShowAppointmentModal(false);
+                    onEditAppointment(selectedAppointment);
+                  }}
+                  className="flex-1"
+                >
+                  Modifica
+                </Button>
+              )}
             </div>
           </div>
         )}

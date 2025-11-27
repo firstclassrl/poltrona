@@ -13,7 +13,11 @@ import { emailService } from '../services/emailServiceBrowser';
 import { apiService } from '../services/api';
 import type { Service, Staff, Shop } from '../types';
 
-export const ClientBookingCalendar: React.FC = () => {
+interface ClientBookingCalendarProps {
+  onNavigateToProfile?: () => void;
+}
+
+export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ onNavigateToProfile }) => {
   const { getAvailableTimeSlots, isDateOpen, shopHoursLoaded } = useDailyShopHours();
   const { availableStaff } = useChairAssignment();
   const { refreshUnreadCount } = useNotifications();
@@ -258,9 +262,12 @@ export const ClientBookingCalendar: React.FC = () => {
         }
       }
       
+      // Close all modals
+      setShowUpsellModal(false);
+      setShowBookingModal(false);
+      
       // Show success message
       setIsSuccess(true);
-      setShowUpsellModal(false);
       
       // Reset form
       setSelectedDate(null);
@@ -269,10 +276,18 @@ export const ClientBookingCalendar: React.FC = () => {
       setSelectedBarber('');
       setSelectedProducts([]);
       
-      // Hide success message after 3 seconds
-      setTimeout(() => setIsSuccess(false), 3000);
+      // Navigate to profile after 2.5 seconds
+      setTimeout(() => {
+        setIsSuccess(false);
+        if (onNavigateToProfile) {
+          onNavigateToProfile();
+        }
+      }, 2500);
     } catch (error) {
       console.error('Error booking appointment:', error);
+      // Close modals on error too
+      setShowUpsellModal(false);
+      setShowBookingModal(false);
     } finally {
       setIsSubmitting(false);
     }
@@ -415,17 +430,18 @@ export const ClientBookingCalendar: React.FC = () => {
 
       {/* Success Message - Both Mobile and Desktop */}
       {isSuccess && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <div className="flex items-center space-x-2">
-            <Check className="w-5 h-5 text-green-600" />
-            <div>
-              <p className="text-green-800 font-medium">Appuntamento prenotato con successo!</p>
-              {selectedProducts.length > 0 && (
-                <p className="text-green-700 text-sm">
-                  Prodotti aggiunti: {selectedProducts.length} articoli
-                </p>
-              )}
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 max-w-md mx-4 text-center shadow-2xl animate-pulse">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Check className="w-10 h-10 text-green-600" />
             </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Grazie per la prenotazione!</h2>
+            <p className="text-gray-600 mb-4">
+              Il tuo appuntamento è stato confermato con successo.
+            </p>
+            <p className="text-sm text-gray-500">
+              Verrai reindirizzato al tuo profilo...
+            </p>
           </div>
         </div>
       )}
