@@ -33,14 +33,14 @@ export const ChairAssignment = () => {
     }
   };
 
-  const handleAddNewStaff = (staffData: any) => {
-    addNewStaff(staffData);
+  const handleAddNewStaff = async (staffData: any) => {
+    await addNewStaff(staffData);
     setShowBarberForm(false);
   };
 
-  const handleUpdateStaff = (staffData: any) => {
+  const handleUpdateStaff = async (staffData: any) => {
     if (editingStaff) {
-      updateStaff(editingStaff.id, staffData);
+      await updateStaff(editingStaff.id, staffData);
       setShowBarberForm(false);
       setEditingStaff(null);
     }
@@ -61,7 +61,7 @@ export const ChairAssignment = () => {
     
     setIsDeleting(true);
     try {
-      deleteStaff(staffToDelete.id);
+      await deleteStaff(staffToDelete.id);
       setShowDeleteConfirmation(false);
       setStaffToDelete(null);
     } catch (error) {

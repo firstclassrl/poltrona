@@ -131,17 +131,33 @@ export const useChairAssignment = () => {
     localStorage.setItem('availableStaff', JSON.stringify(updatedStaff));
   };
 
-  const addNewStaff = (staffData: Omit<Staff, 'id' | 'created_at'>) => {
-    const newStaff: Staff = {
-      ...staffData,
-      id: Date.now().toString(),
-      created_at: new Date().toISOString(),
-    };
-
-    const updatedStaff = [...availableStaff, newStaff];
-    setAvailableStaff(updatedStaff);
-    localStorage.setItem('availableStaff', JSON.stringify(updatedStaff));
-    return newStaff;
+  const addNewStaff = async (staffData: Omit<Staff, 'id' | 'created_at'>) => {
+    try {
+      // Salva il nuovo barbiere tramite API
+      const newStaff = await apiService.createStaff(staffData);
+      
+      // Aggiorna lo state locale
+      const updatedStaff = [...availableStaff, newStaff];
+      setAvailableStaff(updatedStaff);
+      localStorage.setItem('availableStaff', JSON.stringify(updatedStaff));
+      
+      return newStaff;
+    } catch (error) {
+      console.error('Errore nella creazione del barbiere:', error);
+      
+      // Fallback: salva solo localmente se l'API fallisce
+      const newStaff: Staff = {
+        ...staffData,
+        id: Date.now().toString(),
+        created_at: new Date().toISOString(),
+      };
+      
+      const updatedStaff = [...availableStaff, newStaff];
+      setAvailableStaff(updatedStaff);
+      localStorage.setItem('availableStaff', JSON.stringify(updatedStaff));
+      
+      return newStaff;
+    }
   };
 
   const getAssignedStaff = (chairId: string): Staff | null => {
@@ -167,16 +183,39 @@ export const useChairAssignment = () => {
     return availableStaff.find(s => s.id === activeStaffId) || null;
   };
 
-  const updateStaff = (staffId: string, updates: Partial<Staff>) => {
-    const updatedStaff = availableStaff.map(s => 
-      s.id === staffId ? { ...s, ...updates } : s
-    );
-    setAvailableStaff(updatedStaff);
-    localStorage.setItem('availableStaff', JSON.stringify(updatedStaff));
+  const updateStaff = async (staffId: string, updates: Partial<Staff>) => {
+    try {
+      // Aggiorna il barbiere tramite API
+      await apiService.updateStaff(staffId, updates);
+      
+      // Aggiorna lo state locale
+      const updatedStaff = availableStaff.map(s => 
+        s.id === staffId ? { ...s, ...updates } : s
+      );
+      setAvailableStaff(updatedStaff);
+      localStorage.setItem('availableStaff', JSON.stringify(updatedStaff));
+    } catch (error) {
+      console.error('Errore nell\'aggiornamento del barbiere:', error);
+      
+      // Fallback: aggiorna solo localmente se l'API fallisce
+      const updatedStaff = availableStaff.map(s => 
+        s.id === staffId ? { ...s, ...updates } : s
+      );
+      setAvailableStaff(updatedStaff);
+      localStorage.setItem('availableStaff', JSON.stringify(updatedStaff));
+    }
   };
 
-  const deleteStaff = (staffId: string) => {
-    // Rimuovi il barbiere dalla lista
+  const deleteStaff = async (staffId: string) => {
+    try {
+      // Elimina il barbiere tramite API
+      await apiService.deleteStaff(staffId);
+    } catch (error) {
+      console.error('Errore nell\'eliminazione del barbiere:', error);
+      // Continua con l'eliminazione locale anche se l'API fallisce
+    }
+    
+    // Rimuovi il barbiere dalla lista locale
     const updatedStaff = availableStaff.filter(s => s.id !== staffId);
     setAvailableStaff(updatedStaff);
     localStorage.setItem('availableStaff', JSON.stringify(updatedStaff));

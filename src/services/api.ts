@@ -548,13 +548,88 @@ export const apiService = {
     if (!isSupabaseConfigured()) return [];
     
     try {
-      const url = `${API_ENDPOINTS.STAFF}?select=*&active=eq.true&order=full_name.asc`;
+      // Carica tutti i barbieri (attivi e non) per la gestione
+      const url = `${API_ENDPOINTS.STAFF}?select=*&order=full_name.asc`;
       const response = await fetch(url, { headers: buildHeaders(true) });
       if (!response.ok) throw new Error('Failed to fetch staff');
       return await response.json();
     } catch (error) {
       console.error('Error fetching staff:', error);
       return [];
+    }
+  },
+
+  // Create new staff member
+  async createStaff(staffData: Omit<Staff, 'id' | 'created_at'>): Promise<Staff> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    
+    try {
+      const shop = await this.getShop();
+      const payload = {
+        ...staffData,
+        shop_id: shop?.id || staffData.shop_id,
+      };
+      
+      const response = await fetch(API_ENDPOINTS.STAFF, {
+        method: 'POST',
+        headers: { ...buildHeaders(true), Prefer: 'return=representation' },
+        body: JSON.stringify(payload),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to create staff: ${response.status} ${errorText}`);
+      }
+      
+      const created = await response.json();
+      return created[0] as Staff;
+    } catch (error) {
+      console.error('Error creating staff:', error);
+      throw error;
+    }
+  },
+
+  // Update existing staff member
+  async updateStaff(id: string, staffData: Partial<Staff>): Promise<Staff> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    
+    try {
+      const response = await fetch(`${API_ENDPOINTS.STAFF}?id=eq.${id}`, {
+        method: 'PATCH',
+        headers: { ...buildHeaders(true), Prefer: 'return=representation' },
+        body: JSON.stringify(staffData),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to update staff: ${response.status} ${errorText}`);
+      }
+      
+      const updated = await response.json();
+      return updated[0] as Staff;
+    } catch (error) {
+      console.error('Error updating staff:', error);
+      throw error;
+    }
+  },
+
+  // Delete staff member
+  async deleteStaff(id: string): Promise<void> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    
+    try {
+      const response = await fetch(`${API_ENDPOINTS.STAFF}?id=eq.${id}`, {
+        method: 'DELETE',
+        headers: { ...buildHeaders(true) },
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to delete staff: ${response.status} ${errorText}`);
+      }
+    } catch (error) {
+      console.error('Error deleting staff:', error);
+      throw error;
     }
   },
 
