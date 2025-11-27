@@ -347,7 +347,8 @@ export const apiService = {
     try {
       // Usa buildHeaders(false) per permettere lettura pubblica degli appuntamenti
       // Questo permette sia ai clienti che ai barbieri di vedere gli appuntamenti
-      const url = `${API_ENDPOINTS.APPOINTMENTS_FEED}?select=*,clients(first_name,last_name,phone_e164),staff(full_name)&order=start_at.asc&start_at=gte.${start}&start_at=lte.${end}`;
+      // Include services per mostrare nome servizio e durata
+      const url = `${API_ENDPOINTS.APPOINTMENTS_FEED}?select=*,clients(first_name,last_name,phone_e164,email),staff(full_name),services(id,name,duration_min)&order=start_at.asc&start_at=gte.${start}&start_at=lte.${end}`;
       const response = await fetch(url, { headers: buildHeaders(false) });
       if (!response.ok) {
         const errorText = await response.text();

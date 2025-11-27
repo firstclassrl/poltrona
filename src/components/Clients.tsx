@@ -177,9 +177,12 @@ export const Clients = ({ onNavigateToBooking }: ClientsProps) => {
                 <h2 className="text-2xl font-bold text-gray-900">
                   {selectedClient.first_name} {selectedClient.last_name || ''}
                 </h2>
-                <p className="text-gray-600">
-                  Cliente dal {new Date(selectedClient.created_at).toLocaleDateString('it-IT')}
-                </p>
+                {selectedClient.email && (
+                  <p className="text-gray-600 flex items-center">
+                    <Mail className="w-4 h-4 mr-1" />
+                    {selectedClient.email}
+                  </p>
+                )}
               </div>
             </div>
 
