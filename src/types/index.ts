@@ -209,7 +209,7 @@ export interface ShopHoursConfig {
 // Notifications
 // ============================================
 
-export type NotificationType = 'new_appointment' | 'appointment_cancelled' | 'appointment_reminder' | 'system';
+export type NotificationType = 'new_appointment' | 'appointment_cancelled' | 'appointment_reminder' | 'system' | 'waitlist_available';
 export type NotificationUserType = 'staff' | 'client';
 
 export interface Notification {
@@ -233,5 +233,40 @@ export interface NotificationData {
   service_name?: string;
   appointment_date?: string;
   appointment_time?: string;
+  available_date?: string;
+  waitlist_id?: string;
+  cancelled_appointment_id?: string;
   [key: string]: unknown;
+}
+
+// ============================================
+// Waitlist - Lista d'attesa
+// ============================================
+
+export type WaitlistStatus = 'waiting' | 'notified' | 'booked' | 'expired';
+
+export interface WaitlistEntry {
+  id: string;
+  shop_id: string | null;
+  client_id: string;
+  service_id: string | null;
+  staff_id: string | null;
+  preferred_dates: string[]; // Array di date in formato ISO
+  status: WaitlistStatus;
+  created_at: string;
+  notified_at: string | null;
+  expires_at: string;
+  notes: string | null;
+  // Relazioni opzionali (quando join)
+  clients?: Client;
+  services?: Service;
+  staff?: Staff;
+}
+
+export interface JoinWaitlistRequest {
+  client_id: string;
+  preferred_dates: string[]; // Array di date in formato ISO (YYYY-MM-DD)
+  service_id?: string;
+  staff_id?: string;
+  notes?: string;
 }

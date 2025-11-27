@@ -1,13 +1,55 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, User, Scissors, Plus, Check } from 'lucide-react';
+import { Calendar, Clock, User, Scissors, Plus, Check, Bell, X, AlertCircle } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Select } from './ui/Select';
 import { Card } from './ui/Card';
 import { useDailyShopHours } from '../hooks/useDailyShopHours';
 import { apiService } from '../services/api';
-import type { Service, Staff } from '../types';
+import { useAuth } from '../contexts/AuthContext';
+import type { Service, Staff, WaitlistEntry } from '../types';
+
+// Helper per ottenere i prossimi 3 giorni (oggi, domani, dopodomani)
+const getNextThreeDays = (): Date[] => {
+  const days: Date[] = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  for (let i = 0; i < 3; i++) {
+    const day = new Date(today);
+    day.setDate(today.getDate() + i);
+    days.push(day);
+  }
+  
+  return days;
+};
+
+// Formatta la data in formato YYYY-MM-DD
+const formatDateISO = (date: Date): string => {
+  return date.toISOString().split('T')[0];
+};
+
+// Formatta la data per visualizzazione
+const formatDateDisplay = (date: Date): string => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const dayAfterTomorrow = new Date(today);
+  dayAfterTomorrow.setDate(today.getDate() + 2);
+  
+  if (date.getTime() === today.getTime()) {
+    return 'Oggi';
+  } else if (date.getTime() === tomorrow.getTime()) {
+    return 'Domani';
+  } else if (date.getTime() === dayAfterTomorrow.getTime()) {
+    return 'Dopodomani';
+  }
+  
+  return date.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+};
 
 export const ClientBooking: React.FC = () => {
+  const { user } = useAuth();
   const { getAvailableTimeSlots, isDateOpen, shopHoursLoaded } = useDailyShopHours();
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
@@ -18,6 +60,16 @@ export const ClientBooking: React.FC = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Waitlist state
+  const [clientId, setClientId] = useState<string | null>(null);
+  const [waitlistEntries, setWaitlistEntries] = useState<WaitlistEntry[]>([]);
+  const [isJoiningWaitlist, setIsJoiningWaitlist] = useState(false);
+  const [waitlistSuccess, setWaitlistSuccess] = useState(false);
+  const [waitlistError, setWaitlistError] = useState<string | null>(null);
+  const [selectedWaitlistDates, setSelectedWaitlistDates] = useState<string[]>([]);
+  const [waitlistService, setWaitlistService] = useState('');
+  const [waitlistBarber, setWaitlistBarber] = useState('');
 
   // Load services and staff from API
   useEffect(() => {
@@ -40,6 +92,30 @@ export const ClientBooking: React.FC = () => {
     loadData();
   }, []);
 
+  // Ottieni il client_id dall'utente autenticato
+  useEffect(() => {
+    const getClientId = async () => {
+      if (user?.email) {
+        try {
+          const id = await apiService.getOrCreateClientFromUser({
+            id: user.id,
+            email: user.email,
+            full_name: user.full_name,
+          });
+          setClientId(id);
+          
+          // Carica lo stato della waitlist per questo cliente
+          const entries = await apiService.getClientWaitlistStatus(id);
+          setWaitlistEntries(entries);
+        } catch (error) {
+          console.error('Error getting client ID:', error);
+        }
+      }
+    };
+
+    getClientId();
+  }, [user]);
+
   // Get available time slots for selected date
   const timeSlots = selectedDate && shopHoursLoaded ? getAvailableTimeSlots(new Date(selectedDate)) : [];
 
@@ -52,6 +128,10 @@ export const ClientBooking: React.FC = () => {
   const isDateValid = (date: Date) => {
     return shopHoursLoaded && isDateOpen(date);
   };
+
+  // Ottieni i prossimi 3 giorni aperti per la waitlist
+  const nextThreeDays = getNextThreeDays();
+  const openDays = nextThreeDays.filter(day => shopHoursLoaded && isDateOpen(day));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,6 +154,71 @@ export const ClientBooking: React.FC = () => {
       console.error('Error booking appointment:', error);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Toggle selezione data per waitlist
+  const toggleWaitlistDate = (date: Date) => {
+    const dateStr = formatDateISO(date);
+    setSelectedWaitlistDates(prev => {
+      if (prev.includes(dateStr)) {
+        return prev.filter(d => d !== dateStr);
+      } else {
+        return [...prev, dateStr];
+      }
+    });
+  };
+
+  // Mettersi in coda
+  const handleJoinWaitlist = async () => {
+    if (!clientId || selectedWaitlistDates.length === 0) {
+      setWaitlistError('Seleziona almeno una data');
+      return;
+    }
+
+    setIsJoiningWaitlist(true);
+    setWaitlistError(null);
+
+    try {
+      // Controlla se già in coda per queste date
+      const alreadyInWaitlist = await apiService.isClientInWaitlist(clientId, selectedWaitlistDates);
+      if (alreadyInWaitlist) {
+        setWaitlistError('Sei già in lista d\'attesa per una o più di queste date');
+        setIsJoiningWaitlist(false);
+        return;
+      }
+
+      const entry = await apiService.joinWaitlist({
+        client_id: clientId,
+        preferred_dates: selectedWaitlistDates,
+        service_id: waitlistService || undefined,
+        staff_id: waitlistBarber || undefined,
+      });
+
+      if (entry) {
+        setWaitlistEntries(prev => [entry, ...prev]);
+        setWaitlistSuccess(true);
+        setSelectedWaitlistDates([]);
+        setWaitlistService('');
+        setWaitlistBarber('');
+        
+        setTimeout(() => setWaitlistSuccess(false), 5000);
+      }
+    } catch (error) {
+      console.error('Error joining waitlist:', error);
+      setWaitlistError('Errore durante l\'iscrizione alla lista d\'attesa');
+    } finally {
+      setIsJoiningWaitlist(false);
+    }
+  };
+
+  // Rimuoversi dalla coda
+  const handleLeaveWaitlist = async (waitlistId: string) => {
+    try {
+      await apiService.leaveWaitlist(waitlistId);
+      setWaitlistEntries(prev => prev.filter(e => e.id !== waitlistId));
+    } catch (error) {
+      console.error('Error leaving waitlist:', error);
     }
   };
 
@@ -228,6 +373,180 @@ export const ClientBooking: React.FC = () => {
         </form>
       </Card>
 
+      {/* Sezione Lista d'Attesa */}
+      {shopHoursLoaded && openDays.length > 0 && (
+        <Card className="max-w-2xl mx-auto">
+          <div className="p-6">
+            <div className="flex items-center space-x-2 mb-4">
+              <Bell className="w-5 h-5 text-amber-600" />
+              <h3 className="text-lg font-semibold text-gray-900">Mettiti in Coda</h3>
+            </div>
+            
+            <p className="text-gray-600 text-sm mb-4">
+              Non trovi posto? Mettiti in lista d'attesa e ti avviseremo se si libera un posto!
+            </p>
+
+            {waitlistSuccess && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                <div className="flex items-center space-x-2">
+                  <Check className="w-5 h-5 text-green-600" />
+                  <p className="text-green-800 text-sm">
+                    Sei stato aggiunto alla lista d'attesa! Ti avviseremo se si libera un posto.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {waitlistError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                <div className="flex items-center space-x-2">
+                  <AlertCircle className="w-5 h-5 text-red-600" />
+                  <p className="text-red-800 text-sm">{waitlistError}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Selezione giorni */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Seleziona i giorni in cui vorresti un posto:
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {openDays.map(day => {
+                  const dateStr = formatDateISO(day);
+                  const isSelected = selectedWaitlistDates.includes(dateStr);
+                  
+                  return (
+                    <button
+                      key={dateStr}
+                      type="button"
+                      onClick={() => toggleWaitlistDate(day)}
+                      className={`px-4 py-2 rounded-lg border-2 transition-colors ${
+                        isSelected 
+                          ? 'bg-amber-100 border-amber-500 text-amber-800' 
+                          : 'bg-white border-gray-200 text-gray-700 hover:border-amber-300'
+                      }`}
+                    >
+                      <div className="text-sm font-medium">{formatDateDisplay(day)}</div>
+                      <div className="text-xs text-gray-500">
+                        {day.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Preferenze opzionali */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">
+                  Servizio preferito (opzionale)
+                </label>
+                <Select
+                  value={waitlistService}
+                  onChange={(e) => setWaitlistService(e.target.value)}
+                  options={[
+                    { value: '', label: 'Qualsiasi servizio' },
+                    ...services
+                      .filter(service => service.active)
+                      .map(service => ({
+                        value: service.id,
+                        label: service.name,
+                      })),
+                  ]}
+                  disabled={isLoading}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">
+                  Barbiere preferito (opzionale)
+                </label>
+                <Select
+                  value={waitlistBarber}
+                  onChange={(e) => setWaitlistBarber(e.target.value)}
+                  options={[
+                    { value: '', label: 'Qualsiasi barbiere' },
+                    ...availableBarbers.map(barber => ({
+                      value: barber.id,
+                      label: barber.full_name,
+                    })),
+                  ]}
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full bg-amber-100 hover:bg-amber-200 text-amber-800 border-amber-300"
+              onClick={handleJoinWaitlist}
+              disabled={isJoiningWaitlist || selectedWaitlistDates.length === 0 || !clientId}
+            >
+              {isJoiningWaitlist ? (
+                'Iscrizione in corso...'
+              ) : (
+                <>
+                  <Bell className="w-4 h-4 mr-2" />
+                  Mettiti in Coda
+                </>
+              )}
+            </Button>
+
+            {/* Le tue richieste in coda */}
+            {waitlistEntries.length > 0 && (
+              <div className="mt-6 pt-4 border-t border-gray-200">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Le tue richieste in lista d'attesa:</h4>
+                <div className="space-y-2">
+                  {waitlistEntries.map(entry => (
+                    <div 
+                      key={entry.id} 
+                      className={`flex items-center justify-between p-3 rounded-lg ${
+                        entry.status === 'notified' 
+                          ? 'bg-green-50 border border-green-200' 
+                          : 'bg-gray-50 border border-gray-200'
+                      }`}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          {entry.status === 'notified' && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                              Posto disponibile!
+                            </span>
+                          )}
+                          <span className="text-sm text-gray-600">
+                            {entry.preferred_dates?.map(d => {
+                              const date = new Date(d);
+                              return formatDateDisplay(date);
+                            }).join(', ')}
+                          </span>
+                        </div>
+                        {(entry.services || entry.staff) && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            {entry.services?.name && `Servizio: ${entry.services.name}`}
+                            {entry.services?.name && entry.staff?.full_name && ' • '}
+                            {entry.staff?.full_name && `Barbiere: ${entry.staff.full_name}`}
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleLeaveWaitlist(entry.id)}
+                        className="ml-2 p-1 text-gray-400 hover:text-red-500 transition-colors"
+                        title="Rimuovi dalla lista d'attesa"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
+
       {/* Informazioni */}
       <Card className="max-w-2xl mx-auto">
         <div className="p-6">
@@ -244,6 +563,10 @@ export const ClientBooking: React.FC = () => {
             <div className="flex items-center space-x-2">
               <User className="w-4 h-4" />
               <span>Puoi modificare o cancellare la prenotazione fino a 2 ore prima</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Bell className="w-4 h-4" />
+              <span>Lista d'attesa: ricevi una notifica se si libera un posto</span>
             </div>
           </div>
         </div>

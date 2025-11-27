@@ -17,7 +17,7 @@ export const ClientProfile: React.FC = () => {
   const { user, logout } = useAuth();
   const { updateUserProfile, getUserProfile, isLoading } = useUserProfile();
   const { deleteRegisteredClient, getClientByEmail } = useClientRegistration();
-  const { appointments } = useAppointments();
+  const { appointments, loadAppointments } = useAppointments();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<UserProfileData>({
     full_name: '',
@@ -185,6 +185,9 @@ export const ClientProfile: React.FC = () => {
           );
         }
       }
+      
+      // Ricarica gli appuntamenti per mostrare lo stato aggiornato
+      await loadAppointments();
       
       setMessage({ type: 'success', text: 'Appuntamento annullato con successo!' });
       setAppointmentToCancel(null);

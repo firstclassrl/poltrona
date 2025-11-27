@@ -16,7 +16,9 @@ import type {
   TimeSlot,
   ShopDailyHoursEntity,
   ShopDailyTimeSlotRow,
-  Notification
+  Notification,
+  WaitlistEntry,
+  JoinWaitlistRequest
 } from '../types';
 import { createDefaultShopHoursConfig, formatTimeToHHMM, normalizeTimeString } from '../utils/shopHours';
 
@@ -1181,9 +1183,10 @@ export const apiService = {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
     
     try {
+      // Usa buildHeaders(true) per avere i permessi di aggiornamento con token utente
       const response = await fetch(`${API_ENDPOINTS.APPOINTMENTS_FEED}?id=eq.${appointmentId}`, {
         method: 'PATCH',
-        headers: { ...buildHeaders(false), Prefer: 'return=minimal' },
+        headers: { ...buildHeaders(true), Prefer: 'return=minimal' },
         body: JSON.stringify({ 
           status: 'cancelled',
           updated_at: new Date().toISOString()
@@ -1280,6 +1283,157 @@ export const apiService = {
     } catch (error) {
       console.error('Error fetching appointment by id:', error);
       return null;
+    }
+  },
+
+  // ============================================
+  // Waitlist - Lista d'attesa
+  // ============================================
+
+  // Join waitlist - Mettersi in coda per i prossimi giorni
+  async joinWaitlist(data: JoinWaitlistRequest): Promise<WaitlistEntry | null> {
+    if (!isSupabaseConfigured()) {
+      console.warn('Supabase non configurato - impossibile mettersi in coda');
+      return null;
+    }
+    
+    try {
+      const shop = await this.getShop();
+      
+      // Calcola la data di scadenza (fine dell'ultima data preferita)
+      const sortedDates = [...data.preferred_dates].sort();
+      const lastDate = sortedDates[sortedDates.length - 1];
+      const expiresAt = new Date(lastDate);
+      expiresAt.setHours(23, 59, 59, 999);
+      
+      const payload = {
+        shop_id: shop?.id && shop.id !== 'default' ? shop.id : null,
+        client_id: data.client_id,
+        service_id: data.service_id || null,
+        staff_id: data.staff_id || null,
+        preferred_dates: data.preferred_dates,
+        status: 'waiting',
+        expires_at: expiresAt.toISOString(),
+        notes: data.notes || null,
+      };
+      
+      console.log('📝 Tentativo inserimento in waitlist:', payload);
+      
+      const response = await fetch(API_ENDPOINTS.WAITLIST, {
+        method: 'POST',
+        headers: { ...buildHeaders(true), Prefer: 'return=representation' },
+        body: JSON.stringify(payload),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Errore inserimento in waitlist:', response.status, errorText);
+        throw new Error(`Failed to join waitlist: ${response.status} ${errorText}`);
+      }
+      
+      const created = await response.json();
+      console.log('✅ Aggiunto alla lista d\'attesa:', created[0]);
+      return created[0];
+    } catch (error) {
+      console.error('❌ Errore critico inserimento in waitlist:', error);
+      throw error;
+    }
+  },
+
+  // Leave waitlist - Rimuoversi dalla coda
+  async leaveWaitlist(waitlistId: string): Promise<void> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    
+    try {
+      const response = await fetch(`${API_ENDPOINTS.WAITLIST}?id=eq.${waitlistId}`, {
+        method: 'DELETE',
+        headers: buildHeaders(true),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to leave waitlist: ${response.status} ${errorText}`);
+      }
+      
+      console.log('✅ Rimosso dalla lista d\'attesa:', waitlistId);
+    } catch (error) {
+      console.error('❌ Errore rimozione da waitlist:', error);
+      throw error;
+    }
+  },
+
+  // Get client's waitlist status - Vedere il proprio stato in coda
+  async getClientWaitlistStatus(clientId: string): Promise<WaitlistEntry[]> {
+    if (!isSupabaseConfigured()) return [];
+    
+    try {
+      // Ottieni solo le entry attive (waiting o notified) che non sono scadute
+      const url = `${API_ENDPOINTS.WAITLIST}?client_id=eq.${clientId}&status=in.(waiting,notified)&expires_at=gte.${new Date().toISOString()}&select=*,services(id,name),staff(id,full_name)&order=created_at.desc`;
+      const response = await fetch(url, { headers: buildHeaders(true) });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Errore fetch waitlist status:', response.status, errorText);
+        return [];
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching waitlist status:', error);
+      return [];
+    }
+  },
+
+  // Update waitlist entry status
+  async updateWaitlistStatus(waitlistId: string, status: 'waiting' | 'notified' | 'booked' | 'expired'): Promise<void> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    
+    try {
+      const payload: Record<string, unknown> = { status };
+      if (status === 'notified') {
+        payload.notified_at = new Date().toISOString();
+      }
+      
+      const response = await fetch(`${API_ENDPOINTS.WAITLIST}?id=eq.${waitlistId}`, {
+        method: 'PATCH',
+        headers: { ...buildHeaders(true), Prefer: 'return=minimal' },
+        body: JSON.stringify(payload),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to update waitlist status: ${response.status} ${errorText}`);
+      }
+      
+      console.log('✅ Stato waitlist aggiornato:', waitlistId, status);
+    } catch (error) {
+      console.error('❌ Errore aggiornamento stato waitlist:', error);
+      throw error;
+    }
+  },
+
+  // Check if client is already in waitlist for specific dates
+  async isClientInWaitlist(clientId: string, dates: string[]): Promise<boolean> {
+    if (!isSupabaseConfigured()) return false;
+    
+    try {
+      // Cerca entry attive per questo cliente
+      const waitlistEntries = await this.getClientWaitlistStatus(clientId);
+      
+      // Controlla se una qualsiasi delle date richieste è già in coda
+      for (const entry of waitlistEntries) {
+        const entryDates = entry.preferred_dates || [];
+        for (const date of dates) {
+          if (entryDates.includes(date)) {
+            return true;
+          }
+        }
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error checking waitlist:', error);
+      return false;
     }
   },
 };

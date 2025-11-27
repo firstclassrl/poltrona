@@ -23,4 +23,5 @@ export const API_ENDPOINTS = {
   CHATS: `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/chats`,
   CHAT_MESSAGES: `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/chat_messages`,
   NOTIFICATIONS: `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/notifications`,
+  WAITLIST: `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/waitlist`,
 };
