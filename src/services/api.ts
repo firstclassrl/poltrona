@@ -622,7 +622,7 @@ export const apiService = {
     
     try {
       // Filtra solo i campi che esistono nel DB (incluso chair_id per assegnazione poltrone)
-      const dbFields = ['shop_id', 'full_name', 'role', 'calendar_id', 'active', 'email', 'phone', 'chair_id'];
+      const dbFields = ['shop_id', 'full_name', 'role', 'calendar_id', 'active', 'email', 'phone', 'chair_id', 'profile_photo_url', 'specialties', 'bio'];
       const payload: Record<string, any> = {};
       
       for (const key of dbFields) {

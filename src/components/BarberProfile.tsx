@@ -118,9 +118,15 @@ export const BarberProfile = () => {
       
       if (success) {
         // Aggiorna anche i dati base del barbiere tramite il hook esistente
+        // Includi tutti i campi del profilo per assicurarti che vengano salvati nel database
         const basicUpdates = {
           full_name: formData.full_name,
           role: formData.role,
+          email: formData.email,
+          phone: formData.phone,
+          specialties: formData.specialties,
+          bio: formData.bio,
+          chair_id: formData.chair_id,
           profile_photo_url: profileImageUrl,
         };
         updateStaff(staffData.id, basicUpdates);
