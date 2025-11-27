@@ -4,6 +4,7 @@ import { cn } from '../utils/cn';
 import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/api';
 import { APP_VERSION } from '../config/version';
+import { NotificationBell } from './NotificationBell';
 import type { Shop } from '../types';
 
 interface NavigationProps {
@@ -113,6 +114,12 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
             {/* User Info and Logout */}
             <div className="mt-auto px-4 pb-4">
               <div className="border-t border-yellow-400/30 pt-4">
+                {/* Notification Bell - Only for staff/admin */}
+                {(user?.role === 'admin' || user?.role === 'barber') && (
+                  <div className="flex justify-center mb-4">
+                    <NotificationBell />
+                  </div>
+                )}
                 <div className="mb-4">
                   <div className="text-center">
                     <p className="text-sm text-yellow-300 font-medium">{user?.full_name}</p>

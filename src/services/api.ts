@@ -15,7 +15,8 @@ import type {
   ShopHoursConfig,
   TimeSlot,
   ShopDailyHoursEntity,
-  ShopDailyTimeSlotRow
+  ShopDailyTimeSlotRow,
+  Notification
 } from '../types';
 import { createDefaultShopHoursConfig, formatTimeToHHMM, normalizeTimeString } from '../utils/shopHours';
 
@@ -753,6 +754,102 @@ export const apiService = {
       if (!response.ok) throw new Error('Failed to delete product');
     } catch (error) {
       console.error('Error deleting product:', error);
+      throw error;
+    }
+  },
+
+  // ============================================
+  // Notifications
+  // ============================================
+
+  // Get notifications for current user
+  async getNotifications(userId: string, limit: number = 50): Promise<Notification[]> {
+    if (!isSupabaseConfigured()) return [];
+    
+    try {
+      const url = `${API_ENDPOINTS.NOTIFICATIONS}?user_id=eq.${userId}&order=created_at.desc&limit=${limit}`;
+      const response = await fetch(url, { headers: buildHeaders(true) });
+      if (!response.ok) throw new Error('Failed to fetch notifications');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      return [];
+    }
+  },
+
+  // Get unread notifications count
+  async getUnreadNotificationsCount(userId: string): Promise<number> {
+    if (!isSupabaseConfigured()) return 0;
+    
+    try {
+      const url = `${API_ENDPOINTS.NOTIFICATIONS}?user_id=eq.${userId}&read_at=is.null&select=id`;
+      const response = await fetch(url, { 
+        headers: { ...buildHeaders(true), 'Prefer': 'count=exact' } 
+      });
+      if (!response.ok) throw new Error('Failed to fetch notifications count');
+      
+      // Supabase returns count in content-range header
+      const contentRange = response.headers.get('content-range');
+      if (contentRange) {
+        const match = contentRange.match(/\/(\d+)/);
+        if (match) return parseInt(match[1], 10);
+      }
+      
+      // Fallback: count from response
+      const data = await response.json();
+      return Array.isArray(data) ? data.length : 0;
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+      return 0;
+    }
+  },
+
+  // Mark notification as read
+  async markNotificationAsRead(notificationId: string): Promise<void> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    
+    try {
+      const response = await fetch(`${API_ENDPOINTS.NOTIFICATIONS}?id=eq.${notificationId}`, {
+        method: 'PATCH',
+        headers: buildHeaders(true),
+        body: JSON.stringify({ read_at: new Date().toISOString() }),
+      });
+      if (!response.ok) throw new Error('Failed to mark notification as read');
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      throw error;
+    }
+  },
+
+  // Mark all notifications as read for a user
+  async markAllNotificationsAsRead(userId: string): Promise<void> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    
+    try {
+      const response = await fetch(`${API_ENDPOINTS.NOTIFICATIONS}?user_id=eq.${userId}&read_at=is.null`, {
+        method: 'PATCH',
+        headers: buildHeaders(true),
+        body: JSON.stringify({ read_at: new Date().toISOString() }),
+      });
+      if (!response.ok) throw new Error('Failed to mark all notifications as read');
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      throw error;
+    }
+  },
+
+  // Delete a notification
+  async deleteNotification(notificationId: string): Promise<void> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    
+    try {
+      const response = await fetch(`${API_ENDPOINTS.NOTIFICATIONS}?id=eq.${notificationId}`, {
+        method: 'DELETE',
+        headers: buildHeaders(true),
+      });
+      if (!response.ok) throw new Error('Failed to delete notification');
+    } catch (error) {
+      console.error('Error deleting notification:', error);
       throw error;
     }
   },
