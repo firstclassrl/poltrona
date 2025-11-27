@@ -251,7 +251,7 @@ export const apiService = {
       const shop = await this.getShop();
       
       const payload = {
-        shop_id: shop?.id || null,
+        shop_id: shop?.id && shop.id !== 'default' ? shop.id : null,
         client_id: data.client_id,
         staff_id: data.staff_id,
         service_id: data.service_id,
@@ -261,6 +261,9 @@ export const apiService = {
         status: data.status || 'confirmed',
       };
       
+      console.log('📝 Tentativo creazione appuntamento con payload:', payload);
+      console.log('📝 Endpoint:', API_ENDPOINTS.APPOINTMENTS_FEED);
+      
       const response = await fetch(API_ENDPOINTS.APPOINTMENTS_FEED, {
         method: 'POST',
         headers: { ...buildHeaders(true), Prefer: 'return=representation' },
@@ -269,6 +272,7 @@ export const apiService = {
       
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('❌ Errore creazione appuntamento:', response.status, errorText);
         throw new Error(`Failed to create appointment: ${response.status} ${errorText}`);
       }
       
@@ -276,7 +280,7 @@ export const apiService = {
       console.log('✅ Appuntamento creato nel database:', created[0]);
       return created[0];
     } catch (error) {
-      console.error('Error creating appointment directly:', error);
+      console.error('❌ Errore critico creazione appuntamento:', error);
       throw error;
     }
   },
