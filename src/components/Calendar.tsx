@@ -4,12 +4,14 @@ import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { Select } from './ui/Select';
+import { Modal } from './ui/Modal';
 import { formatTime, formatDate } from '../utils/date';
 import { useDailyShopHours } from '../hooks/useDailyShopHours';
 import { useChairAssignment } from '../hooks/useChairAssignment';
 import { useAppointments } from '../hooks/useAppointments';
 import { useVacationMode } from '../hooks/useVacationMode';
 import { AppointmentForm } from './AppointmentForm';
+import type { Appointment } from '../types';
 
 export const Calendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -25,6 +27,15 @@ export const Calendar = () => {
   const [currentDay, setCurrentDay] = useState(new Date());
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [showCreateAppointmentModal, setShowCreateAppointmentModal] = useState(false);
+  
+  // Appointment details modal
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [showAppointmentDetails, setShowAppointmentDetails] = useState(false);
+
+  const handleAppointmentClick = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+    setShowAppointmentDetails(true);
+  };
 
   const getWeekDays = () => {
     if (!shopHoursLoaded) return [];
@@ -314,6 +325,7 @@ export const Calendar = () => {
                                 className={`p-2 rounded text-xs border ${getStatusColor(apt.status || 'scheduled')} cursor-pointer hover:scale-105 transition-transform`}
                                 draggable
                                 onDragStart={(e) => e.dataTransfer.setData('appointmentId', apt.id || '')}
+                                onClick={() => handleAppointmentClick(apt)}
                                 title={`${apt.clients?.first_name} ${apt.clients?.last_name || ''} - ${apt.services?.name || 'Servizio'}`}
                               >
                                 <div className="font-medium truncate">
@@ -485,7 +497,11 @@ export const Calendar = () => {
             ) : isDateOpen(currentDay) ? (
               getFilteredAppointmentsForDay(currentDay, timePeriod).length > 0 ? (
                 getFilteredAppointmentsForDay(currentDay, timePeriod).map((appointment) => (
-                  <Card key={appointment.id} className="p-4">
+                  <Card 
+                    key={appointment.id} 
+                    className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                    onClick={() => handleAppointmentClick(appointment)}
+                  >
                     <div className="space-y-3">
                       {/* Header with time and status */}
                       <div className="flex items-center justify-between">
@@ -577,6 +593,107 @@ export const Calendar = () => {
         }}
         appointment={null}
       />
+
+      {/* Appointment Details Modal */}
+      <Modal
+        isOpen={showAppointmentDetails}
+        onClose={() => setShowAppointmentDetails(false)}
+        title="Dettagli Appuntamento"
+      >
+        {selectedAppointment && (
+          <div className="space-y-6">
+            {/* Client Info */}
+            <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+              <div className="w-16 h-16 bg-gradient-to-br from-green-600 to-green-800 rounded-full flex items-center justify-center">
+                <span className="text-yellow-300 font-bold text-xl">
+                  {selectedAppointment.clients?.first_name?.[0]}{selectedAppointment.clients?.last_name?.[0]}
+                </span>
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900">
+                  {selectedAppointment.clients?.first_name} {selectedAppointment.clients?.last_name}
+                </h3>
+                <p className="text-gray-600">{selectedAppointment.clients?.phone_e164}</p>
+              </div>
+            </div>
+
+            {/* Appointment Details */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-600 font-medium">Data</p>
+                <p className="text-lg font-semibold text-gray-900">
+                  {new Date(selectedAppointment.start_at).toLocaleDateString('it-IT', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                  })}
+                </p>
+              </div>
+              <div className="p-4 bg-green-50 rounded-lg">
+                <p className="text-sm text-green-600 font-medium">Orario</p>
+                <p className="text-lg font-semibold text-gray-900">
+                  {formatTime(selectedAppointment.start_at)}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex justify-between items-center p-3 border-b">
+                <span className="text-gray-600">Servizio</span>
+                <span className="font-medium text-gray-900">{selectedAppointment.services?.name}</span>
+              </div>
+              <div className="flex justify-between items-center p-3 border-b">
+                <span className="text-gray-600">Barbiere</span>
+                <span className="font-medium text-gray-900">{selectedAppointment.staff?.full_name}</span>
+              </div>
+              <div className="flex justify-between items-center p-3 border-b">
+                <span className="text-gray-600">Durata</span>
+                <span className="font-medium text-gray-900">{selectedAppointment.services?.duration_min} minuti</span>
+              </div>
+              <div className="flex justify-between items-center p-3 border-b">
+                <span className="text-gray-600">Prezzo</span>
+                <span className="font-bold text-green-600 text-lg">€{(selectedAppointment.services?.price_cents || 0) / 100}</span>
+              </div>
+              <div className="flex justify-between items-center p-3">
+                <span className="text-gray-600">Stato</span>
+                <Badge variant="info">{selectedAppointment.status}</Badge>
+              </div>
+            </div>
+
+            {/* Notes */}
+            {selectedAppointment.notes && (
+              <div className="p-4 bg-yellow-50 rounded-lg">
+                <p className="text-sm text-yellow-700 font-medium mb-1">Note</p>
+                <p className="text-gray-700">{selectedAppointment.notes}</p>
+              </div>
+            )}
+
+            {/* Products */}
+            {selectedAppointment.products && selectedAppointment.products.length > 0 && (
+              <div className="p-4 bg-orange-50 rounded-lg">
+                <p className="text-sm text-orange-700 font-medium mb-2">Prodotti da preparare</p>
+                <ul className="space-y-1">
+                  {selectedAppointment.products.map((product: any, index: number) => (
+                    <li key={index} className="text-gray-700">• {product.name || product}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex space-x-3 pt-4">
+              <Button 
+                variant="secondary" 
+                onClick={() => setShowAppointmentDetails(false)}
+                className="flex-1"
+              >
+                Chiudi
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
     </div>
   );
