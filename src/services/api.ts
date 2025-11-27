@@ -25,6 +25,26 @@ const isSupabaseConfigured = () => {
   return API_CONFIG.SUPABASE_EDGE_URL && API_CONFIG.SUPABASE_ANON_KEY;
 };
 
+// Helper per verificare se l'utente è autenticato
+const isAuthenticated = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  const token = localStorage.getItem('auth_token');
+  const user = localStorage.getItem('auth_user');
+  return !!(token && user);
+};
+
+// Helper per verificare se un errore è dovuto a JWT scaduto o mancante autenticazione
+const isAuthError = (error: any): boolean => {
+  if (!error) return false;
+  const errorStr = error.toString().toLowerCase();
+  const errorMessage = error?.message?.toLowerCase() || '';
+  return errorStr.includes('jwt expired') || 
+         errorStr.includes('jwt') ||
+         errorMessage.includes('jwt expired') ||
+         errorMessage.includes('401') ||
+         errorMessage.includes('unauthorized');
+};
+
 const buildHeaders = (authRequired: boolean = false) => {
   const userToken = (typeof window !== 'undefined') ? localStorage.getItem('auth_token') : null;
   const bearer = authRequired && userToken ? userToken : API_CONFIG.SUPABASE_ANON_KEY;
@@ -570,14 +590,59 @@ export const apiService = {
     }
   },
 
-  // Get shop
+  // Get shop (pubblico - non richiede autenticazione)
   async getShop(): Promise<Shop> {
-    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    if (!isSupabaseConfigured()) {
+      // Restituisci shop di default se Supabase non è configurato
+      return {
+        id: 'default',
+        name: 'Retro Barbershop',
+        address: '',
+        postal_code: '',
+        city: '',
+        province: '',
+        phone: '',
+        whatsapp: '',
+        email: '',
+        description: '',
+        opening_hours: '',
+        extra_opening_date: null,
+        extra_morning_start: null,
+        extra_morning_end: null,
+        extra_afternoon_start: null,
+        extra_afternoon_end: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+    }
     
     try {
+      // Usa buildHeaders(false) per permettere accesso pubblico
       const url = `${API_ENDPOINTS.SHOPS}?select=*&limit=1`;
-      const response = await fetch(url, { headers: buildHeaders(true) });
-      if (!response.ok) throw new Error('Failed to fetch shop');
+      const response = await fetch(url, { headers: buildHeaders(false) });
+      if (!response.ok) {
+        // Se fallisce, restituisci shop di default invece di lanciare errore
+        return {
+          id: 'default',
+          name: 'Retro Barbershop',
+          address: '',
+          postal_code: '',
+          city: '',
+          province: '',
+          phone: '',
+          whatsapp: '',
+          email: '',
+          description: '',
+          opening_hours: '',
+          extra_opening_date: null,
+          extra_morning_start: null,
+          extra_morning_end: null,
+          extra_afternoon_start: null,
+          extra_afternoon_end: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+      }
       const shops = await response.json();
       
       if (!shops || shops.length === 0) {
@@ -607,8 +672,28 @@ export const apiService = {
       
       return shops[0];
     } catch (error) {
-      console.error('Error fetching shop:', error);
-      throw error;
+      // Non loggare errori per getShop - è normale se non autenticato
+      // Restituisci shop di default
+      return {
+        id: 'default',
+        name: 'Retro Barbershop',
+        address: '',
+        postal_code: '',
+        city: '',
+        province: '',
+        phone: '',
+        whatsapp: '',
+        email: '',
+        description: '',
+        opening_hours: '',
+        extra_opening_date: null,
+        extra_morning_start: null,
+        extra_morning_end: null,
+        extra_afternoon_start: null,
+        extra_afternoon_end: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
     }
   },
 
@@ -641,18 +726,33 @@ export const apiService = {
     }
   },
 
-  // Chat functions
+  // Chat functions (richiede autenticazione)
   async getChats(): Promise<Chat[]> {
     if (!isSupabaseConfigured()) return [];
+    
+    // Non fare chiamata se l'utente non è autenticato
+    if (!isAuthenticated()) {
+      return [];
+    }
     
     try {
       const url = `${API_ENDPOINTS.CHATS}?select=*&order=updated_at.desc`;
       const response = await fetch(url, { headers: buildHeaders(true) });
-      if (!response.ok) throw new Error('Failed to fetch chats');
+      if (!response.ok) {
+        // Se è un errore di autenticazione, non loggare
+        if (response.status === 401) {
+          return [];
+        }
+        throw new Error('Failed to fetch chats');
+      }
       return await response.json();
     } catch (error) {
+      // Non loggare errori di autenticazione
+      if (isAuthError(error)) {
+        return [];
+      }
       console.error('Error fetching chats:', error);
-      throw error;
+      return [];
     }
   },
 
@@ -719,21 +819,21 @@ export const apiService = {
     }
   },
 
-  // Get all staff
+  // Get all staff (pubblico per permettere ai clienti di vedere i barbieri disponibili)
   async getStaff(): Promise<Staff[]> {
     if (!isSupabaseConfigured()) return [];
     
     try {
-      // Carica tutti i barbieri - usa token autenticato
+      // Usa buildHeaders(false) per permettere accesso pubblico (clienti possono vedere i barbieri)
       const url = `${API_ENDPOINTS.STAFF}?select=*&order=full_name.asc`;
-      const response = await fetch(url, { headers: buildHeaders(true) });
+      const response = await fetch(url, { headers: buildHeaders(false) });
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to fetch staff: ${response.status} ${errorText}`);
+        // Se fallisce, restituisci array vuoto invece di loggare errore
+        return [];
       }
       return await response.json();
     } catch (error) {
-      console.error('Error fetching staff:', error);
+      // Non loggare errori per getStaff quando non autenticato - è normale
       return [];
     }
   },
@@ -938,31 +1038,57 @@ export const apiService = {
   // Notifications
   // ============================================
 
-  // Get notifications for current user
+  // Get notifications for current user (richiede autenticazione)
   async getNotifications(userId: string, limit: number = 50): Promise<Notification[]> {
     if (!isSupabaseConfigured()) return [];
+    
+    // Non fare chiamata se l'utente non è autenticato
+    if (!isAuthenticated()) {
+      return [];
+    }
     
     try {
       const url = `${API_ENDPOINTS.NOTIFICATIONS}?user_id=eq.${userId}&order=created_at.desc&limit=${limit}`;
       const response = await fetch(url, { headers: buildHeaders(true) });
-      if (!response.ok) throw new Error('Failed to fetch notifications');
+      if (!response.ok) {
+        // Se è un errore di autenticazione, non loggare
+        if (response.status === 401) {
+          return [];
+        }
+        throw new Error('Failed to fetch notifications');
+      }
       return await response.json();
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      // Non loggare errori di autenticazione
+      if (isAuthError(error)) {
+        return [];
+      }
+      // Non loggare altri errori - restituisci array vuoto silenziosamente
       return [];
     }
   },
 
-  // Get unread notifications count
+  // Get unread notifications count (richiede autenticazione)
   async getUnreadNotificationsCount(userId: string): Promise<number> {
     if (!isSupabaseConfigured()) return 0;
+    
+    // Non fare chiamata se l'utente non è autenticato
+    if (!isAuthenticated()) {
+      return 0;
+    }
     
     try {
       const url = `${API_ENDPOINTS.NOTIFICATIONS}?user_id=eq.${userId}&read_at=is.null&select=id`;
       const response = await fetch(url, { 
         headers: { ...buildHeaders(true), 'Prefer': 'count=exact' } 
       });
-      if (!response.ok) throw new Error('Failed to fetch notifications count');
+      if (!response.ok) {
+        // Se è un errore di autenticazione, non loggare
+        if (response.status === 401) {
+          return 0;
+        }
+        throw new Error('Failed to fetch notifications count');
+      }
       
       // Supabase returns count in content-range header
       const contentRange = response.headers.get('content-range');
@@ -975,7 +1101,11 @@ export const apiService = {
       const data = await response.json();
       return Array.isArray(data) ? data.length : 0;
     } catch (error) {
-      console.error('Error fetching unread count:', error);
+      // Non loggare errori di autenticazione
+      if (isAuthError(error)) {
+        return 0;
+      }
+      // Non loggare altri errori - restituisci 0 silenziosamente
       return 0;
     }
   },
