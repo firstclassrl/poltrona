@@ -15,10 +15,15 @@ export const useChairAssignment = () => {
   const [availableStaff, setAvailableStaff] = useState<Staff[]>([]);
   const [activeStaffId, setActiveStaffId] = useState<string>('');
 
+  // Definizione delle poltrone (configurazione fissa)
+  const defaultAssignments: ChairAssignment[] = [
+    { chairId: 'chair_1', chairName: 'Poltrona 1', staffId: null, staffName: null, isAssigned: false },
+    { chairId: 'chair_2', chairName: 'Poltrona 2', staffId: null, staffName: null, isAssigned: false },
+  ];
+
   useEffect(() => {
-    loadAssignments();
     loadActiveStaff();
-    void loadStaffFromApi();
+    void initializeData();
   }, []);
 
   const loadActiveStaff = () => {
@@ -28,43 +33,57 @@ export const useChairAssignment = () => {
     }
   };
 
-  const loadAssignments = () => {
-    // Carica le assegnazioni salvate (se esistono); altrimenti inizializza poltrone vuote
-    const savedAssignments = localStorage.getItem('chairAssignments');
-    if (savedAssignments) {
-      const parsed: ChairAssignment[] = JSON.parse(savedAssignments).map((a: any) => ({
-        chairId: a.chairId,
-        chairName: a.chairName,
-        staffId: a.staffId ?? null,
-        staffName: a.staffName ?? null,
-        isAssigned: !!a.staffId,
-      }));
-      setAssignments(parsed);
-      localStorage.setItem('chairAssignments', JSON.stringify(parsed));
-      return;
-    }
-    const emptyAssignments: ChairAssignment[] = [
-      { chairId: 'chair_1', chairName: 'Poltrona 1', staffId: null, staffName: null, isAssigned: false },
-      { chairId: 'chair_2', chairName: 'Poltrona 2', staffId: null, staffName: null, isAssigned: false },
-    ];
-    setAssignments(emptyAssignments);
-    localStorage.setItem('chairAssignments', JSON.stringify(emptyAssignments));
-  };
-
-  const loadStaffFromApi = async () => {
+  // Inizializza i dati caricando staff dal DB e sincronizzando le assegnazioni
+  const initializeData = async () => {
     try {
       const staff = await apiService.getStaff();
       setAvailableStaff(staff);
-      localStorage.setItem('availableStaff', JSON.stringify(staff));
+      
+      // Sincronizza le assegnazioni con i chair_id dal DB
+      const syncedAssignments = defaultAssignments.map(assignment => {
+        const assignedStaff = staff.find(s => s.chair_id === assignment.chairId);
+        if (assignedStaff) {
+          return {
+            ...assignment,
+            staffId: assignedStaff.id,
+            staffName: assignedStaff.full_name,
+            isAssigned: true,
+          };
+        }
+        return assignment;
+      });
+      
+      setAssignments(syncedAssignments);
+      localStorage.setItem('chairAssignments', JSON.stringify(syncedAssignments));
     } catch (e) {
       console.error('Errore caricando staff da API:', e);
       setAvailableStaff([]);
+      setAssignments(defaultAssignments);
     }
   };
 
-  const assignStaffToChair = (chairId: string, staffId: string) => {
+  const loadAssignments = () => {
+    // Usato solo per refresh - ora il caricamento principale è fatto da initializeData
+    setAssignments(defaultAssignments);
+  };
+
+  // Funzione per ricaricare i dati dal DB
+  const refreshData = async () => {
+    await initializeData();
+  };
+
+  const assignStaffToChair = async (chairId: string, staffId: string): Promise<void> => {
     const staff = availableStaff.find(s => s.id === staffId);
     if (!staff) return;
+
+    // Aggiorna il barbiere sul DB con la nuova chair_id
+    await apiService.updateStaff(staffId, { chair_id: chairId });
+    
+    // Rimuovi chair_id dal barbiere precedentemente assegnato a questa poltrona
+    const previousStaff = availableStaff.find(s => s.chair_id === chairId && s.id !== staffId);
+    if (previousStaff) {
+      await apiService.updateStaff(previousStaff.id, { chair_id: null });
+    }
 
     const updatedAssignments = assignments.map(assignment => {
       if (assignment.chairId === chairId) {
@@ -90,7 +109,7 @@ export const useChairAssignment = () => {
     setAssignments(updatedAssignments);
     localStorage.setItem('chairAssignments', JSON.stringify(updatedAssignments));
 
-    // Aggiorna anche il staff con la chair_id
+    // Aggiorna anche il staff locale con la chair_id
     const updatedStaff = availableStaff.map(s => {
       if (s.id === staffId) {
         return { ...s, chair_id: chairId };
@@ -101,10 +120,15 @@ export const useChairAssignment = () => {
       return s;
     });
     setAvailableStaff(updatedStaff);
-    localStorage.setItem('availableStaff', JSON.stringify(updatedStaff));
   };
 
-  const unassignStaffFromChair = (chairId: string) => {
+  const unassignStaffFromChair = async (chairId: string): Promise<void> => {
+    // Trova il barbiere assegnato a questa poltrona e rimuovi la chair_id sul DB
+    const assignedStaff = availableStaff.find(s => s.chair_id === chairId);
+    if (assignedStaff) {
+      await apiService.updateStaff(assignedStaff.id, { chair_id: null });
+    }
+
     const updatedAssignments = assignments.map(assignment => {
       if (assignment.chairId === chairId) {
         return {
@@ -120,7 +144,7 @@ export const useChairAssignment = () => {
     setAssignments(updatedAssignments);
     localStorage.setItem('chairAssignments', JSON.stringify(updatedAssignments));
 
-    // Rimuovi chair_id dal staff
+    // Rimuovi chair_id dal staff locale
     const updatedStaff = availableStaff.map(s => {
       if (s.chair_id === chairId) {
         return { ...s, chair_id: null };
@@ -128,36 +152,17 @@ export const useChairAssignment = () => {
       return s;
     });
     setAvailableStaff(updatedStaff);
-    localStorage.setItem('availableStaff', JSON.stringify(updatedStaff));
   };
 
-  const addNewStaff = async (staffData: Omit<Staff, 'id' | 'created_at'>) => {
-    try {
-      // Salva il nuovo barbiere tramite API
-      const newStaff = await apiService.createStaff(staffData);
-      
-      // Aggiorna lo state locale
-      const updatedStaff = [...availableStaff, newStaff];
-      setAvailableStaff(updatedStaff);
-      localStorage.setItem('availableStaff', JSON.stringify(updatedStaff));
-      
-      return newStaff;
-    } catch (error) {
-      console.error('Errore nella creazione del barbiere:', error);
-      
-      // Fallback: salva solo localmente se l'API fallisce
-      const newStaff: Staff = {
-        ...staffData,
-        id: Date.now().toString(),
-        created_at: new Date().toISOString(),
-      };
-      
-      const updatedStaff = [...availableStaff, newStaff];
-      setAvailableStaff(updatedStaff);
-      localStorage.setItem('availableStaff', JSON.stringify(updatedStaff));
-      
-      return newStaff;
-    }
+  const addNewStaff = async (staffData: Omit<Staff, 'id' | 'created_at'>): Promise<Staff> => {
+    // Salva il nuovo barbiere tramite API - nessun fallback locale
+    const newStaff = await apiService.createStaff(staffData);
+    
+    // Aggiorna lo state locale solo dopo successo API
+    const updatedStaff = [...availableStaff, newStaff];
+    setAvailableStaff(updatedStaff);
+    
+    return newStaff;
   };
 
   const getAssignedStaff = (chairId: string): Staff | null => {
@@ -183,42 +188,24 @@ export const useChairAssignment = () => {
     return availableStaff.find(s => s.id === activeStaffId) || null;
   };
 
-  const updateStaff = async (staffId: string, updates: Partial<Staff>) => {
-    try {
-      // Aggiorna il barbiere tramite API
-      await apiService.updateStaff(staffId, updates);
-      
-      // Aggiorna lo state locale
-      const updatedStaff = availableStaff.map(s => 
-        s.id === staffId ? { ...s, ...updates } : s
-      );
-      setAvailableStaff(updatedStaff);
-      localStorage.setItem('availableStaff', JSON.stringify(updatedStaff));
-    } catch (error) {
-      console.error('Errore nell\'aggiornamento del barbiere:', error);
-      
-      // Fallback: aggiorna solo localmente se l'API fallisce
-      const updatedStaff = availableStaff.map(s => 
-        s.id === staffId ? { ...s, ...updates } : s
-      );
-      setAvailableStaff(updatedStaff);
-      localStorage.setItem('availableStaff', JSON.stringify(updatedStaff));
-    }
+  const updateStaff = async (staffId: string, updates: Partial<Staff>): Promise<void> => {
+    // Aggiorna il barbiere tramite API - nessun fallback locale
+    await apiService.updateStaff(staffId, updates);
+    
+    // Aggiorna lo state locale solo dopo successo API
+    const updatedStaff = availableStaff.map(s => 
+      s.id === staffId ? { ...s, ...updates } : s
+    );
+    setAvailableStaff(updatedStaff);
   };
 
-  const deleteStaff = async (staffId: string) => {
-    try {
-      // Elimina il barbiere tramite API
-      await apiService.deleteStaff(staffId);
-    } catch (error) {
-      console.error('Errore nell\'eliminazione del barbiere:', error);
-      // Continua con l'eliminazione locale anche se l'API fallisce
-    }
+  const deleteStaff = async (staffId: string): Promise<void> => {
+    // Elimina il barbiere tramite API - nessun fallback locale
+    await apiService.deleteStaff(staffId);
     
-    // Rimuovi il barbiere dalla lista locale
+    // Rimuovi il barbiere dalla lista locale solo dopo successo API
     const updatedStaff = availableStaff.filter(s => s.id !== staffId);
     setAvailableStaff(updatedStaff);
-    localStorage.setItem('availableStaff', JSON.stringify(updatedStaff));
 
     // Rimuovi le assegnazioni di poltrone per questo barbiere
     const updatedAssignments = assignments.map(assignment => {
@@ -258,5 +245,6 @@ export const useChairAssignment = () => {
     getActiveStaff,
     updateStaff,
     deleteStaff,
+    refreshData,
   };
 };

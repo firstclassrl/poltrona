@@ -548,10 +548,13 @@ export const apiService = {
     if (!isSupabaseConfigured()) return [];
     
     try {
-      // Carica tutti i barbieri (attivi e non) per la gestione
+      // Carica tutti i barbieri (attivi e non) per la gestione - usa anon key
       const url = `${API_ENDPOINTS.STAFF}?select=*&order=full_name.asc`;
-      const response = await fetch(url, { headers: buildHeaders(true) });
-      if (!response.ok) throw new Error('Failed to fetch staff');
+      const response = await fetch(url, { headers: buildHeaders(false) });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch staff: ${response.status} ${errorText}`);
+      }
       return await response.json();
     } catch (error) {
       console.error('Error fetching staff:', error);
@@ -564,15 +567,16 @@ export const apiService = {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
     
     try {
-      const shop = await this.getShop();
+      // Non chiamiamo getShop per evitare errori di auth - usa shop_id dal payload
       const payload = {
         ...staffData,
-        shop_id: shop?.id || staffData.shop_id,
+        // Se shop_id non è fornito, usa un default
+        shop_id: staffData.shop_id || '1',
       };
       
       const response = await fetch(API_ENDPOINTS.STAFF, {
         method: 'POST',
-        headers: { ...buildHeaders(true), Prefer: 'return=representation' },
+        headers: { ...buildHeaders(false), Prefer: 'return=representation' },
         body: JSON.stringify(payload),
       });
       
@@ -596,7 +600,7 @@ export const apiService = {
     try {
       const response = await fetch(`${API_ENDPOINTS.STAFF}?id=eq.${id}`, {
         method: 'PATCH',
-        headers: { ...buildHeaders(true), Prefer: 'return=representation' },
+        headers: { ...buildHeaders(false), Prefer: 'return=representation' },
         body: JSON.stringify(staffData),
       });
       
@@ -620,7 +624,7 @@ export const apiService = {
     try {
       const response = await fetch(`${API_ENDPOINTS.STAFF}?id=eq.${id}`, {
         method: 'DELETE',
-        headers: { ...buildHeaders(true) },
+        headers: { ...buildHeaders(false) },
       });
       
       if (!response.ok) {

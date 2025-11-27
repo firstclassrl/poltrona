@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Users, UserPlus, UserMinus, Edit, Trash2 } from 'lucide-react';
+import { Users, UserPlus, UserMinus, Edit, Trash2, RefreshCw } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Select } from './ui/Select';
+import { Toast } from './ui/Toast';
 import { useChairAssignment } from '../hooks/useChairAssignment';
+import { useToast } from '../hooks/useToast';
 import { BarberForm } from './BarberForm';
 import { DeleteConfirmation } from './DeleteConfirmation';
 
@@ -17,32 +19,65 @@ export const ChairAssignment = () => {
     getAssignedChairs,
     updateStaff,
     deleteStaff,
+    refreshData,
   } = useChairAssignment();
+
+  const { toast, showToast, hideToast } = useToast();
 
   const [showBarberForm, setShowBarberForm] = useState(false);
   const [editingStaff, setEditingStaff] = useState<any>(null);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [staffToDelete, setStaffToDelete] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const handleAssignStaff = (chairId: string, staffId: string) => {
-    if (staffId === '') {
-      unassignStaffFromChair(chairId);
-    } else {
-      assignStaffToChair(chairId, staffId);
+  const handleAssignStaff = async (chairId: string, staffId: string) => {
+    setIsSaving(true);
+    try {
+      if (staffId === '') {
+        await unassignStaffFromChair(chairId);
+        showToast('Barbiere rimosso dalla poltrona', 'success');
+      } else {
+        await assignStaffToChair(chairId, staffId);
+        showToast('Barbiere assegnato alla poltrona con successo!', 'success');
+      }
+    } catch (error) {
+      console.error('Error assigning staff:', error);
+      showToast('Errore durante l\'assegnazione. Riprova.', 'error');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleAddNewStaff = async (staffData: any) => {
-    await addNewStaff(staffData);
-    setShowBarberForm(false);
+    setIsSaving(true);
+    try {
+      await addNewStaff(staffData);
+      setShowBarberForm(false);
+      showToast('Barbiere creato e salvato nel database con successo!', 'success');
+    } catch (error) {
+      console.error('Error adding staff:', error);
+      showToast('Errore durante la creazione del barbiere. Riprova.', 'error');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleUpdateStaff = async (staffData: any) => {
-    if (editingStaff) {
+    if (!editingStaff) return;
+    
+    setIsSaving(true);
+    try {
       await updateStaff(editingStaff.id, staffData);
       setShowBarberForm(false);
       setEditingStaff(null);
+      showToast('Barbiere aggiornato nel database con successo!', 'success');
+    } catch (error) {
+      console.error('Error updating staff:', error);
+      showToast('Errore durante l\'aggiornamento del barbiere. Riprova.', 'error');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -64,8 +99,10 @@ export const ChairAssignment = () => {
       await deleteStaff(staffToDelete.id);
       setShowDeleteConfirmation(false);
       setStaffToDelete(null);
+      showToast('Barbiere eliminato dal database con successo!', 'success');
     } catch (error) {
       console.error('Error deleting staff:', error);
+      showToast('Errore durante l\'eliminazione del barbiere. Riprova.', 'error');
     } finally {
       setIsDeleting(false);
     }
@@ -76,16 +113,39 @@ export const ChairAssignment = () => {
     setStaffToDelete(null);
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshData();
+      showToast('Dati aggiornati dal database', 'success');
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      showToast('Errore durante l\'aggiornamento dei dati', 'error');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const assignedChairs = getAssignedChairs();
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold text-gray-900">Gestione Poltrone e Barbieri</h2>
-        <Button onClick={() => setShowBarberForm(true)}>
-          <UserPlus className="w-5 h-5 mr-2" />
-          Aggiungi Barbiere
-        </Button>
+        <div className="flex space-x-2">
+          <Button 
+            variant="secondary" 
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`w-5 h-5 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Aggiornamento...' : 'Aggiorna'}
+          </Button>
+          <Button onClick={() => setShowBarberForm(true)} disabled={isSaving}>
+            <UserPlus className="w-5 h-5 mr-2" />
+            Aggiungi Barbiere
+          </Button>
+        </div>
       </div>
 
       {/* Poltrone Assegnate */}
@@ -97,6 +157,9 @@ export const ChairAssignment = () => {
                 <div className={`w-4 h-4 rounded-full ${assignment.isAssigned ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                 <h3 className="text-lg font-semibold text-gray-900">{assignment.chairName}</h3>
               </div>
+              {isSaving && (
+                <span className="text-xs text-gray-500">Salvando...</span>
+              )}
             </div>
 
             <div className="space-y-4">
@@ -107,6 +170,7 @@ export const ChairAssignment = () => {
                 <Select
                   value={assignment.staffId || ''}
                   onChange={(e) => handleAssignStaff(assignment.chairId, e.target.value)}
+                  disabled={isSaving}
                   options={[
                     { value: '', label: 'Nessun barbiere assegnato' },
                     ...availableStaff
@@ -146,53 +210,66 @@ export const ChairAssignment = () => {
       {/* Gestione Barbieri */}
       <Card className="p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Gestione Barbieri</h3>
-        <p className="text-sm text-gray-600 mb-6">Qui puoi modificare o eliminare i barbieri del negozio</p>
+        <p className="text-sm text-gray-600 mb-6">
+          Qui puoi modificare o eliminare i barbieri del negozio. 
+          <span className="text-blue-600"> I dati vengono salvati direttamente nel database.</span>
+        </p>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {availableStaff.map((staff) => (
-            <div key={staff.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                  {staff.profile_photo_url ? (
-                    <img
-                      src={staff.profile_photo_url}
-                      alt="Profile"
-                      className="w-full h-full rounded-full object-cover"
-                    />
-                  ) : (
-                    <Users className="w-6 h-6 text-white" />
-                  )}
-                </div>
-                <div>
-                  <div className="font-medium text-gray-900">{staff.full_name}</div>
-                  <div className="text-sm text-gray-500">{staff.role}</div>
-                  <div className="text-xs text-gray-400">
-                    {staff.chair_id ? `Assegnato a ${staff.chair_id.replace('chair_', 'Poltrona ')}` : 'Non assegnato'}
+        {availableStaff.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+            <p>Nessun barbiere presente nel database.</p>
+            <p className="text-sm">Clicca "Aggiungi Barbiere" per crearne uno.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {availableStaff.map((staff) => (
+              <div key={staff.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                    {staff.profile_photo_url ? (
+                      <img
+                        src={staff.profile_photo_url}
+                        alt="Profile"
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    ) : (
+                      <Users className="w-6 h-6 text-white" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-900">{staff.full_name}</div>
+                    <div className="text-sm text-gray-500">{staff.role}</div>
+                    <div className="text-xs text-gray-400">
+                      {staff.chair_id ? `Assegnato a ${staff.chair_id.replace('chair_', 'Poltrona ')}` : 'Non assegnato'}
+                    </div>
                   </div>
                 </div>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => handleEditStaff(staff)}
+                    title="Modifica barbiere"
+                    disabled={isSaving}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => handleDeleteStaff(staff)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    title="Elimina barbiere"
+                    disabled={isSaving}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
-              <div className="flex space-x-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => handleEditStaff(staff)}
-                  title="Modifica barbiere"
-                >
-                  <Edit className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => handleDeleteStaff(staff)}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  title="Elimina barbiere"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </Card>
 
       {/* Riepilogo */}
@@ -237,6 +314,14 @@ export const ChairAssignment = () => {
         message="Sei sicuro di voler eliminare questo barbiere? Questa azione non può essere annullata."
         itemName={staffToDelete?.full_name || ''}
         isLoading={isDeleting}
+      />
+
+      {/* Toast Notification */}
+      <Toast 
+        message={toast.message} 
+        type={toast.type} 
+        isVisible={toast.isVisible} 
+        onClose={hideToast} 
       />
     </div>
   );
