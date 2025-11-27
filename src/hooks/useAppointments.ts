@@ -206,8 +206,16 @@ export const useAppointments = () => {
     setIsLoading(true);
     
     try {
+      // Filtra i valori null e undefined per compatibilità con UpdateAppointmentRequest
+      const cleanUpdates: Record<string, any> = {};
+      for (const [key, value] of Object.entries(updates)) {
+        if (value !== null && value !== undefined) {
+          cleanUpdates[key] = value;
+        }
+      }
+      
       // Prova ad aggiornare nel database
-      await apiService.updateAppointment({ id: appointmentId, ...updates });
+      await apiService.updateAppointment({ id: appointmentId, ...cleanUpdates });
       await loadAppointments();
       console.log('✅ Appuntamento aggiornato nel database:', appointmentId);
     } catch (error) {
