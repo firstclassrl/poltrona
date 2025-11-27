@@ -68,7 +68,7 @@ export const BarberProfile = () => {
         return;
       }
 
-      // Carica i dati del barbiere
+      // Carica i dati del barbiere dal database
       console.log('Loading staff profile from API...');
       try {
         const staff = await apiService.getStaffProfile();
@@ -82,34 +82,11 @@ export const BarberProfile = () => {
           setFormData(profileData);
         }
       } catch (apiError) {
-        console.log('No staff data found in database, creating default staff member');
-        
-        // Crea un barbiere di default se non esiste
-        const defaultStaff: Staff = {
-          id: 'default-staff-1',
-          shop_id: null,
-          full_name: 'Mario Rossi',
-          role: 'barber',
-          calendar_id: null,
-          active: true,
-          chair_id: null,
-          profile_photo_url: null,
-          email: 'mario@retrobarbershop.it',
-          created_at: new Date().toISOString(),
-        };
-        
-        setStaffData(defaultStaff);
-        
-        // Salva nel localStorage per uso futuro
-        localStorage.setItem('barberProfile', JSON.stringify(defaultStaff));
-        
-        // Popola il form con i dati di default
-        const profileData = getBarberProfile(defaultStaff);
-        setFormData(profileData);
-        
+        console.log('No staff data found in database');
+        setStaffData(null);
         setMessage({ 
-          type: 'success', 
-          text: 'Creato profilo barbiere di default. Puoi modificare i dati e salvarli.' 
+          type: 'info', 
+          text: 'Nessun barbiere trovato nel database. Vai su "Gestione Poltrone" per aggiungere un barbiere.' 
         });
       }
     } catch (error) {

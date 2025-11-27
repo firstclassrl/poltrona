@@ -17,7 +17,7 @@ interface BarberFormProps {
 
 export const BarberForm = ({ isOpen, onClose, onSave, staff, mode }: BarberFormProps) => {
   const [formData, setFormData] = useState({
-    shop_id: '1',
+    shop_id: null as string | null,
     full_name: '',
     role: '',
     calendar_id: null as string | null,
@@ -40,7 +40,7 @@ export const BarberForm = ({ isOpen, onClose, onSave, staff, mode }: BarberFormP
     if (isOpen) {
       if (staff && mode === 'edit') {
         setFormData({
-          shop_id: staff.shop_id || '1',
+          shop_id: staff.shop_id || null,
           full_name: staff.full_name || '',
           role: staff.role || '',
           calendar_id: staff.calendar_id,
@@ -57,7 +57,7 @@ export const BarberForm = ({ isOpen, onClose, onSave, staff, mode }: BarberFormP
 
   const resetForm = () => {
     setFormData({
-      shop_id: '1',
+      shop_id: null,
       full_name: '',
       role: '',
       calendar_id: null,

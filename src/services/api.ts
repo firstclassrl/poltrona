@@ -567,14 +567,28 @@ export const apiService = {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
     
     try {
+      // Ottieni lo shop_id reale dal database
+      let shopId = staffData.shop_id;
+      if (!shopId || shopId === '1') {
+        try {
+          const shop = await this.getShop();
+          shopId = shop?.id || null;
+        } catch {
+          shopId = null; // Se non riesce a ottenere lo shop, lascia null
+        }
+      }
+      
       // Invia solo i campi che esistono nella tabella staff del DB
-      // Escludi campi che potrebbero non esistere: chair_id, profile_photo_url, specialties, bio
       const payload: Record<string, any> = {
-        shop_id: staffData.shop_id || '1',
         full_name: staffData.full_name,
         role: staffData.role,
         active: staffData.active ?? true,
       };
+      
+      // Aggiungi shop_id solo se è un UUID valido
+      if (shopId && shopId !== '1') {
+        payload.shop_id = shopId;
+      }
       
       // Aggiungi campi opzionali solo se hanno un valore
       if (staffData.calendar_id) payload.calendar_id = staffData.calendar_id;
@@ -593,12 +607,7 @@ export const apiService = {
       }
       
       const created = await response.json();
-      // Restituisci lo staff con i campi extra per l'UI (gestiti localmente)
-      return { 
-        ...created[0], 
-        profile_photo_url: staffData.profile_photo_url || null,
-        chair_id: (staffData as any).chair_id || null 
-      } as Staff;
+      return created[0] as Staff;
     } catch (error) {
       console.error('Error creating staff:', error);
       throw error;
