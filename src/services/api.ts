@@ -567,10 +567,19 @@ export const apiService = {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
     
     try {
-      const payload = {
-        ...staffData,
+      // Invia solo i campi che esistono nella tabella staff del DB
+      // Escludi campi che potrebbero non esistere: chair_id, profile_photo_url, specialties, bio
+      const payload: Record<string, any> = {
         shop_id: staffData.shop_id || '1',
+        full_name: staffData.full_name,
+        role: staffData.role,
+        active: staffData.active ?? true,
       };
+      
+      // Aggiungi campi opzionali solo se hanno un valore
+      if (staffData.calendar_id) payload.calendar_id = staffData.calendar_id;
+      if (staffData.email) payload.email = staffData.email;
+      if (staffData.phone) payload.phone = staffData.phone;
       
       const response = await fetch(API_ENDPOINTS.STAFF, {
         method: 'POST',
@@ -584,7 +593,12 @@ export const apiService = {
       }
       
       const created = await response.json();
-      return created[0] as Staff;
+      // Restituisci lo staff con i campi extra per l'UI (gestiti localmente)
+      return { 
+        ...created[0], 
+        profile_photo_url: staffData.profile_photo_url || null,
+        chair_id: (staffData as any).chair_id || null 
+      } as Staff;
     } catch (error) {
       console.error('Error creating staff:', error);
       throw error;
@@ -596,10 +610,25 @@ export const apiService = {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
     
     try {
+      // Filtra solo i campi che esistono nel DB
+      const dbFields = ['shop_id', 'full_name', 'role', 'calendar_id', 'active', 'email', 'phone'];
+      const payload: Record<string, any> = {};
+      
+      for (const key of dbFields) {
+        if (key in staffData) {
+          payload[key] = (staffData as any)[key];
+        }
+      }
+      
+      // Se non ci sono campi da aggiornare nel DB, ritorna
+      if (Object.keys(payload).length === 0) {
+        return { id, ...staffData } as Staff;
+      }
+      
       const response = await fetch(`${API_ENDPOINTS.STAFF}?id=eq.${id}`, {
         method: 'PATCH',
         headers: { ...buildHeaders(false), Prefer: 'return=representation' },
-        body: JSON.stringify(staffData),
+        body: JSON.stringify(payload),
       });
       
       if (!response.ok) {
@@ -608,7 +637,7 @@ export const apiService = {
       }
       
       const updated = await response.json();
-      return updated[0] as Staff;
+      return { ...updated[0], ...staffData } as Staff;
     } catch (error) {
       console.error('Error updating staff:', error);
       throw error;
