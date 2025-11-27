@@ -567,10 +567,8 @@ export const apiService = {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
     
     try {
-      // Non chiamiamo getShop per evitare errori di auth - usa shop_id dal payload
       const payload = {
         ...staffData,
-        // Se shop_id non è fornito, usa un default
         shop_id: staffData.shop_id || '1',
       };
       

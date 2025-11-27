@@ -54,7 +54,6 @@ export const useChairAssignment = () => {
       });
       
       setAssignments(syncedAssignments);
-      localStorage.setItem('chairAssignments', JSON.stringify(syncedAssignments));
     } catch (e) {
       console.error('Errore caricando staff da API:', e);
       setAvailableStaff([]);
@@ -76,7 +75,7 @@ export const useChairAssignment = () => {
     const staff = availableStaff.find(s => s.id === staffId);
     if (!staff) return;
 
-    // Aggiorna il barbiere sul DB con la nuova chair_id
+    // Salva chair_id nel DB
     await apiService.updateStaff(staffId, { chair_id: chairId });
     
     // Rimuovi chair_id dal barbiere precedentemente assegnato a questa poltrona
@@ -107,7 +106,6 @@ export const useChairAssignment = () => {
     });
 
     setAssignments(updatedAssignments);
-    localStorage.setItem('chairAssignments', JSON.stringify(updatedAssignments));
 
     // Aggiorna anche il staff locale con la chair_id
     const updatedStaff = availableStaff.map(s => {
@@ -123,7 +121,7 @@ export const useChairAssignment = () => {
   };
 
   const unassignStaffFromChair = async (chairId: string): Promise<void> => {
-    // Trova il barbiere assegnato a questa poltrona e rimuovi la chair_id sul DB
+    // Trova il barbiere assegnato e rimuovi chair_id nel DB
     const assignedStaff = availableStaff.find(s => s.chair_id === chairId);
     if (assignedStaff) {
       await apiService.updateStaff(assignedStaff.id, { chair_id: null });
@@ -142,7 +140,6 @@ export const useChairAssignment = () => {
     });
 
     setAssignments(updatedAssignments);
-    localStorage.setItem('chairAssignments', JSON.stringify(updatedAssignments));
 
     // Rimuovi chair_id dal staff locale
     const updatedStaff = availableStaff.map(s => {
@@ -200,7 +197,7 @@ export const useChairAssignment = () => {
   };
 
   const deleteStaff = async (staffId: string): Promise<void> => {
-    // Elimina il barbiere tramite API - nessun fallback locale
+    // Elimina il barbiere tramite API
     await apiService.deleteStaff(staffId);
     
     // Rimuovi il barbiere dalla lista locale solo dopo successo API
@@ -220,13 +217,11 @@ export const useChairAssignment = () => {
       return assignment;
     });
     setAssignments(updatedAssignments);
-    localStorage.setItem('chairAssignments', JSON.stringify(updatedAssignments));
 
     // Se il barbiere eliminato era quello attivo, seleziona il primo disponibile
     if (activeStaffId === staffId) {
       const newActiveStaff = updatedStaff.length > 0 ? updatedStaff[0].id : '';
       setActiveStaffId(newActiveStaff);
-      localStorage.setItem('activeStaffId', newActiveStaff);
     }
   };
 

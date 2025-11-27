@@ -141,6 +141,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       isLoading: false,
     });
     localStorage.removeItem('auth_user');
+    localStorage.removeItem('auth_token');
   };
 
   const register = async (data: RegisterData): Promise<void> => {

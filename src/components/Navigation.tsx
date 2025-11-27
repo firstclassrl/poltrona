@@ -15,8 +15,10 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
   const { user, logout, hasPermission } = useAuth();
   const [shop, setShop] = useState<Shop | null>(null);
 
-  // Load shop data to check products_enabled
+  // Load shop data to check products_enabled (only when authenticated)
   useEffect(() => {
+    if (!user) return; // Skip if not authenticated
+    
     const loadShopData = async () => {
       try {
         const shopData = await apiService.getShop();
@@ -26,7 +28,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
       }
     };
     loadShopData();
-  }, []);
+  }, [user]);
 
   const allNavItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, permission: 'dashboard' },

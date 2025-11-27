@@ -99,6 +99,14 @@ export const useDailyShopHours = () => {
     }
     setExtraOpening(readExtraOpeningFromStorage());
 
+    // Only fetch from backend if user is authenticated
+    const authToken = localStorage.getItem('auth_token');
+    if (!authToken) {
+      // No auth token - use cached data or defaults, mark as loaded
+      setShopHoursLoaded(true);
+      return;
+    }
+
     let isMounted = true;
     (async () => {
       try {
