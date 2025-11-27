@@ -322,19 +322,19 @@ export const Calendar = () => {
                             .map(apt => (
                               <div
                                 key={apt.id}
-                                className={`p-1.5 rounded text-xs border h-[52px] overflow-hidden ${getStatusColor(apt.status || 'scheduled')} cursor-pointer hover:scale-105 transition-transform`}
+                                className={`p-2 rounded text-xs border ${getStatusColor(apt.status || 'scheduled')} cursor-pointer hover:scale-105 transition-transform`}
                                 draggable
                                 onDragStart={(e) => e.dataTransfer.setData('appointmentId', apt.id || '')}
                                 onClick={() => handleAppointmentClick(apt)}
                                 title={`${apt.clients?.first_name} ${apt.clients?.last_name || ''} - ${apt.services?.name || 'Servizio'} - ${apt.staff?.full_name}`}
                               >
-                                <div className="font-medium truncate leading-tight">
+                                <div className="font-medium truncate">
                                   {apt.clients?.first_name} {apt.clients?.last_name || ''}
                                 </div>
-                                <div className="opacity-75 truncate text-xs leading-tight">
+                                <div className="opacity-75 truncate text-xs">
                                   {apt.services?.name || 'Servizio'}
                                 </div>
-                                <div className="opacity-60 truncate text-xs leading-tight">
+                                <div className="opacity-60 truncate text-xs">
                                   {apt.staff?.full_name}
                                 </div>
                               </div>
