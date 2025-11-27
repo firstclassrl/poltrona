@@ -52,25 +52,62 @@ export const apiService = {
     }
   },
 
-  // Update client by email
+  // Update or create client by email
   async updateClientByEmail(email: string, data: { first_name?: string; last_name?: string | null; phone_e164?: string }): Promise<void> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
     
     try {
-      const response = await fetch(`${API_ENDPOINTS.SEARCH_CLIENTS}?email=eq.${encodeURIComponent(email)}`, {
-        method: 'PATCH',
-        headers: { ...buildHeaders(true), Prefer: 'return=minimal' },
-        body: JSON.stringify(data),
-      });
+      // Prima cerca se il cliente esiste
+      const searchUrl = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=id&email=eq.${encodeURIComponent(email)}&limit=1`;
+      const searchResponse = await fetch(searchUrl, { headers: buildHeaders(true) });
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to update client: ${response.status} ${errorText}`);
+      if (searchResponse.ok) {
+        const clients = await searchResponse.json();
+        
+        if (clients && clients.length > 0) {
+          // Cliente esiste - aggiorna
+          const clientId = clients[0].id;
+          const updateResponse = await fetch(`${API_ENDPOINTS.SEARCH_CLIENTS}?id=eq.${clientId}`, {
+            method: 'PATCH',
+            headers: { ...buildHeaders(true), Prefer: 'return=minimal' },
+            body: JSON.stringify(data),
+          });
+          
+          if (!updateResponse.ok) {
+            const errorText = await updateResponse.text();
+            console.error('Errore update client:', errorText);
+            throw new Error(`Failed to update client: ${updateResponse.status}`);
+          }
+          
+          console.log('✅ Client aggiornato nel database, ID:', clientId);
+        } else {
+          // Cliente non esiste - crealo
+          const shop = await this.getShop();
+          const createData = {
+            shop_id: shop?.id && shop.id !== 'default' ? shop.id : null,
+            first_name: data.first_name || 'Cliente',
+            last_name: data.last_name || null,
+            phone_e164: data.phone_e164 || '+39000000000',
+            email: email,
+          };
+          
+          const createResponse = await fetch(API_ENDPOINTS.SEARCH_CLIENTS, {
+            method: 'POST',
+            headers: { ...buildHeaders(true), Prefer: 'return=representation' },
+            body: JSON.stringify(createData),
+          });
+          
+          if (!createResponse.ok) {
+            const errorText = await createResponse.text();
+            console.error('Errore creazione client:', errorText);
+            throw new Error(`Failed to create client: ${createResponse.status}`);
+          }
+          
+          console.log('✅ Nuovo client creato nel database per email:', email);
+        }
       }
-      
-      console.log('✅ Client aggiornato nel database per email:', email);
     } catch (error) {
-      console.error('Error updating client by email:', error);
+      console.error('Error updating/creating client by email:', error);
       throw error;
     }
   },

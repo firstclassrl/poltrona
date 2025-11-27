@@ -45,19 +45,16 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
     { id: 'client_booking', label: 'Prenota', icon: Calendar, permission: 'client_booking' },
   ];
 
+  // Check if products are enabled (false = disabled, true/undefined/null = enabled)
+  const areProductsEnabled = shop?.products_enabled !== false;
+
   // Filter nav items based on user permissions and shop settings
   let navItems = allNavItems.filter(item => {
     // Check if products are enabled for the shop
     if (item.id === 'products') {
-      console.log('🔧 [DEBUG] Checking products navigation item:', {
-        shop: shop,
-        products_enabled: shop?.products_enabled,
-        products_enabled_type: typeof shop?.products_enabled,
-        shouldHide: shop && shop.products_enabled === false
-      });
-      
-      if (shop && shop.products_enabled === false) {
-        console.log('🚫 [DEBUG] Hiding products navigation item - products disabled');
+      // For clients: hide products if disabled
+      // For admin/barbers: always show (they manage products)
+      if (user?.role === 'client' && !areProductsEnabled) {
         return false;
       }
     }
@@ -66,7 +63,11 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
 
   // Reorder items for client users
   if (user?.role === 'client') {
-    const clientOrder = ['client_booking', 'products', 'chat', 'client_profile'];
+    // Build client order dynamically based on products enabled status
+    const clientOrder = areProductsEnabled 
+      ? ['client_booking', 'products', 'chat', 'client_profile']
+      : ['client_booking', 'chat', 'client_profile'];
+    
     navItems = clientOrder
       .map(id => navItems.find(item => item.id === id))
       .filter(Boolean) as typeof navItems;
