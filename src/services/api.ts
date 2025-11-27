@@ -52,6 +52,61 @@ export const apiService = {
     }
   },
 
+  // Get or create client from authenticated user
+  async getOrCreateClientFromUser(user: { id: string; email?: string; full_name?: string; phone?: string }): Promise<string> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    
+    try {
+      // Cerca se esiste già un cliente con questa email
+      if (user.email) {
+        const searchUrl = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=id&email=eq.${encodeURIComponent(user.email)}&limit=1`;
+        const searchResponse = await fetch(searchUrl, { headers: buildHeaders(true) });
+        
+        if (searchResponse.ok) {
+          const existingClients = await searchResponse.json();
+          if (existingClients && existingClients.length > 0) {
+            console.log('✅ Cliente esistente trovato:', existingClients[0].id);
+            return existingClients[0].id;
+          }
+        }
+      }
+
+      // Se non esiste, crea un nuovo cliente
+      const shop = await this.getShop();
+      const fullName = user.full_name || 'Cliente';
+      const nameParts = fullName.split(' ');
+      const firstName = nameParts[0] || 'Cliente';
+      const lastName = nameParts.slice(1).join(' ') || null;
+      
+      const clientData: Partial<Client> = {
+        shop_id: shop?.id && shop.id !== 'default' ? shop.id : null,
+        first_name: firstName,
+        last_name: lastName,
+        phone_e164: user.phone || '+39000000000',
+        email: user.email || null,
+      };
+
+      const createResponse = await fetch(API_ENDPOINTS.SEARCH_CLIENTS, {
+        method: 'POST',
+        headers: { ...buildHeaders(true), Prefer: 'return=representation' },
+        body: JSON.stringify(clientData),
+      });
+
+      if (!createResponse.ok) {
+        const errorText = await createResponse.text();
+        throw new Error(`Failed to create client: ${createResponse.status} ${errorText}`);
+      }
+
+      const created = await createResponse.json();
+      const clientId = created[0]?.id;
+      console.log('✅ Nuovo cliente creato:', clientId);
+      return clientId;
+    } catch (error) {
+      console.error('Error getting or creating client:', error);
+      throw error;
+    }
+  },
+
   async getDailyShopHours(): Promise<ShopHoursConfig> {
     if (!isSupabaseConfigured()) {
       console.warn('Supabase non configurato - uso configurazione orari di default');

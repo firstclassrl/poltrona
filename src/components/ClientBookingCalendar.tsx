@@ -199,12 +199,20 @@ export const ClientBookingCalendar: React.FC = () => {
         throw new Error('Dati mancanti per la prenotazione');
       }
       
+      // Get or create client record in clients table
+      const clientId = await apiService.getOrCreateClientFromUser({
+        id: user.id,
+        email: user.email,
+        full_name: user.full_name,
+        phone: user.phone,
+      });
+      
       // Create and save the appointment
       const startDateTime = new Date(`${selectedDate.toISOString().split('T')[0]}T${selectedTime}:00`);
       const endDateTime = new Date(startDateTime.getTime() + (service?.duration_min || 60) * 60000);
       
       const appointmentData = {
-        client_id: user.id,
+        client_id: clientId,
         staff_id: selectedBarber,
         service_id: selectedService,
         start_at: startDateTime.toISOString(),
