@@ -549,9 +549,9 @@ export const apiService = {
     if (!isSupabaseConfigured()) return [];
     
     try {
-      // Carica tutti i barbieri (attivi e non) per la gestione - usa anon key
+      // Carica tutti i barbieri - usa token autenticato
       const url = `${API_ENDPOINTS.STAFF}?select=*&order=full_name.asc`;
-      const response = await fetch(url, { headers: buildHeaders(false) });
+      const response = await fetch(url, { headers: buildHeaders(true) });
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Failed to fetch staff: ${response.status} ${errorText}`);
@@ -595,10 +595,11 @@ export const apiService = {
       if (staffData.calendar_id) payload.calendar_id = staffData.calendar_id;
       if (staffData.email) payload.email = staffData.email;
       if (staffData.phone) payload.phone = staffData.phone;
+      if ((staffData as any).chair_id) payload.chair_id = (staffData as any).chair_id;
       
       const response = await fetch(API_ENDPOINTS.STAFF, {
         method: 'POST',
-        headers: { ...buildHeaders(false), Prefer: 'return=representation' },
+        headers: { ...buildHeaders(true), Prefer: 'return=representation' },
         body: JSON.stringify(payload),
       });
       
@@ -620,8 +621,8 @@ export const apiService = {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
     
     try {
-      // Filtra solo i campi che esistono nel DB
-      const dbFields = ['shop_id', 'full_name', 'role', 'calendar_id', 'active', 'email', 'phone'];
+      // Filtra solo i campi che esistono nel DB (incluso chair_id per assegnazione poltrone)
+      const dbFields = ['shop_id', 'full_name', 'role', 'calendar_id', 'active', 'email', 'phone', 'chair_id'];
       const payload: Record<string, any> = {};
       
       for (const key of dbFields) {
@@ -637,7 +638,7 @@ export const apiService = {
       
       const response = await fetch(`${API_ENDPOINTS.STAFF}?id=eq.${id}`, {
         method: 'PATCH',
-        headers: { ...buildHeaders(false), Prefer: 'return=representation' },
+        headers: { ...buildHeaders(true), Prefer: 'return=representation' },
         body: JSON.stringify(payload),
       });
       
@@ -661,7 +662,7 @@ export const apiService = {
     try {
       const response = await fetch(`${API_ENDPOINTS.STAFF}?id=eq.${id}`, {
         method: 'DELETE',
-        headers: { ...buildHeaders(false) },
+        headers: { ...buildHeaders(true) },
       });
       
       if (!response.ok) {
