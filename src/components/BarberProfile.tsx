@@ -36,15 +36,19 @@ export const BarberProfile = () => {
     loadProfileData();
   }, []);
 
+  // Carica i dati dello staff attivo solo quando non si sta modificando
   useEffect(() => {
+    // Non resettare il form se l'utente sta modificando
+    if (isEditing) return;
+    
     const activeStaff = getActiveStaff();
-    if (activeStaff) {
+    if (activeStaff && activeStaff.id !== staffData?.id) {
       setStaffData(activeStaff);
       const profileData = getBarberProfile(activeStaff);
       setFormData(profileData);
       setProfileImageUrl(profileData.profile_photo_url || '');
     }
-  }, [getActiveStaff, getBarberProfile]);
+  }, [getActiveStaff, isEditing]); // Rimosso getBarberProfile dalle dipendenze
 
   const loadProfileData = async () => {
     try {

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { apiService } from '../services/api';
 import type { Appointment } from '../types';
 
 export interface CreateAppointmentData {
@@ -18,40 +19,79 @@ export const useAppointments = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Carica gli appuntamenti dal localStorage
-  const loadAppointments = () => {
+  // Carica gli appuntamenti dal database
+  const loadAppointments = useCallback(async () => {
     try {
-      const savedAppointments = localStorage.getItem('appointments');
-      if (savedAppointments) {
-        setAppointments(JSON.parse(savedAppointments));
+      setIsLoading(true);
+      // Carica appuntamenti per le prossime 4 settimane
+      const today = new Date();
+      const startDate = new Date(today);
+      startDate.setDate(today.getDate() - 7); // 1 settimana fa
+      const endDate = new Date(today);
+      endDate.setDate(today.getDate() + 28); // 4 settimane avanti
+      
+      const dbAppointments = await apiService.getAppointments(
+        startDate.toISOString(),
+        endDate.toISOString()
+      );
+      
+      if (dbAppointments && dbAppointments.length > 0) {
+        setAppointments(dbAppointments);
+        console.log('✅ Appuntamenti caricati dal database:', dbAppointments.length);
       } else {
-        // Se non ci sono appuntamenti salvati, inizializza con array vuoto
-        setAppointments([]);
+        // Fallback al localStorage se il database è vuoto o non disponibile
+        const savedAppointments = localStorage.getItem('appointments');
+        if (savedAppointments) {
+          setAppointments(JSON.parse(savedAppointments));
+          console.log('ℹ️ Appuntamenti caricati dal localStorage (fallback)');
+        } else {
+          setAppointments([]);
+        }
       }
     } catch (error) {
       console.error('Errore nel caricamento degli appuntamenti:', error);
-      setAppointments([]);
+      // Fallback al localStorage in caso di errore
+      try {
+        const savedAppointments = localStorage.getItem('appointments');
+        if (savedAppointments) {
+          setAppointments(JSON.parse(savedAppointments));
+        } else {
+          setAppointments([]);
+        }
+      } catch {
+        setAppointments([]);
+      }
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  // Salva gli appuntamenti nel localStorage
-  const saveAppointments = (newAppointments: Appointment[]) => {
-    try {
-      localStorage.setItem('appointments', JSON.stringify(newAppointments));
-      setAppointments(newAppointments);
-    } catch (error) {
-      console.error('Errore nel salvataggio degli appuntamenti:', error);
-    }
-  };
+  }, []);
 
   // Crea un nuovo appuntamento
   const createAppointment = async (appointmentData: CreateAppointmentData): Promise<Appointment> => {
     setIsLoading(true);
     
     try {
-      // Simula chiamata API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Prova a salvare nel database
+      const created = await apiService.createAppointmentDirect({
+        client_id: appointmentData.client_id,
+        staff_id: appointmentData.staff_id,
+        service_id: appointmentData.service_id,
+        start_at: appointmentData.start_at,
+        end_at: appointmentData.end_at,
+        notes: appointmentData.notes || '',
+        status: 'confirmed',
+      });
       
+      // Ricarica gli appuntamenti dal database per avere i dati completi
+      await loadAppointments();
+      
+      console.log('✅ Appuntamento creato nel database:', created);
+      return created;
+      
+    } catch (error) {
+      console.error('❌ Errore nella creazione dell\'appuntamento nel database, uso localStorage:', error);
+      
+      // Fallback al localStorage se il database non funziona
       const newAppointment: Appointment = {
         id: `appt_${Date.now()}`,
         shop_id: '1',
@@ -100,16 +140,14 @@ export const useAppointments = () => {
         },
       };
 
-      // Aggiungi il nuovo appuntamento alla lista
+      // Salva nel localStorage come fallback
       const updatedAppointments = [...appointments, newAppointment];
-      saveAppointments(updatedAppointments);
+      localStorage.setItem('appointments', JSON.stringify(updatedAppointments));
+      setAppointments(updatedAppointments);
       
-      console.log('✅ Appuntamento creato e salvato:', newAppointment);
+      console.log('⚠️ Appuntamento salvato in localStorage (fallback):', newAppointment);
       return newAppointment;
       
-    } catch (error) {
-      console.error('❌ Errore nella creazione dell\'appuntamento:', error);
-      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -148,12 +186,16 @@ export const useAppointments = () => {
     setIsLoading(true);
     
     try {
-      const updatedAppointments = appointments.filter(app => app.id !== appointmentId);
-      saveAppointments(updatedAppointments);
-      console.log('✅ Appuntamento eliminato:', appointmentId);
+      // Prova a eliminare dal database
+      await apiService.cancelAppointment(appointmentId);
+      await loadAppointments();
+      console.log('✅ Appuntamento eliminato dal database:', appointmentId);
     } catch (error) {
-      console.error('❌ Errore nell\'eliminazione dell\'appuntamento:', error);
-      throw error;
+      console.error('❌ Errore nell\'eliminazione dal database, uso localStorage:', error);
+      // Fallback al localStorage
+      const updatedAppointments = appointments.filter(app => app.id !== appointmentId);
+      localStorage.setItem('appointments', JSON.stringify(updatedAppointments));
+      setAppointments(updatedAppointments);
     } finally {
       setIsLoading(false);
     }
@@ -164,16 +206,20 @@ export const useAppointments = () => {
     setIsLoading(true);
     
     try {
+      // Prova ad aggiornare nel database
+      await apiService.updateAppointment({ id: appointmentId, ...updates });
+      await loadAppointments();
+      console.log('✅ Appuntamento aggiornato nel database:', appointmentId);
+    } catch (error) {
+      console.error('❌ Errore nell\'aggiornamento nel database, uso localStorage:', error);
+      // Fallback al localStorage
       const updatedAppointments = appointments.map(app => 
         app.id === appointmentId 
           ? { ...app, ...updates, updated_at: new Date().toISOString() }
           : app
       );
-      saveAppointments(updatedAppointments);
-      console.log('✅ Appuntamento aggiornato:', appointmentId);
-    } catch (error) {
-      console.error('❌ Errore nell\'aggiornamento dell\'appuntamento:', error);
-      throw error;
+      localStorage.setItem('appointments', JSON.stringify(updatedAppointments));
+      setAppointments(updatedAppointments);
     } finally {
       setIsLoading(false);
     }
@@ -182,7 +228,7 @@ export const useAppointments = () => {
   // Carica gli appuntamenti all'inizializzazione
   useEffect(() => {
     loadAppointments();
-  }, []);
+  }, [loadAppointments]);
 
   return {
     appointments,

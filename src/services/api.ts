@@ -199,17 +199,25 @@ export const apiService = {
     if (!isSupabaseConfigured()) return [];
     
     try {
+      // Usa buildHeaders(false) per permettere lettura pubblica degli appuntamenti
+      // Questo permette sia ai clienti che ai barbieri di vedere gli appuntamenti
       const url = `${API_ENDPOINTS.APPOINTMENTS_FEED}?select=*,clients(first_name,last_name,phone_e164),staff(full_name)&order=start_at.asc&start_at=gte.${start}&start_at=lte.${end}`;
-      const response = await fetch(url, { headers: buildHeaders() });
-      if (!response.ok) throw new Error('Failed to fetch appointments');
-      return await response.json();
+      const response = await fetch(url, { headers: buildHeaders(false) });
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error fetching appointments:', response.status, errorText);
+        throw new Error(`Failed to fetch appointments: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log('📅 Appuntamenti caricati dal database:', data.length);
+      return data;
     } catch (error) {
       console.error('Error fetching appointments:', error);
       return [];
     }
   },
 
-  // Create appointment
+  // Create appointment via n8n webhook (legacy)
   async createAppointment(data: CreateAppointmentRequest): Promise<void> {
     if (!isSupabaseConfigured() || !API_CONFIG.N8N_BASE_URL) throw new Error('Backend non configurato');
     
@@ -222,6 +230,53 @@ export const apiService = {
       if (!response.ok) throw new Error('Failed to create appointment');
     } catch (error) {
       console.error('Error creating appointment:', error);
+      throw error;
+    }
+  },
+
+  // Create appointment directly in Supabase (for client bookings)
+  async createAppointmentDirect(data: {
+    client_id: string;
+    staff_id: string;
+    service_id: string;
+    start_at: string;
+    end_at: string;
+    notes?: string;
+    status?: string;
+  }): Promise<any> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    
+    try {
+      // Get shop_id from shop
+      const shop = await this.getShop();
+      
+      const payload = {
+        shop_id: shop?.id || null,
+        client_id: data.client_id,
+        staff_id: data.staff_id,
+        service_id: data.service_id,
+        start_at: data.start_at,
+        end_at: data.end_at,
+        notes: data.notes || '',
+        status: data.status || 'confirmed',
+      };
+      
+      const response = await fetch(API_ENDPOINTS.APPOINTMENTS_FEED, {
+        method: 'POST',
+        headers: { ...buildHeaders(true), Prefer: 'return=representation' },
+        body: JSON.stringify(payload),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to create appointment: ${response.status} ${errorText}`);
+      }
+      
+      const created = await response.json();
+      console.log('✅ Appuntamento creato nel database:', created[0]);
+      return created[0];
+    } catch (error) {
+      console.error('Error creating appointment directly:', error);
       throw error;
     }
   },
@@ -534,8 +589,9 @@ export const apiService = {
     
     try {
       // Mostra tutti i servizi (attivi e non), ordinati per nome
+      // Usa buildHeaders(false) per permettere lettura pubblica (clienti inclusi)
       const url = `${API_ENDPOINTS.SERVICES}?select=*&order=name.asc`;
-      const response = await fetch(url, { headers: buildHeaders(true) });
+      const response = await fetch(url, { headers: buildHeaders(false) });
       if (!response.ok) throw new Error('Failed to fetch services');
       return await response.json();
     } catch (error) {
