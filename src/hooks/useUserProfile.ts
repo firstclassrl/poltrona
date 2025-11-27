@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { User } from '../types/auth';
+import { apiService } from '../services/api';
 
 export interface UserProfileData {
   full_name: string;
@@ -36,14 +37,21 @@ export const useUserProfile = () => {
     }
   };
 
+  // Normalizza il telefono in formato E.164
+  const normalizePhone = (phone: string): string => {
+    if (!phone) return '+39000000000';
+    let cleaned = phone.replace(/\s/g, '').replace(/[^0-9+]/g, '');
+    if (cleaned.startsWith('0039')) cleaned = cleaned.substring(4);
+    else if (cleaned.startsWith('+39')) cleaned = cleaned.substring(3);
+    else if (cleaned.startsWith('39') && cleaned.length > 10) cleaned = cleaned.substring(2);
+    return `+39${cleaned}`;
+  };
+
   // Aggiorna il profilo utente
   const updateUserProfile = async (userId: string, profileData: UserProfileData): Promise<boolean> => {
     setIsLoading(true);
     
     try {
-      // Simula chiamata API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
       // Salva nel localStorage
       const success = saveUserProfile(userId, profileData);
       
@@ -61,6 +69,19 @@ export const useUserProfile = () => {
             phone: profileData.phone
           };
           localStorage.setItem('auth_user', JSON.stringify(updatedUser));
+        }
+        
+        // Aggiorna anche il record client nel database
+        try {
+          await apiService.updateClientByEmail(profileData.email, {
+            first_name: profileData.full_name.split(' ')[0] || 'Cliente',
+            last_name: profileData.full_name.split(' ').slice(1).join(' ') || null,
+            phone_e164: normalizePhone(profileData.phone || ''),
+          });
+          console.log('✅ Record client aggiornato nel database');
+        } catch (dbError) {
+          console.warn('⚠️ Errore aggiornamento client nel DB:', dbError);
+          // Non bloccare se il DB fallisce
         }
       }
       

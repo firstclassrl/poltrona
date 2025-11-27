@@ -52,6 +52,29 @@ export const apiService = {
     }
   },
 
+  // Update client by email
+  async updateClientByEmail(email: string, data: { first_name?: string; last_name?: string | null; phone_e164?: string }): Promise<void> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    
+    try {
+      const response = await fetch(`${API_ENDPOINTS.SEARCH_CLIENTS}?email=eq.${encodeURIComponent(email)}`, {
+        method: 'PATCH',
+        headers: { ...buildHeaders(true), Prefer: 'return=minimal' },
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to update client: ${response.status} ${errorText}`);
+      }
+      
+      console.log('✅ Client aggiornato nel database per email:', email);
+    } catch (error) {
+      console.error('Error updating client by email:', error);
+      throw error;
+    }
+  },
+
   // Get or create client from authenticated user
   async getOrCreateClientFromUser(user: { id: string; email?: string; full_name?: string; phone?: string }): Promise<string> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');

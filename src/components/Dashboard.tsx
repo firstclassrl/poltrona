@@ -589,7 +589,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="space-y-3">
               <div className="flex justify-between items-center p-3 border-b">
                 <span className="text-gray-600">Servizio</span>
-                <span className="font-medium text-gray-900">{selectedAppointment.services?.name}</span>
+                <span className="font-medium text-gray-900">{selectedAppointment.services?.name || 'Non specificato'}</span>
               </div>
               <div className="flex justify-between items-center p-3 border-b">
                 <span className="text-gray-600">Barbiere</span>
@@ -597,11 +597,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
               <div className="flex justify-between items-center p-3 border-b">
                 <span className="text-gray-600">Durata</span>
-                <span className="font-medium text-gray-900">{selectedAppointment.services?.duration_min} minuti</span>
-              </div>
-              <div className="flex justify-between items-center p-3 border-b">
-                <span className="text-gray-600">Prezzo</span>
-                <span className="font-bold text-green-600 text-lg">€{(selectedAppointment.services?.price_cents || 0) / 100}</span>
+                <span className="font-medium text-gray-900">{selectedAppointment.services?.duration_min || 0} minuti</span>
               </div>
               <div className="flex justify-between items-center p-3">
                 <span className="text-gray-600">Stato</span>
