@@ -30,7 +30,7 @@ export const BarberProfile = () => {
   });
   const [profileImageUrl, setProfileImageUrl] = useState('');
   const [activeTab, setActiveTab] = useState<'profile' | 'assignment'>('profile');
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
 
   useEffect(() => {
     loadProfileData();
@@ -183,6 +183,8 @@ export const BarberProfile = () => {
         <div className={`p-4 rounded-lg ${
           message.type === 'success' 
             ? 'bg-green-100 text-green-800 border border-green-200' 
+            : message.type === 'info'
+            ? 'bg-blue-100 text-blue-800 border border-blue-200'
             : 'bg-red-100 text-red-800 border border-red-200'
         }`}>
           {message.text}

@@ -22,4 +22,5 @@ export const API_ENDPOINTS = {
   SHOP_DAILY_TIME_SLOTS: `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/shop_daily_time_slots`,
   CHATS: `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/chats`,
   CHAT_MESSAGES: `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/chat_messages`,
+  NOTIFICATIONS: `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/notifications`,
 };

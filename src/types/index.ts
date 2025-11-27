@@ -204,3 +204,34 @@ export interface TimeSlot {
 export interface ShopHoursConfig {
   [dayOfWeek: number]: DailyHours; // 0=Sunday, 1=Monday, ..., 6=Saturday
 }
+
+// ============================================
+// Notifications
+// ============================================
+
+export type NotificationType = 'new_appointment' | 'appointment_cancelled' | 'appointment_reminder' | 'system';
+export type NotificationUserType = 'staff' | 'client';
+
+export interface Notification {
+  id: string;
+  shop_id: string | null;
+  user_id: string;
+  user_type: NotificationUserType;
+  type: NotificationType;
+  title: string;
+  message: string;
+  data: NotificationData;
+  read_at: string | null;
+  created_at: string;
+}
+
+export interface NotificationData {
+  appointment_id?: string;
+  client_name?: string;
+  client_phone?: string;
+  staff_name?: string;
+  service_name?: string;
+  appointment_date?: string;
+  appointment_time?: string;
+  [key: string]: unknown;
+}
