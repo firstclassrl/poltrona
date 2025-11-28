@@ -16,8 +16,7 @@ interface EmailRequest {
   test?: boolean
 }
 
-// Funzione per inviare email usando fetch a un relay SMTP-to-HTTP
-// Usiamo smtp2go o un servizio simile che ha un endpoint HTTP
+// Funzione per inviare email usando SMTP diretto
 async function sendViaSMTP(config: {
   host: string
   port: number
@@ -81,12 +80,27 @@ async function sendViaSMTP(config: {
     const encoder = new TextEncoder()
     const decoder = new TextDecoder()
 
-    // Helper per leggere risposta
+    // Helper per leggere risposta - LEGGE TUTTI I CHUNK
     const readResponse = async (): Promise<string> => {
-      const buffer = new Uint8Array(1024)
-      const n = await conn.read(buffer)
-      if (n === null) return ''
-      return decoder.decode(buffer.subarray(0, n))
+      let fullResponse = ''
+      const buffer = new Uint8Array(4096)
+      
+      while (true) {
+        const n = await conn.read(buffer)
+        if (n === null || n === 0) break
+        
+        const chunk = decoder.decode(buffer.subarray(0, n))
+        fullResponse += chunk
+        
+        // SMTP risponde con codice seguito da spazio o trattino
+        // Se c'è un trattino, continua a leggere
+        // Se c'è uno spazio o newline, è la fine
+        if (fullResponse.match(/\d{3}[ \r\n]/)) {
+          break
+        }
+      }
+      
+      return fullResponse
     }
 
     // Helper per inviare comando
@@ -101,7 +115,7 @@ async function sendViaSMTP(config: {
 
     // EHLO
     response = await sendCommand(`EHLO ${host}`)
-    console.log('EHLO:', response.substring(0, 100))
+    console.log('EHLO:', response.substring(0, 200))
 
     // Se non TLS, prova STARTTLS
     if (!useTLS && response.includes('STARTTLS')) {
@@ -114,7 +128,7 @@ async function sendViaSMTP(config: {
         
         // EHLO di nuovo dopo TLS
         response = await sendCommand(`EHLO ${host}`)
-        console.log('EHLO after TLS:', response.substring(0, 100))
+        console.log('EHLO after TLS:', response.substring(0, 200))
       }
     }
 
@@ -139,13 +153,28 @@ async function sendViaSMTP(config: {
     response = await sendCommand(`MAIL FROM:<${config.from}>`)
     console.log('MAIL FROM:', response.trim())
 
+    if (!response.startsWith('250')) {
+      conn.close()
+      return { success: false, error: `Errore MAIL FROM: ${response.trim()}` }
+    }
+
     // RCPT TO
     response = await sendCommand(`RCPT TO:<${config.to}>`)
     console.log('RCPT TO:', response.trim())
 
+    if (!response.startsWith('250')) {
+      conn.close()
+      return { success: false, error: `Errore RCPT TO: ${response.trim()}` }
+    }
+
     // DATA
     response = await sendCommand('DATA')
     console.log('DATA:', response.trim())
+
+    if (!response.startsWith('354')) {
+      conn.close()
+      return { success: false, error: `Errore DATA: ${response.trim()}` }
+    }
 
     // Messaggio email
     const boundary = `----=_Part_${Date.now()}`
@@ -170,7 +199,11 @@ async function sendViaSMTP(config: {
       `.`
     ].join('\r\n')
 
-    response = await sendCommand(emailContent)
+    // Invia il contenuto email
+    await conn.write(encoder.encode(emailContent + '\r\n'))
+    
+    // Leggi la risposta finale - IMPORTANTE: aspetta la risposta completa
+    response = await readResponse()
     console.log('Message response:', response.trim())
 
     // QUIT
@@ -180,10 +213,11 @@ async function sendViaSMTP(config: {
     const elapsed = Date.now() - startTime
     console.log(`✅ Email inviata in ${elapsed}ms`)
 
+    // Verifica che la risposta sia positiva
     if (response.startsWith('250')) {
       return { success: true }
     } else {
-      return { success: false, error: `Errore invio: ${response.trim()}` }
+      return { success: false, error: `Errore invio: ${response.trim() || 'Risposta vuota dal server'}` }
     }
 
   } catch (error) {
@@ -275,8 +309,9 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('❌ Errore:', error)
+    const errorMessage = error instanceof Error ? error.message : String(error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ success: false, error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

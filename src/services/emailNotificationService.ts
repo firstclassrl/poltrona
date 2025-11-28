@@ -795,6 +795,412 @@ ${data.shopName} - Sistema di Gestione Prenotazioni
   isServiceConfigured(): boolean {
     return this.isConfigured;
   }
+
+  // Invia email di conferma prenotazione al cliente
+  async sendClientAppointmentConfirmation(
+    data: NewAppointmentNotificationData
+  ): Promise<EmailResponse> {
+    try {
+      this.ensureConfigured();
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Servizio email non configurato' 
+      };
+    }
+
+    if (!data.clientEmail) {
+      return {
+        success: false,
+        error: 'Email cliente non disponibile'
+      };
+    }
+
+    return this.sendEmailViaSupabase({
+      to: data.clientEmail,
+      subject: `✅ Conferma Prenotazione - ${data.shopName} - ${data.appointmentDate} alle ${data.appointmentTime}`,
+      html: this.generateClientAppointmentConfirmationHTML(data),
+      text: this.generateClientAppointmentConfirmationText(data),
+    });
+  }
+
+  // Genera HTML per email di conferma prenotazione al cliente
+  private generateClientAppointmentConfirmationHTML(data: NewAppointmentNotificationData): string {
+    return this.cleanHtml(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Conferma Prenotazione - ${data.shopName}</title>
+        <style>
+          body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+          }
+          .container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          }
+          .header {
+            text-align: center;
+            border-bottom: 3px solid #10b981;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+          }
+          .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #10b981;
+            margin-bottom: 10px;
+          }
+          .title {
+            font-size: 20px;
+            color: #1f2937;
+            margin: 0;
+          }
+          .success-box {
+            background-color: #ecfdf5;
+            border: 1px solid #10b981;
+            border-left: 4px solid #10b981;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 20px 0;
+            text-align: center;
+          }
+          .success-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+          }
+          .appointment-details {
+            background-color: #f3f4f6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+          }
+          .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e7eb;
+          }
+          .detail-row:last-child {
+            border-bottom: none;
+          }
+          .detail-label {
+            font-weight: 600;
+            color: #374151;
+          }
+          .detail-value {
+            color: #1f2937;
+          }
+          .highlight {
+            background-color: #fef3c7;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+          }
+          .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            color: #6b7280;
+            font-size: 14px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">✂️ ${data.shopName}</div>
+            <h1 class="title">Prenotazione Confermata</h1>
+          </div>
+          
+          <div class="success-box">
+            <div class="success-icon">✅</div>
+            <strong>La tua prenotazione è stata confermata con successo!</strong>
+          </div>
+          
+          <p style="font-size: 16px; color: #374151; margin-bottom: 20px;">
+            Ciao ${data.clientName.split(' ')[0] || data.clientName},
+          </p>
+          
+          <p style="font-size: 16px; color: #374151; margin-bottom: 20px;">
+            La tua prenotazione è stata confermata. Ti aspettiamo!
+          </p>
+          
+          <div class="appointment-details">
+            <div class="detail-row">
+              <span class="detail-label">Servizio:</span>
+              <span class="detail-value"><strong>${data.serviceName}</strong></span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Data:</span>
+              <span class="detail-value"><span class="highlight">${data.appointmentDate}</span></span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Orario:</span>
+              <span class="detail-value"><span class="highlight">${data.appointmentTime}</span></span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Barbiere:</span>
+              <span class="detail-value">${data.barberName}</span>
+            </div>
+          </div>
+
+          <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 20px;">
+            Ti ricordiamo che puoi gestire o annullare la tua prenotazione accedendo al tuo profilo.
+          </p>
+
+          <div class="footer">
+            <p>Questa email è stata generata automaticamente dal sistema di gestione.</p>
+            <p>${data.shopName} - Sistema di Gestione Appuntamenti</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+
+  // Genera testo per email di conferma prenotazione al cliente
+  private generateClientAppointmentConfirmationText(data: NewAppointmentNotificationData): string {
+    return `
+CONFERMA PRENOTAZIONE - ${data.shopName.toUpperCase()}
+
+✅ La tua prenotazione è stata confermata con successo!
+
+Ciao ${data.clientName.split(' ')[0] || data.clientName},
+
+La tua prenotazione è stata confermata. Ti aspettiamo!
+
+DETTAGLI APPUNTAMENTO:
+=====================
+
+Servizio: ${data.serviceName}
+Data: ${data.appointmentDate}
+Orario: ${data.appointmentTime}
+Barbiere: ${data.barberName}
+
+Ti ricordiamo che puoi gestire o annullare la tua prenotazione accedendo al tuo profilo.
+
+---
+Questa email è stata generata automaticamente dal sistema di gestione.
+${data.shopName} - Sistema di Gestione Appuntamenti
+    `.trim();
+  }
+
+  // Invia email di annullamento prenotazione al cliente
+  async sendClientCancellationEmail(
+    data: AppointmentCancellationData
+  ): Promise<EmailResponse> {
+    try {
+      this.ensureConfigured();
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Servizio email non configurato' 
+      };
+    }
+
+    if (!data.clientEmail) {
+      return {
+        success: false,
+        error: 'Email cliente non disponibile'
+      };
+    }
+
+    return this.sendEmailViaSupabase({
+      to: data.clientEmail,
+      subject: `❌ Appuntamento Annullato - ${data.shopName} - ${data.appointmentDate}`,
+      html: this.generateClientCancellationEmailHTML(data),
+      text: this.generateClientCancellationEmailText(data),
+    });
+  }
+
+  // Genera HTML per email di annullamento al cliente
+  private generateClientCancellationEmailHTML(data: AppointmentCancellationData): string {
+    return this.cleanHtml(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Appuntamento Annullato - ${data.shopName}</title>
+        <style>
+          body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+          }
+          .container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          }
+          .header {
+            text-align: center;
+            border-bottom: 3px solid #ef4444;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+          }
+          .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ef4444;
+            margin-bottom: 10px;
+          }
+          .title {
+            font-size: 20px;
+            color: #1f2937;
+            margin: 0;
+          }
+          .info-box {
+            background-color: #fef3c7;
+            border: 1px solid #fbbf24;
+            border-left: 4px solid #f59e0b;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 20px 0;
+            text-align: center;
+          }
+          .info-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+          }
+          .appointment-details {
+            background-color: #f3f4f6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+          }
+          .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e7eb;
+          }
+          .detail-row:last-child {
+            border-bottom: none;
+          }
+          .detail-label {
+            font-weight: 600;
+            color: #374151;
+          }
+          .detail-value {
+            color: #1f2937;
+          }
+          .cancelled {
+            background-color: #fef2f2;
+            color: #dc2626;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            text-decoration: line-through;
+          }
+          .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            color: #6b7280;
+            font-size: 14px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">✂️ ${data.shopName}</div>
+            <h1 class="title">Appuntamento Annullato</h1>
+          </div>
+          
+          <div class="info-box">
+            <div class="info-icon">ℹ️</div>
+            <strong>Il tuo appuntamento è stato annullato</strong>
+          </div>
+          
+          <p style="font-size: 16px; color: #374151; margin-bottom: 20px;">
+            Ciao ${data.clientName.split(' ')[0] || data.clientName},
+          </p>
+          
+          <p style="font-size: 16px; color: #374151; margin-bottom: 20px;">
+            Ti confermiamo che il tuo appuntamento è stato annullato come richiesto.
+          </p>
+          
+          <div class="appointment-details">
+            <div class="detail-row">
+              <span class="detail-label">Servizio:</span>
+              <span class="detail-value"><span class="cancelled">${data.serviceName}</span></span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Data:</span>
+              <span class="detail-value"><span class="cancelled">${data.appointmentDate}</span></span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Orario:</span>
+              <span class="detail-value"><span class="cancelled">${data.appointmentTime}</span></span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Barbiere:</span>
+              <span class="detail-value">${data.barberName}</span>
+            </div>
+          </div>
+
+          <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 20px;">
+            Se desideri prenotare un nuovo appuntamento, puoi farlo accedendo al tuo profilo.
+          </p>
+
+          <div class="footer">
+            <p>Questa email è stata generata automaticamente dal sistema di gestione.</p>
+            <p>${data.shopName} - Sistema di Gestione Appuntamenti</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+
+  // Genera testo per email di annullamento al cliente
+  private generateClientCancellationEmailText(data: AppointmentCancellationData): string {
+    return `
+APPUNTAMENTO ANNULLATO - ${data.shopName.toUpperCase()}
+
+ℹ️ Il tuo appuntamento è stato annullato
+
+Ciao ${data.clientName.split(' ')[0] || data.clientName},
+
+Ti confermiamo che il tuo appuntamento è stato annullato come richiesto.
+
+DETTAGLI APPUNTAMENTO ANNULLATO:
+=================================
+
+Servizio: ${data.serviceName}
+Data: ${data.appointmentDate}
+Orario: ${data.appointmentTime}
+Barbiere: ${data.barberName}
+
+Se desideri prenotare un nuovo appuntamento, puoi farlo accedendo al tuo profilo.
+
+---
+Questa email è stata generata automaticamente dal sistema di gestione.
+${data.shopName} - Sistema di Gestione Appuntamenti
+    `.trim();
+  }
 }
 
 export const emailNotificationService = new EmailNotificationService();

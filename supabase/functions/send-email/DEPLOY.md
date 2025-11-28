@@ -26,7 +26,7 @@ supabase link --project-ref TUO_PROJECT_REF
 ### 4. Configura le variabili d'ambiente SMTP
 
 Nel dashboard di Supabase:
-1. Vai su **Project Settings** → **Edge Functions**
+1. Vai su **Project Settings** → **Edge Functions** → **Secrets**
 2. Aggiungi le seguenti variabili:
 
 | Nome | Valore |

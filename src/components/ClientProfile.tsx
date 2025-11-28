@@ -207,25 +207,53 @@ export const ClientProfile: React.FC = () => {
         
         // 4. Invia email al negozio (usa notification_email del negozio)
         if (shop?.notification_email) {
+          const cancellationData = {
+            clientName: clientName,
+            clientEmail: clientEmail,
+            clientPhone: clientPhone,
+            serviceName: serviceName,
+            appointmentDate: appointmentDate,
+            appointmentTime: appointmentTime,
+            barberName: staffDetails?.full_name || 'Staff',
+            shopName: shop.name || 'Barbershop',
+          };
+
           const emailResult = await emailNotificationService.sendCancellationNotification(
-            {
-              clientName: clientName,
-              clientEmail: clientEmail,
-              clientPhone: clientPhone,
-              serviceName: serviceName,
-              appointmentDate: appointmentDate,
-              appointmentTime: appointmentTime,
-              barberName: staffDetails?.full_name || 'Staff',
-              shopName: shop.name || 'Barbershop',
-            },
+            cancellationData,
             shop.notification_email
           );
           
           if (emailResult.success) {
-            console.log('📧 Email annullamento inviata a:', shop.notification_email);
+            console.log('📧 Email annullamento inviata al negozio:', shop.notification_email);
           } else {
-            console.error('❌ Errore invio email annullamento:', emailResult.error);
+            console.error('❌ Errore invio email annullamento al negozio:', emailResult.error);
           }
+        }
+
+        // 5. Invia email di conferma annullamento al cliente
+        if (clientEmail) {
+          const clientCancellationData = {
+            clientName: clientName,
+            clientEmail: clientEmail,
+            clientPhone: clientPhone,
+            serviceName: serviceName,
+            appointmentDate: appointmentDate,
+            appointmentTime: appointmentTime,
+            barberName: staffDetails?.full_name || 'Staff',
+            shopName: shop?.name || 'Barbershop',
+          };
+
+          const clientEmailResult = await emailNotificationService.sendClientCancellationEmail(
+            clientCancellationData
+          );
+          
+          if (clientEmailResult.success) {
+            console.log('📧 Email annullamento inviata al cliente:', clientEmail);
+          } else {
+            console.error('❌ Errore invio email annullamento al cliente:', clientEmailResult.error);
+          }
+        } else {
+          console.log('ℹ️ Email cliente non disponibile per invio conferma annullamento');
         }
       }
       
@@ -351,94 +379,7 @@ export const ClientProfile: React.FC = () => {
         </Card>
       </div>
 
-      {/* Appuntamenti */}
-      <Card>
-        <h3 className="text-lg font-semibold text-gray-900 mb-6">I Miei Appuntamenti</h3>
-        
-        {clientAppointments.length > 0 ? (
-          <div className="space-y-4">
-            {clientAppointments.map((appointment) => (
-              <div key={appointment.id} className={`flex items-center justify-between p-4 rounded-lg ${
-                appointment.status === 'cancelled' ? 'bg-red-50' : 'bg-gray-50'
-              }`}>
-                <div className="flex items-center space-x-4">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                    appointment.status === 'cancelled' ? 'bg-red-100' : 'bg-blue-100'
-                  }`}>
-                    {appointment.status === 'cancelled' ? (
-                      <XCircle className="w-6 h-6 text-red-600" />
-                    ) : (
-                      <Calendar className="w-6 h-6 text-blue-600" />
-                    )}
-                  </div>
-                  <div>
-                    <div className={`font-medium ${
-                      appointment.status === 'cancelled' ? 'text-gray-500 line-through' : 'text-gray-900'
-                    }`}>
-                      {appointment.services?.name || 'Servizio'}
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      {appointment.staff?.full_name || 'Barbiere'}
-                    </div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className={`font-medium ${
-                    appointment.status === 'cancelled' ? 'text-gray-500 line-through' : 'text-gray-900'
-                  }`}>
-                    {new Date(appointment.start_at).toLocaleDateString('it-IT')}
-                  </div>
-                  <div className={`text-sm flex items-center ${
-                    appointment.status === 'cancelled' ? 'text-gray-500 line-through' : 'text-gray-600'
-                  }`}>
-                    <Clock className="w-4 h-4 mr-1" />
-                    {new Date(appointment.start_at).toLocaleTimeString('it-IT', { 
-                      hour: '2-digit', 
-                      minute: '2-digit',
-                      hour12: false
-                    })}
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    appointment.status === 'confirmed' 
-                      ? 'bg-green-100 text-green-800'
-                      : appointment.status === 'scheduled'
-                      ? 'bg-blue-100 text-blue-800'
-                      : appointment.status === 'cancelled'
-                      ? 'bg-red-100 text-red-800'
-                      : appointment.status === 'completed'
-                      ? 'bg-purple-100 text-purple-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {appointment.status === 'confirmed' ? 'Confermato' : 
-                     appointment.status === 'scheduled' ? 'Programmato' : 
-                     appointment.status === 'cancelled' ? 'Annullato' :
-                     appointment.status === 'completed' ? 'Completato' :
-                     appointment.status}
-                  </span>
-                  
-                  {/* Pulsante Annulla */}
-                  {canCancelAppointment(appointment) && (
-                    <button
-                      onClick={() => setAppointmentToCancel(appointment)}
-                      className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Annulla appuntamento"
-                    >
-                      <XCircle className="w-5 h-5" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">Nessun appuntamento trovato</p>
-          </div>
-        )}
-      </Card>
+      {/* Sezione appuntamenti rimossa: ora gestita dalla pagina \"Le mie prenotazioni\" */}
 
       {/* Privacy e Consensi - Solo per clienti registrati */}
       {clientData && clientData.privacyConsent && (

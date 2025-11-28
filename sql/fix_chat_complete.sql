@@ -74,13 +74,10 @@ WITH CHECK (
     WHERE c.id = chat_id
       AND c.client_id = sender_id
   )
-  AND (
-    EXISTS (
-      SELECT 1 FROM public.clients cl
-      WHERE cl.id = sender_id
-        AND cl.email IN (SELECT email FROM auth.users WHERE id = auth.uid())
-    )
-    OR sender_id = auth.uid()
+  AND EXISTS (
+    -- Verifica che esista un profilo per l'utente autenticato
+    SELECT 1 FROM public.profiles p
+    WHERE p.user_id = auth.uid()
   )
 );
 
@@ -89,6 +86,7 @@ CREATE POLICY "Users can read chat messages"
 ON public.chat_messages
 FOR SELECT
 USING (
+  -- Staff può leggere messaggi delle chat dove è coinvolto
   EXISTS (
     SELECT 1 FROM public.chats c
     JOIN public.staff s ON s.id = c.staff_id
@@ -96,6 +94,7 @@ USING (
       AND s.user_id = auth.uid()
   )
   OR
+  -- Client può leggere messaggi delle chat dove è coinvolto
   EXISTS (
     SELECT 1 FROM public.chats c
     WHERE c.id = chat_id
@@ -103,8 +102,8 @@ USING (
         c.client_id = auth.uid()
         OR EXISTS (
           SELECT 1 FROM public.clients cl
+          JOIN public.profiles p ON p.user_id = auth.uid()
           WHERE cl.id = c.client_id
-            AND cl.email IN (SELECT email FROM auth.users WHERE id = auth.uid())
         )
       )
   )
@@ -129,8 +128,8 @@ USING (
         c.client_id = auth.uid()
         OR EXISTS (
           SELECT 1 FROM public.clients cl
+          JOIN public.profiles p ON p.user_id = auth.uid()
           WHERE cl.id = c.client_id
-            AND cl.email IN (SELECT email FROM auth.users WHERE id = auth.uid())
         )
       )
   )
