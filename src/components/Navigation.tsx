@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Users, Home, ShoppingBag, User, Building2, LogOut, UserCheck, MessageCircle, Scissors, Bell } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotifications } from '../contexts/NotificationContext';
 import { apiService } from '../services/api';
 import { APP_VERSION } from '../config/version';
 import type { Shop } from '../types';
@@ -13,6 +14,7 @@ interface NavigationProps {
 
 export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
   const { user, logout, hasPermission } = useAuth();
+  const { unreadCount } = useNotifications();
   const [shop, setShop] = useState<Shop | null>(null);
 
   // Load shop data to check products_enabled (only when authenticated)
@@ -33,7 +35,6 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
   const allNavItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, permission: 'dashboard' },
     { id: 'calendar', label: 'Calendario', icon: Calendar, permission: 'appointments' },
-    { id: 'notifications', label: 'Notifiche', icon: Bell, permission: 'notifications' },
     { id: 'clients', label: 'Clienti', icon: Users, permission: 'clients' },
     { id: 'services', label: 'Servizi', icon: Scissors, permission: 'services' },
     { id: 'products', label: 'Prodotti', icon: ShoppingBag, permission: 'products' },
@@ -111,6 +112,31 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                 );
               })}
             </nav>
+            
+            {/* Notification Button - Only for staff/admin */}
+            {(user?.role === 'admin' || user?.role === 'barber') && (
+              <div className="px-4 mb-4">
+                <button
+                  onClick={() => onTabChange('notifications')}
+                  className={cn(
+                    'w-full flex items-center justify-between px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 border',
+                    activeTab === 'notifications'
+                      ? 'bg-yellow-500/20 text-yellow-400 border-yellow-400/60 shadow-lg'
+                      : 'text-yellow-300 hover:bg-yellow-500/10 hover:text-yellow-400 border-yellow-400/30 hover:border-yellow-400/50'
+                  )}
+                >
+                  <div className="flex items-center">
+                    <Bell className="w-5 h-5 mr-3" />
+                    <span>Notifiche</span>
+                  </div>
+                  {unreadCount > 0 && (
+                    <span className="flex items-center justify-center min-w-[22px] h-[22px] px-1.5 text-xs font-bold text-white bg-red-500 rounded-full animate-pulse">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+            )}
             
             {/* User Info and Logout */}
             <div className="mt-auto px-4 pb-4">

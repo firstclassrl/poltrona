@@ -9,7 +9,7 @@ import { useNotifications } from '../contexts/NotificationContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useAppointments } from '../hooks/useAppointments';
 import { useVacationMode } from '../hooks/useVacationMode';
-import { emailService } from '../services/emailServiceBrowser';
+import { emailNotificationService } from '../services/emailNotificationService';
 import { apiService } from '../services/api';
 import type { Service, Staff, Shop } from '../types';
 
@@ -297,24 +297,21 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
             clientEmail: user.email || '',
             clientPhone: user.phone || '',
             barberName: barber.full_name,
-            barberEmail: shop.notification_email, // Usa l'email del negozio
+            serviceName: service?.name || 'N/A',
             appointmentDate: selectedDate?.toLocaleDateString('it-IT') || '',
             appointmentTime: selectedTime,
-            serviceName: service?.name || 'N/A',
-            servicePrice: (service?.price_cents || 0) / 100,
-            products: products.map(p => ({ name: p.productId, quantity: p.quantity, price: 0 })),
-            totalPrice: ((service?.price_cents || 0) / 100),
-            notes: ''
+            shopName: shop.name || 'Barbershop',
           };
 
           // Send email in background (non-blocking)
-          emailService.sendAppointmentNotification(emailData).then(success => {
-            if (success) {
-              console.log('📧 Email inviata con successo al negozio:', shop.notification_email);
-            } else {
-              console.error('❌ Errore nell\'invio email al negozio');
-            }
-          });
+          emailNotificationService.sendNewAppointmentNotification(emailData, shop.notification_email)
+            .then(result => {
+              if (result.success) {
+                console.log('📧 Email inviata con successo al negozio:', shop.notification_email);
+              } else {
+                console.error('❌ Errore nell\'invio email al negozio:', result.error);
+              }
+            });
         } else {
           console.log('ℹ️ Email notifiche non configurata per il negozio');
         }
