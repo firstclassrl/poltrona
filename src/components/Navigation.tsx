@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Home, ShoppingBag, User, Building2, LogOut, UserCheck, MessageCircle, Scissors, Bell } from 'lucide-react';
+import { Calendar, Users, Home, ShoppingBag, User, Building2, LogOut, UserCheck, MessageCircle, Scissors, Bell, ListChecks } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../contexts/NotificationContext';
@@ -43,6 +43,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
     { id: 'shop', label: 'Negozio', icon: Building2, permission: 'shop' },
     // { id: 'analytics', label: 'Analisi', icon: BarChart3, permission: 'analytics' }, // Temporaneamente nascosto
     { id: 'client_profile', label: 'Il Mio Profilo', icon: UserCheck, permission: 'client_profile' },
+    { id: 'client_bookings', label: 'Le mie prenotazioni', icon: ListChecks, permission: 'client_bookings' },
     { id: 'client_booking', label: 'Prenota', icon: Calendar, permission: 'client_booking' },
   ];
 
@@ -65,8 +66,8 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
   if (user?.role === 'client') {
     // Build client order dynamically based on products enabled status
     const clientOrder = areProductsEnabled 
-      ? ['client_booking', 'products', 'chat', 'client_profile']
-      : ['client_booking', 'chat', 'client_profile'];
+      ? ['client_booking', 'client_bookings', 'products', 'chat', 'client_profile']
+      : ['client_booking', 'client_bookings', 'chat', 'client_profile'];
     
     navItems = clientOrder
       .map(id => navItems.find(item => item.id === id))

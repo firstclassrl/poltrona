@@ -11,6 +11,7 @@ import { ShopManagement } from './components/Shop';
 import { AppointmentForm } from './components/AppointmentForm';
 import { Login } from './components/Login';
 import { ClientProfile } from './components/ClientProfile';
+import { ClientBookings } from './components/ClientBookings';
 import { ClientBookingCalendar } from './components/ClientBookingCalendar';
 import { ClientProducts } from './components/ClientProducts';
 import { Chat } from './components/Chat';
@@ -97,6 +98,8 @@ const AppContent: React.FC = () => {
       //   return <Analytics />; // Temporaneamente nascosto
       case 'client_profile':
         return <ClientProfile />;
+      case 'client_bookings':
+        return <ClientBookings />;
       case 'client_booking':
         return <ClientBookingCalendar onNavigateToProfile={() => setActiveTab('client_profile')} />;
       default:

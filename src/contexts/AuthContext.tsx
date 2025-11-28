@@ -498,6 +498,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return role === 'admin';
       case 'client_profile':
         return role === 'client';
+      case 'client_bookings':
+        return role === 'client';
       case 'client_booking':
         return role === 'client';
       default:
