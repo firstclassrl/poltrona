@@ -12,6 +12,8 @@ interface ModalProps {
 
 export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 'medium' }) => {
   if (!isOpen) return null;
+  
+  console.log('🔔 Modal renderizzato con isOpen:', isOpen, 'title:', title);
 
   const sizeClasses = {
     small: 'max-w-sm',

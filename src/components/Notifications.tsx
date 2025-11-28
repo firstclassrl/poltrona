@@ -10,7 +10,8 @@ import {
   AlertCircle,
   RefreshCw,
   Filter,
-  Clock
+  Clock,
+  MessageCircle
 } from 'lucide-react';
 import { useNotifications } from '../contexts/NotificationContext';
 import type { Notification, NotificationType } from '../types';
@@ -28,6 +29,8 @@ const getNotificationIcon = (type: NotificationType) => {
       return <Bell className="w-6 h-6 text-blue-500" />;
     case 'new_client':
       return <UserPlus className="w-6 h-6 text-purple-500" />;
+    case 'chat_message':
+      return <MessageCircle className="w-6 h-6 text-blue-500" />;
     case 'system':
     default:
       return <AlertCircle className="w-6 h-6 text-yellow-500" />;
@@ -44,6 +47,8 @@ const getNotificationBadgeColor = (type: NotificationType) => {
       return 'bg-blue-100 text-blue-700 border-blue-200';
     case 'new_client':
       return 'bg-purple-100 text-purple-700 border-purple-200';
+    case 'chat_message':
+      return 'bg-blue-100 text-blue-700 border-blue-200';
     case 'system':
     default:
       return 'bg-yellow-100 text-yellow-700 border-yellow-200';
@@ -60,6 +65,8 @@ const getNotificationTypeLabel = (type: NotificationType) => {
       return 'Promemoria';
     case 'new_client':
       return 'Nuovo Cliente';
+    case 'chat_message':
+      return 'Messaggio Chat';
     case 'system':
     default:
       return 'Sistema';
@@ -149,7 +156,9 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
           </h3>
           
           <p className="text-gray-600 mb-3 leading-relaxed">
-            {notification.message}
+            {notification.type === 'chat_message' && notification.data?.sender_name 
+              ? `${notification.data.sender_name}: ${notification.message}`
+              : notification.message}
           </p>
           
           <div className="flex items-center gap-2 text-sm text-gray-500">

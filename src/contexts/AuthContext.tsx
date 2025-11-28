@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { User, AuthState, LoginCredentials, RegisterData } from '../types/auth';
+import type { User, AuthState, LoginCredentials, RegisterData, UserRole } from '../types/auth';
 import { API_CONFIG, API_ENDPOINTS } from '../config/api';
 import { emailNotificationService } from '../services/emailNotificationService';
 import { apiService } from '../services/api';
@@ -324,6 +324,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     try {
+      // IMPORTANTE: Tutti i nuovi utenti sono SEMPRE clienti
+      // Il ruolo viene sempre impostato a 'client' indipendentemente da quello passato
+      const forcedRole: UserRole = 'client';
+      
       // Crea l'utente in Supabase Auth
       const signupUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/signup`;
       const signupRes = await fetch(signupUrl, {
@@ -338,7 +342,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           password: data.password,
           data: {
             full_name: data.full_name,
-            role: data.role
+            role: forcedRole  // Sempre 'client' per tutti i nuovi utenti
           }
         })
       });

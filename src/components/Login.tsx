@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, User, CheckCircle } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -33,6 +33,11 @@ export const Login: React.FC = () => {
   const [registeredEmail, setRegisteredEmail] = useState('');
   
   const { login, register } = useAuth();
+
+  // Debug: log quando showRegistrationSuccess cambia
+  useEffect(() => {
+    console.log('🔍 showRegistrationSuccess cambiato a:', showRegistrationSuccess);
+  }, [showRegistrationSuccess]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,22 +81,15 @@ export const Login: React.FC = () => {
         phone: registrationData.phone || undefined,
       });
       
-      // Salva l'email per il modal di successo
+      // Salva l'email per il modal di successo PRIMA di resettare
       setRegisteredEmail(registrationEmail);
       
       // Mostra modal di successo
+      console.log('✅ Registrazione completata, mostro modal di successo');
       setShowRegistrationSuccess(true);
+      console.log('✅ showRegistrationSuccess impostato a true');
       
-      // Reset del form di registrazione
-      setRegistrationData({
-        firstName: '',
-        lastName: '',
-        phone: '',
-        email: '',
-        password: '',
-        confirmPassword: '',
-      });
-      setPrivacyAccepted(false);
+      // NON resettare il form qui - lo faremo quando l'utente chiude il modal
       
     } catch (error) {
       throw error; // Rilancia l'errore per essere gestito da handleSubmit
@@ -366,6 +364,18 @@ export const Login: React.FC = () => {
       <Modal
         isOpen={showRegistrationSuccess}
         onClose={() => {
+          // Reset del form di registrazione
+          setRegistrationData({
+            firstName: '',
+            lastName: '',
+            phone: '',
+            email: '',
+            password: '',
+            confirmPassword: '',
+          });
+          setPrivacyAccepted(false);
+          
+          // Chiudi modal e vai al login
           setShowRegistrationSuccess(false);
           setHasJustRegistered(true);
           setMode('login');
@@ -384,6 +394,18 @@ export const Login: React.FC = () => {
           <Button
             className="w-full"
             onClick={() => {
+              // Reset del form di registrazione
+              setRegistrationData({
+                firstName: '',
+                lastName: '',
+                phone: '',
+                email: '',
+                password: '',
+                confirmPassword: '',
+              });
+              setPrivacyAccepted(false);
+              
+              // Chiudi modal e vai al login
               setShowRegistrationSuccess(false);
               setHasJustRegistered(true);
               setMode('login');

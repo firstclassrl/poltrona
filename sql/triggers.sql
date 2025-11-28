@@ -15,32 +15,43 @@ BEGIN
   
   -- Inserisce automaticamente un nuovo record nella tabella profiles
   -- collegato al nuovo utente creato in auth.users
+  -- IMPORTANTE: Tutti i nuovi utenti hanno SEMPRE il ruolo 'client'
+  -- indipendentemente da eventuali ruoli nei metadati
   INSERT INTO public.profiles (user_id, shop_id, role, full_name, created_at)
   VALUES (
     NEW.id,                    -- ID dell'utente appena creato
     NULL,                      -- shop_id inizialmente NULL (da assegnare successivamente)
-    'user',                    -- ruolo di default
+    'client',                  -- ruolo SEMPRE 'client' per tutti i nuovi utenti
     v_profile_full_name,       -- nome completo o email come fallback
     NOW()                      -- timestamp di creazione
   );
   
-  -- Invia notifica a tutti i barbieri attivi che hanno un user_id collegato
-  -- Trova tutti i barbieri dalla tabella staff con ruolo 'barber' o simile
-  FOR v_barber_record IN
-    SELECT 
-      s.id as staff_id,
-      s.user_id,
-      s.shop_id,
-      s.full_name as barber_name
-    FROM public.staff s
-    WHERE s.active = true
-      AND s.user_id IS NOT NULL  -- Solo barbieri con user_id collegato
-      AND (
-        LOWER(s.role) LIKE '%barber%' 
-        OR s.role IN ('barber', 'Barbiere', 'Barbiere Senior', 'Barbiere Junior', 'Master Barber', 'Junior Barber')
-      )
-  LOOP
-    -- Crea una notifica per ogni barbiere
+  -- Invia notifica a un solo barbiere attivo (preferibilmente owner/admin, altrimenti il primo barbiere)
+  -- Trova il primo barbiere dalla tabella staff con ruolo 'barber' o simile
+  SELECT 
+    s.id as staff_id,
+    s.user_id,
+    s.shop_id,
+    s.full_name as barber_name
+  INTO v_barber_record
+  FROM public.staff s
+  WHERE s.active = true
+    AND s.user_id IS NOT NULL  -- Solo barbieri con user_id collegato
+    AND (
+      LOWER(s.role) LIKE '%barber%' 
+      OR s.role IN ('barber', 'Barbiere', 'Barbiere Senior', 'Barbiere Junior', 'Master Barber', 'Junior Barber', 'owner', 'admin')
+    )
+  ORDER BY 
+    CASE 
+      WHEN LOWER(s.role) IN ('owner', 'admin', 'proprietario') THEN 1
+      WHEN LOWER(s.role) LIKE '%senior%' OR LOWER(s.role) LIKE '%master%' THEN 2
+      ELSE 3
+    END,
+    s.created_at ASC  -- Prendi il più vecchio se stesso ruolo
+  LIMIT 1;
+  
+  -- Crea la notifica solo se è stato trovato un barbiere
+  IF v_barber_record.user_id IS NOT NULL THEN
     INSERT INTO public.notifications (
       shop_id,
       user_id,
@@ -67,7 +78,7 @@ BEGIN
       ),
       NOW()
     );
-  END LOOP;
+  END IF;
   
   RETURN NEW;
 EXCEPTION
@@ -85,14 +96,17 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- Opzionale: Trigger per aggiornare il profilo quando cambiano i metadati utente
+-- IMPORTANTE: Questo trigger NON modifica mai il ruolo, solo full_name e updated_at
 CREATE OR REPLACE FUNCTION public.handle_user_update()
 RETURNS TRIGGER AS $$
 BEGIN
   -- Aggiorna il profilo se cambiano i metadati utente
+  -- Nota: Il ruolo NON viene mai modificato da questo trigger
   UPDATE public.profiles
   SET 
     full_name = COALESCE(NEW.raw_user_meta_data->>'full_name', OLD.raw_user_meta_data->>'full_name', NEW.email),
     updated_at = NOW()
+    -- Il ruolo NON viene modificato qui - rimane sempre quello impostato alla creazione
   WHERE user_id = NEW.id;
   
   RETURN NEW;

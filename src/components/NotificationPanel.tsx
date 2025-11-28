@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Check, CheckCheck, Trash2, Calendar, AlertCircle, Bell, Clock } from 'lucide-react';
+import { X, Check, CheckCheck, Trash2, Calendar, AlertCircle, Bell, Clock, MessageCircle } from 'lucide-react';
 import { useNotifications } from '../contexts/NotificationContext';
 import type { Notification, NotificationType } from '../types';
 import { cn } from '../utils/cn';
@@ -18,6 +18,8 @@ const getNotificationIcon = (type: NotificationType) => {
       return <Bell className="w-5 h-5 text-blue-400" />;
     case 'waitlist_available':
       return <Clock className="w-5 h-5 text-amber-400" />;
+    case 'chat_message':
+      return <MessageCircle className="w-5 h-5 text-blue-400" />;
     case 'system':
     default:
       return <AlertCircle className="w-5 h-5 text-yellow-400" />;
@@ -78,7 +80,9 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
             )}
           </div>
           <p className="text-xs text-yellow-300/70 mt-0.5 line-clamp-2">
-            {notification.message}
+            {notification.type === 'chat_message' && notification.data?.sender_name 
+              ? `${notification.data.sender_name}: ${notification.message}`
+              : notification.message}
           </p>
           <p className="text-xs text-yellow-300/50 mt-1">
             {formatTimeAgo(notification.created_at)}
