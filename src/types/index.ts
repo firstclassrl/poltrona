@@ -169,6 +169,8 @@ export interface CreateMessageRequest {
   chat_id: string;
   content: string;
   message_type?: 'text' | 'image' | 'file';
+  sender_id: string;
+  sender_type: 'client' | 'staff';
 }
 
 export interface CreateChatRequest {

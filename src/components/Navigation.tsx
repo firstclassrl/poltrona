@@ -53,9 +53,8 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
   let navItems = allNavItems.filter(item => {
     // Check if products are enabled for the shop
     if (item.id === 'products') {
-      // For clients: hide products if disabled
-      // For admin/barbers: always show (they manage products)
-      if (user?.role === 'client' && !areProductsEnabled) {
+      // Hide products for all users if the product system is disabled
+      if (!areProductsEnabled) {
         return false;
       }
     }

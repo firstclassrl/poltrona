@@ -277,7 +277,7 @@ export const Chat: React.FC = () => {
                   >
                     <div className="flex items-start space-x-3">
                       <Avatar 
-                        name={chat.client_name}
+                        name={chat.client_name || 'Cliente'}
                         size="lg"
                         imageUrl={chat.client_photo && !chat.client_photo.includes('/api/placeholder') ? chat.client_photo : undefined}
                       />
@@ -324,7 +324,7 @@ export const Chat: React.FC = () => {
             <div className="p-4 border-b border-gray-200 bg-white">
               <div className="flex items-center space-x-3">
                 <Avatar 
-                  name={activeChat.client_name}
+                  name={activeChat.client_name || 'Cliente'}
                   size="md"
                   imageUrl={activeChat.client_photo && !activeChat.client_photo.includes('/api/placeholder') ? activeChat.client_photo : undefined}
                 />

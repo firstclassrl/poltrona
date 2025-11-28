@@ -88,13 +88,19 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     return null;
   };
 
+  const getSenderType = (): 'client' | 'staff' => {
+    return user?.role === 'client' ? 'client' : 'staff';
+  };
+
   const sendMessage = async (content: string) => {
     if (!activeChat || !user || !content.trim()) return;
     try {
       await apiService.sendMessage({
         chat_id: activeChat.id,
         content: content.trim(),
-        message_type: 'text'
+        message_type: 'text',
+        sender_id: user.id,
+        sender_type: getSenderType()
       });
       // Ricarica i messaggi dopo l'invio
       await loadMessages(activeChat.id);
@@ -134,7 +140,9 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       await apiService.sendMessage({
         chat_id: targetChat.id,
         content: content.trim(),
-        message_type: 'text'
+        message_type: 'text',
+        sender_id: user.id,
+        sender_type: getSenderType()
       });
       await loadMessages(targetChat.id);
       setActiveChat(targetChat);

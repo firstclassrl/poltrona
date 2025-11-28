@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface AvatarProps {
-  name: string;
+  name?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   imageUrl?: string;
   className?: string;
@@ -14,16 +14,23 @@ const sizeClasses = {
   xl: 'w-16 h-16 text-lg'
 };
 
-const getInitials = (name: string): string => {
-  return name
-    .split(' ')
-    .map(word => word[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+const normalizeName = (name?: string): string => {
+  const trimmed = (name || '').trim();
+  return trimmed.length > 0 ? trimmed : '?';
 };
 
-const getColorFromName = (name: string): string => {
+const getInitials = (name?: string): string => {
+  const safeName = normalizeName(name);
+  const initials = safeName
+    .split(' ')
+    .filter(Boolean)
+    .map(word => word[0]?.toUpperCase() || '')
+    .join('')
+    .slice(0, 2);
+  return initials || safeName[0]?.toUpperCase() || '?';
+};
+
+const getColorFromName = (name?: string): string => {
   const colors = [
     'bg-gradient-to-br from-blue-500 to-blue-600',
     'bg-gradient-to-br from-green-500 to-green-600',
@@ -36,7 +43,8 @@ const getColorFromName = (name: string): string => {
   ];
   
   // Usa il nome per generare un indice consistente
-  const hash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const safeName = normalizeName(name);
+  const hash = safeName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return colors[hash % colors.length];
 };
 
@@ -46,8 +54,9 @@ export const Avatar: React.FC<AvatarProps> = ({
   imageUrl, 
   className = '' 
 }) => {
-  const initials = getInitials(name);
-  const colorClass = getColorFromName(name);
+  const safeName = normalizeName(name);
+  const initials = getInitials(safeName);
+  const colorClass = getColorFromName(safeName);
   const sizeClass = sizeClasses[size];
 
   return (
@@ -55,7 +64,7 @@ export const Avatar: React.FC<AvatarProps> = ({
       {imageUrl ? (
         <img
           src={imageUrl}
-          alt={name}
+          alt={safeName}
           className="w-full h-full object-cover"
           onError={(e) => {
             // Se l'immagine non si carica, mostra le iniziali

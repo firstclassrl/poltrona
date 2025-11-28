@@ -412,7 +412,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           for (const staffMember of staffList) {
             if (staffMember.active) {
               await apiService.createNotification({
-                user_id: staffMember.id,
+                user_id: staffMember.user_id || staffMember.id,
                 user_type: 'staff',
                 type: 'new_client',
                 title: '👤 Nuovo Cliente Registrato!',

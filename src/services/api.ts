@@ -140,8 +140,8 @@ export const apiService = {
     if (!isSupabaseConfigured()) return [];
     
     try {
-      const url = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=id,first_name,last_name,phone_e164&or=(first_name.ilike.*${query}*,last_name.ilike.*${query}*,phone_e164.ilike.*${query}*)&limit=10`;
-      const response = await fetch(url, { headers: buildHeaders() });
+      const url = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=id,first_name,last_name,phone_e164,email&or=(first_name.ilike.*${query}*,last_name.ilike.*${query}*,phone_e164.ilike.*${query}*)&order=created_at.desc&limit=25`;
+      const response = await fetch(url, { headers: buildHeaders(true) });
       if (!response.ok) throw new Error('Failed to search clients');
       return await response.json();
     } catch (error) {
@@ -160,7 +160,7 @@ export const apiService = {
     try {
       // Prima cerca se il cliente esiste (usa accesso pubblico)
       const searchUrl = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=id&email=eq.${encodeURIComponent(email)}&limit=1`;
-      const searchResponse = await fetch(searchUrl, { headers: buildHeaders(false) });
+      const searchResponse = await fetch(searchUrl, { headers: buildHeaders(true) });
       
       if (searchResponse.ok) {
         const clients = await searchResponse.json();
@@ -170,7 +170,7 @@ export const apiService = {
           const clientId = clients[0].id;
           const updateResponse = await fetch(`${API_ENDPOINTS.SEARCH_CLIENTS}?id=eq.${clientId}`, {
             method: 'PATCH',
-            headers: { ...buildHeaders(false), Prefer: 'return=minimal' },
+            headers: { ...buildHeaders(true), Prefer: 'return=minimal' },
             body: JSON.stringify(data),
           });
           
@@ -193,7 +193,7 @@ export const apiService = {
           
           const createResponse = await fetch(API_ENDPOINTS.SEARCH_CLIENTS, {
             method: 'POST',
-            headers: { ...buildHeaders(false), Prefer: 'return=representation' },
+            headers: { ...buildHeaders(true), Prefer: 'return=representation' },
             body: JSON.stringify(createData),
           });
           
@@ -225,7 +225,7 @@ export const apiService = {
       // Cerca se esiste già un cliente con questa email (usa accesso pubblico)
       if (user.email) {
         const searchUrl = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=id,email,phone_e164&email=eq.${encodeURIComponent(user.email)}&limit=1`;
-        const searchResponse = await fetch(searchUrl, { headers: buildHeaders(false) });
+        const searchResponse = await fetch(searchUrl, { headers: buildHeaders(true) });
         
         if (searchResponse.ok) {
           const existingClients = await searchResponse.json();
@@ -237,7 +237,7 @@ export const apiService = {
               try {
                 await fetch(`${API_ENDPOINTS.SEARCH_CLIENTS}?id=eq.${existingClient.id}`, {
                   method: 'PATCH',
-                  headers: { ...buildHeaders(false), Prefer: 'return=representation' },
+                  headers: { ...buildHeaders(true), Prefer: 'return=representation' },
                   body: JSON.stringify({ phone_e164: user.phone }),
                 });
                 existingClient.phone_e164 = user.phone;
@@ -270,7 +270,7 @@ export const apiService = {
 
       const createResponse = await fetch(API_ENDPOINTS.SEARCH_CLIENTS, {
         method: 'POST',
-        headers: { ...buildHeaders(false), Prefer: 'return=representation' },
+        headers: { ...buildHeaders(true), Prefer: 'return=representation' },
         body: JSON.stringify(clientData),
       });
 
@@ -892,7 +892,10 @@ export const apiService = {
         headers: { ...buildHeaders(true) },
         body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error('Failed to send message');
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to send message: ${response.status} ${errorText || ''}`.trim());
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       throw error;
