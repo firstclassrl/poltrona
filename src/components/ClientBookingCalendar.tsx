@@ -210,11 +210,8 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
         full_name: user.full_name,
         phone: user.phone,
       });
-      const clientId = typeof clientRecord === 'string' ? clientRecord : clientRecord?.id;
-      const clientPhone =
-        (typeof clientRecord === 'object' && clientRecord?.phone_e164) ||
-        user.phone ||
-        '';
+      const clientId = clientRecord.id;
+      const clientPhone = clientRecord.phone_e164 || user.phone || '';
       
       // Create and save the appointment
       const startDateTime = new Date(`${selectedDate.toISOString().split('T')[0]}T${selectedTime}:00`);

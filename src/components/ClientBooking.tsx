@@ -97,15 +97,15 @@ export const ClientBooking: React.FC = () => {
     const getClientId = async () => {
       if (user?.email) {
         try {
-          const id = await apiService.getOrCreateClientFromUser({
+          const clientRecord = await apiService.getOrCreateClientFromUser({
             id: user.id,
             email: user.email,
             full_name: user.full_name,
           });
-          setClientId(id);
+          setClientId(clientRecord.id);
           
           // Carica lo stato della waitlist per questo cliente
-          const entries = await apiService.getClientWaitlistStatus(id);
+          const entries = await apiService.getClientWaitlistStatus(clientRecord.id);
           setWaitlistEntries(entries);
         } catch (error) {
           console.error('Error getting client ID:', error);

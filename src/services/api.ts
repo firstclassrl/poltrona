@@ -214,23 +214,23 @@ export const apiService = {
   },
 
   // Get or create client from authenticated user (pubblico - non richiede autenticazione)
-  async getOrCreateClientFromUser(user: { id: string; email?: string; full_name?: string; phone?: string }): Promise<string> {
+  async getOrCreateClientFromUser(user: { id: string; email?: string; full_name?: string; phone?: string }): Promise<{ id: string; email?: string | null; phone_e164?: string | null }> {
     if (!isSupabaseConfigured()) {
       // Se Supabase non è configurato, genera un ID temporaneo
-      return `temp_client_${Date.now()}`;
+      return { id: `temp_client_${Date.now()}`, email: user.email ?? null, phone_e164: user.phone ?? null };
     }
     
     try {
       // Cerca se esiste già un cliente con questa email (usa accesso pubblico)
       if (user.email) {
-        const searchUrl = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=id&email=eq.${encodeURIComponent(user.email)}&limit=1`;
+        const searchUrl = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=id,email,phone_e164&email=eq.${encodeURIComponent(user.email)}&limit=1`;
         const searchResponse = await fetch(searchUrl, { headers: buildHeaders(false) });
         
         if (searchResponse.ok) {
           const existingClients = await searchResponse.json();
           if (existingClients && existingClients.length > 0) {
             console.log('✅ Cliente esistente trovato:', existingClients[0].id);
-            return existingClients[0].id;
+            return existingClients[0];
           }
         }
       }
@@ -258,20 +258,20 @@ export const apiService = {
 
       if (createResponse.ok) {
         const created = await createResponse.json();
-        const clientId = created[0]?.id;
-        console.log('✅ Nuovo cliente creato:', clientId);
-        return clientId;
+        const client = created[0];
+        console.log('✅ Nuovo cliente creato:', client?.id);
+        return client;
       } else {
         // Se la creazione fallisce, genera un ID temporaneo invece di lanciare errore
         const tempId = `temp_client_${Date.now()}`;
         console.warn('⚠️ Impossibile creare cliente nel DB, uso ID temporaneo:', tempId);
-        return tempId;
+        return { id: tempId, email: user.email ?? null, phone_e164: user.phone ?? null };
       }
     } catch (error) {
       // Se c'è un errore, genera un ID temporaneo invece di lanciare errore
       const tempId = `temp_client_${Date.now()}`;
       console.warn('⚠️ Errore creazione cliente, uso ID temporaneo:', tempId);
-      return tempId;
+      return { id: tempId, email: user.email ?? null, phone_e164: user.phone ?? null };
     }
   },
 
