@@ -1314,6 +1314,9 @@ export const apiService = {
         data: data.data || {},
       };
       
+      console.log('📤 Tentativo creazione notifica:', payload);
+      console.log('📤 Endpoint:', API_ENDPOINTS.NOTIFICATIONS);
+      
       const response = await fetch(API_ENDPOINTS.NOTIFICATIONS, {
         method: 'POST',
         headers: { ...buildHeaders(true), Prefer: 'return=representation' },
@@ -1322,12 +1325,23 @@ export const apiService = {
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Errore creazione notifica:', response.status, errorText);
+        console.error('❌ Errore creazione notifica:', response.status);
+        console.error('❌ Dettaglio errore:', errorText);
+        console.error('❌ Payload inviato:', JSON.stringify(payload, null, 2));
+        
+        // Se è un errore 403, probabilmente è un problema di RLS policy
+        if (response.status === 403) {
+          console.error('❌ ERRORE RLS: La policy di Supabase non permette l\'inserimento. Esegui lo script SQL per aggiornare le policies.');
+        }
+        // Se è un errore 400, potrebbe essere un problema con il tipo di notifica
+        if (response.status === 400) {
+          console.error('❌ ERRORE DATI: Controlla che il tipo di notifica sia valido nel database.');
+        }
         return null;
       }
       
       const created = await response.json();
-      console.log('✅ Notifica creata:', created[0]);
+      console.log('✅ Notifica creata con successo:', created[0]);
       return created[0];
     } catch (error) {
       console.error('❌ Errore critico creazione notifica:', error);
