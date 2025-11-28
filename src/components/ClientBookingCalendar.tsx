@@ -257,7 +257,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
               appointment_id: savedAppointment.id,
               client_name: clientName,
               client_email: user.email,
-              client_phone: user.phone || '',
+              client_phone: clientPhone,
               service_name: serviceName,
               appointment_date: appointmentDate,
               appointment_time: selectedTime,
@@ -297,7 +297,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
           const emailData = {
             clientName: user.full_name || 'Cliente',
             clientEmail: user.email || '',
-        clientPhone: clientPhone || 'Non fornito',
+            clientPhone: clientPhone || 'Non fornito',
             barberName: barber.full_name,
             serviceName: service?.name || 'N/A',
             appointmentDate: selectedDate?.toLocaleDateString('it-IT') || '',

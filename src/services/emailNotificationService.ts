@@ -106,7 +106,9 @@ class EmailNotificationService {
 
   // Rimuove gli spazi nelle righe vuote per evitare artefatti (=20) nelle email
   private cleanHtml(html: string): string {
-    return html.replace(/^\s+$/gm, '');
+    return html
+      .replace(/[ \t]+$/gm, '') // remove trailing spaces that become =20
+      .replace(/^\s*$/gm, '');  // remove empty whitespace-only lines
   }
 
   // Genera il template HTML per l'email di notifica nuova registrazione

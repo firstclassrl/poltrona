@@ -12,6 +12,7 @@ import type {
   Chat,
   ChatMessage,
   CreateMessageRequest,
+  CreateChatRequest,
   ShopHoursConfig,
   TimeSlot,
   ShopDailyHoursEntity,
@@ -229,8 +230,25 @@ export const apiService = {
         if (searchResponse.ok) {
           const existingClients = await searchResponse.json();
           if (existingClients && existingClients.length > 0) {
-            console.log('✅ Cliente esistente trovato:', existingClients[0].id);
-            return existingClients[0];
+            const existingClient = existingClients[0];
+            
+            // Aggiorna il numero se manca e l'utente lo ha fornito
+            if ((!existingClient.phone_e164 || existingClient.phone_e164 === '+39000000000') && user.phone) {
+              try {
+                await fetch(`${API_ENDPOINTS.SEARCH_CLIENTS}?id=eq.${existingClient.id}`, {
+                  method: 'PATCH',
+                  headers: { ...buildHeaders(false), Prefer: 'return=representation' },
+                  body: JSON.stringify({ phone_e164: user.phone }),
+                });
+                existingClient.phone_e164 = user.phone;
+                console.log('☎️ Numero cliente aggiornato per:', existingClient.id);
+              } catch (updateError) {
+                console.warn('⚠️ Impossibile aggiornare il numero del cliente:', updateError);
+              }
+            }
+            
+            console.log('✅ Cliente esistente trovato:', existingClient.id);
+            return existingClient;
           }
         }
       }
@@ -881,6 +899,50 @@ export const apiService = {
     }
   },
 
+  async findChatByParticipants(clientId: string, staffId: string): Promise<Chat | null> {
+    if (!isSupabaseConfigured()) return null;
+    if (!isAuthenticated()) {
+      return null;
+    }
+    
+    try {
+      const url = `${API_ENDPOINTS.CHATS}?select=*&client_id=eq.${clientId}&staff_id=eq.${staffId}&limit=1`;
+      const response = await fetch(url, { headers: buildHeaders(true) });
+      if (!response.ok) {
+        return null;
+      }
+      const chatsData = await response.json();
+      return chatsData?.[0] || null;
+    } catch (error) {
+      console.error('Error searching chat by participants:', error);
+      return null;
+    }
+  },
+
+  async createChat(data: CreateChatRequest): Promise<Chat> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    
+    try {
+      const response = await fetch(API_ENDPOINTS.CHATS, {
+        method: 'POST',
+        headers: { ...buildHeaders(true), Prefer: 'return=representation' },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to create chat: ${response.status} ${errorText}`);
+      }
+      const created = await response.json();
+      if (!created || !created[0]) {
+        throw new Error('Chat creation returned no data');
+      }
+      return created[0];
+    } catch (error) {
+      console.error('Error creating chat:', error);
+      throw error;
+    }
+  },
+
   async markMessagesAsRead(chatId: string): Promise<void> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
     
@@ -1361,6 +1423,25 @@ export const apiService = {
       return staff[0] || null;
     } catch (error) {
       console.error('Error fetching staff by id:', error);
+      return null;
+    }
+  },
+
+  // Get staff member by linked auth user id
+  async getStaffByUserId(userId: string): Promise<Staff | null> {
+    if (!isSupabaseConfigured()) return null;
+    if (!userId) return null;
+    
+    try {
+      const url = `${API_ENDPOINTS.STAFF}?user_id=eq.${userId}&select=*&limit=1`;
+      const response = await fetch(url, { headers: buildHeaders(true) });
+      if (!response.ok) {
+        return null;
+      }
+      const staff = await response.json();
+      return staff[0] || null;
+    } catch (error) {
+      console.error('Error fetching staff by user id:', error);
       return null;
     }
   },

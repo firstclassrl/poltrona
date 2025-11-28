@@ -171,6 +171,11 @@ export interface CreateMessageRequest {
   message_type?: 'text' | 'image' | 'file';
 }
 
+export interface CreateChatRequest {
+  client_id: string;
+  staff_id: string;
+}
+
 export interface ShopDailyTimeSlotRow {
   id: string;
   daily_hours_id: string;

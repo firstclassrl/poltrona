@@ -7,15 +7,19 @@ import { Avatar } from './ui/Avatar';
 import { 
   MessageCircle, 
   Send, 
-  Users, 
   Clock, 
   Check, 
   CheckCheck,
   ArrowLeft,
   Megaphone,
-  X
+  X,
+  UserPlus,
+  Loader2,
+  Search
 } from 'lucide-react';
 import { formatTime, formatDate } from '../utils/date';
+import type { Client } from '../types';
+import { apiService } from '../services/api';
 
 export const Chat: React.FC = () => {
   const { user } = useAuth();
@@ -27,7 +31,8 @@ export const Chat: React.FC = () => {
     unreadCount,
     setActiveChat, 
     sendMessage,
-    sendBroadcast
+    sendBroadcast,
+    startChatWithClient
   } = useChat();
   
   const [messageInput, setMessageInput] = useState('');
@@ -35,6 +40,14 @@ export const Chat: React.FC = () => {
   const [showBroadcastModal, setShowBroadcastModal] = useState(false);
   const [broadcastMessage, setBroadcastMessage] = useState('');
   const [isSendingBroadcast, setIsSendingBroadcast] = useState(false);
+  const [showNewMessageModal, setShowNewMessageModal] = useState(false);
+  const [clientSearch, setClientSearch] = useState('');
+  const [clientResults, setClientResults] = useState<Client[]>([]);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [newMessageContent, setNewMessageContent] = useState('');
+  const [isSendingNewMessage, setIsSendingNewMessage] = useState(false);
+  const [isLoadingClients, setIsLoadingClients] = useState(false);
+  const [newMessageError, setNewMessageError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -44,6 +57,33 @@ export const Chat: React.FC = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    if (!showNewMessageModal) return;
+    let isMounted = true;
+
+    const loadInitialClients = async () => {
+      setIsLoadingClients(true);
+      try {
+        const results = await apiService.searchClients('');
+        if (isMounted) {
+          setClientResults(results);
+        }
+      } catch (error) {
+        console.error('Error loading clients:', error);
+      } finally {
+        if (isMounted) {
+          setIsLoadingClients(false);
+        }
+      }
+    };
+
+    loadInitialClients();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [showNewMessageModal]);
 
   const handleSendMessage = async () => {
     if (!messageInput.trim()) return;
@@ -78,6 +118,50 @@ export const Chat: React.FC = () => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendBroadcast();
+    }
+  };
+
+  const handleClientSearch = async (value: string) => {
+    setClientSearch(value);
+    const trimmedValue = value.trim();
+    // Evita chiamate continue se l'utente sta digitando i primi caratteri
+    if (trimmedValue.length > 0 && trimmedValue.length < 3) {
+      return;
+    }
+
+    setIsLoadingClients(true);
+    try {
+      const results = await apiService.searchClients(trimmedValue);
+      setClientResults(results);
+    } catch (error) {
+      console.error('Error searching clients:', error);
+    } finally {
+      setIsLoadingClients(false);
+    }
+  };
+
+  const resetNewMessageModal = () => {
+    setShowNewMessageModal(false);
+    setClientSearch('');
+    setSelectedClient(null);
+    setNewMessageContent('');
+    setNewMessageError(null);
+  };
+
+  const handleSendNewMessage = async () => {
+    if (!selectedClient || !newMessageContent.trim()) return;
+
+    setIsSendingNewMessage(true);
+    setNewMessageError(null);
+    try {
+      await startChatWithClient(selectedClient.id, newMessageContent);
+      resetNewMessageModal();
+      setShowChatList(false);
+    } catch (error) {
+      console.error('Error sending direct message:', error);
+      setNewMessageError('Impossibile inviare il messaggio. Riprova più tardi.');
+    } finally {
+      setIsSendingNewMessage(false);
     }
   };
 
@@ -138,15 +222,24 @@ export const Chat: React.FC = () => {
           </div>
         </div>
         
-        {/* Broadcast Button - Solo per barbieri e admin */}
+        {/* Azioni disponibili solo a barbiere/admin */}
         {(user?.role === 'barber' || user?.role === 'admin') && (
-          <Button
-            onClick={() => setShowBroadcastModal(true)}
-            className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
-          >
-            <Megaphone className="w-4 h-4" />
-            <span>Broadcast</span>
-          </Button>
+          <div className="flex items-center space-x-2">
+            <Button
+              onClick={() => setShowNewMessageModal(true)}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>Nuovo Messaggio</span>
+            </Button>
+            <Button
+              onClick={() => setShowBroadcastModal(true)}
+              className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
+            >
+              <Megaphone className="w-4 h-4" />
+              <span>Broadcast</span>
+            </Button>
+          </div>
         )}
       </div>
 
@@ -331,6 +424,138 @@ export const Chat: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Nuovo Messaggio Modal */}
+      {showNewMessageModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-2">
+                <UserPlus className="w-6 h-6 text-green-600" />
+                <h3 className="text-lg font-semibold text-gray-900">Nuovo Messaggio</h3>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={resetNewMessageModal}
+                className="p-1"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+
+            <div className="space-y-5">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Seleziona cliente
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    value={clientSearch}
+                    onChange={(e) => handleClientSearch(e.target.value)}
+                    placeholder="Cerca per nome o telefono..."
+                    className="pl-9"
+                  />
+                </div>
+                <div className="mt-3 max-h-56 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
+                  {isLoadingClients ? (
+                    <div className="flex items-center justify-center py-6 text-gray-500">
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Caricamento clienti...
+                    </div>
+                  ) : clientResults.length === 0 ? (
+                    <div className="py-6 text-center text-gray-500">
+                      Nessun cliente trovato
+                    </div>
+                  ) : (
+                    clientResults.map((client) => (
+                      <button
+                        key={client.id}
+                        type="button"
+                        onClick={() => setSelectedClient(client)}
+                        className={`w-full px-4 py-3 text-left transition-colors ${
+                          selectedClient?.id === client.id
+                            ? 'bg-green-50 border-l-4 border-green-500'
+                            : 'hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="font-semibold text-gray-900">
+                          {client.first_name} {client.last_name || ''}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {client.phone_e164}
+                          {client.email ? ` • ${client.email}` : ''}
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {selectedClient && (
+                <div className="p-3 rounded-lg bg-green-50 border border-green-100 text-sm text-green-800">
+                  Destinatario:{' '}
+                  <span className="font-semibold">
+                    {selectedClient.first_name} {selectedClient.last_name || ''}
+                  </span>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Messaggio
+                </label>
+                <textarea
+                  value={newMessageContent}
+                  onChange={(e) => setNewMessageContent(e.target.value)}
+                  placeholder={
+                    selectedClient
+                      ? `Scrivi un messaggio per ${selectedClient.first_name}...`
+                      : 'Seleziona prima un cliente'
+                  }
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
+                  rows={4}
+                  disabled={!selectedClient || isSendingNewMessage}
+                />
+              </div>
+
+              {newMessageError && (
+                <p className="text-sm text-red-600">{newMessageError}</p>
+              )}
+
+              <div className="flex justify-end space-x-3">
+                <Button
+                  variant="ghost"
+                  onClick={resetNewMessageModal}
+                  disabled={isSendingNewMessage}
+                >
+                  Annulla
+                </Button>
+                <Button
+                  onClick={handleSendNewMessage}
+                  disabled={
+                    !selectedClient || !newMessageContent.trim() || isSendingNewMessage
+                  }
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {isSendingNewMessage ? (
+                    <div className="flex items-center space-x-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Invio...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <Send className="w-4 h-4" />
+                      <span>Invia</span>
+                    </div>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Broadcast Modal */}
       {showBroadcastModal && (

@@ -129,13 +129,17 @@ export const ClientProfile: React.FC = () => {
       
       // 3. Crea una notifica per il barbiere
       if (appointmentToCancel.staff_id) {
-        // Prima ottieni i dettagli dello staff per avere user_id
-        const staffDetails = await apiService.getStaffById(appointmentToCancel.staff_id);
         const shop = await apiService.getShop();
+        const detailedAppointment = appointmentDetails || appointmentToCancel;
+        const clientInfo = detailedAppointment?.clients || appointmentToCancel.clients;
+        const staffInfo = detailedAppointment?.staff;
+        const serviceInfo = detailedAppointment?.services || appointmentToCancel.services;
         
-        const clientName = appointmentToCancel.clients 
-          ? `${appointmentToCancel.clients.first_name} ${appointmentToCancel.clients.last_name || ''}`.trim()
+        const clientName = clientInfo 
+          ? `${clientInfo.first_name} ${clientInfo.last_name || ''}`.trim()
           : user.full_name || 'Cliente';
+        const clientEmail = clientInfo?.email || user.email || undefined;
+        const clientPhone = clientInfo?.phone_e164 || user.phone || 'Non fornito';
         
         const appointmentDate = new Date(appointmentToCancel.start_at).toLocaleDateString('it-IT', {
           weekday: 'long',
@@ -150,7 +154,10 @@ export const ClientProfile: React.FC = () => {
           hour12: false
         });
         
-        const serviceName = appointmentToCancel.services?.name || 'Servizio';
+        const serviceName = serviceInfo?.name || 'Servizio';
+        
+        // Prima ottieni i dettagli dello staff per avere user_id
+        const staffDetails = staffInfo || (await apiService.getStaffById(appointmentToCancel.staff_id));
         
         // Usa user_id se disponibile (collegato a auth.users), altrimenti usa staff_id
         const notificationUserId = staffDetails?.user_id || appointmentToCancel.staff_id;
@@ -165,7 +172,7 @@ export const ClientProfile: React.FC = () => {
           data: {
             appointment_id: appointmentToCancel.id,
             client_name: clientName,
-            client_phone: appointmentToCancel.clients?.phone_e164,
+            client_phone: clientPhone,
             service_name: serviceName,
             appointment_date: appointmentDate,
             appointment_time: appointmentTime,
@@ -179,8 +186,8 @@ export const ClientProfile: React.FC = () => {
           const emailResult = await emailNotificationService.sendCancellationNotification(
             {
               clientName: clientName,
-              clientEmail: appointmentToCancel.clients?.email || user.email || undefined,
-              clientPhone: appointmentToCancel.clients?.phone_e164 || 'Non fornito',
+              clientEmail: clientEmail,
+              clientPhone: clientPhone,
               serviceName: serviceName,
               appointmentDate: appointmentDate,
               appointmentTime: appointmentTime,

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, User } from 'lucide-react';
+import { Eye, EyeOff, User, CheckCircle } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Card } from './ui/Card';
 import { PrivacyPolicy } from './PrivacyPolicy';
+import { Modal } from './ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
 import { APP_VERSION } from '../config/version';
 
@@ -27,6 +28,7 @@ export const Login: React.FC = () => {
   const [success, setSuccess] = useState('');
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+  const [showRegistrationSuccess, setShowRegistrationSuccess] = useState(false);
   
   const { login, register } = useAuth();
 
@@ -63,6 +65,7 @@ export const Login: React.FC = () => {
       }
 
       // Registra il nuovo utente in Supabase
+      const registrationEmail = registrationData.email;
       await register({
         email: registrationData.email,
         password: registrationData.password,
@@ -73,6 +76,9 @@ export const Login: React.FC = () => {
       
       // Mostra messaggio di successo
       setSuccess('Registrazione completata con successo! Ora puoi effettuare il login.');
+      setShowRegistrationSuccess(true);
+      setMode('login');
+      setCredentials(prev => ({ ...prev, email: registrationEmail, password: '' }));
       
       // Mostra toast di notifica
       setTimeout(() => {
@@ -351,6 +357,29 @@ export const Login: React.FC = () => {
 
         {/* Nessun account demo in produzione */}
       </Card>
+
+      {/* Modale successo registrazione */}
+      <Modal
+        isOpen={showRegistrationSuccess}
+        onClose={() => setShowRegistrationSuccess(false)}
+        title="Registrazione completata"
+        size="small"
+      >
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 mx-auto rounded-full bg-green-100 flex items-center justify-center">
+            <CheckCircle className="w-10 h-10 text-green-600" />
+          </div>
+          <p className="text-gray-700">
+            La tua registrazione è andata a buon fine! Ora puoi accedere utilizzando le credenziali appena create.
+          </p>
+          <Button
+            className="w-full"
+            onClick={() => setShowRegistrationSuccess(false)}
+          >
+            Vai al login
+          </Button>
+        </div>
+      </Modal>
 
       {/* Privacy Policy Modal */}
       <PrivacyPolicy 
