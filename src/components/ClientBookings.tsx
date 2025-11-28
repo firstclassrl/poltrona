@@ -80,6 +80,53 @@ export const ClientBookings: React.FC = () => {
 
     try {
       await apiService.cancelAppointmentDirect(selectedAppointment.id);
+      
+      // Crea notifica in-app per il barbiere
+      if (selectedAppointment.staff_id && selectedAppointment.staff) {
+        try {
+          const staffDetails = selectedAppointment.staff;
+          const clientName = user?.full_name || 'Cliente';
+          const serviceName = selectedAppointment.services?.name || 'Servizio';
+          
+          const appointmentDate = new Date(selectedAppointment.start_at).toLocaleDateString('it-IT', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+          });
+          
+          const appointmentTime = new Date(selectedAppointment.start_at).toLocaleTimeString('it-IT', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          });
+          
+          // Usa user_id se disponibile (collegato a auth.users), altrimenti usa id
+          const notificationUserId = staffDetails.user_id || staffDetails.id || selectedAppointment.staff_id;
+          
+          await apiService.createNotification({
+            user_id: notificationUserId,
+            user_type: 'staff',
+            type: 'appointment_cancelled',
+            title: '❌ Appuntamento Annullato',
+            message: `${clientName} ha annullato l'appuntamento per ${serviceName} del ${appointmentDate} alle ${appointmentTime}`,
+            data: {
+              appointment_id: selectedAppointment.id,
+              client_name: clientName,
+              client_email: user?.email,
+              service_name: serviceName,
+              appointment_date: appointmentDate,
+              appointment_time: appointmentTime,
+              staff_id: selectedAppointment.staff_id,
+            }
+          });
+          console.log('✅ Notifica annullamento creata. user_id:', notificationUserId);
+        } catch (notifError) {
+          console.warn('⚠️ Errore creazione notifica annullamento:', notifError);
+          // Non bloccare l'annullamento se la notifica fallisce
+        }
+      }
+      
       await loadAppointments();
       setMessage({ type: 'success', text: 'Prenotazione annullata con successo.' });
     } catch (error) {

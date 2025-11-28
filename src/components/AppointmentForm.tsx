@@ -29,7 +29,6 @@ export const AppointmentForm = ({
     date: '',
     time: '',
     notes: '',
-    reminder_channel: 'whatsapp' as 'whatsapp' | 'email',
   });
   
   const [clientQuery, setClientQuery] = useState('');
@@ -79,7 +78,6 @@ export const AppointmentForm = ({
         date: startDate.toISOString().split('T')[0],
         time: startDate.toTimeString().slice(0, 5),
         notes: appointment.notes || '',
-        reminder_channel: (appointment as any).reminder_channel || 'whatsapp',
       });
       setSelectedClient(appointment.clients);
       setClientQuery(`${appointment.clients?.first_name} ${appointment.clients?.last_name}`);
@@ -107,7 +105,6 @@ export const AppointmentForm = ({
       date: '',
       time: '',
       notes: '',
-      reminder_channel: 'whatsapp',
     });
     setSelectedClient(null);
     setClientQuery('');
@@ -331,17 +328,6 @@ export const AppointmentForm = ({
             )}
           </div>
         </div>
-
-        {/* Reminder Channel */}
-        <Select
-          label="Canale Reminder"
-          value={formData.reminder_channel}
-          onChange={(e) => setFormData(prev => ({ ...prev, reminder_channel: e.target.value as any }))}
-          options={[
-            { value: 'whatsapp', label: 'WhatsApp' },
-            { value: 'email', label: 'Email' },
-          ]}
-        />
 
         {/* Notes */}
         <div>

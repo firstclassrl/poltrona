@@ -538,7 +538,22 @@ export const apiService = {
 
   // Create appointment via n8n webhook (legacy)
   async createAppointment(data: CreateAppointmentRequest): Promise<void> {
-    if (!isSupabaseConfigured() || !API_CONFIG.N8N_BASE_URL) throw new Error('Backend non configurato');
+    // Se N8N non è configurato, usa createAppointmentDirect come fallback
+    if (!API_CONFIG.N8N_BASE_URL) {
+      console.log('N8N non configurato, uso creazione diretta in Supabase');
+      await this.createAppointmentDirect({
+        client_id: data.client_id,
+        staff_id: data.staff_id,
+        service_id: data.service_id,
+        start_at: data.start_at,
+        end_at: data.end_at,
+        notes: data.notes,
+        status: data.status || 'scheduled',
+      });
+      return;
+    }
+    
+    if (!isSupabaseConfigured()) throw new Error('Backend non configurato');
     
     try {
       const response = await fetch(API_ENDPOINTS.CREATE_APPOINTMENT, {
@@ -548,8 +563,17 @@ export const apiService = {
       });
       if (!response.ok) throw new Error('Failed to create appointment');
     } catch (error) {
-      console.error('Error creating appointment:', error);
-      throw error;
+      console.error('Error creating appointment via N8N, trying direct method:', error);
+      // Fallback a creazione diretta se N8N fallisce
+      await this.createAppointmentDirect({
+        client_id: data.client_id,
+        staff_id: data.staff_id,
+        service_id: data.service_id,
+        start_at: data.start_at,
+        end_at: data.end_at,
+        notes: data.notes,
+        status: data.status || 'scheduled',
+      });
     }
   },
 
