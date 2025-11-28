@@ -178,9 +178,9 @@ export const ClientProfile: React.FC = () => {
         // Prima ottieni i dettagli dello staff per avere user_id
         const staffDetails = staffInfo || (await apiService.getStaffById(appointmentToCancel.staff_id));
         
-        // Usa user_id se disponibile (collegato a auth.users), altrimenti usa staff_id
-        const notificationUserId = staffDetails?.user_id || appointmentToCancel.staff_id;
-        
+        // Usa sempre l'ID dello staff per garantire la visibilità delle notifiche nella sidebar
+        const notificationUserId = appointmentToCancel.staff_id;
+
         // Crea notifica in-app per il barbiere
         await apiService.createNotification({
           user_id: notificationUserId,

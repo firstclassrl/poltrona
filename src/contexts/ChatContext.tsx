@@ -88,19 +88,35 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     return null;
   };
 
-  const getSenderType = (): 'client' | 'staff' => {
-    return user?.role === 'client' ? 'client' : 'staff';
+  const getSenderIdentity = async (chat: Chat | null): Promise<{ senderId: string; senderType: 'staff' | 'client' } | null> => {
+    if (!chat || !user) return null;
+    if (user.role === 'barber' || user.role === 'admin') {
+      const staffId = chat.staff_id || await resolveStaffId();
+      if (!staffId) return null;
+      return { senderId: staffId, senderType: 'staff' };
+    }
+
+    if (chat.client_id) {
+      return { senderId: chat.client_id, senderType: 'client' };
+    }
+
+    return null;
   };
 
   const sendMessage = async (content: string) => {
     if (!activeChat || !user || !content.trim()) return;
     try {
+      const sender = await getSenderIdentity(activeChat);
+      if (!sender) {
+        throw new Error('Impossibile determinare il mittente per questa chat');
+      }
+
       await apiService.sendMessage({
         chat_id: activeChat.id,
         content: content.trim(),
         message_type: 'text',
-        sender_id: user.id,
-        sender_type: getSenderType()
+        sender_id: sender.senderId,
+        sender_type: sender.senderType
       });
       // Ricarica i messaggi dopo l'invio
       await loadMessages(activeChat.id);
@@ -137,12 +153,17 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         throw new Error('Impossibile determinare la chat in cui inviare il messaggio');
       }
 
+      const sender = await getSenderIdentity(targetChat);
+      if (!sender) {
+        throw new Error('Impossibile determinare il mittente per questa chat');
+      }
+
       await apiService.sendMessage({
         chat_id: targetChat.id,
         content: content.trim(),
         message_type: 'text',
-        sender_id: user.id,
-        sender_type: getSenderType()
+        sender_id: sender.senderId,
+        sender_type: sender.senderType
       });
       await loadMessages(targetChat.id);
       setActiveChat(targetChat);

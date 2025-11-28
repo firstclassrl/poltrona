@@ -190,11 +190,13 @@ export const Notifications: React.FC = () => {
     loadNotifications,
     markAsRead, 
     markAllAsRead, 
-    deleteNotification 
+    deleteNotification,
+    deleteAllNotifications
   } = useNotifications();
 
   const [filter, setFilter] = useState<FilterType>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
 
   // Load notifications on mount
   useEffect(() => {
@@ -220,6 +222,14 @@ export const Notifications: React.FC = () => {
       await deleteNotification(id);
     } catch (error) {
       console.error('Failed to delete:', error);
+    }
+  };
+  const handleDeleteAll = async () => {
+    try {
+      await deleteAllNotifications();
+      setShowDeleteAllConfirm(false);
+    } catch (error) {
+      console.error('Failed to delete all:', error);
     }
   };
 
@@ -280,17 +290,52 @@ export const Notifications: React.FC = () => {
               <RefreshCw className="w-5 h-5" />
             </button>
             
-            {unreadCount > 0 && (
-              <button
-                onClick={handleMarkAllAsRead}
-                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 rounded-xl transition-colors"
-              >
-                <CheckCheck className="w-4 h-4" />
-                Segna tutte come lette
-              </button>
+            {notifications.length > 0 && (
+              <div className="flex items-center gap-2">
+                {unreadCount > 0 && (
+                  <button
+                    onClick={handleMarkAllAsRead}
+                    className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 rounded-xl transition-colors"
+                  >
+                    <CheckCheck className="w-4 h-4" />
+                    Segna tutte come lette
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowDeleteAllConfirm(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-600 bg-red-100 hover:bg-red-200 rounded-xl transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Elimina tutte
+                </button>
+              </div>
             )}
           </div>
         </div>
+
+        {/* Delete all confirmation */}
+        {showDeleteAllConfirm && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="text-sm text-red-700">
+              <p className="font-semibold">Eliminare tutte le notifiche?</p>
+              <p>Questa azione non può essere annullata.</p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteAllConfirm(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={handleDeleteAll}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700"
+              >
+                Elimina tutto
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Filters */}

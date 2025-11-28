@@ -18,7 +18,7 @@ import {
   Search
 } from 'lucide-react';
 import { formatTime, formatDate } from '../utils/date';
-import type { Client } from '../types';
+import type { Client, ChatMessage } from '../types';
 import { apiService } from '../services/api';
 
 export const Chat: React.FC = () => {
@@ -177,8 +177,18 @@ export const Chat: React.FC = () => {
     }
   };
 
-  const getMessageStatus = (message: any) => {
-    if (message.sender_id === user?.id) {
+  const isStaffUser = user?.role === 'barber' || user?.role === 'admin';
+
+  const isMessageFromCurrentUser = (message: ChatMessage) => {
+    if (!user || !activeChat) return false;
+    if (isStaffUser) {
+      return message.sender_type === 'staff' && message.sender_id === activeChat.staff_id;
+    }
+    return message.sender_type === 'client' && message.sender_id === activeChat.client_id;
+  };
+
+  const getMessageStatus = (message: ChatMessage) => {
+    if (isMessageFromCurrentUser(message)) {
       return message.read_at ? (
         <CheckCheck className="w-4 h-4 text-blue-500" />
       ) : (
@@ -348,14 +358,16 @@ export const Chat: React.FC = () => {
                   Nessun messaggio ancora
                 </div>
               ) : (
-                messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${message.sender_id === user.id ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div className={`flex items-end space-x-2 max-w-xs lg:max-w-md ${
-                      message.sender_id === user.id ? 'flex-row-reverse space-x-reverse' : ''
-                    }`}>
+                messages.map((message) => {
+                  const isOwnMessage = isMessageFromCurrentUser(message);
+                  return (
+                    <div
+                      key={message.id}
+                      className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div className={`flex items-end space-x-2 max-w-xs lg:max-w-md ${
+                        isOwnMessage ? 'flex-row-reverse space-x-reverse' : ''
+                      }`}>
                       <Avatar 
                         name={message.sender_name || 'Unknown'}
                         size="sm"
@@ -363,13 +375,13 @@ export const Chat: React.FC = () => {
                       />
                       
                       <div className={`px-4 py-2 rounded-lg ${
-                        message.sender_id === user.id
+                        isOwnMessage
                           ? 'bg-green-500 text-white'
                           : 'bg-gray-100 text-gray-900'
                       }`}>
                         <p className="text-sm">{message.content}</p>
                         <div className={`flex items-center justify-between mt-1 ${
-                          message.sender_id === user.id ? 'text-green-100' : 'text-gray-500'
+                          isOwnMessage ? 'text-green-100' : 'text-gray-500'
                         }`}>
                           <span className="text-xs">
                             {formatMessageTime(message.created_at)}
@@ -378,8 +390,9 @@ export const Chat: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                    </div>
+                  );
+                })
               )}
               <div ref={messagesEndRef} />
             </div>

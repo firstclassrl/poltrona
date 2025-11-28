@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiService } from '../services/api';
 import type { Appointment } from '../types';
+import { doesAppointmentOverlapSlot } from '../utils/date';
 
 export interface CreateAppointmentData {
   client_id: string;
@@ -102,16 +103,11 @@ export const useAppointments = () => {
 
   // Ottieni appuntamenti per un orario specifico
   const getAppointmentForDateTime = (date: Date, time: string): Appointment | null => {
-    const dateString = date.toISOString().split('T')[0];
-    return appointments.find(appointment => {
-      const appointmentDate = new Date(appointment.start_at).toISOString().split('T')[0];
-      const appointmentTime = new Date(appointment.start_at).toLocaleTimeString('it-IT', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      });
-      return appointmentDate === dateString && appointmentTime === time;
-    }) || null;
+    return (
+      appointments.find((appointment) =>
+        doesAppointmentOverlapSlot(appointment, date, time)
+      ) || null
+    );
   };
 
   // Controlla se un orario è occupato

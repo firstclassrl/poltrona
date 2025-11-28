@@ -29,6 +29,7 @@ export const Login: React.FC = () => {
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [showRegistrationSuccess, setShowRegistrationSuccess] = useState(false);
+  const [hasJustRegistered, setHasJustRegistered] = useState(false);
   
   const { login, register } = useAuth();
 
@@ -77,6 +78,7 @@ export const Login: React.FC = () => {
       // Mostra messaggio di successo
       setSuccess('Registrazione completata con successo! Ora puoi effettuare il login.');
       setShowRegistrationSuccess(true);
+      setHasJustRegistered(true);
       setMode('login');
       setCredentials(prev => ({ ...prev, email: registrationEmail, password: '' }));
       
@@ -156,6 +158,13 @@ export const Login: React.FC = () => {
           {mode === 'login' ? (
             // Form Login
             <>
+              {hasJustRegistered && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <p className="text-green-800 text-sm">
+                    Registrazione completata! Inserisci la tua password per accedere.
+                  </p>
+                </div>
+              )}
               <div>
                 <Input
                   label="Email"

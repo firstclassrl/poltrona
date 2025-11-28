@@ -12,6 +12,7 @@ interface NotificationContextType {
   markAllAsRead: () => Promise<void>;
   deleteNotification: (notificationId: string) => Promise<void>;
   refreshUnreadCount: () => Promise<void>;
+  deleteAllNotifications: () => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -180,6 +181,18 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     return () => clearInterval(intervalId);
   }, [isAuthenticated, user?.id, refreshUnreadCount]);
 
+  const deleteAllNotifications = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      await apiService.deleteAllNotifications(user.id);
+      setNotifications([]);
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Error deleting all notifications:', error);
+      throw error;
+    }
+  }, []);
+
   const value: NotificationContextType = {
     notifications,
     unreadCount,
@@ -189,6 +202,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     markAllAsRead,
     deleteNotification,
     refreshUnreadCount,
+    deleteAllNotifications,
   };
 
   return (

@@ -5,7 +5,7 @@ import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { Select } from './ui/Select';
 import { Modal } from './ui/Modal';
-import { formatTime, formatDate } from '../utils/date';
+import { formatTime, formatDate, doesAppointmentOverlapSlot } from '../utils/date';
 import { useDailyShopHours } from '../hooks/useDailyShopHours';
 import { useChairAssignment } from '../hooks/useChairAssignment';
 import { useAppointments } from '../hooks/useAppointments';
@@ -313,14 +313,7 @@ export const Calendar = () => {
                         >
                           {/* Render appointments for this time slot */}
                           {isTimeSlotAvailable && filteredAppointments
-                            .filter(apt => {
-                              const aptDate = new Date(apt.start_at);
-                              const aptTime = formatTime(apt.start_at);
-                              const isSameDate = aptDate.toDateString() === day.toDateString();
-                              const isSameTime = aptTime === time;
-                              
-                              return isSameDate && isSameTime;
-                            })
+                            .filter(apt => doesAppointmentOverlapSlot(apt, day, time))
                             .map(apt => (
                               <div
                                 key={apt.id}

@@ -1398,6 +1398,22 @@ export const apiService = {
     }
   },
 
+  // Delete all notifications for current user
+  async deleteAllNotifications(userId: string): Promise<void> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    
+    try {
+      const response = await fetch(`${API_ENDPOINTS.NOTIFICATIONS}?user_id=eq.${userId}`, {
+        method: 'DELETE',
+        headers: buildHeaders(true),
+      });
+      if (!response.ok) throw new Error('Failed to delete all notifications');
+    } catch (error) {
+      console.error('Error deleting all notifications:', error);
+      throw error;
+    }
+  },
+
   // ============================================
   // Client Appointment Cancellation
   // ============================================

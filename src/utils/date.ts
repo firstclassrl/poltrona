@@ -1,3 +1,5 @@
+import type { Appointment } from '../types';
+
 export const formatDate = (date: string | Date): string => {
   const d = new Date(date);
   return d.toLocaleDateString('it-IT', {
@@ -69,4 +71,42 @@ export const generateTimeSlots = (startHour: number = 9, endHour: number = 19, i
 
 export const addMinutes = (date: Date, minutes: number): Date => {
   return new Date(date.getTime() + minutes * 60000);
+};
+
+export const getSlotDateTime = (date: Date, time: string): Date => {
+  const [hours, minutes] = time.split(':').map(Number);
+  const slotDate = new Date(date);
+  slotDate.setHours(hours, minutes, 0, 0);
+  return slotDate;
+};
+
+export const doesAppointmentOverlapSlot = (
+  appointment: Appointment,
+  slotDate: Date,
+  slotTime: string,
+  slotDurationMinutes: number = 30
+): boolean => {
+  if (appointment.status === 'cancelled') {
+    return false;
+  }
+
+  const slotDateString = slotDate.toISOString().split('T')[0];
+  const appointmentDateString = new Date(appointment.start_at).toISOString().split('T')[0];
+
+  if (slotDateString !== appointmentDateString) {
+    return false;
+  }
+
+  const slotStart = getSlotDateTime(slotDate, slotTime);
+  const slotEnd = addMinutes(slotStart, slotDurationMinutes);
+
+  const appointmentStart = new Date(appointment.start_at);
+  const appointmentEnd = appointment.end_at
+    ? new Date(appointment.end_at)
+    : addMinutes(
+        appointmentStart,
+        appointment.services?.duration_min || slotDurationMinutes
+      );
+
+  return slotStart < appointmentEnd && slotEnd > appointmentStart;
 };
