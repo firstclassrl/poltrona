@@ -1210,7 +1210,7 @@ export const apiService = {
   async createNotification(data: {
     user_id: string;
     user_type: 'staff' | 'client';
-    type: 'new_appointment' | 'appointment_cancelled' | 'appointment_reminder' | 'system';
+    type: 'new_appointment' | 'appointment_cancelled' | 'appointment_reminder' | 'system' | 'new_client';
     title: string;
     message: string;
     data?: Record<string, unknown>;

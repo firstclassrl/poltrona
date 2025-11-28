@@ -3,8 +3,7 @@ export const API_CONFIG = {
   // Usa VITE_SUPABASE_EDGE_URL; se non presente, fallback a VITE_SUPABASE_URL
   SUPABASE_EDGE_URL: (import.meta.env.VITE_SUPABASE_EDGE_URL || import.meta.env.VITE_SUPABASE_URL || '').trim(),
   SUPABASE_ANON_KEY: (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim(),
-  // Configurazione Resend per email
-  RESEND_API_KEY: (import.meta.env.VITE_RESEND_API_KEY || '').trim(),
+  // Email ora usa Supabase Edge Functions con SMTP integrato (info@abruzzo.ai)
 };
 
 export const API_ENDPOINTS = {

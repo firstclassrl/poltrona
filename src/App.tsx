@@ -14,6 +14,7 @@ import { ClientProfile } from './components/ClientProfile';
 import { ClientBookingCalendar } from './components/ClientBookingCalendar';
 import { ClientProducts } from './components/ClientProducts';
 import { Chat } from './components/Chat';
+import { Notifications } from './components/Notifications';
 import { Toast } from './components/ui/Toast';
 import { useToast } from './hooks/useToast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -75,6 +76,8 @@ const AppContent: React.FC = () => {
         );
       case 'calendar':
         return <Calendar />;
+      case 'notifications':
+        return <Notifications />;
       case 'clients':
         return <Clients onNavigateToBooking={() => setActiveTab('client_booking')} />;
       case 'products':

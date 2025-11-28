@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Home, ShoppingBag, User, Building2, LogOut, UserCheck, MessageCircle, Scissors } from 'lucide-react';
+import { Calendar, Users, Home, ShoppingBag, User, Building2, LogOut, UserCheck, MessageCircle, Scissors, Bell } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/api';
 import { APP_VERSION } from '../config/version';
-import { NotificationBell } from './NotificationBell';
 import type { Shop } from '../types';
 
 interface NavigationProps {
@@ -34,6 +33,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
   const allNavItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, permission: 'dashboard' },
     { id: 'calendar', label: 'Calendario', icon: Calendar, permission: 'appointments' },
+    { id: 'notifications', label: 'Notifiche', icon: Bell, permission: 'notifications' },
     { id: 'clients', label: 'Clienti', icon: Users, permission: 'clients' },
     { id: 'services', label: 'Servizi', icon: Scissors, permission: 'services' },
     { id: 'products', label: 'Prodotti', icon: ShoppingBag, permission: 'products' },
@@ -115,12 +115,6 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
             {/* User Info and Logout */}
             <div className="mt-auto px-4 pb-4">
               <div className="border-t border-yellow-400/30 pt-4">
-                {/* Notification Bell - Only for staff/admin */}
-                {(user?.role === 'admin' || user?.role === 'barber') && (
-                  <div className="flex justify-center mb-4">
-                    <NotificationBell />
-                  </div>
-                )}
                 <div className="mb-4">
                   <div className="text-center">
                     <p className="text-sm text-yellow-300 font-medium">{user?.full_name}</p>

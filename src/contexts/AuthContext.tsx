@@ -261,6 +261,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return role === 'admin' || role === 'barber'; // Clienti non vedono dashboard
       case 'appointments':
         return role === 'admin' || role === 'barber';
+      case 'notifications':
+        return role === 'admin' || role === 'barber';
       case 'clients':
         return role === 'admin' || role === 'barber';
       case 'products':

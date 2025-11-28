@@ -1,5 +1,8 @@
-// Email Notification Service per Resend
-// Servizio per inviare notifiche email quando un nuovo cliente si registra o annulla un appuntamento
+// Email Notification Service per Supabase Edge Functions
+// Servizio per inviare notifiche email tramite il sistema SMTP integrato di Supabase
+// Configurato con SMTP: info@abruzzo.ai
+
+import { API_CONFIG } from '../config/api';
 
 export interface NewClientNotificationData {
   clientName: string;
@@ -28,15 +31,65 @@ export interface EmailResponse {
 }
 
 class EmailNotificationService {
-  private apiKey: string;
   private isConfigured: boolean = false;
+  private supabaseUrl: string;
+  private supabaseKey: string;
 
   constructor() {
-    this.apiKey = import.meta.env.VITE_RESEND_API_KEY || '';
-    this.isConfigured = Boolean(this.apiKey);
+    this.supabaseUrl = API_CONFIG.SUPABASE_EDGE_URL || '';
+    this.supabaseKey = API_CONFIG.SUPABASE_ANON_KEY || '';
+    this.isConfigured = Boolean(this.supabaseUrl && this.supabaseKey);
     
-    if (!this.isConfigured) {
-      console.warn('⚠️ Resend API key non configurata. Le email non verranno inviate.');
+    if (this.isConfigured) {
+      console.log('📧 Email Service: Configurato con Supabase Edge Functions (SMTP: info@abruzzo.ai)');
+    } else {
+      console.warn('⚠️ Supabase non configurato. Le email useranno modalità mock.');
+    }
+  }
+
+  // Metodo per chiamare la Edge Function di Supabase per inviare email
+  private async sendEmailViaSupabase(emailData: {
+    to: string;
+    subject: string;
+    html: string;
+    text: string;
+  }): Promise<EmailResponse> {
+    try {
+      // Costruisci l'URL della Edge Function
+      // L'URL base è nel formato: https://xxx.supabase.co
+      // La Edge Function sarà: https://xxx.supabase.co/functions/v1/send-email
+      const baseUrl = this.supabaseUrl.replace('/rest/v1', '');
+      const edgeFunctionUrl = `${baseUrl}/functions/v1/send-email`;
+
+      const response = await fetch(edgeFunctionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.supabaseKey}`,
+          'apikey': this.supabaseKey,
+        },
+        body: JSON.stringify(emailData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Supabase Edge Function error: ${errorData.error || response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Email inviata con successo via Supabase:', result);
+      
+      return { 
+        success: true, 
+        messageId: result.id || `supabase-${Date.now()}` 
+      };
+
+    } catch (error) {
+      console.error('❌ Errore invio email via Supabase:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Errore sconosciuto' 
+      };
     }
   }
 
@@ -395,42 +448,13 @@ ${data.shopName} - Sistema di Gestione Appuntamenti
       return { success: true, messageId: 'mock-message-id' };
     }
 
-    try {
-      const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
-        },
-        body: JSON.stringify({
-          from: 'noreply@resend.dev',
-          to: [shopEmail],
-          subject: `Nuovo Cliente Registrato - ${clientData.clientName}`,
-          html: this.generateNewClientNotificationHTML(clientData),
-          text: this.generateNewClientNotificationText(clientData),
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Resend API error: ${errorData.message || response.statusText}`);
-      }
-
-      const result = await response.json();
-      console.log('✅ Email notifica nuovo cliente inviata:', result);
-      
-      return { 
-        success: true, 
-        messageId: result.id 
-      };
-
-    } catch (error) {
-      console.error('❌ Errore nell\'invio email notifica:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Errore sconosciuto' 
-      };
-    }
+    // Usa Supabase Edge Function per inviare l'email
+    return this.sendEmailViaSupabase({
+      to: shopEmail,
+      subject: `Nuovo Cliente Registrato - ${clientData.clientName}`,
+      html: this.generateNewClientNotificationHTML(clientData),
+      text: this.generateNewClientNotificationText(clientData),
+    });
   }
 
   // Invia notifica per appuntamento annullato
@@ -448,42 +472,13 @@ ${data.shopName} - Sistema di Gestione Appuntamenti
       return { success: true, messageId: 'mock-message-id' };
     }
 
-    try {
-      const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
-        },
-        body: JSON.stringify({
-          from: 'noreply@resend.dev',
-          to: [barberEmail],
-          subject: `⚠️ Appuntamento Annullato - ${cancellationData.clientName} - ${cancellationData.appointmentDate}`,
-          html: this.generateCancellationNotificationHTML(cancellationData),
-          text: this.generateCancellationNotificationText(cancellationData),
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Resend API error: ${errorData.message || response.statusText}`);
-      }
-
-      const result = await response.json();
-      console.log('✅ Email notifica annullamento inviata:', result);
-      
-      return { 
-        success: true, 
-        messageId: result.id 
-      };
-
-    } catch (error) {
-      console.error('❌ Errore nell\'invio email notifica annullamento:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Errore sconosciuto' 
-      };
-    }
+    // Usa Supabase Edge Function per inviare l'email
+    return this.sendEmailViaSupabase({
+      to: barberEmail,
+      subject: `⚠️ Appuntamento Annullato - ${cancellationData.clientName} - ${cancellationData.appointmentDate}`,
+      html: this.generateCancellationNotificationHTML(cancellationData),
+      text: this.generateCancellationNotificationText(cancellationData),
+    });
   }
 
   // Testa la configurazione del servizio
@@ -494,18 +489,25 @@ ${data.shopName} - Sistema di Gestione Appuntamenti
     }
 
     try {
-      // Test semplice chiamando l'API di Resend
-      const response = await fetch('https://api.resend.com/domains', {
+      // Test la Edge Function di Supabase
+      const baseUrl = this.supabaseUrl.replace('/rest/v1', '');
+      const edgeFunctionUrl = `${baseUrl}/functions/v1/send-email`;
+
+      const response = await fetch(edgeFunctionUrl, {
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.supabaseKey}`,
+          'apikey': this.supabaseKey,
         },
+        body: JSON.stringify({ test: true }),
       });
 
       if (response.ok) {
-        console.log('✅ Configurazione Resend verificata');
+        console.log('✅ Configurazione Supabase Email verificata');
         return true;
       } else {
-        console.error('❌ Configurazione Resend non valida');
+        console.error('❌ Configurazione Supabase Email non valida');
         return false;
       }
     } catch (error) {
