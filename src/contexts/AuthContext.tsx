@@ -423,6 +423,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           console.log('ℹ️ Email notifica non configurata per il negozio');
         }
         
+        if (data.email) {
+          const portalUrl = typeof window !== 'undefined' && window.location?.origin
+            ? `${window.location.origin}/login`
+            : undefined;
+
+          const welcomeResult = await emailNotificationService.sendClientWelcomeEmail({
+            clientName: data.full_name,
+            clientEmail: data.email,
+            shopName: shop?.name || 'Abruzzo.AI',
+            portalUrl,
+            supportEmail: shop?.notification_email || 'info@abruzzo.ai',
+          });
+
+          if (welcomeResult.success) {
+            console.log('✅ Email di benvenuto inviata al cliente:', data.email);
+          } else {
+            console.warn('⚠️ Errore nell\'invio email di benvenuto:', welcomeResult.error);
+          }
+        }
+        
         // Crea notifiche in-app per tutti i barbieri
         try {
           const staffList = await apiService.getStaff();

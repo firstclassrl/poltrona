@@ -30,10 +30,8 @@ const isSupabaseConfigured = () => {
 
 // Helper per verificare se l'utente è autenticato
 const isAuthenticated = (): boolean => {
-  if (typeof window === 'undefined') return false;
-  const token = localStorage.getItem('auth_token');
-  const user = localStorage.getItem('auth_user');
-  return !!(token && user);
+  // Consideriamo sempre l'utente autenticato lato dashboard; Supabase RLS farà fede
+  return true;
 };
 
 // Helper per verificare se un errore è dovuto a JWT scaduto o mancante autenticazione

@@ -12,6 +12,14 @@ export interface NewClientNotificationData {
   shopName: string;
 }
 
+export interface ClientWelcomeEmailData {
+  clientName: string;
+  clientEmail: string;
+  shopName: string;
+  portalUrl?: string;
+  supportEmail?: string;
+}
+
 export interface AppointmentCancellationData {
   clientName: string;
   clientEmail?: string;
@@ -454,6 +462,131 @@ ${data.shopName} - Sistema di Gestione Appuntamenti
       subject: `Nuovo Cliente Registrato - ${clientData.clientName}`,
       html: this.generateNewClientNotificationHTML(clientData),
       text: this.generateNewClientNotificationText(clientData),
+    });
+  }
+
+  private generateClientWelcomeEmailHTML(data: ClientWelcomeEmailData): string {
+    return this.cleanHtml(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Benvenuto in ${data.shopName}</title>
+        <style>
+          body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #1f2937;
+            background-color: #f9fafb;
+            margin: 0;
+            padding: 20px;
+          }
+          .container {
+            max-width: 560px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.1);
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+          }
+          .hero {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #ffffff;
+            text-align: center;
+            padding: 32px 24px;
+          }
+          .hero h1 {
+            margin: 0;
+            font-size: 26px;
+          }
+          .content {
+            padding: 32px;
+          }
+          .cta {
+            display: inline-block;
+            margin: 24px 0;
+            padding: 14px 28px;
+            background-color: #10b981;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 999px;
+            font-weight: 600;
+          }
+          .support {
+            margin-top: 24px;
+            padding: 16px;
+            background-color: #ecfdf5;
+            border-radius: 12px;
+            font-size: 14px;
+            color: #065f46;
+          }
+          .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #9ca3af;
+            padding: 16px 32px 24px;
+            background-color: #f9fafb;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="hero">
+            <p style="margin: 0 0 4px;">${data.shopName}</p>
+            <h1>Grazie per esserti iscritto!</h1>
+          </div>
+          <div class="content">
+            <p>Ciao ${data.clientName.split(' ')[0] || data.clientName},</p>
+            <p>Siamo entusiasti di averti con noi. Da oggi puoi prenotare con facilità, gestire i tuoi appuntamenti e ricevere aggiornamenti esclusivi dal nostro team.</p>
+            <p>Il tuo account è stato creato con successo e puoi accedere in qualsiasi momento per gestire le tue prenotazioni.</p>
+            ${data.portalUrl ? `
+              <p style="text-align:center;">
+                <a class="cta" href="${data.portalUrl}" target="_blank" rel="noopener noreferrer">Accedi ora</a>
+              </p>
+            ` : ''}
+            <p>Se hai domande o hai bisogno di assistenza, siamo sempre qui per aiutarti.</p>
+            <div class="support">
+              <strong>Serve aiuto?</strong><br />
+              Scrivici a ${data.supportEmail || 'info@abruzzo.ai'} e ti risponderemo al più presto.
+            </div>
+            <p style="margin-top: 28px;">A presto,<br /><strong>Il team ${data.shopName}</strong></p>
+          </div>
+          <div class="footer">
+            Questa email è stata generata automaticamente. Non rispondere a questo messaggio.
+          </div>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+
+  private generateClientWelcomeEmailText(data: ClientWelcomeEmailData): string {
+    return `
+Benvenuto in ${data.shopName}
+
+Ciao ${data.clientName},
+
+Grazie per esserti iscritto! Il tuo account è stato creato con successo e da ora puoi gestire le tue prenotazioni e ricevere aggiornamenti dal nostro team.
+${data.portalUrl ? `Accedi subito: ${data.portalUrl}\n` : ''}
+Hai bisogno di supporto? Scrivici a ${data.supportEmail || 'info@abruzzo.ai'} e saremo felici di aiutarti.
+
+A presto,
+Il team ${data.shopName}
+    `.trim();
+  }
+
+  async sendClientWelcomeEmail(
+    data: ClientWelcomeEmailData
+  ): Promise<EmailResponse> {
+    this.ensureConfigured();
+
+    return this.sendEmailViaSupabase({
+      to: data.clientEmail,
+      subject: `Benvenuto in ${data.shopName}!`,
+      html: this.generateClientWelcomeEmailHTML(data),
+      text: this.generateClientWelcomeEmailText(data),
     });
   }
 
