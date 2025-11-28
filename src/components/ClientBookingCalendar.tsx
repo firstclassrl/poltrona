@@ -204,12 +204,17 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       }
       
       // Get or create client record in clients table
-      const clientId = await apiService.getOrCreateClientFromUser({
+      const clientRecord = await apiService.getOrCreateClientFromUser({
         id: user.id,
         email: user.email,
         full_name: user.full_name,
         phone: user.phone,
       });
+      const clientId = typeof clientRecord === 'string' ? clientRecord : clientRecord?.id;
+      const clientPhone =
+        (typeof clientRecord === 'object' && clientRecord?.phone_e164) ||
+        user.phone ||
+        '';
       
       // Create and save the appointment
       const startDateTime = new Date(`${selectedDate.toISOString().split('T')[0]}T${selectedTime}:00`);
@@ -295,7 +300,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
           const emailData = {
             clientName: user.full_name || 'Cliente',
             clientEmail: user.email || '',
-            clientPhone: user.phone || '',
+        clientPhone: clientPhone || 'Non fornito',
             barberName: barber.full_name,
             serviceName: service?.name || 'N/A',
             appointmentDate: selectedDate?.toLocaleDateString('it-IT') || '',

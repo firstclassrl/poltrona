@@ -176,11 +176,11 @@ export const ClientProfile: React.FC = () => {
         
         // 4. Invia email al negozio (usa notification_email del negozio)
         if (shop?.notification_email) {
-          await emailNotificationService.sendCancellationNotification(
+          const emailResult = await emailNotificationService.sendCancellationNotification(
             {
               clientName: clientName,
               clientEmail: appointmentToCancel.clients?.email || user.email || undefined,
-              clientPhone: appointmentToCancel.clients?.phone_e164,
+              clientPhone: appointmentToCancel.clients?.phone_e164 || 'Non fornito',
               serviceName: serviceName,
               appointmentDate: appointmentDate,
               appointmentTime: appointmentTime,
@@ -189,7 +189,12 @@ export const ClientProfile: React.FC = () => {
             },
             shop.notification_email
           );
-          console.log('📧 Email annullamento inviata a:', shop.notification_email);
+          
+          if (emailResult.success) {
+            console.log('📧 Email annullamento inviata a:', shop.notification_email);
+          } else {
+            console.error('❌ Errore invio email annullamento:', emailResult.error);
+          }
         }
       }
       

@@ -259,7 +259,7 @@ ${data.shopName} - Sistema di Gestione Clienti
 
   // Genera il template HTML per l'email di annullamento appuntamento
   private generateCancellationNotificationHTML(data: AppointmentCancellationData): string {
-    return `
+    return this.cleanHtml(`
       <!DOCTYPE html>
       <html>
       <head>
@@ -410,7 +410,7 @@ ${data.shopName} - Sistema di Gestione Clienti
         </div>
       </body>
       </html>
-    `;
+    `);
   }
 
   // Genera il testo semplice per l'email di annullamento
@@ -489,7 +489,7 @@ ${data.shopName} - Sistema di Gestione Appuntamenti
 
   // Genera HTML per notifica nuovo appuntamento
   private generateNewAppointmentNotificationHTML(data: NewAppointmentNotificationData): string {
-    return `
+    return this.cleanHtml(`
       <!DOCTYPE html>
       <html>
       <head>
@@ -552,7 +552,7 @@ ${data.shopName} - Sistema di Gestione Appuntamenti
         </div>
       </body>
       </html>
-    `;
+    `);
   }
 
   // Genera testo per notifica nuovo appuntamento

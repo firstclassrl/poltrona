@@ -40,13 +40,7 @@ export const useAppointments = () => {
         console.log('✅ Appuntamenti caricati dal database:', dbAppointments.length);
       } else {
         // Fallback al localStorage se il database è vuoto o non disponibile
-        const savedAppointments = localStorage.getItem('appointments');
-        if (savedAppointments) {
-          setAppointments(JSON.parse(savedAppointments));
-          console.log('ℹ️ Appuntamenti caricati dal localStorage (fallback)');
-        } else {
-          setAppointments([]);
-        }
+        setAppointments([]);
       }
     } catch (error) {
       console.error('Errore nel caricamento degli appuntamenti:', error);
@@ -89,64 +83,8 @@ export const useAppointments = () => {
       return created;
       
     } catch (error) {
-      console.error('❌ Errore nella creazione dell\'appuntamento nel database, uso localStorage:', error);
-      
-      // Fallback al localStorage se il database non funziona
-      const newAppointment: Appointment = {
-        id: `appt_${Date.now()}`,
-        shop_id: '1',
-        client_id: appointmentData.client_id,
-        staff_id: appointmentData.staff_id,
-        service_id: appointmentData.service_id,
-        start_at: appointmentData.start_at,
-        end_at: appointmentData.end_at,
-        status: 'confirmed',
-        notes: appointmentData.notes || '',
-        gcal_event_id: null,
-        products: appointmentData.products || [],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        clients: {
-          id: appointmentData.client_id,
-          shop_id: '1',
-          first_name: 'Cliente',
-          last_name: 'Demo',
-          phone_e164: '+39 123 456 7890',
-          email: 'cliente@example.com',
-          photo_url: null,
-          notes: null,
-          created_at: new Date().toISOString(),
-        },
-        staff: {
-          id: appointmentData.staff_id,
-          shop_id: '1',
-          full_name: 'Barbiere Demo',
-          role: 'Barbiere',
-          calendar_id: null,
-          active: true,
-          chair_id: 'chair_1',
-          profile_photo_url: null,
-          email: 'barbiere@example.com',
-          created_at: new Date().toISOString(),
-        },
-        services: {
-          id: appointmentData.service_id,
-          shop_id: '1',
-          name: 'Servizio Demo',
-          duration_min: 60,
-          price_cents: 2500,
-          active: true,
-          image_url: null,
-        },
-      };
-
-      // Salva nel localStorage come fallback
-      const updatedAppointments = [...appointments, newAppointment];
-      localStorage.setItem('appointments', JSON.stringify(updatedAppointments));
-      setAppointments(updatedAppointments);
-      
-      console.log('⚠️ Appuntamento salvato in localStorage (fallback):', newAppointment);
-      return newAppointment;
+      console.error('❌ Errore nella creazione dell\'appuntamento nel database:', error);
+      throw error;
       
     } finally {
       setIsLoading(false);
@@ -191,11 +129,8 @@ export const useAppointments = () => {
       await loadAppointments();
       console.log('✅ Appuntamento eliminato dal database:', appointmentId);
     } catch (error) {
-      console.error('❌ Errore nell\'eliminazione dal database, uso localStorage:', error);
-      // Fallback al localStorage
-      const updatedAppointments = appointments.filter(app => app.id !== appointmentId);
-      localStorage.setItem('appointments', JSON.stringify(updatedAppointments));
-      setAppointments(updatedAppointments);
+      console.error('❌ Errore nell\'eliminazione dal database:', error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -219,15 +154,8 @@ export const useAppointments = () => {
       await loadAppointments();
       console.log('✅ Appuntamento aggiornato nel database:', appointmentId);
     } catch (error) {
-      console.error('❌ Errore nell\'aggiornamento nel database, uso localStorage:', error);
-      // Fallback al localStorage
-      const updatedAppointments = appointments.map(app => 
-        app.id === appointmentId 
-          ? { ...app, ...updates, updated_at: new Date().toISOString() }
-          : app
-      );
-      localStorage.setItem('appointments', JSON.stringify(updatedAppointments));
-      setAppointments(updatedAppointments);
+      console.error('❌ Errore nell\'aggiornamento nel database:', error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
