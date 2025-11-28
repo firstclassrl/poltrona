@@ -123,9 +123,11 @@ const fetchWithTokenRefresh = async (
   return response;
 };
 
-const buildHeaders = (authRequired: boolean = false) => {
-  const userToken = (typeof window !== 'undefined') ? localStorage.getItem('auth_token') : null;
-  const bearer = authRequired && userToken ? userToken : API_CONFIG.SUPABASE_ANON_KEY;
+const buildHeaders = (authRequired: boolean = false, overrideToken?: string) => {
+  const storedToken = (typeof window !== 'undefined') ? localStorage.getItem('auth_token') : null;
+  const bearer = authRequired 
+    ? (overrideToken || storedToken || API_CONFIG.SUPABASE_ANON_KEY)
+    : API_CONFIG.SUPABASE_ANON_KEY;
   return {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -147,6 +149,79 @@ export const apiService = {
     } catch (error) {
       console.error('Error searching clients:', error);
       return [];
+    }
+  },
+
+  // Create new client (requires authentication)
+  async createClient(data: Partial<Client>, options?: { accessToken?: string }): Promise<Client> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    
+    const shop = await this.getShop();
+    const payload: Partial<Client> = {
+      shop_id: shop?.id && shop.id !== 'default' ? shop.id : null,
+      first_name: data.first_name?.trim() || 'Cliente',
+      last_name: data.last_name?.trim() || null,
+      phone_e164: data.phone_e164?.trim() || '+39000000000',
+      email: data.email?.trim() || null,
+      notes: data.notes || null,
+    };
+
+    try {
+      const response = await fetch(API_ENDPOINTS.SEARCH_CLIENTS, {
+        method: 'POST',
+        headers: { ...buildHeaders(true, options?.accessToken), Prefer: 'return=representation' },
+        body: JSON.stringify(payload),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to create client: ${response.status} ${errorText}`);
+      }
+      
+      const created = await response.json();
+      return created[0];
+    } catch (error) {
+      console.error('Error creating client:', error);
+      throw error;
+    }
+  },
+
+  // Update client by ID (requires authentication)
+  async updateClient(clientId: string, data: Partial<Client>, options?: { accessToken?: string }): Promise<Client> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    if (!clientId) throw new Error('ID cliente mancante');
+    
+    const allowedFields: Array<keyof Client> = [
+      'first_name',
+      'last_name',
+      'phone_e164',
+      'email',
+      'notes',
+    ];
+    const payload: Record<string, unknown> = {};
+    allowedFields.forEach(field => {
+      if (typeof data[field] !== 'undefined') {
+        payload[field] = data[field];
+      }
+    });
+
+    try {
+      const response = await fetch(`${API_ENDPOINTS.SEARCH_CLIENTS}?id=eq.${clientId}`, {
+        method: 'PATCH',
+        headers: { ...buildHeaders(true, options?.accessToken), Prefer: 'return=representation' },
+        body: JSON.stringify(payload),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to update client: ${response.status} ${errorText}`);
+      }
+      
+      const updated = await response.json();
+      return updated[0];
+    } catch (error) {
+      console.error('Error updating client:', error);
+      throw error;
     }
   },
 
@@ -215,7 +290,10 @@ export const apiService = {
   },
 
   // Get or create client from authenticated user (pubblico - non richiede autenticazione)
-  async getOrCreateClientFromUser(user: { id: string; email?: string; full_name?: string; phone?: string }): Promise<{ id: string; email?: string | null; phone_e164?: string | null }> {
+  async getOrCreateClientFromUser(
+    user: { id: string; email?: string; full_name?: string; phone?: string },
+    options?: { accessToken?: string }
+  ): Promise<{ id: string; email?: string | null; phone_e164?: string | null }> {
     if (!isSupabaseConfigured()) {
       // Se Supabase non è configurato, genera un ID temporaneo
       return { id: `temp_client_${Date.now()}`, email: user.email ?? null, phone_e164: user.phone ?? null };
@@ -225,7 +303,7 @@ export const apiService = {
       // Cerca se esiste già un cliente con questa email (usa accesso pubblico)
       if (user.email) {
         const searchUrl = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=id,email,phone_e164&email=eq.${encodeURIComponent(user.email)}&limit=1`;
-        const searchResponse = await fetch(searchUrl, { headers: buildHeaders(true) });
+        const searchResponse = await fetch(searchUrl, { headers: buildHeaders(true, options?.accessToken) });
         
         if (searchResponse.ok) {
           const existingClients = await searchResponse.json();
@@ -237,7 +315,7 @@ export const apiService = {
               try {
                 await fetch(`${API_ENDPOINTS.SEARCH_CLIENTS}?id=eq.${existingClient.id}`, {
                   method: 'PATCH',
-                  headers: { ...buildHeaders(true), Prefer: 'return=representation' },
+                  headers: { ...buildHeaders(true, options?.accessToken), Prefer: 'return=representation' },
                   body: JSON.stringify({ phone_e164: user.phone }),
                 });
                 existingClient.phone_e164 = user.phone;
@@ -270,7 +348,7 @@ export const apiService = {
 
       const createResponse = await fetch(API_ENDPOINTS.SEARCH_CLIENTS, {
         method: 'POST',
-        headers: { ...buildHeaders(true), Prefer: 'return=representation' },
+        headers: { ...buildHeaders(true, options?.accessToken), Prefer: 'return=representation' },
         body: JSON.stringify(clientData),
       });
 
@@ -444,7 +522,7 @@ export const apiService = {
       // Usa buildHeaders(false) per permettere lettura pubblica degli appuntamenti
       // Questo permette sia ai clienti che ai barbieri di vedere gli appuntamenti
       // Include services per mostrare nome servizio e durata
-      const url = `${API_ENDPOINTS.APPOINTMENTS_FEED}?select=*,clients(first_name,last_name,phone_e164,email),staff(full_name),services(id,name,duration_min)&order=start_at.asc&start_at=gte.${start}&start_at=lte.${end}`;
+      const url = `${API_ENDPOINTS.APPOINTMENTS_FEED}?select=*,clients(id,first_name,last_name,phone_e164,email),staff(full_name),services(id,name,duration_min)&order=start_at.asc&start_at=gte.${start}&start_at=lte.${end}`;
       const response = await fetch(url, { headers: buildHeaders(false) });
       if (!response.ok) {
         const errorText = await response.text();

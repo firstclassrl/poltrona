@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Search, Phone, Mail, User, Plus, Calendar } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Input } from './ui/Input';
@@ -14,13 +14,26 @@ interface ClientsProps {
 
 export const Clients = ({ onNavigateToBooking }: ClientsProps) => {
   const [clients, setClients] = useState<Client[]>([]);
-  useEffect(() => {
-    const load = async () => {
+  const [, setIsSearching] = useState(false);
+  const [, setIsClientsLoading] = useState(false);
+
+  const loadClients = useCallback(async () => {
+    setIsClientsLoading(true);
+    try {
       const results = await apiService.searchClients('');
       setClients(results);
-    };
-    load();
+    } catch (error) {
+      console.error('Errore caricamento clienti:', error);
+      setClients([]);
+    } finally {
+      setIsClientsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadClients();
+  }, [loadClients]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredClients, setFilteredClients] = useState<Client[]>(clients);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -28,7 +41,6 @@ export const Clients = ({ onNavigateToBooking }: ClientsProps) => {
   const [isCustomerFormOpen, setIsCustomerFormOpen] = useState(false);
   const [customerFormMode, setCustomerFormMode] = useState<'add' | 'edit'>('add');
   const [editingCustomer, setEditingCustomer] = useState<Client | null>(null);
-  const [, setIsLoading] = useState(false);
 
   useEffect(() => {
     // Filter clients based on search query
@@ -43,7 +55,7 @@ export const Clients = ({ onNavigateToBooking }: ClientsProps) => {
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
     if (query.length > 2) {
-      setIsLoading(true);
+      setIsSearching(true);
       try {
         const results = await apiService.searchClients(query);
         setFilteredClients(results);
@@ -51,7 +63,7 @@ export const Clients = ({ onNavigateToBooking }: ClientsProps) => {
         console.error('Search failed:', error);
         // Fallback to local filtering
       } finally {
-        setIsLoading(false);
+        setIsSearching(false);
       }
     }
   };
@@ -75,22 +87,23 @@ export const Clients = ({ onNavigateToBooking }: ClientsProps) => {
 
   const handleSaveCustomer = async (customerData: Partial<Client>) => {
     try {
+      setIsClientsLoading(true);
       if (customerFormMode === 'add') {
-        // Add new customer logic here
-        console.log('Adding new customer:', customerData);
-        // In a real app, you would call an API to create the customer
-        // const newClient = await apiService.createClient(customerData);
-        // setClients(prev => [...prev, newClient]);
+        await apiService.createClient(customerData);
       } else {
-        // Edit existing customer logic here
-        console.log('Editing customer:', customerData);
-        // In a real app, you would call an API to update the customer
-        // const updatedClient = await apiService.updateClient(customerData);
-        // setClients(prev => prev.map(c => c.id === updatedClient.id ? updatedClient : c));
+        const targetId = customerData.id || editingCustomer?.id;
+        if (!targetId) {
+          throw new Error('ID cliente non disponibile per l\'aggiornamento');
+        }
+        await apiService.updateClient(targetId, customerData);
       }
+      await loadClients();
       setIsCustomerFormOpen(false);
+      setEditingCustomer(null);
     } catch (error) {
       console.error('Error saving customer:', error);
+    } finally {
+      setIsClientsLoading(false);
     }
   };
 

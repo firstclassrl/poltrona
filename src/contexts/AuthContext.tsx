@@ -347,16 +347,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       const signupJson = await signupRes.json();
+      let signupAccessToken: string | undefined = signupJson.session?.access_token;
+
+      // Se Supabase non restituisce automaticamente la sessione, effettua un login silente
+      if (!signupAccessToken) {
+        try {
+          const tokenUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/token?grant_type=password`;
+          const tokenRes = await fetch(tokenUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${API_CONFIG.SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({ email: data.email.trim().toLowerCase(), password: data.password })
+          });
+          if (tokenRes.ok) {
+            const tokenJson = await tokenRes.json();
+            signupAccessToken = tokenJson.access_token;
+          }
+        } catch (silentLoginError) {
+          console.warn('⚠️ Login silente fallito per creazione client:', silentLoginError);
+        }
+      }
       
       // Se l'utente è stato creato con successo, crea anche il record client
       // per far apparire l'utente nella pagina Clienti
       try {
-        await apiService.getOrCreateClientFromUser({
-          id: signupJson.user?.id || '',
-          email: data.email,
-          full_name: data.full_name,
-          phone: data.phone || undefined,
-        });
+        await apiService.getOrCreateClientFromUser(
+          {
+            id: signupJson.user?.id || '',
+            email: data.email,
+            full_name: data.full_name,
+            phone: data.phone || undefined,
+          },
+          { accessToken: signupAccessToken }
+        );
         console.log('✅ Record client creato per:', data.email);
       } catch (clientError) {
         console.warn('⚠️ Errore nella creazione del record client:', clientError);

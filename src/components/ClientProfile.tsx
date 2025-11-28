@@ -47,10 +47,29 @@ export const ClientProfile: React.FC = () => {
     }
   }, [user]);
 
-  // Filter appointments for this client
-  const clientAppointments = appointments.filter(apt => 
-    apt.client_id === user?.id || apt.clients?.first_name === user?.full_name?.split(' ')[0]
-  );
+  // Helper per confrontare email normalizzate
+  const normalizeEmail = (email?: string | null) => email?.trim().toLowerCase() || '';
+  const authEmail = normalizeEmail(user?.email);
+  const registeredEmail = normalizeEmail(clientData?.email);
+  const registeredClientId = clientData?.id;
+
+  // Filter appointments for this client (match per client_id o email)
+  const clientAppointments = appointments.filter(apt => {
+    const appointmentClientId = apt.client_id || apt.clients?.id;
+    const appointmentEmail = normalizeEmail(apt.clients?.email);
+
+    const matchesClientId = Boolean(
+      (user?.id && appointmentClientId === user.id) ||
+      (registeredClientId && appointmentClientId === registeredClientId)
+    );
+
+    const matchesEmail = Boolean(
+      (authEmail && appointmentEmail === authEmail) ||
+      (registeredEmail && appointmentEmail === registeredEmail)
+    );
+
+    return matchesClientId || matchesEmail;
+  });
 
   const handleSave = async () => {
     if (!user) return;
