@@ -229,19 +229,72 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       console.log('✅ Appuntamento salvato con successo:', savedAppointment);
       
       // Send notification to the barber
-      // Note: Notifications are automatically created by the backend when an appointment is created
-      if (barber) {
-        // Refresh notifications count for the barber
+      if (barber && user) {
+        // Format date and time for notification
+        const appointmentDate = selectedDate?.toLocaleDateString('it-IT', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        }) || '';
+        
+        const clientName = user.full_name || 'Cliente';
+        const serviceName = service?.name || 'Servizio';
+        
+        // Create in-app notification for the barber
+        try {
+          await apiService.createNotification({
+            user_id: barber.id,
+            user_type: 'staff',
+            type: 'new_appointment',
+            title: '🔔 Nuovo Appuntamento!',
+            message: `${clientName} ha prenotato ${serviceName} per ${appointmentDate} alle ${selectedTime}`,
+            data: {
+              appointment_id: savedAppointment.id,
+              client_name: clientName,
+              client_email: user.email,
+              client_phone: user.phone || '',
+              service_name: serviceName,
+              appointment_date: appointmentDate,
+              appointment_time: selectedTime,
+            }
+          });
+          console.log('✅ Notifica in-app creata per il barbiere:', barber.id);
+          
+          // Play notification sound using Web Audio API
+          try {
+            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 880; // A5 note
+            oscillator.type = 'sine';
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+          } catch {
+            // Audio not available
+          }
+        } catch (notifError) {
+          console.error('❌ Errore creazione notifica:', notifError);
+        }
+        
+        // Refresh notifications count
         refreshUnreadCount();
 
-        // Send email notification to the barber
-        if (barber.email && user) {
+        // Send email notification to the shop's notification email
+        if (shop?.notification_email) {
           const emailData = {
             clientName: user.full_name || 'Cliente',
             clientEmail: user.email || '',
             clientPhone: user.phone || '',
             barberName: barber.full_name,
-            barberEmail: barber.email,
+            barberEmail: shop.notification_email, // Usa l'email del negozio
             appointmentDate: selectedDate?.toLocaleDateString('it-IT') || '',
             appointmentTime: selectedTime,
             serviceName: service?.name || 'N/A',
@@ -254,11 +307,13 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
           // Send email in background (non-blocking)
           emailService.sendAppointmentNotification(emailData).then(success => {
             if (success) {
-              console.log('📧 Email inviata con successo al barbiere:', barber.email);
+              console.log('📧 Email inviata con successo al negozio:', shop.notification_email);
             } else {
-              console.error('❌ Errore nell\'invio email al barbiere');
+              console.error('❌ Errore nell\'invio email al negozio');
             }
           });
+        } else {
+          console.log('ℹ️ Email notifiche non configurata per il negozio');
         }
       }
       

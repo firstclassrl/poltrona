@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import type { Notification } from '../types';
 import { apiService } from '../services/api';
@@ -16,8 +16,35 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
-// Polling interval in milliseconds (30 seconds)
-const POLLING_INTERVAL = 30000;
+// Polling interval in milliseconds (15 seconds for faster notifications)
+const POLLING_INTERVAL = 15000;
+
+// Play notification sound using Web Audio API
+const playNotificationSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    // Play two beeps for notification
+    oscillator.frequency.value = 880; // A5 note
+    oscillator.type = 'sine';
+    
+    const now = audioContext.currentTime;
+    gainNode.gain.setValueAtTime(0.3, now);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+    gainNode.gain.setValueAtTime(0.3, now + 0.2);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+    
+    oscillator.start(now);
+    oscillator.stop(now + 0.4);
+  } catch {
+    // Audio not available - silently fail
+  }
+};
 
 interface NotificationProviderProps {
   children: ReactNode;
@@ -28,6 +55,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const previousUnreadCount = useRef(0);
+  const isInitialLoad = useRef(true);
 
   // Load notifications from API
   const loadNotifications = useCallback(async () => {
@@ -39,6 +68,15 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       setNotifications(data);
       // Update unread count from loaded data
       const unread = data.filter(n => !n.read_at).length;
+      
+      // Play sound if new notifications arrived (not on initial load)
+      if (!isInitialLoad.current && unread > previousUnreadCount.current) {
+        playNotificationSound();
+        console.log('🔔 Nuova notifica ricevuta!');
+      }
+      
+      previousUnreadCount.current = unread;
+      isInitialLoad.current = false;
       setUnreadCount(unread);
     } catch (error) {
       console.error('Error loading notifications:', error);
@@ -53,6 +91,17 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     
     try {
       const count = await apiService.getUnreadNotificationsCount(user.id);
+      
+      // Play sound if new notifications arrived
+      if (count > previousUnreadCount.current) {
+        playNotificationSound();
+        console.log('🔔 Nuova notifica ricevuta! Totale non lette:', count);
+        // Also reload full notifications to get the new one
+        const data = await apiService.getNotifications(user.id);
+        setNotifications(data);
+      }
+      
+      previousUnreadCount.current = count;
       setUnreadCount(count);
     } catch (error) {
       console.error('Error refreshing unread count:', error);

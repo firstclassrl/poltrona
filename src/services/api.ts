@@ -47,6 +47,81 @@ const isAuthError = (error: any): boolean => {
          errorMessage.includes('unauthorized');
 };
 
+// Helper per tentare il refresh del token
+const tryRefreshToken = async (): Promise<boolean> => {
+  const refreshToken = localStorage.getItem('refresh_token');
+  if (!refreshToken || !isSupabaseConfigured()) {
+    return false;
+  }
+
+  try {
+    console.log('🔄 API: Tentativo refresh token...');
+    const refreshUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/token?grant_type=refresh_token`;
+    const refreshRes = await fetch(refreshUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ refresh_token: refreshToken })
+    });
+
+    if (refreshRes.ok) {
+      const tokenJson = await refreshRes.json();
+      localStorage.setItem('auth_token', tokenJson.access_token);
+      if (tokenJson.refresh_token) {
+        localStorage.setItem('refresh_token', tokenJson.refresh_token);
+      }
+      console.log('✅ API: Token refreshato con successo');
+      return true;
+    }
+    
+    console.log('❌ API: Refresh token fallito');
+    return false;
+  } catch (error) {
+    console.error('❌ API: Errore refresh token:', error);
+    return false;
+  }
+};
+
+// Helper per fare fetch con retry automatico se il token è scaduto
+const fetchWithTokenRefresh = async (
+  url: string, 
+  options: RequestInit, 
+  useAuth: boolean = true
+): Promise<Response> => {
+  let response = await fetch(url, options);
+  
+  // Se errore 401 e usaAuth, prova a refreshare il token e riprova
+  if (response.status === 401 && useAuth) {
+    const responseText = await response.clone().text();
+    if (responseText.includes('JWT expired') || responseText.includes('jwt expired')) {
+      console.log('🔄 API: JWT scaduto, tentativo refresh...');
+      const refreshed = await tryRefreshToken();
+      
+      if (refreshed) {
+        // Ricostruisci gli headers con il nuovo token
+        const newHeaders = { ...buildHeaders(true) };
+        if (options.headers) {
+          Object.assign(newHeaders, options.headers);
+        }
+        newHeaders['Authorization'] = `Bearer ${localStorage.getItem('auth_token')}`;
+        
+        // Riprova la chiamata
+        response = await fetch(url, { ...options, headers: newHeaders });
+        console.log('🔄 API: Chiamata riprovata dopo refresh');
+      } else {
+        // Refresh fallito, forza logout
+        console.log('❌ API: Refresh fallito, richiesto nuovo login');
+        // Dispatch un evento per notificare l'app
+        window.dispatchEvent(new CustomEvent('auth:session-expired'));
+      }
+    }
+  }
+  
+  return response;
+};
+
 const buildHeaders = (authRequired: boolean = false) => {
   const userToken = (typeof window !== 'undefined') ? localStorage.getItem('auth_token') : null;
   const bearer = authRequired && userToken ? userToken : API_CONFIG.SUPABASE_ANON_KEY;
@@ -212,8 +287,9 @@ export const apiService = {
         return createDefaultShopHoursConfig();
       }
 
+      // Usa buildHeaders(false) per permettere lettura pubblica degli orari
       const url = `${API_ENDPOINTS.SHOP_DAILY_HOURS}?select=*,shop_daily_time_slots(*)&shop_id=eq.${shop.id}&order=day_of_week.asc`;
-      const response = await fetch(url, { headers: buildHeaders(true) });
+      const response = await fetch(url, { headers: buildHeaders(false) });
       if (!response.ok) {
         throw new Error(`Failed to fetch shop daily hours: ${response.status}`);
       }
@@ -413,11 +489,16 @@ export const apiService = {
       console.log('📝 Tentativo creazione appuntamento con payload:', payload);
       console.log('📝 Endpoint:', API_ENDPOINTS.APPOINTMENTS_FEED);
       
-      const response = await fetch(API_ENDPOINTS.APPOINTMENTS_FEED, {
-        method: 'POST',
-        headers: { ...buildHeaders(true), Prefer: 'return=representation' },
-        body: JSON.stringify(payload),
-      });
+      // Usa fetchWithTokenRefresh per gestire automaticamente il refresh del token
+      const response = await fetchWithTokenRefresh(
+        API_ENDPOINTS.APPOINTMENTS_FEED,
+        {
+          method: 'POST',
+          headers: { ...buildHeaders(true), Prefer: 'return=representation' },
+          body: JSON.stringify(payload),
+        },
+        true
+      );
       
       if (!response.ok) {
         const errorText = await response.text();

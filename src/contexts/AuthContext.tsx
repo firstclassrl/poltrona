@@ -9,6 +9,7 @@ interface AuthContextType extends AuthState {
   logout: () => void;
   register: (data: RegisterData) => Promise<void>;
   hasPermission: (permission: string) => boolean;
+  refreshSession: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,32 +29,137 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isLoading: true,
   });
 
+  // Funzione per verificare se il token è valido
+  const verifyToken = async (): Promise<boolean> => {
+    const token = localStorage.getItem('auth_token');
+    if (!token || !isSupabaseConfigured()) return false;
+
+    try {
+      // Prova a fare una chiamata semplice per verificare il token
+      const response = await fetch(`${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/user`, {
+        headers: {
+          'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  };
+
   useEffect(() => {
-    // Check for stored auth on mount
-    const storedUser = localStorage.getItem('auth_user');
-    if (storedUser) {
-      try {
-        const user = JSON.parse(storedUser);
-        setAuthState({
-          user,
-          isAuthenticated: true,
-          isLoading: false,
-        });
-      } catch (error) {
-        localStorage.removeItem('auth_user');
+    // Check for stored auth on mount and verify/refresh token
+    const initAuth = async () => {
+      const storedUser = localStorage.getItem('auth_user');
+      const storedToken = localStorage.getItem('auth_token');
+      const storedRefreshToken = localStorage.getItem('refresh_token');
+      
+      if (storedUser && storedToken) {
+        try {
+          const user = JSON.parse(storedUser);
+          
+          // Verifica se il token è ancora valido
+          const isTokenValid = await verifyToken();
+          
+          if (isTokenValid) {
+            // Token valido, procedi normalmente
+            setAuthState({
+              user,
+              isAuthenticated: true,
+              isLoading: false,
+            });
+          } else if (storedRefreshToken) {
+            // Token scaduto, prova a refresharlo
+            console.log('🔄 Token scaduto, tentativo di refresh...');
+            
+            const refreshUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/token?grant_type=refresh_token`;
+            const refreshRes = await fetch(refreshUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+              },
+              body: JSON.stringify({ refresh_token: storedRefreshToken })
+            });
+
+            if (refreshRes.ok) {
+              const tokenJson = await refreshRes.json();
+              localStorage.setItem('auth_token', tokenJson.access_token);
+              if (tokenJson.refresh_token) {
+                localStorage.setItem('refresh_token', tokenJson.refresh_token);
+              }
+              console.log('✅ Sessione rinnovata automaticamente');
+              
+              setAuthState({
+                user,
+                isAuthenticated: true,
+                isLoading: false,
+              });
+            } else {
+              // Refresh fallito, forza logout
+              console.log('❌ Refresh fallito, sessione terminata');
+              localStorage.removeItem('auth_user');
+              localStorage.removeItem('auth_token');
+              localStorage.removeItem('refresh_token');
+              setAuthState({
+                user: null,
+                isAuthenticated: false,
+                isLoading: false,
+              });
+            }
+          } else {
+            // Nessun refresh token, forza logout
+            console.log('❌ Token scaduto e nessun refresh token');
+            localStorage.removeItem('auth_user');
+            localStorage.removeItem('auth_token');
+            setAuthState({
+              user: null,
+              isAuthenticated: false,
+              isLoading: false,
+            });
+          }
+        } catch (error) {
+          localStorage.removeItem('auth_user');
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('refresh_token');
+          setAuthState({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+          });
+        }
+      } else {
         setAuthState({
           user: null,
           isAuthenticated: false,
           isLoading: false,
         });
       }
-    } else {
+    };
+
+    initAuth();
+
+    // Listener per sessione scaduta (inviato da api.ts quando il refresh fallisce)
+    const handleSessionExpired = () => {
+      console.log('🔒 Sessione scaduta, logout forzato');
+      localStorage.removeItem('auth_user');
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('refresh_token');
       setAuthState({
         user: null,
         isAuthenticated: false,
         isLoading: false,
       });
-    }
+      // Mostra un alert all'utente
+      alert('La tua sessione è scaduta. Effettua nuovamente il login.');
+    };
+
+    window.addEventListener('auth:session-expired', handleSessionExpired);
+    
+    return () => {
+      window.removeEventListener('auth:session-expired', handleSessionExpired);
+    };
   }, []);
 
   const login = async (credentials: LoginCredentials): Promise<void> => {
@@ -128,6 +234,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setAuthState({ user, isAuthenticated: true, isLoading: false });
       localStorage.setItem('auth_user', JSON.stringify(user));
       localStorage.setItem('auth_token', accessToken);
+      // Salva anche il refresh token per poter rinnovare la sessione
+      if (tokenJson.refresh_token) {
+        localStorage.setItem('refresh_token', tokenJson.refresh_token);
+      }
     } catch (error) {
       setAuthState(prev => ({ ...prev, isLoading: false }));
       throw error instanceof Error ? error : new Error('Errore accesso');
@@ -142,6 +252,55 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     });
     localStorage.removeItem('auth_user');
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('refresh_token');
+  };
+
+  // Funzione per refreshare la sessione usando il refresh token
+  const refreshSession = async (): Promise<boolean> => {
+    const refreshToken = localStorage.getItem('refresh_token');
+    const storedUser = localStorage.getItem('auth_user');
+    
+    if (!refreshToken || !storedUser || !isSupabaseConfigured()) {
+      console.log('🔄 Refresh session: dati mancanti, logout richiesto');
+      return false;
+    }
+
+    try {
+      console.log('🔄 Tentativo di refresh della sessione...');
+      
+      const refreshUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/token?grant_type=refresh_token`;
+      const refreshRes = await fetch(refreshUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ refresh_token: refreshToken })
+      });
+
+      if (!refreshRes.ok) {
+        console.log('❌ Refresh fallito, sessione scaduta');
+        return false;
+      }
+
+      const tokenJson = await refreshRes.json();
+      const newAccessToken = tokenJson.access_token;
+      const newRefreshToken = tokenJson.refresh_token;
+
+      if (newAccessToken) {
+        localStorage.setItem('auth_token', newAccessToken);
+        if (newRefreshToken) {
+          localStorage.setItem('refresh_token', newRefreshToken);
+        }
+        console.log('✅ Sessione rinnovata con successo');
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('❌ Errore durante il refresh della sessione:', error);
+      return false;
+    }
   };
 
   const register = async (data: RegisterData): Promise<void> => {
@@ -237,6 +396,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } else {
           console.log('ℹ️ Email notifica non configurata per il negozio');
         }
+        
+        // Crea notifiche in-app per tutti i barbieri
+        try {
+          const staffList = await apiService.getStaff();
+          const registrationDate = new Date().toLocaleDateString('it-IT', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+          
+          for (const staffMember of staffList) {
+            if (staffMember.active) {
+              await apiService.createNotification({
+                user_id: staffMember.id,
+                user_type: 'staff',
+                type: 'new_client',
+                title: '👤 Nuovo Cliente Registrato!',
+                message: `${data.full_name} si è appena registrato all'app. Email: ${data.email}`,
+                data: {
+                  client_name: data.full_name,
+                  client_email: data.email,
+                  client_phone: data.phone || '',
+                  registration_date: registrationDate,
+                }
+              });
+            }
+          }
+          console.log('✅ Notifiche in-app create per lo staff');
+        } catch (notifError) {
+          console.warn('⚠️ Errore creazione notifiche in-app:', notifError);
+        }
       } catch (emailError) {
         // Non bloccare la registrazione se l'email fallisce
         console.warn('⚠️ Errore nel recupero dati negozio o invio email:', emailError);
@@ -292,6 +485,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     register,
     hasPermission,
+    refreshSession,
   };
 
   return (
