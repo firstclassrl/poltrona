@@ -194,6 +194,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             serverMsg = errText || serverMsg;
           } catch {}
         }
+        
+        // Se l'errore indica credenziali invalide o password sbagliata, mostra messaggio specifico
+        const errorLower = serverMsg.toLowerCase();
+        if (errorLower.includes('invalid login') || 
+            errorLower.includes('invalid credentials') || 
+            errorLower.includes('wrong password') ||
+            errorLower.includes('incorrect password') ||
+            errorLower.includes('password') ||
+            (errorLower.includes('invalid') && errorLower.includes('credential'))) {
+          serverMsg = 'Password sbagliata';
+        }
+        
         setAuthState(prev => ({ ...prev, isLoading: false }));
         throw new Error(serverMsg);
       }

@@ -30,6 +30,7 @@ export const Login: React.FC = () => {
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [showRegistrationSuccess, setShowRegistrationSuccess] = useState(false);
   const [hasJustRegistered, setHasJustRegistered] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
   
   const { login, register } = useAuth();
 
@@ -75,17 +76,11 @@ export const Login: React.FC = () => {
         phone: registrationData.phone || undefined,
       });
       
-      // Mostra messaggio di successo
-      setSuccess('Registrazione completata con successo! Ora puoi effettuare il login.');
-      setShowRegistrationSuccess(true);
-      setHasJustRegistered(true);
-      setMode('login');
-      setCredentials(prev => ({ ...prev, email: registrationEmail, password: '' }));
+      // Salva l'email per il modal di successo
+      setRegisteredEmail(registrationEmail);
       
-      // Mostra toast di notifica
-      setTimeout(() => {
-        setSuccess('');
-      }, 3000);
+      // Mostra modal di successo
+      setShowRegistrationSuccess(true);
       
       // Reset del form di registrazione
       setRegistrationData({
@@ -370,7 +365,12 @@ export const Login: React.FC = () => {
       {/* Modale successo registrazione */}
       <Modal
         isOpen={showRegistrationSuccess}
-        onClose={() => setShowRegistrationSuccess(false)}
+        onClose={() => {
+          setShowRegistrationSuccess(false);
+          setHasJustRegistered(true);
+          setMode('login');
+          setCredentials(prev => ({ ...prev, email: registeredEmail, password: '' }));
+        }}
         title="Registrazione completata"
         size="small"
       >
@@ -383,7 +383,12 @@ export const Login: React.FC = () => {
           </p>
           <Button
             className="w-full"
-            onClick={() => setShowRegistrationSuccess(false)}
+            onClick={() => {
+              setShowRegistrationSuccess(false);
+              setHasJustRegistered(true);
+              setMode('login');
+              setCredentials(prev => ({ ...prev, email: registeredEmail, password: '' }));
+            }}
           >
             Vai al login
           </Button>
