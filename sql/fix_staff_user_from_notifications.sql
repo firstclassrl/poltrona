@@ -15,27 +15,7 @@ BEGIN
 END $$;
 
 -- 2. Collega staff usando i user_id dalle notifications
--- Prima prova: se notifications.user_id corrisponde a staff.id, trova l'auth.users.id tramite profiles
-UPDATE public.staff s
-SET user_id = p.user_id
-FROM public.notifications n
-JOIN public.profiles p ON p.user_id IN (
-  -- Trova l'auth.users.id che corrisponde a questo staff tramite profiles
-  SELECT p2.user_id 
-  FROM public.profiles p2
-  WHERE p2.role IN ('barber', 'admin', 'staff', 'owner')
-)
-WHERE n.user_type = 'staff'
-  AND n.user_id = s.id  -- notifications.user_id è lo staff.id
-  AND s.user_id IS NULL
-  AND EXISTS (
-    -- Verifica che ci sia un profilo collegato a questo staff
-    SELECT 1 FROM public.profiles p3
-    WHERE p3.user_id = p.user_id
-  );
-
--- 3. Se notifications.user_id è già un auth.users.id, usalo direttamente
--- (se notifications.user_id corrisponde a un auth.users.id esistente)
+-- Metodo 1: Se notifications.user_id è già un auth.users.id, usalo direttamente
 UPDATE public.staff s
 SET user_id = n.user_id
 FROM public.notifications n
@@ -50,15 +30,24 @@ WHERE n.user_type = 'staff'
   )
   AND s.user_id IS NULL;
 
--- 4. Metodo alternativo: collega tramite staff.id = notifications.user_id
--- e poi trova l'auth.users.id tramite profiles che ha lo stesso full_name
+-- 3. Metodo 2: Se notifications.user_id è staff.id, trova l'auth.users.id tramite profiles
 UPDATE public.staff s
 SET user_id = p.user_id
 FROM public.notifications n
-JOIN public.profiles p ON LOWER(TRIM(p.full_name)) = LOWER(TRIM(s.full_name))
+INNER JOIN public.profiles p ON (
+  LOWER(TRIM(p.full_name)) = LOWER(TRIM(s.full_name))
+  AND p.role IN ('barber', 'admin', 'staff', 'owner')
+)
 WHERE n.user_type = 'staff'
   AND n.user_id = s.id  -- notifications.user_id è lo staff.id
-  AND p.role IN ('barber', 'admin', 'staff', 'owner')
+  AND s.user_id IS NULL;
+
+-- 4. Metodo 3: Collega tramite email se disponibile
+UPDATE public.staff s
+SET user_id = au.id
+FROM auth.users au
+WHERE s.email IS NOT NULL 
+  AND LOWER(s.email) = LOWER(au.email)
   AND s.user_id IS NULL;
 
 -- 5. Verifica i collegamenti creati

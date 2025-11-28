@@ -91,8 +91,27 @@ class EmailNotificationService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`Supabase Edge Function error: ${errorData.error || response.statusText}`);
+        // Prova a leggere il body come JSON
+        let errorData: any = {};
+        let errorText = '';
+        try {
+          errorText = await response.text();
+          errorData = JSON.parse(errorText);
+        } catch {
+          // Se non è JSON, usa il testo
+          errorData = { error: errorText || response.statusText };
+        }
+        
+        const errorMessage = errorData.error || errorData.message || errorText || response.statusText;
+        console.error('❌ Edge Function Error Details:', {
+          status: response.status,
+          statusText: response.statusText,
+          url: edgeFunctionUrl,
+          errorData,
+          errorText
+        });
+        
+        throw new Error(`Supabase Edge Function error (${response.status}): ${errorMessage}`);
       }
 
       const result = await response.json();
@@ -105,6 +124,7 @@ class EmailNotificationService {
 
     } catch (error) {
       console.error('❌ Errore invio email via Supabase:', error);
+      console.error('❌ Stack trace:', error instanceof Error ? error.stack : 'N/A');
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Errore sconosciuto' 
@@ -454,7 +474,14 @@ ${data.shopName} - Sistema di Gestione Appuntamenti
     clientData: NewClientNotificationData, 
     shopEmail: string
   ): Promise<EmailResponse> {
-    this.ensureConfigured();
+    try {
+      this.ensureConfigured();
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Servizio email non configurato' 
+      };
+    }
 
     // Usa Supabase Edge Function per inviare l'email
     return this.sendEmailViaSupabase({
@@ -580,7 +607,14 @@ Il team ${data.shopName}
   async sendClientWelcomeEmail(
     data: ClientWelcomeEmailData
   ): Promise<EmailResponse> {
-    this.ensureConfigured();
+    try {
+      this.ensureConfigured();
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Servizio email non configurato' 
+      };
+    }
 
     return this.sendEmailViaSupabase({
       to: data.clientEmail,
@@ -595,7 +629,14 @@ Il team ${data.shopName}
     cancellationData: AppointmentCancellationData, 
     shopEmail: string
   ): Promise<EmailResponse> {
-    this.ensureConfigured();
+    try {
+      this.ensureConfigured();
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Servizio email non configurato' 
+      };
+    }
 
     // Usa Supabase Edge Function per inviare l'email
     return this.sendEmailViaSupabase({
@@ -611,7 +652,14 @@ Il team ${data.shopName}
     appointmentData: NewAppointmentNotificationData, 
     shopEmail: string
   ): Promise<EmailResponse> {
-    this.ensureConfigured();
+    try {
+      this.ensureConfigured();
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Servizio email non configurato' 
+      };
+    }
 
     // Usa Supabase Edge Function per inviare l'email
     return this.sendEmailViaSupabase({
