@@ -242,9 +242,11 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
         const serviceName = service?.name || 'Servizio';
         
         // Create in-app notification for the barber
+        // Usa user_id se disponibile (collegato a auth.users), altrimenti usa id
+        const barberUserId = barber.user_id || barber.id;
         try {
           await apiService.createNotification({
-            user_id: barber.id,
+            user_id: barberUserId,
             user_type: 'staff',
             type: 'new_appointment',
             title: '🔔 Nuovo Appuntamento!',
@@ -257,9 +259,10 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
               service_name: serviceName,
               appointment_date: appointmentDate,
               appointment_time: selectedTime,
+              staff_id: barber.id, // Mantieni anche lo staff_id originale
             }
           });
-          console.log('✅ Notifica in-app creata per il barbiere:', barber.id);
+          console.log('✅ Notifica in-app creata per il barbiere. user_id:', barberUserId, 'staff_id:', barber.id);
           
           // Play notification sound using Web Audio API
           try {

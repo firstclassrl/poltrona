@@ -129,6 +129,10 @@ export const ClientProfile: React.FC = () => {
       
       // 3. Crea una notifica per il barbiere
       if (appointmentToCancel.staff_id) {
+        // Prima ottieni i dettagli dello staff per avere user_id
+        const staffDetails = await apiService.getStaffById(appointmentToCancel.staff_id);
+        const shop = await apiService.getShop();
+        
         const clientName = appointmentToCancel.clients 
           ? `${appointmentToCancel.clients.first_name} ${appointmentToCancel.clients.last_name || ''}`.trim()
           : user.full_name || 'Cliente';
@@ -148,12 +152,15 @@ export const ClientProfile: React.FC = () => {
         
         const serviceName = appointmentToCancel.services?.name || 'Servizio';
         
+        // Usa user_id se disponibile (collegato a auth.users), altrimenti usa staff_id
+        const notificationUserId = staffDetails?.user_id || appointmentToCancel.staff_id;
+        
         // Crea notifica in-app per il barbiere
         await apiService.createNotification({
-          user_id: appointmentToCancel.staff_id,
+          user_id: notificationUserId,
           user_type: 'staff',
           type: 'appointment_cancelled',
-          title: 'Appuntamento Annullato',
+          title: '❌ Appuntamento Annullato',
           message: `${clientName} ha annullato l'appuntamento per ${serviceName} del ${appointmentDate} alle ${appointmentTime}`,
           data: {
             appointment_id: appointmentToCancel.id,
@@ -162,14 +169,13 @@ export const ClientProfile: React.FC = () => {
             service_name: serviceName,
             appointment_date: appointmentDate,
             appointment_time: appointmentTime,
+            staff_id: appointmentToCancel.staff_id,
           }
         });
+        console.log('✅ Notifica annullamento creata. user_id:', notificationUserId, 'staff_id:', appointmentToCancel.staff_id);
         
-        // 4. Invia email al barbiere
-        const staffDetails = await apiService.getStaffById(appointmentToCancel.staff_id);
-        const shop = await apiService.getShop();
-        
-        if (staffDetails?.email) {
+        // 4. Invia email al negozio (usa notification_email del negozio)
+        if (shop?.notification_email) {
           await emailNotificationService.sendCancellationNotification(
             {
               clientName: clientName,
@@ -178,11 +184,12 @@ export const ClientProfile: React.FC = () => {
               serviceName: serviceName,
               appointmentDate: appointmentDate,
               appointmentTime: appointmentTime,
-              barberName: staffDetails.full_name,
-              shopName: shop?.name || 'Barbershop',
+              barberName: staffDetails?.full_name || 'Staff',
+              shopName: shop.name || 'Barbershop',
             },
-            staffDetails.email
+            shop.notification_email
           );
+          console.log('📧 Email annullamento inviata a:', shop.notification_email);
         }
       }
       

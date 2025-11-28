@@ -12,6 +12,7 @@ export interface Client {
 
 export interface Staff {
   id: string;
+  user_id?: string | null; // Link to auth.users for notifications
   shop_id: string | null;
   full_name: string;
   role: string | null;
