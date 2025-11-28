@@ -34,10 +34,6 @@ export const Login: React.FC = () => {
   
   const { login, register } = useAuth();
 
-  // Debug: log quando showRegistrationSuccess cambia
-  useEffect(() => {
-    console.log('🔍 showRegistrationSuccess cambiato a:', showRegistrationSuccess);
-  }, [showRegistrationSuccess]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,15 +77,14 @@ export const Login: React.FC = () => {
         phone: registrationData.phone || undefined,
       });
       
-      // Salva l'email per il modal di successo PRIMA di resettare
+      // Salva l'email per il modal di successo
       setRegisteredEmail(registrationEmail);
       
-      // Mostra modal di successo
-      console.log('✅ Registrazione completata, mostro modal di successo');
-      setShowRegistrationSuccess(true);
-      console.log('✅ showRegistrationSuccess impostato a true');
-      
-      // NON resettare il form qui - lo faremo quando l'utente chiude il modal
+      // Mostra modal di successo IMMEDIATAMENTE
+      // Usa requestAnimationFrame per assicurarsi che React abbia finito il render
+      requestAnimationFrame(() => {
+        setShowRegistrationSuccess(true);
+      });
       
     } catch (error) {
       throw error; // Rilancia l'errore per essere gestito da handleSubmit
@@ -360,62 +355,68 @@ export const Login: React.FC = () => {
         {/* Nessun account demo in produzione */}
       </Card>
 
-      {/* Modale successo registrazione */}
-      <Modal
-        isOpen={showRegistrationSuccess}
-        onClose={() => {
-          // Reset del form di registrazione
-          setRegistrationData({
-            firstName: '',
-            lastName: '',
-            phone: '',
-            email: '',
-            password: '',
-            confirmPassword: '',
-          });
-          setPrivacyAccepted(false);
-          
-          // Chiudi modal e vai al login
-          setShowRegistrationSuccess(false);
-          setHasJustRegistered(true);
-          setMode('login');
-          setCredentials(prev => ({ ...prev, email: registeredEmail, password: '' }));
-        }}
-        title="Registrazione completata"
-        size="small"
-      >
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 mx-auto rounded-full bg-green-100 flex items-center justify-center">
-            <CheckCircle className="w-10 h-10 text-green-600" />
+      {/* Modale successo registrazione - FORZATO IN PRIMO PIANO */}
+      {showRegistrationSuccess && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 bg-black/70 backdrop-blur-sm" style={{ zIndex: 99999 }}>
+          <div className="w-full max-w-sm bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Registrazione completata</h2>
+              <button
+                onClick={() => {
+                  setRegistrationData({
+                    firstName: '',
+                    lastName: '',
+                    phone: '',
+                    email: '',
+                    password: '',
+                    confirmPassword: '',
+                  });
+                  setPrivacyAccepted(false);
+                  setShowRegistrationSuccess(false);
+                  setHasJustRegistered(true);
+                  setMode('login');
+                  setCredentials(prev => ({ ...prev, email: registeredEmail, password: '' }));
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-5">
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 mx-auto rounded-full bg-green-100 flex items-center justify-center">
+                  <CheckCircle className="w-10 h-10 text-green-600" />
+                </div>
+                <p className="text-gray-700">
+                  La tua registrazione è andata a buon fine! Ora puoi accedere utilizzando le credenziali appena create.
+                </p>
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    setRegistrationData({
+                      firstName: '',
+                      lastName: '',
+                      phone: '',
+                      email: '',
+                      password: '',
+                      confirmPassword: '',
+                    });
+                    setPrivacyAccepted(false);
+                    setShowRegistrationSuccess(false);
+                    setHasJustRegistered(true);
+                    setMode('login');
+                    setCredentials(prev => ({ ...prev, email: registeredEmail, password: '' }));
+                  }}
+                >
+                  Vai al login
+                </Button>
+              </div>
+            </div>
           </div>
-          <p className="text-gray-700">
-            La tua registrazione è andata a buon fine! Ora puoi accedere utilizzando le credenziali appena create.
-          </p>
-          <Button
-            className="w-full"
-            onClick={() => {
-              // Reset del form di registrazione
-              setRegistrationData({
-                firstName: '',
-                lastName: '',
-                phone: '',
-                email: '',
-                password: '',
-                confirmPassword: '',
-              });
-              setPrivacyAccepted(false);
-              
-              // Chiudi modal e vai al login
-              setShowRegistrationSuccess(false);
-              setHasJustRegistered(true);
-              setMode('login');
-              setCredentials(prev => ({ ...prev, email: registeredEmail, password: '' }));
-            }}
-          >
-            Vai al login
-          </Button>
         </div>
-      </Modal>
+      )}
 
       {/* Privacy Policy Modal */}
       <PrivacyPolicy 

@@ -1,0 +1,124 @@
+-- ============================================
+-- Configurazione Webhook Supabase per Email di Cancellazione Appuntamenti
+-- ============================================
+-- 
+-- Questo file contiene le istruzioni per configurare un webhook Supabase
+-- che invia automaticamente un'email al barbiere quando un appuntamento viene cancellato.
+--
+-- IMPORTANTE: I webhook Supabase devono essere configurati manualmente dal Dashboard.
+-- Questo file serve solo come documentazione e riferimento.
+--
+-- ============================================
+-- ISTRUZIONI PER CONFIGURARE IL WEBHOOK
+-- ============================================
+--
+-- 1. Vai su Supabase Dashboard > Database > Webhooks
+-- 2. Clicca su "Create a new webhook"
+-- 3. Configura il webhook con i seguenti parametri:
+--
+--    Nome: appointment_cancelled_email
+--    Tabella: appointments
+--    Eventi: UPDATE
+--    Tipo: HTTP Request
+--    URL: https://tuo-n8n.app.n8n.cloud/webhook/appointment-cancelled
+--    HTTP Method: POST
+--    HTTP Headers:
+--      - Authorization: Bearer TUO_WEBHOOK_SECRET
+--      - Content-Type: application/json
+--
+-- 4. Filtro (opzionale ma consigliato):
+--    Aggiungi un filtro per inviare l'email solo quando lo status diventa 'cancelled':
+--    {
+--      "type": "update",
+--      "table": "appointments",
+--      "schema": "public",
+--      "filter": "status = 'cancelled'"
+--    }
+--
+-- ============================================
+-- FORMATO DEI DATI INVIATI AL WEBHOOK
+-- ============================================
+--
+-- Il webhook riceverà un payload JSON con questa struttura:
+--
+-- {
+--   "type": "UPDATE",
+--   "table": "appointments",
+--   "schema": "public",
+--   "record": {
+--     "id": "uuid",
+--     "shop_id": "uuid",
+--     "client_id": "uuid",
+--     "staff_id": "uuid",
+--     "service_id": "uuid",
+--     "start_at": "2024-01-15T10:00:00Z",
+--     "end_at": "2024-01-15T11:00:00Z",
+--     "status": "cancelled",
+--     "notes": null,
+--     "created_at": "2024-01-10T08:00:00Z",
+--     "updated_at": "2024-01-15T09:00:00Z"
+--   },
+--   "old_record": {
+--     "status": "scheduled"
+--   }
+-- }
+--
+-- ============================================
+-- CONFIGURAZIONE N8N WORKFLOW
+-- ============================================
+--
+-- Il workflow N8N dovrebbe:
+--
+-- 1. Ricevere il webhook da Supabase
+-- 2. Verificare che old_record.status != 'cancelled' (per evitare duplicati)
+-- 3. Recuperare i dati completi:
+--    - Cliente (clients table)
+--    - Barbiere (staff table)
+--    - Servizio (services table)
+--    - Negozio (shops table)
+-- 4. Generare l'email usando il template di cancellazione
+-- 5. Inviare l'email al barbiere (usando staff.email o shop.notification_email)
+--
+-- Esempio query SQL per N8N (Supabase node):
+--
+-- SELECT 
+--   a.*,
+--   c.first_name || ' ' || COALESCE(c.last_name, '') as client_name,
+--   c.email as client_email,
+--   c.phone_e164 as client_phone,
+--   s.full_name as barber_name,
+--   s.email as barber_email,
+--   sv.name as service_name,
+--   sh.name as shop_name,
+--   sh.notification_email as shop_notification_email
+-- FROM appointments a
+-- LEFT JOIN clients c ON a.client_id = c.id
+-- LEFT JOIN staff s ON a.staff_id = s.id
+-- LEFT JOIN services sv ON a.service_id = sv.id
+-- LEFT JOIN shops sh ON a.shop_id = sh.id
+-- WHERE a.id = '{{$json.record.id}}'
+--
+-- ============================================
+-- NOTA SULLA NOTIFICA IN-APP
+-- ============================================
+--
+-- La notifica in-app viene creata automaticamente dal trigger SQL
+-- (funzione: notify_barber_on_appointment_cancellation)
+-- quindi non è necessario gestirla nel workflow N8N.
+--
+-- ============================================
+-- TEST DEL WEBHOOK
+-- ============================================
+--
+-- Per testare il webhook:
+--
+-- 1. Crea un appuntamento di test
+-- 2. Aggiorna lo status a 'cancelled':
+--    UPDATE appointments SET status = 'cancelled' WHERE id = 'uuid-appuntamento';
+-- 3. Verifica che:
+--    - La notifica in-app sia stata creata (tabella notifications)
+--    - Il webhook N8N abbia ricevuto la richiesta
+--    - L'email sia stata inviata al barbiere
+--
+-- ============================================
+

@@ -949,6 +949,7 @@ export const apiService = {
     }
     
     try {
+      // Carica le chat base
       const url = `${API_ENDPOINTS.CHATS}?select=*&order=updated_at.desc`;
       const response = await fetch(url, { headers: buildHeaders(true) });
       if (!response.ok) {
@@ -958,7 +959,105 @@ export const apiService = {
         }
         throw new Error('Failed to fetch chats');
       }
-      return await response.json();
+      const chats = await response.json();
+      
+      if (!chats || chats.length === 0) {
+        return [];
+      }
+      
+      // Raccogli tutti gli ID unici di clienti e staff
+      const clientIds = [...new Set(chats.map((c: any) => c.client_id).filter(Boolean))];
+      const staffIds = [...new Set(chats.map((c: any) => c.staff_id).filter(Boolean))];
+      
+      // Carica tutti i clienti in una sola query
+      let clientsMap = new Map();
+      if (clientIds.length > 0) {
+        try {
+          const clientsUrl = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=id,first_name,last_name,photo_url,email&id=in.(${clientIds.join(',')})`;
+          const clientsResponse = await fetch(clientsUrl, { headers: buildHeaders(true) });
+          if (clientsResponse.ok) {
+            const clients = await clientsResponse.json();
+            clients.forEach((client: any) => {
+              clientsMap.set(client.id, client);
+            });
+          }
+        } catch (error) {
+          console.error('Error loading clients:', error);
+        }
+      }
+      
+      // Carica tutti gli staff in una sola query
+      let staffMap = new Map();
+      if (staffIds.length > 0) {
+        try {
+          const staffUrl = `${API_ENDPOINTS.STAFF}?select=id,full_name,profile_photo_url&id=in.(${staffIds.join(',')})`;
+          const staffResponse = await fetch(staffUrl, { headers: buildHeaders(true) });
+          if (staffResponse.ok) {
+            const staffList = await staffResponse.json();
+            staffList.forEach((staff: any) => {
+              staffMap.set(staff.id, staff);
+            });
+          }
+        } catch (error) {
+          console.error('Error loading staff:', error);
+        }
+      }
+      
+      // Per ogni chat, carica l'ultimo messaggio e il conteggio non letti, e aggiungi i dati cliente/staff
+      const chatsWithDetails = await Promise.all(
+        chats.map(async (chat: any) => {
+          // Ottieni dati cliente
+          const clientData = clientsMap.get(chat.client_id);
+          const clientName = clientData 
+            ? `${clientData.first_name || ''} ${clientData.last_name || ''}`.trim() || clientData.email || 'Cliente'
+            : 'Cliente';
+          
+          // Ottieni dati staff
+          const staffData = staffMap.get(chat.staff_id);
+          const staffName = staffData?.full_name || 'Barbiere';
+          
+          // Carica l'ultimo messaggio
+          let lastMessage: any = undefined;
+          let unreadCount = 0;
+          
+          try {
+            const messagesUrl = `${API_ENDPOINTS.CHAT_MESSAGES}?select=id,content,sender_type,sender_id,created_at,read_at&chat_id=eq.${chat.id}&order=created_at.desc&limit=1`;
+            const messagesResponse = await fetch(messagesUrl, { headers: buildHeaders(true) });
+            if (messagesResponse.ok) {
+              const messages = await messagesResponse.json();
+              if (messages && messages.length > 0) {
+                lastMessage = messages[0];
+              }
+            }
+            
+            // Conta i messaggi non letti
+            const unreadUrl = `${API_ENDPOINTS.CHAT_MESSAGES}?select=id&chat_id=eq.${chat.id}&read_at=is.null`;
+            const unreadResponse = await fetch(unreadUrl, { headers: buildHeaders(true) });
+            if (unreadResponse.ok) {
+              const unreadMessages = await unreadResponse.json();
+              unreadCount = unreadMessages?.length || 0;
+            }
+          } catch (error) {
+            console.error('Error loading chat details:', error);
+          }
+          
+          return {
+            id: chat.id,
+            client_id: chat.client_id,
+            staff_id: chat.staff_id,
+            created_at: chat.created_at,
+            updated_at: chat.updated_at,
+            client_name: clientName,
+            client_photo: clientData?.photo_url || undefined,
+            staff_name: staffName,
+            staff_photo: staffData?.profile_photo_url || undefined,
+            unread_count: unreadCount,
+            last_message: lastMessage || undefined,
+          };
+        })
+      );
+      
+      return chatsWithDetails;
     } catch (error) {
       // Non loggare errori di autenticazione
       if (isAuthError(error)) {
