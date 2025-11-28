@@ -145,8 +145,23 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
   // Delete a notification
   const deleteNotification = useCallback(async (notificationId: string) => {
+    if (!user?.id) {
+      console.error('❌ Utente non autenticato, impossibile eliminare notifica');
+      throw new Error('Utente non autenticato');
+    }
+    
     try {
       const notification = notifications.find(n => n.id === notificationId);
+      
+      // Verifica che la notifica appartenga all'utente corrente
+      if (notification && notification.user_id !== user.id) {
+        console.error('❌ Notifica non appartiene all\'utente corrente:', {
+          notificationUserId: notification.user_id,
+          currentUserId: user.id
+        });
+        throw new Error('Non autorizzato a eliminare questa notifica');
+      }
+      
       await apiService.deleteNotification(notificationId);
       setNotifications(prev => prev.filter(n => n.id !== notificationId));
       // Update unread count if the deleted notification was unread
@@ -157,7 +172,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       console.error('Error deleting notification:', error);
       throw error;
     }
-  }, [notifications]);
+  }, [notifications, user?.id]);
 
   // Initial load when user authenticates
   useEffect(() => {
@@ -182,16 +197,25 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   }, [isAuthenticated, user?.id, refreshUnreadCount]);
 
   const deleteAllNotifications = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.error('❌ Utente non autenticato, impossibile eliminare tutte le notifiche');
+      throw new Error('Utente non autenticato');
+    }
+    
     try {
+      const currentCount = notifications.length;
+      console.log('🗑️ Eliminazione di tutte le notifiche per user:', user.id);
+      console.log('📊 Notifiche prima dell\'eliminazione:', currentCount);
       await apiService.deleteAllNotifications(user.id);
       setNotifications([]);
       setUnreadCount(0);
+      console.log('✅ Tutte le notifiche eliminate per user:', user.id);
+      console.log('📊 Notifiche dopo l\'eliminazione:', 0);
     } catch (error) {
-      console.error('Error deleting all notifications:', error);
+      console.error('❌ Error deleting all notifications:', error);
       throw error;
     }
-  }, []);
+  }, [user?.id, notifications]);
 
   const value: NotificationContextType = {
     notifications,

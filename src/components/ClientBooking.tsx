@@ -374,7 +374,7 @@ export const ClientBooking: React.FC = () => {
       </Card>
 
       {/* Sezione Lista d'Attesa */}
-      {shopHoursLoaded && openDays.length > 0 && (
+      {clientId && (
         <Card className="max-w-2xl mx-auto">
           <div className="p-6">
             <div className="flex items-center space-x-2 mb-4">
@@ -407,35 +407,49 @@ export const ClientBooking: React.FC = () => {
             )}
 
             {/* Selezione giorni */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Seleziona i giorni in cui vorresti un posto:
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {openDays.map(day => {
-                  const dateStr = formatDateISO(day);
-                  const isSelected = selectedWaitlistDates.includes(dateStr);
-                  
-                  return (
-                    <button
-                      key={dateStr}
-                      type="button"
-                      onClick={() => toggleWaitlistDate(day)}
-                      className={`px-4 py-2 rounded-lg border-2 transition-colors ${
-                        isSelected 
-                          ? 'bg-amber-100 border-amber-500 text-amber-800' 
-                          : 'bg-white border-gray-200 text-gray-700 hover:border-amber-300'
-                      }`}
-                    >
-                      <div className="text-sm font-medium">{formatDateDisplay(day)}</div>
-                      <div className="text-xs text-gray-500">
-                        {day.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })}
-                      </div>
-                    </button>
-                  );
-                })}
+            {shopHoursLoaded && openDays.length > 0 ? (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Seleziona i giorni in cui vorresti un posto:
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {openDays.map(day => {
+                    const dateStr = formatDateISO(day);
+                    const isSelected = selectedWaitlistDates.includes(dateStr);
+                    
+                    return (
+                      <button
+                        key={dateStr}
+                        type="button"
+                        onClick={() => toggleWaitlistDate(day)}
+                        className={`px-4 py-2 rounded-lg border-2 transition-colors ${
+                          isSelected 
+                            ? 'bg-amber-100 border-amber-500 text-amber-800' 
+                            : 'bg-white border-gray-200 text-gray-700 hover:border-amber-300'
+                        }`}
+                      >
+                        <div className="text-sm font-medium">{formatDateDisplay(day)}</div>
+                        <div className="text-xs text-gray-500">
+                          {day.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            ) : shopHoursLoaded && openDays.length === 0 ? (
+              <div className="mb-4 bg-gray-50 border border-gray-200 rounded-lg p-3">
+                <p className="text-sm text-gray-600">
+                  Non ci sono giorni aperti nei prossimi 3 giorni. Controlla le tue richieste in lista d'attesa qui sotto.
+                </p>
+              </div>
+            ) : (
+              <div className="mb-4 bg-gray-50 border border-gray-200 rounded-lg p-3">
+                <p className="text-sm text-gray-600">
+                  Caricamento orari del negozio...
+                </p>
+              </div>
+            )}
 
             {/* Preferenze opzionali */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -477,27 +491,29 @@ export const ClientBooking: React.FC = () => {
               </div>
             </div>
 
-            <Button
-              type="button"
-              variant="secondary"
-              className="w-full bg-amber-100 hover:bg-amber-200 text-amber-800 border-amber-300"
-              onClick={handleJoinWaitlist}
-              disabled={isJoiningWaitlist || selectedWaitlistDates.length === 0 || !clientId}
-            >
-              {isJoiningWaitlist ? (
-                'Iscrizione in corso...'
-              ) : (
-                <>
-                  <Bell className="w-4 h-4 mr-2" />
-                  Mettiti in Coda
-                </>
-              )}
-            </Button>
+            {shopHoursLoaded && openDays.length > 0 && (
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full bg-amber-100 hover:bg-amber-200 text-amber-800 border-amber-300 mb-6"
+                onClick={handleJoinWaitlist}
+                disabled={isJoiningWaitlist || selectedWaitlistDates.length === 0 || !clientId}
+              >
+                {isJoiningWaitlist ? (
+                  'Iscrizione in corso...'
+                ) : (
+                  <>
+                    <Bell className="w-4 h-4 mr-2" />
+                    Mettiti in Coda
+                  </>
+                )}
+              </Button>
+            )}
 
             {/* Le tue richieste in coda */}
-            {waitlistEntries.length > 0 && (
-              <div className="mt-6 pt-4 border-t border-gray-200">
-                <h4 className="text-sm font-medium text-gray-700 mb-3">Le tue richieste in lista d'attesa:</h4>
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <h4 className="text-sm font-medium text-gray-700 mb-3">Le tue richieste in lista d'attesa:</h4>
+              {waitlistEntries.length > 0 ? (
                 <div className="space-y-2">
                   {waitlistEntries.map(entry => (
                     <div 
@@ -541,8 +557,12 @@ export const ClientBooking: React.FC = () => {
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <p className="text-sm text-gray-500 italic">
+                  Nessuna richiesta in lista d'attesa al momento.
+                </p>
+              )}
+            </div>
           </div>
         </Card>
       )}

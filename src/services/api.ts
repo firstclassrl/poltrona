@@ -1409,11 +1409,19 @@ export const apiService = {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
     
     try {
+      const headers = buildHeaders(true);
       const response = await fetch(`${API_ENDPOINTS.NOTIFICATIONS}?id=eq.${notificationId}`, {
         method: 'DELETE',
-        headers: buildHeaders(true),
+        headers: { ...headers, Prefer: 'return=minimal' },
       });
-      if (!response.ok) throw new Error('Failed to delete notification');
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Errore DELETE notifica:', response.status, errorText);
+        throw new Error(`Failed to delete notification: ${response.status} ${errorText}`);
+      }
+      
+      console.log('✅ Notifica eliminata:', notificationId);
     } catch (error) {
       console.error('Error deleting notification:', error);
       throw error;
@@ -1425,11 +1433,20 @@ export const apiService = {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
     
     try {
-      const response = await fetch(`${API_ENDPOINTS.NOTIFICATIONS}?user_id=eq.${userId}`, {
+      const headers = buildHeaders(true);
+      const url = `${API_ENDPOINTS.NOTIFICATIONS}?user_id=eq.${userId}`;
+      const response = await fetchWithTokenRefresh(url, {
         method: 'DELETE',
-        headers: buildHeaders(true),
-      });
-      if (!response.ok) throw new Error('Failed to delete all notifications');
+        headers: { ...headers, Prefer: 'return=minimal' },
+      }, true);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Errore DELETE tutte notifiche:', response.status, errorText);
+        throw new Error(`Failed to delete all notifications: ${response.status} ${errorText}`);
+      }
+      
+      console.log('✅ Tutte le notifiche eliminate per user:', userId);
     } catch (error) {
       console.error('Error deleting all notifications:', error);
       throw error;

@@ -398,7 +398,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const clientData = {
             clientName: data.full_name,
             clientEmail: data.email,
-            clientPhone: undefined, // Non disponibile nel form di registrazione
+            clientPhone: data.phone || undefined,
             registrationDate: new Date().toLocaleDateString('it-IT', {
               year: 'numeric',
               month: 'long',

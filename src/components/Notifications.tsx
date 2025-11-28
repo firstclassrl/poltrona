@@ -15,6 +15,8 @@ import {
 import { useNotifications } from '../contexts/NotificationContext';
 import type { Notification, NotificationType } from '../types';
 import { cn } from '../utils/cn';
+import { useToast } from '../hooks/useToast';
+import { Toast } from './ui/Toast';
 
 const getNotificationIcon = (type: NotificationType) => {
   switch (type) {
@@ -194,6 +196,7 @@ export const Notifications: React.FC = () => {
     deleteAllNotifications
   } = useNotifications();
 
+  const { toast, showToast, hideToast } = useToast();
   const [filter, setFilter] = useState<FilterType>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
@@ -227,9 +230,13 @@ export const Notifications: React.FC = () => {
   const handleDeleteAll = async () => {
     try {
       await deleteAllNotifications();
+      // Ricarica le notifiche per sincronizzare con il backend
+      await loadNotifications();
       setShowDeleteAllConfirm(false);
+      showToast('Tutte le notifiche sono state eliminate', 'success');
     } catch (error) {
       console.error('Failed to delete all:', error);
+      showToast('Errore durante l\'eliminazione delle notifiche. Riprova più tardi.', 'error');
     }
   };
 
@@ -431,6 +438,14 @@ export const Notifications: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Toast Notification */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={hideToast}
+      />
     </div>
   );
 };

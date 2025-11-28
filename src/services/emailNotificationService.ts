@@ -1,6 +1,6 @@
-// Email Notification Service per Supabase Edge Functions
-// Servizio per inviare notifiche email tramite il sistema SMTP integrato di Supabase
-// Configurato con SMTP: info@abruzzo.ai
+// Email Notification Service per N8N Webhooks
+// Servizio per inviare notifiche email tramite webhook N8N (con fallback a Supabase Edge Functions)
+// Configurato per usare N8N per tutte le email
 
 import { API_CONFIG } from '../config/api';
 
@@ -66,7 +66,77 @@ class EmailNotificationService {
     }
   }
 
-  // Metodo per chiamare la Edge Function di Supabase per inviare email
+  // Metodo per chiamare webhook N8N per inviare email
+  private async sendEmailViaN8N(emailData: {
+    to: string;
+    subject: string;
+    html: string;
+    text: string;
+    type?: string; // 'new_appointment', 'cancellation', 'new_client', 'welcome'
+  }): Promise<EmailResponse> {
+    try {
+      // Usa N8N webhook se configurato, altrimenti fallback a Supabase Edge Function
+      const n8nBaseUrl = API_CONFIG.N8N_BASE_URL || '';
+      
+      if (!n8nBaseUrl) {
+        console.warn('⚠️ N8N_BASE_URL non configurato, usando Supabase Edge Function come fallback');
+        return this.sendEmailViaSupabase(emailData);
+      }
+
+      // Costruisci l'URL del webhook N8N
+      const n8nWebhookUrl = `${n8nBaseUrl}/webhook/send-email`;
+
+      const response = await fetch(n8nWebhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: emailData.to,
+          subject: emailData.subject,
+          html: emailData.html,
+          text: emailData.text,
+          type: emailData.type || 'generic',
+        }),
+      });
+
+      if (!response.ok) {
+        let errorText = '';
+        try {
+          errorText = await response.text();
+        } catch {
+          errorText = response.statusText;
+        }
+        
+        console.error('❌ N8N Webhook Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          url: n8nWebhookUrl,
+          errorText
+        });
+        
+        // Fallback a Supabase se N8N fallisce
+        console.log('🔄 Tentativo fallback a Supabase Edge Function...');
+        return this.sendEmailViaSupabase(emailData);
+      }
+
+      const result = await response.json();
+      console.log('✅ Email inviata con successo via N8N:', result);
+      
+      return { 
+        success: true, 
+        messageId: result.id || `n8n-${Date.now()}` 
+      };
+
+    } catch (error) {
+      console.error('❌ Errore invio email via N8N:', error);
+      // Fallback a Supabase se N8N fallisce
+      console.log('🔄 Tentativo fallback a Supabase Edge Function...');
+      return this.sendEmailViaSupabase(emailData);
+    }
+  }
+
+  // Metodo per chiamare la Edge Function di Supabase per inviare email (fallback)
   private async sendEmailViaSupabase(emailData: {
     to: string;
     subject: string;
@@ -483,12 +553,13 @@ ${data.shopName} - Sistema di Gestione Appuntamenti
       };
     }
 
-    // Usa Supabase Edge Function per inviare l'email
-    return this.sendEmailViaSupabase({
+    // Usa N8N webhook per inviare l'email (con fallback a Supabase)
+    return this.sendEmailViaN8N({
       to: shopEmail,
       subject: `Nuovo Cliente Registrato - ${clientData.clientName}`,
       html: this.generateNewClientNotificationHTML(clientData),
       text: this.generateNewClientNotificationText(clientData),
+      type: 'new_client',
     });
   }
 
@@ -616,11 +687,12 @@ Il team ${data.shopName}
       };
     }
 
-    return this.sendEmailViaSupabase({
+    return this.sendEmailViaN8N({
       to: data.clientEmail,
       subject: `Benvenuto in ${data.shopName}!`,
       html: this.generateClientWelcomeEmailHTML(data),
       text: this.generateClientWelcomeEmailText(data),
+      type: 'welcome',
     });
   }
 
@@ -638,12 +710,13 @@ Il team ${data.shopName}
       };
     }
 
-    // Usa Supabase Edge Function per inviare l'email
-    return this.sendEmailViaSupabase({
+    // Usa N8N webhook per inviare l'email (con fallback a Supabase)
+    return this.sendEmailViaN8N({
       to: shopEmail,
       subject: `⚠️ Appuntamento Annullato - ${cancellationData.clientName} - ${cancellationData.appointmentDate}`,
       html: this.generateCancellationNotificationHTML(cancellationData),
       text: this.generateCancellationNotificationText(cancellationData),
+      type: 'cancellation',
     });
   }
 
@@ -661,12 +734,13 @@ Il team ${data.shopName}
       };
     }
 
-    // Usa Supabase Edge Function per inviare l'email
-    return this.sendEmailViaSupabase({
+    // Usa N8N webhook per inviare l'email (con fallback a Supabase)
+    return this.sendEmailViaN8N({
       to: shopEmail,
       subject: `📅 Nuova Prenotazione - ${appointmentData.clientName} - ${appointmentData.appointmentDate} alle ${appointmentData.appointmentTime}`,
       html: this.generateNewAppointmentNotificationHTML(appointmentData),
       text: this.generateNewAppointmentNotificationText(appointmentData),
+      type: 'new_appointment',
     });
   }
 
@@ -816,11 +890,12 @@ ${data.shopName} - Sistema di Gestione Prenotazioni
       };
     }
 
-    return this.sendEmailViaSupabase({
+    return this.sendEmailViaN8N({
       to: data.clientEmail,
       subject: `✅ Conferma Prenotazione - ${data.shopName} - ${data.appointmentDate} alle ${data.appointmentTime}`,
       html: this.generateClientAppointmentConfirmationHTML(data),
       text: this.generateClientAppointmentConfirmationText(data),
+      type: 'appointment_confirmation',
     });
   }
 
@@ -1018,11 +1093,12 @@ ${data.shopName} - Sistema di Gestione Appuntamenti
       };
     }
 
-    return this.sendEmailViaSupabase({
+    return this.sendEmailViaN8N({
       to: data.clientEmail,
       subject: `❌ Appuntamento Annullato - ${data.shopName} - ${data.appointmentDate}`,
       html: this.generateClientCancellationEmailHTML(data),
       text: this.generateClientCancellationEmailText(data),
+      type: 'client_cancellation',
     });
   }
 
