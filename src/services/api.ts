@@ -1570,7 +1570,8 @@ export const apiService = {
     if (!isSupabaseConfigured()) return null;
     
     try {
-      const url = `${API_ENDPOINTS.APPOINTMENTS_FEED}?id=eq.${appointmentId}&select=*,clients(first_name,last_name,phone_e164,email),staff(id,full_name,email),services(id,name,duration_min)&limit=1`;
+      // Includi user_id nello staff per le notifiche
+      const url = `${API_ENDPOINTS.APPOINTMENTS_FEED}?id=eq.${appointmentId}&select=*,clients(first_name,last_name,phone_e164,email),staff(id,full_name,email,user_id),services(id,name,duration_min)&limit=1`;
       const response = await fetch(url, { headers: buildHeaders(false) });
       if (!response.ok) return null;
       const appointments = await response.json();

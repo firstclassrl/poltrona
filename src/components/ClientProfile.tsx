@@ -175,31 +175,46 @@ export const ClientProfile: React.FC = () => {
         
         const serviceName = serviceInfo?.name || 'Servizio';
         
-        // Prima ottieni i dettagli dello staff per avere user_id
+        // Ottieni i dettagli dello staff - stesso pattern usato per nuove prenotazioni
         const staffDetails = staffInfo || (await apiService.getStaffById(appointmentToCancel.staff_id));
         
+        console.log('🔍 DEBUG Annullamento - staffInfo:', staffInfo);
+        console.log('🔍 DEBUG Annullamento - staffDetails:', staffDetails);
+        console.log('🔍 DEBUG Annullamento - staff_id:', appointmentToCancel.staff_id);
+        
         // Usa user_id se disponibile (collegato a auth.users), altrimenti usa id
-        // Stesso pattern usato per le notifiche di nuovo appuntamento
-        const notificationUserId = staffDetails?.user_id || staffDetails?.id || appointmentToCancel.staff_id;
+        // STESSO PATTERN ESATTO usato in ClientBookingCalendar per nuove prenotazioni
+        const barberUserId = staffDetails?.user_id || staffDetails?.id || appointmentToCancel.staff_id;
+        
+        console.log('🔍 DEBUG Annullamento - barberUserId finale:', barberUserId);
 
-        // Crea notifica in-app per il barbiere
-        await apiService.createNotification({
-          user_id: notificationUserId,
-          user_type: 'staff',
-          type: 'appointment_cancelled',
-          title: '❌ Appuntamento Annullato',
-          message: `${clientName} ha annullato l'appuntamento per ${serviceName} del ${appointmentDate} alle ${appointmentTime}`,
-          data: {
-            appointment_id: appointmentToCancel.id,
-            client_name: clientName,
-            client_phone: clientPhone,
-            service_name: serviceName,
-            appointment_date: appointmentDate,
-            appointment_time: appointmentTime,
-            staff_id: appointmentToCancel.staff_id,
+        // Crea notifica in-app per il barbiere - STESSO PATTERN delle nuove prenotazioni
+        try {
+          const notificationResult = await apiService.createNotification({
+            user_id: barberUserId,
+            user_type: 'staff',
+            type: 'appointment_cancelled',
+            title: '❌ Appuntamento Annullato',
+            message: `${clientName} ha annullato l'appuntamento per ${serviceName} del ${appointmentDate} alle ${appointmentTime}`,
+            data: {
+              appointment_id: appointmentToCancel.id,
+              client_name: clientName,
+              client_phone: clientPhone,
+              service_name: serviceName,
+              appointment_date: appointmentDate,
+              appointment_time: appointmentTime,
+              staff_id: appointmentToCancel.staff_id,
+            }
+          });
+          
+          if (notificationResult) {
+            console.log('✅ Notifica annullamento creata con successo. user_id:', barberUserId, 'staff_id:', appointmentToCancel.staff_id);
+          } else {
+            console.error('❌ Notifica annullamento NON creata - createNotification ha restituito null');
           }
-        });
-        console.log('✅ Notifica annullamento creata. user_id:', notificationUserId, 'staff_id:', appointmentToCancel.staff_id);
+        } catch (notifError) {
+          console.error('❌ Errore creazione notifica annullamento:', notifError);
+        }
         
         // 4. Invia email al negozio (usa notification_email del negozio)
         if (shop?.notification_email) {
