@@ -1,6 +1,6 @@
-// Email Notification Service per N8N Webhooks
-// Servizio per inviare notifiche email tramite webhook N8N (con fallback a Supabase Edge Functions)
-// Configurato per usare N8N per tutte le email
+// Email Notification Service con RESEND diretto
+// Servizio per inviare notifiche email direttamente tramite API Resend
+// Configurato per usare RESEND API per tutte le email
 
 import { API_CONFIG } from '../config/api';
 
@@ -51,150 +51,77 @@ export interface EmailResponse {
 
 class EmailNotificationService {
   private isConfigured: boolean = false;
-  private supabaseUrl: string;
-  private supabaseKey: string;
+  private resendApiKey: string;
+  private fromEmail: string = 'noreply@resend.dev';
 
   constructor() {
-    this.supabaseUrl = API_CONFIG.SUPABASE_EDGE_URL || '';
-    this.supabaseKey = API_CONFIG.SUPABASE_ANON_KEY || '';
-    this.isConfigured = Boolean(this.supabaseUrl && this.supabaseKey);
+    this.resendApiKey = API_CONFIG.RESEND_API_KEY || '';
+    this.isConfigured = Boolean(this.resendApiKey);
   }
 
   private ensureConfigured(): void {
     if (!this.isConfigured) {
-      throw new Error('Servizio email non configurato. Imposta SUPABASE_EDGE_URL e SUPABASE_ANON_KEY.');
+      throw new Error('Servizio email non configurato. Imposta VITE_RESEND_API_KEY.');
     }
   }
 
-  // Metodo per chiamare webhook N8N per inviare email
-  private async sendEmailViaN8N(emailData: {
+  // Metodo per inviare email direttamente tramite API Resend
+  private async sendEmailViaResend(emailData: {
     to: string;
     subject: string;
     html: string;
     text: string;
-    type?: string; // 'new_appointment', 'cancellation', 'new_client', 'welcome'
   }): Promise<EmailResponse> {
     try {
-      // Usa N8N webhook se configurato, altrimenti fallback a Supabase Edge Function
-      const n8nBaseUrl = API_CONFIG.N8N_BASE_URL || '';
-      
-      if (!n8nBaseUrl) {
-        console.warn('⚠️ N8N_BASE_URL non configurato, usando Supabase Edge Function come fallback');
-        return this.sendEmailViaSupabase(emailData);
-      }
-
-      // Costruisci l'URL del webhook N8N
-      const n8nWebhookUrl = `${n8nBaseUrl}/webhook/send-email`;
-
-      const response = await fetch(n8nWebhookUrl, {
+      const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.resendApiKey}`,
         },
         body: JSON.stringify({
+          from: this.fromEmail,
           to: emailData.to,
           subject: emailData.subject,
           html: emailData.html,
           text: emailData.text,
-          type: emailData.type || 'generic',
         }),
       });
 
       if (!response.ok) {
-        let errorText = '';
-        try {
-          errorText = await response.text();
-        } catch {
-          errorText = response.statusText;
-        }
-        
-        console.error('❌ N8N Webhook Error:', {
-          status: response.status,
-          statusText: response.statusText,
-          url: n8nWebhookUrl,
-          errorText
-        });
-        
-        // Fallback a Supabase se N8N fallisce
-        console.log('🔄 Tentativo fallback a Supabase Edge Function...');
-        return this.sendEmailViaSupabase(emailData);
-      }
-
-      const result = await response.json();
-      console.log('✅ Email inviata con successo via N8N:', result);
-      
-      return { 
-        success: true, 
-        messageId: result.id || `n8n-${Date.now()}` 
-      };
-
-    } catch (error) {
-      console.error('❌ Errore invio email via N8N:', error);
-      // Fallback a Supabase se N8N fallisce
-      console.log('🔄 Tentativo fallback a Supabase Edge Function...');
-      return this.sendEmailViaSupabase(emailData);
-    }
-  }
-
-  // Metodo per chiamare la Edge Function di Supabase per inviare email (fallback)
-  private async sendEmailViaSupabase(emailData: {
-    to: string;
-    subject: string;
-    html: string;
-    text: string;
-  }): Promise<EmailResponse> {
-    try {
-      // Costruisci l'URL della Edge Function
-      // L'URL base è nel formato: https://xxx.supabase.co
-      // La Edge Function sarà: https://xxx.supabase.co/functions/v1/send-email
-      const baseUrl = this.supabaseUrl.replace('/rest/v1', '');
-      const edgeFunctionUrl = `${baseUrl}/functions/v1/send-email`;
-
-      const response = await fetch(edgeFunctionUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.supabaseKey}`,
-          'apikey': this.supabaseKey,
-        },
-        body: JSON.stringify(emailData),
-      });
-
-      if (!response.ok) {
-        // Prova a leggere il body come JSON
         let errorData: any = {};
         let errorText = '';
         try {
           errorText = await response.text();
           errorData = JSON.parse(errorText);
         } catch {
-          // Se non è JSON, usa il testo
           errorData = { error: errorText || response.statusText };
         }
         
-        const errorMessage = errorData.error || errorData.message || errorText || response.statusText;
-        console.error('❌ Edge Function Error Details:', {
+        const errorMessage = errorData.message || errorData.error || errorText || response.statusText;
+        console.error('❌ Resend API Error:', {
           status: response.status,
           statusText: response.statusText,
-          url: edgeFunctionUrl,
           errorData,
           errorText
         });
         
-        throw new Error(`Supabase Edge Function error (${response.status}): ${errorMessage}`);
+        return { 
+          success: false, 
+          error: `Resend API error (${response.status}): ${errorMessage}` 
+        };
       }
 
       const result = await response.json();
-      console.log('✅ Email inviata con successo via Supabase:', result);
+      console.log('✅ Email inviata con successo via Resend:', result);
       
       return { 
         success: true, 
-        messageId: result.id || `supabase-${Date.now()}` 
+        messageId: result.id || `resend-${Date.now()}` 
       };
 
     } catch (error) {
-      console.error('❌ Errore invio email via Supabase:', error);
-      console.error('❌ Stack trace:', error instanceof Error ? error.stack : 'N/A');
+      console.error('❌ Errore invio email via Resend:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Errore sconosciuto' 
@@ -553,13 +480,11 @@ ${data.shopName} - Sistema di Gestione Appuntamenti
       };
     }
 
-    // Usa N8N webhook per inviare l'email (con fallback a Supabase)
-    return this.sendEmailViaN8N({
+    return this.sendEmailViaResend({
       to: shopEmail,
       subject: `Nuovo Cliente Registrato - ${clientData.clientName}`,
       html: this.generateNewClientNotificationHTML(clientData),
       text: this.generateNewClientNotificationText(clientData),
-      type: 'new_client',
     });
   }
 
@@ -687,12 +612,11 @@ Il team ${data.shopName}
       };
     }
 
-    return this.sendEmailViaN8N({
+    return this.sendEmailViaResend({
       to: data.clientEmail,
       subject: `Benvenuto in ${data.shopName}!`,
       html: this.generateClientWelcomeEmailHTML(data),
       text: this.generateClientWelcomeEmailText(data),
-      type: 'welcome',
     });
   }
 
@@ -710,13 +634,11 @@ Il team ${data.shopName}
       };
     }
 
-    // Usa N8N webhook per inviare l'email (con fallback a Supabase)
-    return this.sendEmailViaN8N({
+    return this.sendEmailViaResend({
       to: shopEmail,
       subject: `⚠️ Appuntamento Annullato - ${cancellationData.clientName} - ${cancellationData.appointmentDate}`,
       html: this.generateCancellationNotificationHTML(cancellationData),
       text: this.generateCancellationNotificationText(cancellationData),
-      type: 'cancellation',
     });
   }
 
@@ -734,13 +656,11 @@ Il team ${data.shopName}
       };
     }
 
-    // Usa N8N webhook per inviare l'email (con fallback a Supabase)
-    return this.sendEmailViaN8N({
+    return this.sendEmailViaResend({
       to: shopEmail,
       subject: `📅 Nuova Prenotazione - ${appointmentData.clientName} - ${appointmentData.appointmentDate} alle ${appointmentData.appointmentTime}`,
       html: this.generateNewAppointmentNotificationHTML(appointmentData),
       text: this.generateNewAppointmentNotificationText(appointmentData),
-      type: 'new_appointment',
     });
   }
 
@@ -838,27 +758,14 @@ ${data.shopName} - Sistema di Gestione Prenotazioni
     this.ensureConfigured();
 
     try {
-      // Test la Edge Function di Supabase
-      const baseUrl = this.supabaseUrl.replace('/rest/v1', '');
-      const edgeFunctionUrl = `${baseUrl}/functions/v1/send-email`;
-
-      const response = await fetch(edgeFunctionUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.supabaseKey}`,
-          'apikey': this.supabaseKey,
-        },
-        body: JSON.stringify({ test: true }),
-      });
-
-      if (response.ok) {
-        console.log('✅ Configurazione Supabase Email verificata');
-        return true;
-      } else {
-        console.error('❌ Configurazione Supabase Email non valida');
+      // Test la configurazione Resend verificando che l'API key sia presente
+      if (!this.resendApiKey) {
+        console.error('❌ RESEND_API_KEY non configurata');
         return false;
       }
+
+      console.log('✅ Configurazione Resend verificata');
+      return true;
     } catch (error) {
       console.error('❌ Errore nel test configurazione:', error);
       return false;
@@ -890,12 +797,11 @@ ${data.shopName} - Sistema di Gestione Prenotazioni
       };
     }
 
-    return this.sendEmailViaN8N({
+    return this.sendEmailViaResend({
       to: data.clientEmail,
       subject: `✅ Conferma Prenotazione - ${data.shopName} - ${data.appointmentDate} alle ${data.appointmentTime}`,
       html: this.generateClientAppointmentConfirmationHTML(data),
       text: this.generateClientAppointmentConfirmationText(data),
-      type: 'appointment_confirmation',
     });
   }
 
@@ -1093,12 +999,11 @@ ${data.shopName} - Sistema di Gestione Appuntamenti
       };
     }
 
-    return this.sendEmailViaN8N({
+    return this.sendEmailViaResend({
       to: data.clientEmail,
       subject: `❌ Appuntamento Annullato - ${data.shopName} - ${data.appointmentDate}`,
       html: this.generateClientCancellationEmailHTML(data),
       text: this.generateClientCancellationEmailText(data),
-      type: 'client_cancellation',
     });
   }
 

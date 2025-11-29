@@ -1,8 +1,8 @@
-# Sistema Notifiche Email per Registrazione Clienti
+# Sistema Notifiche Email - RESEND Diretto
 
 ## Panoramica
 
-Il sistema invia automaticamente una email di notifica all'amministratore del negozio quando un nuovo cliente si registra. Utilizza **Resend** come servizio email, che è gratuito fino a 3000 email/mese.
+Il sistema invia automaticamente notifiche email direttamente tramite **Resend API**. Utilizza Resend come servizio email, che è gratuito fino a 3000 email/mese. Tutte le email vengono inviate direttamente dall'app senza intermediari (N8N o Supabase Edge Functions).
 
 ## Configurazione
 
@@ -52,9 +52,9 @@ L'email include:
 
 ### Gestione Errori
 
-- Se l'email fallisce, la registrazione procede comunque
+- Se l'email fallisce, l'operazione procede comunque (non blocca il flusso)
 - Gli errori vengono loggati nella console
-- Modalità mock se Resend non è configurato
+- Il sistema richiede `VITE_RESEND_API_KEY` per funzionare
 
 ## Test del Sistema
 
@@ -113,11 +113,11 @@ Per aggiungere più informazioni al cliente:
 3. **Controlla logs**: Verifica la console per errori
 4. **Test configurazione**: Usa `testConfiguration()` per verificare
 
-### Errore "Supabase non configurato"
+### Errore "Servizio email non configurato"
 
-1. Verifica le variabili d'ambiente Supabase
-2. Controlla che il database sia accessibile
-3. Verifica le policy RLS
+1. Verifica che `VITE_RESEND_API_KEY` sia configurata nel file `.env`
+2. Riavvia l'applicazione dopo aver aggiunto la variabile d'ambiente
+3. Controlla che l'API key sia valida su [resend.com](https://resend.com)
 
 ### Errore "Email notifica non configurata"
 
@@ -125,17 +125,28 @@ Per aggiungere più informazioni al cliente:
 2. Inserisci un'email valida nel campo "Email Notifiche"
 3. Salva le modifiche
 
+## Notifiche Disponibili
+
+Il sistema supporta le seguenti notifiche email:
+
+### Notifiche al Barbiere:
+- ✅ Mail creazione nuovo cliente
+- ✅ Mail creazione nuovo appuntamento
+- ✅ Mail annullamento appuntamento
+
+### Notifiche al Cliente:
+- ✅ Mail di benvenuto su creazione account
+- ✅ Mail nuovo appuntamento (conferma)
+- ✅ Mail annullamento appuntamento
+
 ## Limitazioni
 
 - **Resend gratuito**: 3000 email/mese
-- **Dominio**: Usa `noreply@resend.dev` di default
-- **Telefono**: Non disponibile nel form di registrazione attuale
-- **Multi-negozio**: Ogni negozio ha la propria email di notifica
+- **Dominio**: Usa `noreply@resend.dev` di default (può essere personalizzato con dominio verificato)
+- **API Key**: Richiesta per tutte le operazioni email
 
 ## Prossimi Miglioramenti
 
-- [ ] Aggiungere campo telefono al form di registrazione
 - [ ] Implementare link diretto al profilo cliente nell'email
 - [ ] Aggiungere template email personalizzabili
-- [ ] Implementare notifiche per altri eventi (appuntamenti, etc.)
-- [ ] Aggiungere dashboard per gestire le notifiche
+- [ ] Supporto per dominio personalizzato verificato

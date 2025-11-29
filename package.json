@@ -1,7 +1,7 @@
 {
   "name": "poltrona",
   "private": true,
-  "version": "0.0.58",
+  "version": "0.0.59",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,9 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@types/nodemailer": "^7.0.1",
     "lucide-react": "^0.263.1",
-    "nodemailer": "^7.0.6",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
