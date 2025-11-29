@@ -21,11 +21,51 @@ serve(async (req) => {
   }
 
   try {
-    const { to, subject, html, text } = await req.json() as EmailRequest
+    const body = await req.json()
+    console.log('📥 Richiesta ricevuta:', JSON.stringify({ 
+      to: body.to, 
+      subject: body.subject, 
+      hasHtml: !!body.html, 
+      hasText: !!body.text,
+      htmlLength: body.html?.length || 0,
+      textLength: body.text?.length || 0
+    }))
+    
+    const { to, subject, html, text } = body as EmailRequest
 
-    if (!to || !subject || (!html && !text)) {
+    // Validazione più dettagliata
+    if (!to || typeof to !== 'string' || to.trim() === '') {
+      console.error('❌ Campo "to" mancante o invalido:', to)
       return new Response(
-        JSON.stringify({ error: 'Campi obbligatori mancanti: to, subject, html o text' }),
+        JSON.stringify({ 
+          success: false,
+          error: 'Campo "to" mancante o invalido',
+          received: { to, subject: !!subject, hasHtml: !!html, hasText: !!text }
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    
+    if (!subject || typeof subject !== 'string' || subject.trim() === '') {
+      console.error('❌ Campo "subject" mancante o invalido:', subject)
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: 'Campo "subject" mancante o invalido',
+          received: { to, subject, hasHtml: !!html, hasText: !!text }
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    
+    if ((!html || html.trim() === '') && (!text || text.trim() === '')) {
+      console.error('❌ Campi "html" e "text" entrambi mancanti o vuoti')
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: 'Almeno uno tra "html" o "text" deve essere fornito',
+          received: { to, subject, hasHtml: !!html, hasText: !!text }
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }

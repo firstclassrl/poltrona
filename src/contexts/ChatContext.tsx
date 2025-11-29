@@ -218,6 +218,38 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   };
 
   const unreadCount = chats.reduce((total, chat) => total + chat.unread_count, 0);
+  const prevUnreadCountRef = useRef<number>(0);
+
+  // Funzione per suonare la campanella
+  const playNotificationSound = () => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const now = audioContext.currentTime;
+      
+      // Crea un suono di campanella più realistico con più toni
+      const frequencies = [523.25, 659.25, 783.99]; // Do, Mi, Sol
+      
+      frequencies.forEach((freq, index) => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(freq, now);
+        
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(0.2, now + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15 + index * 0.05);
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.start(now + index * 0.05);
+        oscillator.stop(now + 0.2 + index * 0.05);
+      });
+    } catch (error) {
+      console.warn('Impossibile riprodurre il suono di notifica:', error);
+    }
+  };
 
   useEffect(() => {
     staffIdRef.current = null;
@@ -226,6 +258,13 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   useEffect(() => {
     if (user) {
       loadChats();
+      
+      // Polling per aggiornare le chat ogni 5 secondi
+      const interval = setInterval(() => {
+        loadChats();
+      }, 5000);
+      
+      return () => clearInterval(interval);
     }
   }, [user]);
 
@@ -235,6 +274,15 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       markAsRead(activeChat.id);
     }
   }, [activeChat]);
+
+  // Rileva nuovi messaggi e suona la campanella
+  useEffect(() => {
+    if (unreadCount > prevUnreadCountRef.current && prevUnreadCountRef.current > 0) {
+      // C'è un nuovo messaggio non letto
+      playNotificationSound();
+    }
+    prevUnreadCountRef.current = unreadCount;
+  }, [unreadCount]);
 
   const value: ChatContextType = {
     chats,

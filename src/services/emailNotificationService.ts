@@ -74,11 +74,51 @@ class EmailNotificationService {
     text: string;
   }): Promise<EmailResponse> {
     try {
+      // Validazione dati prima di inviare
+      if (!emailData.to || emailData.to.trim() === '') {
+        console.error('❌ Campo "to" mancante o vuoto:', emailData.to);
+        return { 
+          success: false, 
+          error: 'Campo "to" mancante o vuoto' 
+        };
+      }
+      
+      if (!emailData.subject || emailData.subject.trim() === '') {
+        console.error('❌ Campo "subject" mancante o vuoto:', emailData.subject);
+        return { 
+          success: false, 
+          error: 'Campo "subject" mancante o vuoto' 
+        };
+      }
+      
+      if ((!emailData.html || emailData.html.trim() === '') && (!emailData.text || emailData.text.trim() === '')) {
+        console.error('❌ Campi "html" e "text" entrambi mancanti o vuoti');
+        return { 
+          success: false, 
+          error: 'Almeno uno tra "html" o "text" deve essere fornito' 
+        };
+      }
+
       // Costruisci l'URL della Edge Function
       // L'URL base è nel formato: https://xxx.supabase.co
       // La Edge Function sarà: https://xxx.supabase.co/functions/v1/send-email
       const baseUrl = this.supabaseUrl.replace('/rest/v1', '');
       const edgeFunctionUrl = `${baseUrl}/functions/v1/send-email`;
+
+      const payload = {
+        to: emailData.to.trim(),
+        subject: emailData.subject.trim(),
+        html: (emailData.html || '').trim(),
+        text: (emailData.text || '').trim(),
+      };
+
+      console.log('📧 Invio email via Edge Function:', {
+        to: payload.to,
+        subject: payload.subject,
+        htmlLength: payload.html.length,
+        textLength: payload.text.length,
+        url: edgeFunctionUrl
+      });
 
       const response = await fetch(edgeFunctionUrl, {
         method: 'POST',
@@ -87,12 +127,7 @@ class EmailNotificationService {
           'Authorization': `Bearer ${this.supabaseKey}`,
           'apikey': this.supabaseKey,
         },
-        body: JSON.stringify({
-          to: emailData.to,
-          subject: emailData.subject,
-          html: emailData.html,
-          text: emailData.text,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {

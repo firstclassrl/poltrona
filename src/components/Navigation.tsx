@@ -3,6 +3,7 @@ import { Calendar, Users, Home, ShoppingBag, User, Building2, LogOut, UserCheck,
 import { cn } from '../utils/cn';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../contexts/NotificationContext';
+import { useChat } from '../contexts/ChatContext';
 import { apiService } from '../services/api';
 import { APP_VERSION } from '../config/version';
 import type { Shop } from '../types';
@@ -14,7 +15,8 @@ interface NavigationProps {
 
 export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
   const { user, logout, hasPermission } = useAuth();
-  const { unreadCount } = useNotifications();
+  const { unreadCount: notificationUnreadCount } = useNotifications();
+  const { unreadCount: chatUnreadCount } = useChat();
   const [shop, setShop] = useState<Shop | null>(null);
 
   // Load shop data to check products_enabled (only when authenticated)
@@ -95,12 +97,13 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
             <nav className="mt-5 flex-1 px-2 space-y-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
+                const showChatBadge = item.id === 'chat' && chatUnreadCount > 0;
                 return (
                   <button
                     key={item.id}
                     onClick={() => onTabChange(item.id)}
                     className={cn(
-                      'group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full text-left transition-all duration-200',
+                      'group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full text-left transition-all duration-200 relative',
                       activeTab === item.id
                         ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-400/40 shadow-lg glass-nav-item'
                         : 'text-yellow-300 hover:bg-yellow-500/10 hover:text-yellow-400 hover:glass-nav-item'
@@ -108,6 +111,11 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                   >
                     <Icon className="mr-3 h-5 w-5" />
                     {item.label}
+                    {showChatBadge && (
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center min-w-[20px] h-[20px] px-1.5 text-xs font-bold text-white bg-red-500 rounded-full animate-pulse">
+                        {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -129,9 +137,9 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                     <Bell className="w-5 h-5 mr-3" />
                     <span>Notifiche</span>
                   </div>
-                  {unreadCount > 0 && (
+                  {notificationUnreadCount > 0 && (
                     <span className="flex items-center justify-center min-w-[22px] h-[22px] px-1.5 text-xs font-bold text-white bg-red-500 rounded-full animate-pulse">
-                      {unreadCount > 99 ? '99+' : unreadCount}
+                      {notificationUnreadCount > 99 ? '99+' : notificationUnreadCount}
                     </span>
                   )}
                 </button>
@@ -173,16 +181,24 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
         <div className="grid grid-cols-6 py-2">
           {navItems.map((item) => {
             const Icon = item.icon;
+            const showChatBadge = item.id === 'chat' && chatUnreadCount > 0;
             return (
               <button
                 key={item.id}
                 onClick={() => onTabChange(item.id)}
                 className={cn(
-                  'flex flex-col items-center py-2 px-1 transition-all duration-200',
+                  'flex flex-col items-center py-2 px-1 transition-all duration-200 relative',
                   activeTab === item.id ? 'text-yellow-400' : 'text-yellow-300'
                 )}
               >
-                <Icon className="h-5 w-5 mb-1" />
+                <div className="relative">
+                  <Icon className="h-5 w-5 mb-1" />
+                  {showChatBadge && (
+                    <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-red-500 rounded-full animate-pulse">
+                      {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+                    </span>
+                  )}
+                </div>
                 <span className="text-xs font-medium">{item.label}</span>
               </button>
             );
