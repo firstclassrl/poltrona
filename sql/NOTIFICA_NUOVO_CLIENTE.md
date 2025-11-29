@@ -67,3 +67,4 @@ Per testare la funzionalità:
 - Se un barbiere non ha un `user_id`, non riceverà notifiche
 - Il trigger gestisce gli errori gracefully: se c'è un errore nella creazione della notifica, viene loggato ma l'inserimento del profilo continua
 
+

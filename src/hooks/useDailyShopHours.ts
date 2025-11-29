@@ -181,7 +181,7 @@ export const useDailyShopHours = () => {
     return Boolean(hasMorning || hasAfternoon);
   };
 
-  const getExtraTimeSlots = (date: Date, slotDurationMinutes: number = 30): string[] => {
+  const getExtraTimeSlots = (date: Date, slotDurationMinutes: number = 15): string[] => {
     if (!isExtraOpeningActiveForDate(date) || !extraOpening) return [];
 
     const slots: string[] = [];
@@ -287,7 +287,7 @@ export const useDailyShopHours = () => {
   };
 
   // Get available time slots for a specific date
-  const getAvailableTimeSlots = (date: Date, slotDurationMinutes: number = 30): string[] => {
+  const getAvailableTimeSlots = (date: Date, slotDurationMinutes: number = 15): string[] => {
     if (isExtraOpeningActiveForDate(date)) {
       return getExtraTimeSlots(date, slotDurationMinutes);
     }

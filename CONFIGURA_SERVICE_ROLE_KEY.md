@@ -80,3 +80,4 @@ Significa che la chiave non è stata configurata correttamente.
 - Se la tabella non esiste, esegui prima la migration completa
 - La chiave viene letta automaticamente dal trigger quando un appuntamento viene cancellato
 
+

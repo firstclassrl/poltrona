@@ -81,3 +81,4 @@ COMMENT ON TABLE public.notifications IS 'Notifiche in-app per staff e clienti';
 COMMENT ON COLUMN public.notifications.type IS 'Tipo: new_appointment, appointment_cancelled, appointment_reminder, system';
 COMMENT ON COLUMN public.notifications.data IS 'Dati JSON aggiuntivi (appointment_id, client_name, service_name, etc.)';
 
+

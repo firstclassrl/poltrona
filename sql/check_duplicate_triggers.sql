@@ -50,3 +50,4 @@ WHERE active = true
         OR LOWER(role) IN ('barber', 'barbiere', 'barbiere senior', 'barbiere junior', 'master barber', 'junior barber', 'owner', 'admin', 'proprietario')
     );
 
+

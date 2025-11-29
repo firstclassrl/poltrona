@@ -37,11 +37,6 @@ const AppContent: React.FC = () => {
     }
   }, [user]);
 
-  const handleNewAppointment = () => {
-    setEditingAppointment(null);
-    setIsAppointmentFormOpen(true);
-  };
-
   const handleEditAppointment = (appointment: Appointment) => {
     setEditingAppointment(appointment);
     setIsAppointmentFormOpen(true);
@@ -68,7 +63,6 @@ const AppContent: React.FC = () => {
       case 'dashboard':
         return (
           <Dashboard
-            onNewAppointment={handleNewAppointment}
             onNavigateToCalendar={() => setActiveTab('calendar')}
             onEditAppointment={handleEditAppointment}
             onNavigateToClients={() => setActiveTab('clients')}
@@ -102,7 +96,6 @@ const AppContent: React.FC = () => {
       default:
         return (
           <Dashboard
-            onNewAppointment={handleNewAppointment}
             onNavigateToCalendar={() => setActiveTab('calendar')}
             onEditAppointment={handleEditAppointment}
             onNavigateToClients={() => setActiveTab('clients')}

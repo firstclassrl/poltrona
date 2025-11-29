@@ -148,3 +148,4 @@ WHERE trigger_name = 'on_chat_message_inserted';
 COMMENT ON FUNCTION public.notify_client_on_chat_message() IS 'Funzione trigger per creare notifiche quando un barbiere invia un messaggio di chat a un cliente';
 COMMENT ON COLUMN public.notifications.type IS 'Tipo: new_appointment, appointment_cancelled, appointment_reminder, system, waitlist_available, new_client, chat_message';
 
+

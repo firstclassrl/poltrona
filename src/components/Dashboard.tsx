@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Plus, Clock, AlertTriangle, ShoppingBag, Package, ChevronRight } from 'lucide-react';
+import { Calendar, Users, Clock, AlertTriangle, ShoppingBag, Package, ChevronRight } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
@@ -10,14 +10,12 @@ import { useAuth } from '../contexts/AuthContext';
 import type { Appointment } from '../types';
 
 interface DashboardProps {
-  onNewAppointment: () => void;
   onNavigateToCalendar: () => void;
   onEditAppointment: (appointment: Appointment) => void;
   onNavigateToClients?: () => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
-  onNewAppointment, 
   onNavigateToCalendar,
   onEditAppointment,
   onNavigateToClients
@@ -142,12 +140,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                            user?.role === 'barber' ? 'Barbiere' :
                                            user?.role === 'client' ? 'Cliente' : 'Utente'}
           </p>
-        </div>
-        <div className="md:pr-16">
-          <Button onClick={onNewAppointment} size="lg" className="w-full md:w-auto">
-            <Plus className="w-5 h-5 mr-2" />
-            Nuovo Appuntamento
-          </Button>
         </div>
       </div>
 

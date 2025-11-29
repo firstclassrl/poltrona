@@ -84,7 +84,7 @@ export const doesAppointmentOverlapSlot = (
   appointment: Appointment,
   slotDate: Date,
   slotTime: string,
-  slotDurationMinutes: number = 30
+  slotDurationMinutes: number = 15
 ): boolean => {
   if (appointment.status === 'cancelled') {
     return false;
@@ -109,4 +109,66 @@ export const doesAppointmentOverlapSlot = (
       );
 
   return slotStart < appointmentEnd && slotEnd > appointmentStart;
+};
+
+/**
+ * Calcola quanti slot di 15 minuti occupa un appuntamento
+ */
+export const getAppointmentSlotCount = (appointment: Appointment): number => {
+  const durationMinutes = appointment.services?.duration_min || 30;
+  return Math.ceil(durationMinutes / 15);
+};
+
+/**
+ * Verifica se due appuntamenti si sovrappongono
+ */
+export const doAppointmentsOverlap = (
+  appointment1: Appointment,
+  appointment2: Appointment
+): boolean => {
+  // Gli appuntamenti cancellati non si sovrappongono
+  if (appointment1.status === 'cancelled' || appointment2.status === 'cancelled') {
+    return false;
+  }
+
+  // Devono essere dello stesso staff per sovrapporsi
+  if (appointment1.staff_id !== appointment2.staff_id) {
+    return false;
+  }
+
+  const start1 = new Date(appointment1.start_at);
+  const end1 = appointment1.end_at ? new Date(appointment1.end_at) : addMinutes(start1, appointment1.services?.duration_min || 30);
+  
+  const start2 = new Date(appointment2.start_at);
+  const end2 = appointment2.end_at ? new Date(appointment2.end_at) : addMinutes(start2, appointment2.services?.duration_min || 30);
+
+  // Due appuntamenti si sovrappongono se: start1 < end2 && end1 > start2
+  return start1 < end2 && end1 > start2;
+};
+
+/**
+ * Verifica se un nuovo appuntamento si sovrappone con quelli esistenti
+ */
+export const checkAppointmentOverlap = (
+  newAppointment: {
+    staff_id: string;
+    start_at: string;
+    end_at: string;
+  },
+  existingAppointments: Appointment[]
+): boolean => {
+  const newStart = new Date(newAppointment.start_at);
+  const newEnd = new Date(newAppointment.end_at);
+
+  return existingAppointments.some(existing => {
+    if (existing.status === 'cancelled') return false;
+    if (existing.staff_id !== newAppointment.staff_id) return false;
+
+    const existingStart = new Date(existing.start_at);
+    const existingEnd = existing.end_at 
+      ? new Date(existing.end_at)
+      : addMinutes(existingStart, existing.services?.duration_min || 30);
+
+    return newStart < existingEnd && newEnd > existingStart;
+  });
 };

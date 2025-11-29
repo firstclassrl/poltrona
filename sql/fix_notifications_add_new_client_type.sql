@@ -23,3 +23,4 @@ WHERE conrelid = 'public.notifications'::regclass
 -- Commento aggiornato
 COMMENT ON COLUMN public.notifications.type IS 'Tipo: new_appointment, appointment_cancelled, appointment_reminder, system, new_client';
 
+

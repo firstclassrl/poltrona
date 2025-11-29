@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Filter, Package, Sun, Moon, User, Clock, MapPin, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Filter, Package, Sun, Moon, User, Clock, MapPin, Plus, Trash2 } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { Select } from './ui/Select';
 import { Modal } from './ui/Modal';
-import { formatTime, formatDate, doesAppointmentOverlapSlot } from '../utils/date';
+import { formatTime, formatDate, doesAppointmentOverlapSlot, getAppointmentSlotCount, getSlotDateTime } from '../utils/date';
 import { useDailyShopHours } from '../hooks/useDailyShopHours';
 import { useChairAssignment } from '../hooks/useChairAssignment';
 import { useAppointments } from '../hooks/useAppointments';
 import { useVacationMode } from '../hooks/useVacationMode';
 import { AppointmentForm } from './AppointmentForm';
+import { DeleteConfirmation } from './DeleteConfirmation';
 import type { Appointment } from '../types';
 
 export const Calendar = () => {
@@ -19,7 +20,7 @@ export const Calendar = () => {
   const [timePeriod, setTimePeriod] = useState<'morning' | 'afternoon'>('morning');
   const { shopHours, getAvailableTimeSlots, isDateOpen, getShopHoursSummary, shopHoursLoaded } = useDailyShopHours();
   const { getAssignedChairs } = useChairAssignment();
-  const { appointments } = useAppointments();
+  const { appointments, createAppointment, deleteAppointment } = useAppointments();
   const { isDateInVacation } = useVacationMode();
   
   // Mobile-specific states
@@ -31,10 +32,47 @@ export const Calendar = () => {
   // Appointment details modal
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [showAppointmentDetails, setShowAppointmentDetails] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Pre-filled appointment data when clicking on empty slot
+  const [prefilledAppointmentData, setPrefilledAppointmentData] = useState<{
+    date: string;
+    time: string;
+    staff_id?: string;
+  } | null>(null);
 
   const handleAppointmentClick = (appointment: Appointment) => {
     setSelectedAppointment(appointment);
     setShowAppointmentDetails(true);
+  };
+
+  const handleEmptySlotClick = (day: Date, time: string) => {
+    // Check if slot is available
+    const dayTimeSlots = getTimeSlotsForDate(day, timePeriod);
+    if (!dayTimeSlots.includes(time)) return;
+    
+    // Check if slot is already occupied
+    const hasAppointment = filteredAppointments.some(apt => 
+      doesAppointmentOverlapSlot(apt, day, time)
+    );
+    if (hasAppointment) return;
+    
+    // Get staff_id from selected chair if not 'all'
+    let staffId: string | undefined;
+    if (selectedChair !== 'all') {
+      const chairAssignment = assignedChairs.find(chair => chair.chairId === selectedChair);
+      staffId = chairAssignment?.staffId || undefined;
+    }
+    
+    // Set prefilled data and open modal
+    const dateString = day.toISOString().split('T')[0];
+    setPrefilledAppointmentData({
+      date: dateString,
+      time: time,
+      staff_id: staffId,
+    });
+    setShowCreateAppointmentModal(true);
   };
 
   const getWeekDays = () => {
@@ -127,7 +165,7 @@ export const Calendar = () => {
       if ((period === 'morning' && isMorningSlot) || (period === 'afternoon' && isAfternoonSlot)) {
         // Genera gli slot per questo timeSlot
         let currentTime = startTime;
-        const slotDurationMinutes = 30;
+        const slotDurationMinutes = 15;
         
         while (currentTime + slotDurationMinutes <= endTime) {
           const hours = Math.floor(currentTime / 60);
@@ -164,6 +202,23 @@ export const Calendar = () => {
       no_show: 'bg-red-100 border-red-300 text-red-800',
     } as const;
     return colors[status as keyof typeof colors] || colors.scheduled;
+  };
+
+  // Helper function to find appointment that starts at a specific slot
+  const getAppointmentAtSlot = (day: Date, time: string): Appointment | null => {
+    const slotStart = getSlotDateTime(day, time);
+    return filteredAppointments.find(apt => {
+      if (apt.status === 'cancelled') return false;
+      const aptStart = new Date(apt.start_at);
+      const aptDate = new Date(aptStart.getFullYear(), aptStart.getMonth(), aptStart.getDate());
+      const slotDate = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+      
+      if (aptDate.getTime() !== slotDate.getTime()) return false;
+      
+      // Check if appointment starts exactly at this slot
+      return aptStart.getHours() === slotStart.getHours() && 
+             aptStart.getMinutes() === slotStart.getMinutes();
+    }) || null;
   };
 
 
@@ -301,38 +356,61 @@ export const Calendar = () => {
                     {weekDays.map((day, dayIndex) => {
                       const dayTimeSlots = getTimeSlotsForDate(day, timePeriod);
                       const isTimeSlotAvailable = dayTimeSlots.includes(time);
+                      const appointmentAtSlot = getAppointmentAtSlot(day, time);
+                      const slotCount = appointmentAtSlot ? getAppointmentSlotCount(appointmentAtSlot) : 0;
                       
                       return (
                         <div
                           key={`${time}-${dayIndex}`}
-                          className={`min-h-[60px] max-h-[60px] p-1 border border-gray-100 transition-colors relative overflow-hidden ${
+                          className={`min-h-[60px] max-h-[60px] p-1 border border-gray-100 transition-colors relative ${
+                            appointmentAtSlot ? 'overflow-visible' : 'overflow-hidden'
+                          } ${
                             isTimeSlotAvailable 
                               ? 'hover:bg-gray-50 cursor-pointer' 
                               : 'bg-gray-200 text-gray-600 cursor-not-allowed'
                           }`}
+                          onClick={(e) => {
+                            // Only handle click if clicking on empty space (not on appointment)
+                            if (e.target === e.currentTarget || (e.target as HTMLElement).closest('.appointment-block') === null) {
+                              const hasAppointment = filteredAppointments.some(apt => 
+                                doesAppointmentOverlapSlot(apt, day, time)
+                              );
+                              if (!hasAppointment && isTimeSlotAvailable) {
+                                handleEmptySlotClick(day, time);
+                              }
+                            }
+                          }}
                         >
-                          {/* Render appointments for this time slot */}
-                          {isTimeSlotAvailable && filteredAppointments
-                            .filter(apt => doesAppointmentOverlapSlot(apt, day, time))
-                            .map(apt => (
-                              <div
-                                key={apt.id}
-                                className={`p-1 rounded text-xs border w-full max-w-full overflow-hidden ${getStatusColor(apt.status || 'scheduled')} cursor-pointer hover:opacity-80 transition-opacity`}
-                                draggable
-                                onDragStart={(e) => e.dataTransfer.setData('appointmentId', apt.id || '')}
-                                onClick={() => handleAppointmentClick(apt)}
-                                title={`${apt.clients?.first_name} ${apt.clients?.last_name || ''} - ${apt.services?.name || 'Servizio'} - ${apt.staff?.full_name}`}
-                              >
-                                <div className="font-medium truncate whitespace-nowrap overflow-hidden text-ellipsis">
-                                  {apt.clients?.first_name} {apt.clients?.last_name || ''}
-                                </div>
+                          {/* Render appointment only if it starts at this slot */}
+                          {appointmentAtSlot && (
+                            <div
+                              className={`appointment-block p-1 rounded text-xs border w-full overflow-hidden ${getStatusColor(appointmentAtSlot.status || 'scheduled')} cursor-pointer hover:opacity-80 transition-opacity absolute top-1 left-1 right-1 z-10`}
+                              style={{
+                                height: `${slotCount * 60 - 8}px`,
+                                minHeight: `${slotCount * 60 - 8}px`,
+                              }}
+                              draggable
+                              onDragStart={(e) => e.dataTransfer.setData('appointmentId', appointmentAtSlot.id || '')}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAppointmentClick(appointmentAtSlot);
+                              }}
+                              title={`${appointmentAtSlot.clients?.first_name} ${appointmentAtSlot.clients?.last_name || ''} - ${appointmentAtSlot.services?.name || 'Servizio'} - ${appointmentAtSlot.staff?.full_name}`}
+                            >
+                              <div className="font-medium truncate whitespace-nowrap overflow-hidden text-ellipsis">
+                                {appointmentAtSlot.clients?.first_name} {appointmentAtSlot.clients?.last_name || ''}
                               </div>
-                            ))
-                          }
+                              {slotCount > 1 && (
+                                <div className="text-xs text-gray-600 mt-1 truncate">
+                                  {appointmentAtSlot.services?.name || 'Servizio'}
+                                </div>
+                              )}
+                            </div>
+                          )}
                           
                           {/* Overlay per giorni in ferie */}
                           {isDateInVacation(day) && (
-                            <div className="absolute inset-0 bg-red-500/10 flex items-center justify-center">
+                            <div className="absolute inset-0 bg-red-500/10 flex items-center justify-center z-20 pointer-events-none">
                               <span className="text-red-600 font-bold text-sm transform -rotate-45">
                                 CHIUSO PER FERIE
                               </span>
@@ -566,19 +644,57 @@ export const Calendar = () => {
       {/* Create Appointment Modal */}
       <AppointmentForm
         isOpen={showCreateAppointmentModal}
-        onClose={() => setShowCreateAppointmentModal(false)}
-        onSave={(data) => {
-          // Handle appointment creation
-          console.log('Creating appointment:', data);
+        onClose={() => {
           setShowCreateAppointmentModal(false);
+          setPrefilledAppointmentData(null);
+        }}
+        onSave={async (data) => {
+          // Handle appointment creation
+          try {
+            await createAppointment(data as any);
+            setShowCreateAppointmentModal(false);
+            setPrefilledAppointmentData(null);
+          } catch (error) {
+            console.error('Error creating appointment:', error);
+          }
         }}
         appointment={null}
+        prefilledData={prefilledAppointmentData || undefined}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmation
+        isOpen={showDeleteConfirmation}
+        onClose={() => setShowDeleteConfirmation(false)}
+        onConfirm={async () => {
+          if (!selectedAppointment?.id) return;
+          
+          setIsDeleting(true);
+          try {
+            await deleteAppointment(selectedAppointment.id);
+            setShowDeleteConfirmation(false);
+            setShowAppointmentDetails(false);
+            setSelectedAppointment(null);
+          } catch (error) {
+            console.error('Error deleting appointment:', error);
+            alert('Errore durante l\'eliminazione dell\'appuntamento');
+          } finally {
+            setIsDeleting(false);
+          }
+        }}
+        title="Elimina Appuntamento"
+        message="Sei sicuro di voler eliminare questo appuntamento? Questa azione non può essere annullata."
+        itemName={selectedAppointment ? `${selectedAppointment.clients?.first_name} ${selectedAppointment.clients?.last_name || ''} - ${formatTime(selectedAppointment.start_at)}` : ''}
+        isLoading={isDeleting}
       />
 
       {/* Appointment Details Modal */}
       <Modal
         isOpen={showAppointmentDetails}
-        onClose={() => setShowAppointmentDetails(false)}
+        onClose={() => {
+          setShowAppointmentDetails(false);
+          setSelectedAppointment(null);
+        }}
         title="Dettagli Appuntamento"
       >
         {selectedAppointment && (
@@ -666,6 +782,16 @@ export const Calendar = () => {
                 className="flex-1"
               >
                 Chiudi
+              </Button>
+              <Button 
+                variant="secondary"
+                onClick={() => {
+                  setShowDeleteConfirmation(true);
+                }}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Elimina
               </Button>
             </div>
           </div>

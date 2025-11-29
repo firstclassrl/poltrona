@@ -145,3 +145,4 @@ if (!to || !to.includes('@')) {
 
 **Inizia subito con la configurazione SendGrid!** 🚀
 
+

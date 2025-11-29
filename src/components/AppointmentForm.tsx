@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { User } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -7,6 +7,8 @@ import { Modal } from './ui/Modal';
 import { apiService } from '../services/api';
 // removed mock clients: all data comes from API
 import { useDailyShopHours } from '../hooks/useDailyShopHours';
+import { useAppointments } from '../hooks/useAppointments';
+import { checkAppointmentOverlap } from '../utils/date';
 import type { Client, CreateAppointmentRequest, UpdateAppointmentRequest, Service, Staff, Appointment } from '../types';
 
 interface AppointmentFormProps {
@@ -14,6 +16,11 @@ interface AppointmentFormProps {
   onClose: () => void;
   onSave: (data: CreateAppointmentRequest | UpdateAppointmentRequest) => void;
   appointment?: Appointment | null; // For editing existing appointments
+  prefilledData?: {
+    date: string;
+    time: string;
+    staff_id?: string;
+  }; // Pre-filled data when clicking on empty slot
 }
 
 export const AppointmentForm = ({
@@ -21,6 +28,7 @@ export const AppointmentForm = ({
   onClose,
   onSave,
   appointment,
+  prefilledData,
 }: AppointmentFormProps) => {
   const [formData, setFormData] = useState({
     client_id: '',
@@ -35,11 +43,14 @@ export const AppointmentForm = ({
   const [clientSuggestions, setClientSuggestions] = useState<Client[]>([]);
   const [, setSelectedClient] = useState<Client | null>(null);
   const [showClientSuggestions, setShowClientSuggestions] = useState(false);
+  const [isSearchingClients, setIsSearchingClients] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { isTimeWithinHours, isDateOpen, getAvailableTimeSlots, shopHoursLoaded } = useDailyShopHours();
+  const { appointments } = useAppointments();
 
   // Load services and staff from API
   useEffect(() => {
@@ -81,10 +92,22 @@ export const AppointmentForm = ({
       });
       setSelectedClient(appointment.clients || null);
       setClientQuery(`${appointment.clients?.first_name || ''} ${appointment.clients?.last_name || ''}`.trim());
+    } else if (prefilledData) {
+      // Use prefilled data when clicking on empty slot
+      setFormData({
+        client_id: '',
+        staff_id: prefilledData.staff_id || '',
+        service_id: '',
+        date: prefilledData.date,
+        time: prefilledData.time,
+        notes: '',
+      });
+      setSelectedClient(null);
+      setClientQuery('');
     } else {
       resetForm();
     }
-  }, [appointment, isOpen]);
+  }, [appointment, prefilledData, isOpen]);
 
   // Reset time when date changes and time is not valid for new date
   useEffect(() => {
@@ -112,9 +135,32 @@ export const AppointmentForm = ({
     setErrors({});
   };
 
-  const handleClientSearch = async (query: string) => {
+  const handleClientSearch = useCallback(async (query: string) => {
     setClientQuery(query);
-    if (query.length > 1) {
+    
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    if (query.length === 0) {
+      setClientSuggestions([]);
+      setShowClientSuggestions(false);
+      setIsSearchingClients(false);
+      return;
+    }
+    
+    if (query.length === 1) {
+      setShowClientSuggestions(false);
+      setIsSearchingClients(false);
+      return;
+    }
+    
+    // Show loading state
+    setIsSearchingClients(true);
+    
+    // Debounce search - wait 300ms after user stops typing
+    searchTimeoutRef.current = setTimeout(async () => {
       try {
         const results = await apiService.searchClients(query);
         setClientSuggestions(results);
@@ -123,14 +169,20 @@ export const AppointmentForm = ({
         console.error('API search failed:', error);
         setClientSuggestions([]);
         setShowClientSuggestions(false);
+      } finally {
+        setIsSearchingClients(false);
       }
-    } else if (query.length === 0) {
-      setClientSuggestions([]);
-      setShowClientSuggestions(false);
-    } else {
-      setShowClientSuggestions(false);
-    }
-  };
+    }, 300);
+  }, []);
+  
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleClientSelect = (client: Client) => {
     setSelectedClient(client);
@@ -181,6 +233,34 @@ export const AppointmentForm = ({
       }
     } else if (selectedDateTime < now) {
       newErrors.time = 'Non puoi prenotare nel passato';
+    }
+
+    // Check for appointment overlaps
+    if (formData.staff_id && formData.service_id && formData.date && formData.time) {
+      const selectedService = services.find(s => s.id === formData.service_id);
+      const durationMinutes = selectedService?.duration_min || 30;
+      const startAt = new Date(`${formData.date}T${formData.time}`).toISOString();
+      const endAt = new Date(new Date(startAt).getTime() + durationMinutes * 60000).toISOString();
+
+      // Filter out cancelled appointments and the current appointment if editing
+      const relevantAppointments = appointments.filter(apt => {
+        if (apt.status === 'cancelled') return false;
+        if (isEditing && appointment && apt.id === appointment.id) return false;
+        return apt.staff_id === formData.staff_id;
+      });
+
+      const hasOverlap = checkAppointmentOverlap(
+        {
+          staff_id: formData.staff_id,
+          start_at: startAt,
+          end_at: endAt,
+        },
+        relevantAppointments
+      );
+
+      if (hasOverlap) {
+        newErrors.time = 'Questo orario è già occupato per questo barbiere';
+      }
     }
 
     setErrors(newErrors);
@@ -239,33 +319,50 @@ export const AppointmentForm = ({
               label="Cliente"
               value={clientQuery}
               onChange={(e) => handleClientSearch(e.target.value)}
-              placeholder="Cerca cliente per nome o telefono..."
+              placeholder="Cerca cliente per nome, cognome o telefono..."
               error={errors.client_id}
               className="flex-1"
             />
             {/* Rimosso bottone mock "Tutti" in produzione */}
           </div>
           
-          {showClientSuggestions && clientSuggestions.length > 0 && (
+          {(showClientSuggestions || isSearchingClients) && (
             <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-              {clientSuggestions.map((client) => (
-                <div
-                  key={client.id}
-                  className="p-3 hover:bg-white/10 cursor-pointer transition-colors"
-                  onClick={() => handleClientSelect(client)}
-                >
-                  <div className="text-white font-medium">
-                    {client.first_name} {client.last_name}
-                  </div>
-                  <div className="text-gray-300 text-sm">{client.phone_e164}</div>
+              {isSearchingClients ? (
+                <div className="p-3 text-center text-gray-300">
+                  <div className="animate-pulse">Cerca clienti...</div>
                 </div>
-              ))}
-              <div className="p-3 border-t border-white/10">
-                <Button variant="ghost" size="sm" className="w-full">
-                  <User className="w-4 h-4 mr-2" />
-                  Crea nuovo cliente
-                </Button>
-              </div>
+              ) : clientSuggestions.length > 0 ? (
+                <>
+                  {clientSuggestions.map((client) => (
+                    <div
+                      key={client.id}
+                      className="p-3 hover:bg-white/10 cursor-pointer transition-colors border-b border-white/5 last:border-b-0"
+                      onClick={() => handleClientSelect(client)}
+                    >
+                      <div className="text-white font-medium">
+                        {client.first_name} {client.last_name || ''}
+                      </div>
+                      <div className="text-gray-300 text-sm mt-1">
+                        {client.phone_e164}
+                        {client.email && (
+                          <span className="ml-2 text-gray-400">• {client.email}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  <div className="p-3 border-t border-white/10">
+                    <Button variant="ghost" size="sm" className="w-full">
+                      <User className="w-4 h-4 mr-2" />
+                      Crea nuovo cliente
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className="p-3 text-center text-gray-400">
+                  Nessun cliente trovato
+                </div>
+              )}
             </div>
           )}
         </div>

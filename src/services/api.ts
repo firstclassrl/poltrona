@@ -590,6 +590,35 @@ export const apiService = {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
     
     try {
+      // Check for overlapping appointments before creating
+      const startDate = new Date(data.start_at);
+      const endDate = new Date(data.end_at);
+      const checkStart = new Date(startDate);
+      checkStart.setDate(checkStart.getDate() - 1); // Check 1 day before
+      const checkEnd = new Date(endDate);
+      checkEnd.setDate(checkEnd.getDate() + 1); // Check 1 day after
+      
+      const existingAppointments = await this.getAppointments(
+        checkStart.toISOString(),
+        checkEnd.toISOString()
+      );
+      
+      // Filter appointments for the same staff and check for overlaps
+      const overlappingAppointments = existingAppointments.filter(apt => {
+        if (apt.status === 'cancelled') return false;
+        if (apt.staff_id !== data.staff_id) return false;
+        
+        const aptStart = new Date(apt.start_at);
+        const aptEnd = apt.end_at ? new Date(apt.end_at) : new Date(aptStart.getTime() + (apt.services?.duration_min || 30) * 60000);
+        
+        // Check if appointments overlap: start1 < end2 && end1 > start2
+        return startDate < aptEnd && endDate > aptStart;
+      });
+      
+      if (overlappingAppointments.length > 0) {
+        throw new Error('Impossibile creare l\'appuntamento: c\'è un conflitto con un altro appuntamento per lo stesso barbiere');
+      }
+      
       // Get shop_id from shop
       const shop = await this.getShop();
       
