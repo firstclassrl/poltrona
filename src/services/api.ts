@@ -521,17 +521,38 @@ export const apiService = {
       // Usa buildHeaders(false) per permettere lettura pubblica degli appuntamenti
       // Questo permette sia ai clienti che ai barbieri di vedere gli appuntamenti
       // Include services per mostrare nome servizio e durata
-      const url = `${API_ENDPOINTS.APPOINTMENTS_FEED}?select=*,clients(id,first_name,last_name,phone_e164,email),staff(full_name),services(id,name,duration_min)&order=start_at.asc&start_at=gte.${start}&start_at=lte.${end}`;
+      // PostgREST accetta date ISO nel formato RFC3339
+      // Costruiamo la query URL con i parametri correttamente codificati
+      const params = new URLSearchParams({
+        select: '*,clients(id,first_name,last_name,phone_e164,email),staff(full_name),services(id,name,duration_min)',
+        order: 'start_at.asc',
+      });
+      
+      // PostgREST usa operatori di filtro nella sintassi: column.operator.value
+      // Per il range, usiamo due filtri separati
+      const url = `${API_ENDPOINTS.APPOINTMENTS_FEED}?${params.toString()}&start_at=gte.${encodeURIComponent(start)}&start_at=lte.${encodeURIComponent(end)}`;
+      console.log('🔍 Query appointments:', url);
+      console.log('📅 Range date:', { start, end });
+      
       const response = await fetch(url, { headers: buildHeaders(false) });
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Error fetching appointments:', response.status, errorText);
+        console.error('❌ Error fetching appointments:', response.status, errorText);
         throw new Error(`Failed to fetch appointments: ${response.status}`);
       }
       const data = await response.json();
+      console.log(`📋 Appuntamenti restituiti dalla query: ${data.length}`);
+      if (data.length > 0) {
+        console.log('📝 Primi 5 appuntamenti:', data.slice(0, 5).map((apt: Appointment) => ({
+          id: apt.id,
+          start_at: apt.start_at,
+          status: apt.status,
+          client: apt.clients?.first_name,
+        })));
+      }
       return data;
     } catch (error) {
-      console.error('Error fetching appointments:', error);
+      console.error('❌ Error fetching appointments:', error);
       return [];
     }
   },

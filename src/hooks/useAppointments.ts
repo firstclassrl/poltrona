@@ -29,19 +29,30 @@ export const useAppointments = () => {
       const today = new Date();
       const startDate = new Date(today);
       startDate.setDate(today.getDate() - 7); // 1 settimana fa
+      startDate.setHours(0, 0, 0, 0); // Imposta a inizio giornata
       const endDate = new Date(today);
       endDate.setFullYear(today.getFullYear() + 2); // 2 anni nel futuro
+      endDate.setHours(23, 59, 59, 999); // Imposta a fine giornata
+      
+      const startISO = startDate.toISOString();
+      const endISO = endDate.toISOString();
+      
+      console.log('📅 Caricamento appuntamenti dal', startISO, 'al', endISO);
       
       const dbAppointments = await apiService.getAppointments(
-        startDate.toISOString(),
-        endDate.toISOString()
+        startISO,
+        endISO
       );
       
       if (dbAppointments && dbAppointments.length > 0) {
         setAppointments(dbAppointments);
         console.log('✅ Appuntamenti caricati dal database:', dbAppointments.length);
+        // Log delle date degli appuntamenti per debug
+        dbAppointments.forEach((apt: Appointment) => {
+          console.log(`  - ${apt.start_at} (status: ${apt.status})`);
+        });
       } else {
-        // Fallback al localStorage se il database è vuoto o non disponibile
+        console.log('⚠️ Nessun appuntamento trovato nel range specificato');
         setAppointments([]);
       }
     } catch (error) {
