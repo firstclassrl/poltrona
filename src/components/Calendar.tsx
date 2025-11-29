@@ -795,7 +795,6 @@ export const Calendar = () => {
                 Chiudi
               </Button>
               <Button 
-                variant="secondary"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -805,7 +804,7 @@ export const Calendar = () => {
                     setShowDeleteConfirmation(true);
                   }, 100);
                 }}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white border-red-600"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Elimina

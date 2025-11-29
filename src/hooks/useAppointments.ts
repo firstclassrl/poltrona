@@ -24,12 +24,13 @@ export const useAppointments = () => {
   const loadAppointments = useCallback(async () => {
     try {
       setIsLoading(true);
-      // Carica appuntamenti per le prossime 4 settimane
+      // Carica appuntamenti per un range ampio (1 settimana fa fino a 2 anni nel futuro)
+      // per includere appuntamenti prenotati anche molto in anticipo (es. 2026)
       const today = new Date();
       const startDate = new Date(today);
       startDate.setDate(today.getDate() - 7); // 1 settimana fa
       const endDate = new Date(today);
-      endDate.setDate(today.getDate() + 28); // 4 settimane avanti
+      endDate.setFullYear(today.getFullYear() + 2); // 2 anni nel futuro
       
       const dbAppointments = await apiService.getAppointments(
         startDate.toISOString(),
@@ -120,8 +121,8 @@ export const useAppointments = () => {
     setIsLoading(true);
     
     try {
-      // Prova a eliminare dal database
-      await apiService.cancelAppointment(appointmentId);
+      // Usa deleteAppointmentDirect per eliminare completamente l'appuntamento
+      await apiService.deleteAppointmentDirect(appointmentId);
       await loadAppointments();
       console.log('✅ Appuntamento eliminato dal database:', appointmentId);
     } catch (error) {

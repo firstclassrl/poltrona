@@ -1633,6 +1633,30 @@ export const apiService = {
     }
   },
 
+  // Delete appointment completely from Supabase (for barber deletions)
+  async deleteAppointmentDirect(appointmentId: string): Promise<void> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    
+    try {
+      // Usa buildHeaders(true) per avere i permessi di eliminazione con token utente
+      const response = await fetch(`${API_ENDPOINTS.APPOINTMENTS_FEED}?id=eq.${appointmentId}`, {
+        method: 'DELETE',
+        headers: { ...buildHeaders(true), Prefer: 'return=minimal' },
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Errore eliminazione appuntamento:', response.status, errorText);
+        throw new Error(`Failed to delete appointment: ${response.status} ${errorText}`);
+      }
+      
+      // Appointment deleted successfully
+    } catch (error) {
+      console.error('❌ Errore critico eliminazione appuntamento:', error);
+      throw error;
+    }
+  },
+
   // Create a notification for a user
   async createNotification(data: {
     user_id: string;
