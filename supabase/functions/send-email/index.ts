@@ -47,7 +47,19 @@ serve(async (req) => {
     // Ottieni l'indirizzo email sender
     // Usa il dominio verificato abruzzo.ai
     // Puoi configurare RESEND_FROM_EMAIL in Supabase Secrets per personalizzarlo
-    const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') || 'noreply@abruzzo.ai'
+    let fromEmail = Deno.env.get('RESEND_FROM_EMAIL') || 'noreply@abruzzo.ai'
+    
+    // Rimuovi spazi e caratteri non validi
+    fromEmail = fromEmail.trim()
+    
+    // Valida il formato email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(fromEmail)) {
+      console.error(`❌ RESEND_FROM_EMAIL non valido: "${fromEmail}"`)
+      // Usa il fallback sicuro
+      fromEmail = 'noreply@abruzzo.ai'
+      console.log(`⚠️ Usando indirizzo fallback: ${fromEmail}`)
+    }
 
     console.log(`📧 Invio email a: ${to} via Resend API (da: ${fromEmail})`)
 
