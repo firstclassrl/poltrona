@@ -178,7 +178,8 @@ export const ClientProfile: React.FC = () => {
       let staffDetails = staffInfo;
       if (appointmentToCancel.staff_id && !staffDetails) {
         try {
-          staffDetails = await apiService.getStaffById(appointmentToCancel.staff_id);
+          const staff = await apiService.getStaffById(appointmentToCancel.staff_id);
+          staffDetails = staff || undefined;
         } catch (error) {
           console.error('❌ Errore recupero dettagli staff:', error);
         }
