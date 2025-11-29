@@ -1,6 +1,6 @@
-// Email Notification Service con RESEND diretto
-// Servizio per inviare notifiche email direttamente tramite API Resend
-// Configurato per usare RESEND API per tutte le email
+// Email Notification Service con RESEND tramite Supabase Edge Function
+// Servizio per inviare notifiche email tramite Supabase Edge Function che chiama Resend API
+// La Edge Function agisce da proxy server-side per evitare problemi CORS
 
 import { API_CONFIG } from '../config/api';
 
@@ -51,21 +51,22 @@ export interface EmailResponse {
 
 class EmailNotificationService {
   private isConfigured: boolean = false;
-  private resendApiKey: string;
-  private fromEmail: string = 'noreply@resend.dev';
+  private supabaseUrl: string;
+  private supabaseKey: string;
 
   constructor() {
-    this.resendApiKey = API_CONFIG.RESEND_API_KEY || '';
-    this.isConfigured = Boolean(this.resendApiKey);
+    this.supabaseUrl = API_CONFIG.SUPABASE_EDGE_URL || '';
+    this.supabaseKey = API_CONFIG.SUPABASE_ANON_KEY || '';
+    this.isConfigured = Boolean(this.supabaseUrl && this.supabaseKey);
   }
 
   private ensureConfigured(): void {
     if (!this.isConfigured) {
-      throw new Error('Servizio email non configurato. Imposta VITE_RESEND_API_KEY.');
+      throw new Error('Servizio email non configurato. Imposta SUPABASE_EDGE_URL e SUPABASE_ANON_KEY.');
     }
   }
 
-  // Metodo per inviare email direttamente tramite API Resend
+  // Metodo per inviare email tramite Supabase Edge Function (che chiama Resend API server-side)
   private async sendEmailViaResend(emailData: {
     to: string;
     subject: string;
@@ -73,14 +74,20 @@ class EmailNotificationService {
     text: string;
   }): Promise<EmailResponse> {
     try {
-      const response = await fetch('https://api.resend.com/emails', {
+      // Costruisci l'URL della Edge Function
+      // L'URL base è nel formato: https://xxx.supabase.co
+      // La Edge Function sarà: https://xxx.supabase.co/functions/v1/send-email
+      const baseUrl = this.supabaseUrl.replace('/rest/v1', '');
+      const edgeFunctionUrl = `${baseUrl}/functions/v1/send-email`;
+
+      const response = await fetch(edgeFunctionUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.resendApiKey}`,
+          'Authorization': `Bearer ${this.supabaseKey}`,
+          'apikey': this.supabaseKey,
         },
         body: JSON.stringify({
-          from: this.fromEmail,
           to: emailData.to,
           subject: emailData.subject,
           html: emailData.html,
@@ -98,22 +105,23 @@ class EmailNotificationService {
           errorData = { error: errorText || response.statusText };
         }
         
-        const errorMessage = errorData.message || errorData.error || errorText || response.statusText;
-        console.error('❌ Resend API Error:', {
+        const errorMessage = errorData.error || errorData.message || errorText || response.statusText;
+        console.error('❌ Edge Function Error:', {
           status: response.status,
           statusText: response.statusText,
+          url: edgeFunctionUrl,
           errorData,
           errorText
         });
         
         return { 
           success: false, 
-          error: `Resend API error (${response.status}): ${errorMessage}` 
+          error: `Edge Function error (${response.status}): ${errorMessage}` 
         };
       }
 
       const result = await response.json();
-      console.log('✅ Email inviata con successo via Resend:', result);
+      console.log('✅ Email inviata con successo via Resend (tramite Edge Function):', result);
       
       return { 
         success: true, 
@@ -121,7 +129,7 @@ class EmailNotificationService {
       };
 
     } catch (error) {
-      console.error('❌ Errore invio email via Resend:', error);
+      console.error('❌ Errore invio email via Edge Function:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Errore sconosciuto' 
@@ -758,14 +766,27 @@ ${data.shopName} - Sistema di Gestione Prenotazioni
     this.ensureConfigured();
 
     try {
-      // Test la configurazione Resend verificando che l'API key sia presente
-      if (!this.resendApiKey) {
-        console.error('❌ RESEND_API_KEY non configurata');
+      // Test la Edge Function di Supabase
+      const baseUrl = this.supabaseUrl.replace('/rest/v1', '');
+      const edgeFunctionUrl = `${baseUrl}/functions/v1/send-email`;
+
+      const response = await fetch(edgeFunctionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.supabaseKey}`,
+          'apikey': this.supabaseKey,
+        },
+        body: JSON.stringify({ test: true }),
+      });
+
+      if (response.ok) {
+        console.log('✅ Configurazione Edge Function verificata');
+        return true;
+      } else {
+        console.error('❌ Configurazione Edge Function non valida');
         return false;
       }
-
-      console.log('✅ Configurazione Resend verificata');
-      return true;
     } catch (error) {
       console.error('❌ Errore nel test configurazione:', error);
       return false;

@@ -3,8 +3,7 @@ export const API_CONFIG = {
   // Usa VITE_SUPABASE_EDGE_URL; se non presente, fallback a VITE_SUPABASE_URL
   SUPABASE_EDGE_URL: (import.meta.env.VITE_SUPABASE_EDGE_URL || import.meta.env.VITE_SUPABASE_URL || '').trim(),
   SUPABASE_ANON_KEY: (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim(),
-  // Email usa RESEND API direttamente
-  RESEND_API_KEY: (import.meta.env.VITE_RESEND_API_KEY || '').trim(),
+  // Email usa RESEND API tramite Supabase Edge Function (server-side)
 };
 
 export const API_ENDPOINTS = {
