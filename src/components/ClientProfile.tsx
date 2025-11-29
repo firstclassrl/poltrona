@@ -146,43 +146,49 @@ export const ClientProfile: React.FC = () => {
       // 2. Ottieni i dettagli completi dell'appuntamento per la notifica
       const appointmentDetails = await apiService.getAppointmentById(appointmentToCancel.id);
       
-      // 3. Crea una notifica per il barbiere
-      if (appointmentToCancel.staff_id) {
-        const shop = await apiService.getShop();
-        const detailedAppointment = appointmentDetails || appointmentToCancel;
-        const clientInfo = detailedAppointment?.clients || appointmentToCancel.clients;
-        const staffInfo = detailedAppointment?.staff;
-        const serviceInfo = detailedAppointment?.services || appointmentToCancel.services;
-        
-        const clientName = clientInfo 
-          ? `${clientInfo.first_name} ${clientInfo.last_name || ''}`.trim()
-          : user.full_name || 'Cliente';
-        const clientEmail = clientInfo?.email || user.email || undefined;
-        const clientPhone = clientInfo?.phone_e164 || user.phone || 'Non fornito';
-        
-        const appointmentDate = new Date(appointmentToCancel.start_at).toLocaleDateString('it-IT', {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric'
-        });
-        
-        const appointmentTime = new Date(appointmentToCancel.start_at).toLocaleTimeString('it-IT', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
-        });
-        
-        const serviceName = serviceInfo?.name || 'Servizio';
-        
-        // Ottieni i dettagli dello staff - stesso pattern usato per nuove prenotazioni
-        const staffDetails = staffInfo || (await apiService.getStaffById(appointmentToCancel.staff_id));
-        
-        // Usa user_id se disponibile (collegato a auth.users), altrimenti usa id
-        // STESSO PATTERN ESATTO usato in ClientBookingCalendar per nuove prenotazioni
-        const barberUserId = staffDetails?.user_id || staffDetails?.id || appointmentToCancel.staff_id;
+      // 3. Prepara i dati per le notifiche e email
+      const shop = await apiService.getShop();
+      const detailedAppointment = appointmentDetails || appointmentToCancel;
+      const clientInfo = detailedAppointment?.clients || appointmentToCancel.clients;
+      const staffInfo = detailedAppointment?.staff;
+      const serviceInfo = detailedAppointment?.services || appointmentToCancel.services;
+      
+      const clientName = clientInfo 
+        ? `${clientInfo.first_name} ${clientInfo.last_name || ''}`.trim()
+        : user.full_name || 'Cliente';
+      const clientEmail = clientInfo?.email || user.email || undefined;
+      const clientPhone = clientInfo?.phone_e164 || user.phone || 'Non fornito';
+      
+      const appointmentDate = new Date(appointmentToCancel.start_at).toLocaleDateString('it-IT', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+      
+      const appointmentTime = new Date(appointmentToCancel.start_at).toLocaleTimeString('it-IT', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+      
+      const serviceName = serviceInfo?.name || 'Servizio';
+      
+      // Ottieni i dettagli dello staff se disponibile
+      let staffDetails = staffInfo;
+      if (appointmentToCancel.staff_id && !staffDetails) {
+        try {
+          staffDetails = await apiService.getStaffById(appointmentToCancel.staff_id);
+        } catch (error) {
+          console.error('❌ Errore recupero dettagli staff:', error);
+        }
+      }
+      
+      const barberName = staffDetails?.full_name || 'Staff';
+      const barberUserId = staffDetails?.user_id || staffDetails?.id || appointmentToCancel.staff_id;
 
-        // Crea notifica in-app per il barbiere - STESSO PATTERN delle nuove prenotazioni
+      // 4. Crea notifica in-app per il barbiere (se staff_id disponibile)
+      if (appointmentToCancel.staff_id && barberUserId) {
         try {
           await apiService.createNotification({
             user_id: barberUserId,
@@ -204,9 +210,11 @@ export const ClientProfile: React.FC = () => {
         } catch (notifError) {
           console.error('❌ Errore creazione notifica annullamento:', notifError);
         }
-        
-        // 4. Invia email al negozio (usa notification_email del negozio)
-        if (shop?.notification_email) {
+      }
+      
+      // 5. Invia email al negozio (usa notification_email del negozio)
+      if (shop?.notification_email) {
+        try {
           const cancellationData = {
             clientName: clientName,
             clientEmail: clientEmail,
@@ -214,24 +222,31 @@ export const ClientProfile: React.FC = () => {
             serviceName: serviceName,
             appointmentDate: appointmentDate,
             appointmentTime: appointmentTime,
-            barberName: staffDetails?.full_name || 'Staff',
+            barberName: barberName,
             shopName: shop.name || 'Barbershop',
           };
 
+          console.log('📧 Tentativo invio email annullamento al negozio:', shop.notification_email);
           const emailResult = await emailNotificationService.sendCancellationNotification(
             cancellationData,
             shop.notification_email
           );
           
           if (emailResult.success) {
-            console.log('📧 Email annullamento inviata al negozio:', shop.notification_email);
+            console.log('✅ Email annullamento inviata al negozio:', shop.notification_email);
           } else {
             console.error('❌ Errore invio email annullamento al negozio:', emailResult.error);
           }
+        } catch (emailError) {
+          console.error('❌ Errore durante invio email al negozio:', emailError);
         }
+      } else {
+        console.warn('⚠️ Email notifica negozio non configurata (shop.notification_email mancante)');
+      }
 
-        // 5. Invia email di conferma annullamento al cliente
-        if (clientEmail) {
+      // 6. Invia email di conferma annullamento al cliente
+      if (clientEmail) {
+        try {
           const clientCancellationData = {
             clientName: clientName,
             clientEmail: clientEmail,
@@ -239,22 +254,25 @@ export const ClientProfile: React.FC = () => {
             serviceName: serviceName,
             appointmentDate: appointmentDate,
             appointmentTime: appointmentTime,
-            barberName: staffDetails?.full_name || 'Staff',
+            barberName: barberName,
             shopName: shop?.name || 'Barbershop',
           };
 
+          console.log('📧 Tentativo invio email annullamento al cliente:', clientEmail);
           const clientEmailResult = await emailNotificationService.sendClientCancellationEmail(
             clientCancellationData
           );
           
           if (clientEmailResult.success) {
-            console.log('📧 Email annullamento inviata al cliente:', clientEmail);
+            console.log('✅ Email annullamento inviata al cliente:', clientEmail);
           } else {
             console.error('❌ Errore invio email annullamento al cliente:', clientEmailResult.error);
           }
-        } else {
-          console.log('ℹ️ Email cliente non disponibile per invio conferma annullamento');
+        } catch (emailError) {
+          console.error('❌ Errore durante invio email al cliente:', emailError);
         }
+      } else {
+        console.warn('⚠️ Email cliente non disponibile per invio conferma annullamento');
       }
       
       // Ricarica gli appuntamenti per mostrare lo stato aggiornato

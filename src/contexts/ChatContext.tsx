@@ -46,7 +46,20 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const loadChats = async (): Promise<Chat[]> => {
     setIsLoading(true);
     try {
-      const chatsData = await apiService.getChats();
+      let chatsData = await apiService.getChats();
+      
+      // Filtra le chat per i clienti: mostrano solo le proprie chat
+      if (user?.role === 'client') {
+        // Ottieni il client_id dell'utente corrente
+        const clientId = await getClientIdForUser();
+        if (clientId) {
+          chatsData = chatsData.filter(chat => chat.client_id === clientId);
+        } else {
+          // Se non riesci a trovare il client_id, non mostrare nessuna chat
+          chatsData = [];
+        }
+      }
+      
       setChats(chatsData);
       return chatsData;
     } catch (error) {
@@ -55,6 +68,24 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       return [];
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const getClientIdForUser = async (): Promise<string | null> => {
+    if (!user || user.role !== 'client') return null;
+    
+    try {
+      // Usa la funzione esistente per ottenere o creare il cliente
+      const client = await apiService.getOrCreateClientFromUser({
+        id: user.id,
+        email: user.email,
+        full_name: user.full_name,
+        phone: user.phone
+      });
+      return client?.id || null;
+    } catch (error) {
+      console.error('Error getting client ID for user:', error);
+      return null;
     }
   };
 
