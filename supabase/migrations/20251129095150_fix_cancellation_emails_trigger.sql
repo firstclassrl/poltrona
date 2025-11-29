@@ -3,13 +3,6 @@
 -- ============================================
 -- Questo script modifica il trigger esistente per inviare automaticamente
 -- email al barbiere e al cliente quando un appuntamento viene cancellato.
--- 
--- IMPORTANTE: Prima di eseguire questo script:
--- 1. Vai su Supabase Dashboard > Database > Custom Config
--- 2. Aggiungi una variabile custom: app.settings.service_role_key
--- 3. Inserisci la tua SERVICE_ROLE_KEY (non anon key!) da Settings > API
--- 4. Sostituisci 'tlwxsluoqzdluzneugbe' con il tuo project_id Supabase
---
 -- ============================================
 
 -- Abilita pg_net extension (se non già abilitata)
@@ -20,6 +13,48 @@ EXCEPTION
     WHEN OTHERS THEN
         RAISE NOTICE 'pg_net extension: %', SQLERRM;
 END $$;
+
+-- Crea tabella per configurazioni app (se non esiste)
+CREATE TABLE IF NOT EXISTS public.app_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    description TEXT,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Inserisci la service_role_key (SOSTITUISCI CON LA TUA CHIAVE!)
+-- IMPORTANTE: Dopo aver eseguito questo script, aggiorna il valore con:
+-- UPDATE public.app_settings SET value = 'TUA_SERVICE_ROLE_KEY' WHERE key = 'service_role_key';
+INSERT INTO public.app_settings (key, value, description)
+VALUES (
+    'service_role_key',
+    '',  -- SOSTITUISCI CON LA TUA SERVICE_ROLE_KEY da Supabase Dashboard > Settings > API
+    'Service Role Key per chiamare le Edge Functions'
+)
+ON CONFLICT (key) DO NOTHING;
+
+-- Inserisci anche l'URL Supabase (già configurato)
+INSERT INTO public.app_settings (key, value, description)
+VALUES (
+    'supabase_url',
+    'https://tlwxsluoqzdluzneugbe.supabase.co',
+    'URL del progetto Supabase'
+)
+ON CONFLICT (key) DO NOTHING;
+
+-- RLS per app_settings (solo admin può leggere/scrivere)
+ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admin can manage app settings" ON public.app_settings;
+CREATE POLICY "Admin can manage app settings" ON public.app_settings
+    FOR ALL
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE user_id = auth.uid()
+            AND role IN ('admin', 'owner')
+        )
+    );
 
 -- Funzione helper per generare HTML email annullamento (barbiere)
 CREATE OR REPLACE FUNCTION public.generate_cancellation_email_html(
@@ -241,44 +276,24 @@ BEGIN
         END IF;
         
         -- Configurazione Supabase
-        -- Estrai l'URL dal database connection o usa valore di default
-        -- NOTA: Sostituisci 'tlwxsluoqzdluzneugbe' con il tuo project_id Supabase se necessario
-        BEGIN
-            -- Prova a leggere da variabile custom
-            v_supabase_url := current_setting('app.settings.supabase_url', true);
-        EXCEPTION
-            WHEN OTHERS THEN
-                v_supabase_url := NULL;
-        END;
+        -- Leggi URL e service_role_key dalla tabella app_settings
+        SELECT value INTO v_supabase_url
+        FROM public.app_settings
+        WHERE key = 'supabase_url';
         
         -- Se non configurato, usa valore di default
         IF v_supabase_url IS NULL OR v_supabase_url = '' THEN
-            -- URL del progetto Supabase linkato
             v_supabase_url := 'https://tlwxsluoqzdluzneugbe.supabase.co';
         END IF;
         
-        -- Prova a leggere la service_role_key dalle variabili custom
-        -- Se non configurata, usa anon key come fallback
-        BEGIN
-            v_supabase_key := current_setting('app.settings.service_role_key', true);
-        EXCEPTION
-            WHEN OTHERS THEN
-                v_supabase_key := NULL;
-        END;
-        
-        -- Se non disponibile, prova anon key
-        IF v_supabase_key IS NULL OR v_supabase_key = '' THEN
-            BEGIN
-                v_supabase_key := current_setting('app.settings.anon_key', true);
-            EXCEPTION
-                WHEN OTHERS THEN
-                    v_supabase_key := NULL;
-            END;
-        END IF;
+        -- Leggi la service_role_key dalla tabella app_settings
+        SELECT value INTO v_supabase_key
+        FROM public.app_settings
+        WHERE key = 'service_role_key';
         
         -- Se ancora non disponibile, logga errore ma continua
         IF v_supabase_key IS NULL OR v_supabase_key = '' THEN
-            RAISE LOG '⚠️ Chiave Supabase non configurata. Configura app.settings.service_role_key o app.settings.anon_key in Supabase Database > Custom Config';
+            RAISE LOG '⚠️ Service Role Key non configurata. Esegui: UPDATE public.app_settings SET value = ''TUA_SERVICE_ROLE_KEY'' WHERE key = ''service_role_key'';';
         ELSE
             -- Costruisci URL Edge Function
             v_edge_function_url := v_supabase_url || '/functions/v1/send-email';
@@ -391,32 +406,33 @@ EXCEPTION
 END;
 $$;
 
--- Il trigger esiste già, quindi non serve ricrearlo
--- La funzione è stata aggiornata e il trigger userà la nuova versione
-
 COMMENT ON FUNCTION public.notify_barber_on_appointment_cancellation() IS 'Funzione trigger per notificare il barbiere (in-app e email) quando un appuntamento viene cancellato. Invia email automaticamente via Supabase Edge Function usando pg_net.';
 
+COMMENT ON TABLE public.app_settings IS 'Tabella per memorizzare le configurazioni dell''app, inclusa la service_role_key per chiamare le Edge Functions.';
+
 -- ============================================
--- ISTRUZIONI PER CONFIGURAZIONE
+-- ISTRUZIONI POST-INSTALLAZIONE
 -- ============================================
 -- 
--- 1. Sostituisci 'tlwxsluoqzdluzneugbe' con il tuo project_id Supabase
---    (lo trovi in Supabase Dashboard > Settings > API > Project URL)
+-- DOPO aver eseguito questo script, configura la SERVICE_ROLE_KEY:
 --
--- 2. Configura la service_role_key in Supabase:
---    - Vai su Supabase Dashboard > Database > Custom Config
---    - Aggiungi una nuova variabile:
---      Nome: app.settings.service_role_key
---      Valore: (incolla la tua SERVICE_ROLE_KEY da Settings > API)
+-- UPDATE public.app_settings 
+-- SET value = 'TUA_SERVICE_ROLE_KEY_QUI' 
+-- WHERE key = 'service_role_key';
 --
--- 3. Verifica che l'extension pg_net sia abilitata:
---    - Vai su Supabase Dashboard > Database > Extensions
---    - Cerca "pg_net" e assicurati che sia abilitata
+-- Per trovare la SERVICE_ROLE_KEY:
+-- 1. Vai su Supabase Dashboard > Settings > API
+-- 2. Copia la "service_role" key (NON la anon key!)
+-- 3. Esegui l'UPDATE sopra con la chiave copiata
 --
--- 4. Testa il trigger:
---    - Annulla un appuntamento cambiando status a 'cancelled'
---    - Controlla i log in Supabase Dashboard > Logs > Postgres Logs
---    - Dovresti vedere messaggi come "✅ Email annullamento inviata..."
+-- Verifica che pg_net extension sia abilitata:
+-- - Vai su Database > Extensions
+-- - Cerca "pg_net" e assicurati che sia abilitata
+--
+-- Testa il trigger:
+-- - Annulla un appuntamento cambiando status a 'cancelled'
+-- - Controlla i log in Supabase Dashboard > Logs > Postgres Logs
+-- - Dovresti vedere messaggi come "✅ Email annullamento inviata..."
 --
 -- ============================================
 

@@ -429,6 +429,11 @@ export const Login: React.FC = () => {
                 <p className="text-gray-700">
                   La tua registrazione è andata a buon fine! Ora puoi accedere utilizzando le credenziali appena create.
                 </p>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-4">
+                  <p className="text-yellow-800 text-sm text-center">
+                    <strong>⚠️ Importante:</strong> Controlla la tua casella email (inclusa la cartella <strong>spam</strong>) per eventuali conferme o comunicazioni importanti.
+                  </p>
+                </div>
                 <Button
                   className="w-full"
                   onClick={() => {
