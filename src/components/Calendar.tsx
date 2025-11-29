@@ -20,7 +20,7 @@ export const Calendar = () => {
   const [timePeriod, setTimePeriod] = useState<'morning' | 'afternoon'>('morning');
   const { shopHours, getAvailableTimeSlots, isDateOpen, getShopHoursSummary, shopHoursLoaded } = useDailyShopHours();
   const { getAssignedChairs } = useChairAssignment();
-  const { appointments, createAppointment, deleteAppointment } = useAppointments();
+  const { appointments, createAppointment, deleteAppointment, loadAppointments } = useAppointments();
   const { isDateInVacation } = useVacationMode();
   
   // Mobile-specific states
@@ -652,10 +652,13 @@ export const Calendar = () => {
           // Handle appointment creation
           try {
             await createAppointment(data as any);
+            // Force reload appointments to update the calendar
+            await loadAppointments();
             setShowCreateAppointmentModal(false);
             setPrefilledAppointmentData(null);
           } catch (error) {
             console.error('Error creating appointment:', error);
+            alert('Errore durante la creazione dell\'appuntamento');
           }
         }}
         appointment={null}

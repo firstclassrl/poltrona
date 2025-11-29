@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { User } from 'lucide-react';
+import { User, UserPlus } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { Modal } from './ui/Modal';
 import { apiService } from '../services/api';
+import { CustomerForm } from './CustomerForm';
 // removed mock clients: all data comes from API
 import { useDailyShopHours } from '../hooks/useDailyShopHours';
 import { useAppointments } from '../hooks/useAppointments';
@@ -45,6 +46,7 @@ export const AppointmentForm = ({
   const [showClientSuggestions, setShowClientSuggestions] = useState(false);
   const [isSearchingClients, setIsSearchingClients] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [showCustomerForm, setShowCustomerForm] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -330,7 +332,19 @@ export const AppointmentForm = ({
               error={errors.client_id}
               className="flex-1"
             />
-            {/* Rimosso bottone mock "Tutti" in produzione */}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={(e) => {
+                e.preventDefault();
+                setShowClientSuggestions(false);
+                setShowCustomerForm(true);
+              }}
+              className="mt-6"
+              title="Crea nuovo cliente"
+            >
+              <UserPlus className="w-4 h-4" />
+            </Button>
           </div>
           
           {(showClientSuggestions || isSearchingClients) && (
@@ -358,12 +372,22 @@ export const AppointmentForm = ({
                       </div>
                     </div>
                   ))}
-                  <div className="p-3 border-t border-white/10">
-                    <Button variant="ghost" size="sm" className="w-full">
-                      <User className="w-4 h-4 mr-2" />
-                      Crea nuovo cliente
-                    </Button>
-                  </div>
+              <div className="p-3 border-t border-white/10">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowClientSuggestions(false);
+                    setShowCustomerForm(true);
+                  }}
+                >
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Crea nuovo cliente
+                </Button>
+              </div>
                 </>
               ) : (
                 <div className="p-3 text-center text-gray-400">
@@ -468,6 +492,26 @@ export const AppointmentForm = ({
           </Button>
         </div>
       </div>
+      
+      {/* Customer Form Modal */}
+      <CustomerForm
+        isOpen={showCustomerForm}
+        onClose={() => setShowCustomerForm(false)}
+        onSave={async (customerData) => {
+          try {
+            const newClient = await apiService.createClient(customerData);
+            // Set the newly created client
+            handleClientSelect(newClient);
+            setShowCustomerForm(false);
+            setErrors(prev => ({ ...prev, client_id: '' }));
+          } catch (error) {
+            console.error('Error creating client:', error);
+            alert('Errore durante la creazione del cliente');
+          }
+        }}
+        customer={null}
+        mode="add"
+      />
     </Modal>
   );
 };
