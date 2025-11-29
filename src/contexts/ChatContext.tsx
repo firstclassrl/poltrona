@@ -33,7 +33,7 @@ interface ChatProviderProps {
 }
 
 export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChat, setActiveChat] = useState<Chat | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -44,6 +44,12 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const staffIdRef = useRef<string | null>(null);
 
   const loadChats = async (): Promise<Chat[]> => {
+    // Non caricare chat se l'utente non è autenticato
+    if (!isAuthenticated || !user) {
+      setChats([]);
+      return [];
+    }
+
     setIsLoading(true);
     try {
       let chatsData = await apiService.getChats();
@@ -72,7 +78,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   };
 
   const getClientIdForUser = async (): Promise<string | null> => {
-    if (!user || user.role !== 'client') return null;
+    // Non tentare di ottenere il client_id se non autenticato
+    if (!isAuthenticated || !user || user.role !== 'client') return null;
     
     try {
       // Usa la funzione esistente per ottenere o creare il cliente
@@ -256,17 +263,23 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   }, [user?.id]);
 
   useEffect(() => {
-    if (user) {
-      loadChats();
-      
-      // Polling per aggiornare le chat ogni 5 secondi
-      const interval = setInterval(() => {
-        loadChats();
-      }, 5000);
-      
-      return () => clearInterval(interval);
+    // Ferma il polling se l'utente non è autenticato
+    if (!isAuthenticated || !user) {
+      setChats([]);
+      return;
     }
-  }, [user]);
+
+    loadChats();
+    
+    // Polling per aggiornare le chat ogni 5 secondi (solo se autenticato)
+    const interval = setInterval(() => {
+      if (isAuthenticated && user) {
+        loadChats();
+      }
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [user, isAuthenticated]);
 
   useEffect(() => {
     if (activeChat) {

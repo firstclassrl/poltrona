@@ -31,9 +31,36 @@ export const Login: React.FC = () => {
   const [showRegistrationSuccess, setShowRegistrationSuccess] = useState(false);
   const [hasJustRegistered, setHasJustRegistered] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
+  const [registrationCompleted, setRegistrationCompleted] = useState(false);
   
   const { login, register } = useAuth();
 
+  // Monitora quando la registrazione è completata e mostra il modal
+  useEffect(() => {
+    if (registrationCompleted && registeredEmail) {
+      console.log('✅ Registrazione completata, mostro il modal');
+      // Usa requestAnimationFrame per assicurarsi che React abbia finito il render
+      requestAnimationFrame(() => {
+        setShowRegistrationSuccess(true);
+      });
+      setRegistrationCompleted(false); // Reset del flag
+    }
+  }, [registrationCompleted, registeredEmail]);
+
+  // Monitora quando il modal di successo deve essere mostrato
+  useEffect(() => {
+    if (showRegistrationSuccess) {
+      console.log('✅ Modal di successo mostrato:', showRegistrationSuccess);
+      // Previeni lo scroll del body quando il modal è aperto
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showRegistrationSuccess]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,23 +79,24 @@ export const Login: React.FC = () => {
   };
 
   const handleRegistration = async () => {
+    // Verifica consenso privacy
+    if (!privacyAccepted) {
+      throw new Error('Devi accettare l\'Informativa Privacy per procedere');
+    }
+
+    // Validazione password
+    if (registrationData.password !== registrationData.confirmPassword) {
+      throw new Error('Le password non coincidono');
+    }
+
+    if (registrationData.password.length < 6) {
+      throw new Error('La password deve contenere almeno 6 caratteri');
+    }
+
+    // Registra il nuovo utente in Supabase
+    const registrationEmail = registrationData.email;
+    
     try {
-      // Verifica consenso privacy
-      if (!privacyAccepted) {
-        throw new Error('Devi accettare l\'Informativa Privacy per procedere');
-      }
-
-      // Validazione password
-      if (registrationData.password !== registrationData.confirmPassword) {
-        throw new Error('Le password non coincidono');
-      }
-
-      if (registrationData.password.length < 6) {
-        throw new Error('La password deve contenere almeno 6 caratteri');
-      }
-
-      // Registra il nuovo utente in Supabase
-      const registrationEmail = registrationData.email;
       await register({
         email: registrationData.email,
         password: registrationData.password,
@@ -77,17 +105,16 @@ export const Login: React.FC = () => {
         phone: registrationData.phone || undefined,
       });
       
-      // Salva l'email per il modal di successo
+      // Se la registrazione è andata a buon fine, imposta i flag per mostrare il modal
+      console.log('✅ Registrazione completata con successo');
       setRegisteredEmail(registrationEmail);
-      
-      // Mostra modal di successo IMMEDIATAMENTE
-      // Usa requestAnimationFrame per assicurarsi che React abbia finito il render
-      requestAnimationFrame(() => {
-        setShowRegistrationSuccess(true);
-      });
+      setRegistrationCompleted(true);
       
     } catch (error) {
-      throw error; // Rilancia l'errore per essere gestito da handleSubmit
+      // Se la registrazione fallisce, rilanciamo l'errore
+      console.error('❌ Errore durante la registrazione:', error);
+      setRegistrationCompleted(false); // Reset del flag in caso di errore
+      throw error;
     }
   };
 
@@ -357,7 +384,16 @@ export const Login: React.FC = () => {
 
       {/* Modale successo registrazione - FORZATO IN PRIMO PIANO */}
       {showRegistrationSuccess && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 bg-black/70 backdrop-blur-sm" style={{ zIndex: 99999 }}>
+        <div 
+          className="fixed inset-0 z-[99999] flex items-center justify-center p-3 bg-black/70 backdrop-blur-sm" 
+          style={{ zIndex: 99999, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+          onClick={(e) => {
+            // Previeni la chiusura cliccando fuori dal modal
+            if (e.target === e.currentTarget) {
+              // Opzionale: permettere la chiusura cliccando fuori
+            }
+          }}
+        >
           <div className="w-full max-w-sm bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200">
               <h2 className="text-xl font-semibold text-gray-900">Registrazione completata</h2>
@@ -373,6 +409,7 @@ export const Login: React.FC = () => {
                   });
                   setPrivacyAccepted(false);
                   setShowRegistrationSuccess(false);
+                  setRegistrationCompleted(false);
                   setHasJustRegistered(true);
                   setMode('login');
                   setCredentials(prev => ({ ...prev, email: registeredEmail, password: '' }));
@@ -405,6 +442,7 @@ export const Login: React.FC = () => {
                     });
                     setPrivacyAccepted(false);
                     setShowRegistrationSuccess(false);
+                    setRegistrationCompleted(false);
                     setHasJustRegistered(true);
                     setMode('login');
                     setCredentials(prev => ({ ...prev, email: registeredEmail, password: '' }));

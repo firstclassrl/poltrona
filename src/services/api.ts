@@ -326,6 +326,9 @@ export const apiService = {
             console.log('✅ Cliente esistente trovato:', existingClient.id);
             return existingClient;
           }
+        } else if (searchResponse.status === 401) {
+          // Se è un errore 401, non continuare - l'utente non è autenticato
+          throw new Error('Unauthorized: autenticazione richiesta');
         }
       }
 
@@ -356,13 +359,22 @@ export const apiService = {
         console.log('✅ Nuovo cliente creato:', client?.id);
         return client;
       } else {
-        // Se la creazione fallisce, genera un ID temporaneo invece di lanciare errore
+        // Se è un errore 401 (non autenticato), non generare ID temporaneo per evitare loop
+        if (createResponse.status === 401) {
+          // Ritorna un errore silenzioso invece di generare ID temporaneo
+          throw new Error('Unauthorized: autenticazione richiesta');
+        }
+        // Per altri errori, genera un ID temporaneo (ma solo una volta)
         const tempId = `temp_client_${Date.now()}`;
         console.warn('⚠️ Impossibile creare cliente nel DB, uso ID temporaneo:', tempId);
         return { id: tempId, email: user.email ?? null, phone_e164: user.phone ?? null };
       }
     } catch (error) {
-      // Se c'è un errore, genera un ID temporaneo invece di lanciare errore
+      // Se è un errore 401, non generare ID temporaneo per evitare loop
+      if (error instanceof Error && error.message.includes('Unauthorized')) {
+        throw error; // Rilancia l'errore invece di generare ID temporaneo
+      }
+      // Per altri errori, genera un ID temporaneo (ma solo una volta)
       const tempId = `temp_client_${Date.now()}`;
       console.warn('⚠️ Errore creazione cliente, uso ID temporaneo:', tempId);
       return { id: tempId, email: user.email ?? null, phone_e164: user.phone ?? null };
