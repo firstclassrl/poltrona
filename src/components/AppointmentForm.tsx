@@ -7,13 +7,13 @@ import { Modal } from './ui/Modal';
 import { apiService } from '../services/api';
 // removed mock clients: all data comes from API
 import { useDailyShopHours } from '../hooks/useDailyShopHours';
-import type { Client, CreateAppointmentRequest, UpdateAppointmentRequest, Service, Staff } from '../types';
+import type { Client, CreateAppointmentRequest, UpdateAppointmentRequest, Service, Staff, Appointment } from '../types';
 
 interface AppointmentFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: CreateAppointmentRequest | UpdateAppointmentRequest) => void;
-  appointment?: any; // For editing existing appointments
+  appointment?: Appointment | null; // For editing existing appointments
 }
 
 export const AppointmentForm = ({
@@ -72,15 +72,15 @@ export const AppointmentForm = ({
     if (appointment) {
       const startDate = new Date(appointment.start_at);
       setFormData({
-        client_id: appointment.client_id,
-        staff_id: appointment.staff_id,
-        service_id: appointment.service_id,
+        client_id: appointment.client_id || '',
+        staff_id: appointment.staff_id || '',
+        service_id: appointment.service_id || '',
         date: startDate.toISOString().split('T')[0],
         time: startDate.toTimeString().slice(0, 5),
         notes: appointment.notes || '',
       });
-      setSelectedClient(appointment.clients);
-      setClientQuery(`${appointment.clients?.first_name} ${appointment.clients?.last_name}`);
+      setSelectedClient(appointment.clients || null);
+      setClientQuery(`${appointment.clients?.first_name || ''} ${appointment.clients?.last_name || ''}`.trim());
     } else {
       resetForm();
     }

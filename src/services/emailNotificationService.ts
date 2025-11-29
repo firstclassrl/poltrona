@@ -668,21 +668,36 @@ Il team ${data.shopName}
     cancellationData: AppointmentCancellationData, 
     shopEmail: string
   ): Promise<EmailResponse> {
+    console.log('📧 [EMAIL SERVICE] sendCancellationNotification chiamato');
+    console.log('📧 [EMAIL SERVICE] shopEmail:', shopEmail);
+    console.log('📧 [EMAIL SERVICE] cancellationData:', cancellationData);
+    console.log('📧 [EMAIL SERVICE] Configurazione:', {
+      isConfigured: this.isConfigured,
+      supabaseUrl: this.supabaseUrl ? '✅ Configurato' : '❌ Mancante',
+      supabaseKey: this.supabaseKey ? '✅ Configurato' : '❌ Mancante'
+    });
+    
     try {
       this.ensureConfigured();
+      console.log('✅ [EMAIL SERVICE] Servizio configurato correttamente');
     } catch (error) {
+      console.error('❌ [EMAIL SERVICE] Servizio non configurato:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Servizio email non configurato' 
       };
     }
 
-    return this.sendEmailViaResend({
+    console.log('📧 [EMAIL SERVICE] Invio email via Resend...');
+    const result = await this.sendEmailViaResend({
       to: shopEmail,
       subject: `⚠️ Appuntamento Annullato - ${cancellationData.clientName} - ${cancellationData.appointmentDate}`,
       html: this.generateCancellationNotificationHTML(cancellationData),
       text: this.generateCancellationNotificationText(cancellationData),
     });
+    
+    console.log('📧 [EMAIL SERVICE] Risultato invio:', result);
+    return result;
   }
 
   // Invia notifica per nuovo appuntamento
@@ -1039,9 +1054,20 @@ ${data.shopName} - Sistema di Gestione Appuntamenti
   async sendClientCancellationEmail(
     data: AppointmentCancellationData
   ): Promise<EmailResponse> {
+    console.log('📧 [EMAIL SERVICE] sendClientCancellationEmail chiamato');
+    console.log('📧 [EMAIL SERVICE] clientEmail:', data.clientEmail);
+    console.log('📧 [EMAIL SERVICE] data:', data);
+    console.log('📧 [EMAIL SERVICE] Configurazione:', {
+      isConfigured: this.isConfigured,
+      supabaseUrl: this.supabaseUrl ? '✅ Configurato' : '❌ Mancante',
+      supabaseKey: this.supabaseKey ? '✅ Configurato' : '❌ Mancante'
+    });
+    
     try {
       this.ensureConfigured();
+      console.log('✅ [EMAIL SERVICE] Servizio configurato correttamente');
     } catch (error) {
+      console.error('❌ [EMAIL SERVICE] Servizio non configurato:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Servizio email non configurato' 
@@ -1049,18 +1075,23 @@ ${data.shopName} - Sistema di Gestione Appuntamenti
     }
 
     if (!data.clientEmail) {
+      console.error('❌ [EMAIL SERVICE] Email cliente non disponibile');
       return {
         success: false,
         error: 'Email cliente non disponibile'
       };
     }
 
-    return this.sendEmailViaResend({
+    console.log('📧 [EMAIL SERVICE] Invio email via Resend...');
+    const result = await this.sendEmailViaResend({
       to: data.clientEmail,
       subject: `❌ Appuntamento Annullato - ${data.shopName} - ${data.appointmentDate}`,
       html: this.generateClientCancellationEmailHTML(data),
       text: this.generateClientCancellationEmailText(data),
     });
+    
+    console.log('📧 [EMAIL SERVICE] Risultato invio:', result);
+    return result;
   }
 
   // Genera HTML per email di annullamento al cliente

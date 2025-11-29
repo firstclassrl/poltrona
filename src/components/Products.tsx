@@ -49,8 +49,6 @@ interface CartItem extends Product {
   quantity: number;
 }
 
-// const mockProducts: Product[] = [];
-
 const categories = [
   { value: 'all', label: 'Tutti i prodotti' },
   { value: 'styling', label: 'Styling' },
@@ -329,12 +327,9 @@ export const Products: React.FC = () => {
     setIsProductModalOpen(true);
   };
 
-  // rating UI removed
-
   return (
     <div className="space-y-6">
       <Toast message={toast.message} type={toast.type} isVisible={toast.isVisible} onClose={hideToast} />
-      {/* debug button removed */}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">Prodotti</h1>
         <div className="flex space-x-3">
@@ -349,7 +344,6 @@ export const Products: React.FC = () => {
                     <Plus className="w-4 h-4 mr-2" />
                     Aggiungi Prodotto
                   </button>
-                  {/* header debug button removed */}
                   <Button
                     variant="secondary"
                     className="bg-green-100 text-green-800 hover:bg-green-200 border border-green-300"

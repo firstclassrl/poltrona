@@ -96,9 +96,6 @@ export const useClientRegistration = () => {
         throw new Error('Email già registrata');
       }
 
-      // Simula chiamata API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
       // Normalizza il telefono in formato E.164
       const normalizedPhone = normalizeItalianPhone(data.phone);
 
@@ -120,12 +117,10 @@ export const useClientRegistration = () => {
         throw new Error('Errore nel salvataggio del cliente');
       }
 
-      console.log('✅ Nuovo cliente registrato con successo:', newClient);
-      console.log('📋 Consenso privacy salvato:', newClient.privacyConsent);
       return newClient;
       
     } catch (error) {
-      console.error('❌ Errore nella registrazione del cliente:', error);
+      console.error('Error registering client:', error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -180,10 +175,9 @@ export const useClientRegistration = () => {
       const clients = getRegisteredClients();
       const updatedClients = clients.filter(client => client.id !== clientId);
       localStorage.setItem('registered_clients', JSON.stringify(updatedClients));
-      console.log('✅ Cliente eliminato:', clientId);
       return true;
     } catch (error) {
-      console.error('❌ Errore nell\'eliminazione del cliente:', error);
+      console.error('Error deleting client:', error);
       return false;
     }
   };

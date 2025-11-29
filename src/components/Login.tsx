@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import { Eye, EyeOff, User, CheckCircle } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -31,27 +32,12 @@ export const Login: React.FC = () => {
   const [showRegistrationSuccess, setShowRegistrationSuccess] = useState(false);
   const [hasJustRegistered, setHasJustRegistered] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
-  const [registrationCompleted, setRegistrationCompleted] = useState(false);
   
   const { login, register } = useAuth();
 
-  // Monitora quando la registrazione è completata e mostra il modal
-  useEffect(() => {
-    if (registrationCompleted && registeredEmail) {
-      console.log('✅ Registrazione completata, mostro il modal');
-      // Usa requestAnimationFrame per assicurarsi che React abbia finito il render
-      requestAnimationFrame(() => {
-        setShowRegistrationSuccess(true);
-      });
-      setRegistrationCompleted(false); // Reset del flag
-    }
-  }, [registrationCompleted, registeredEmail]);
-
-  // Monitora quando il modal di successo deve essere mostrato
+  // Previeni lo scroll quando il modal è aperto
   useEffect(() => {
     if (showRegistrationSuccess) {
-      console.log('✅ Modal di successo mostrato:', showRegistrationSuccess);
-      // Previeni lo scroll del body quando il modal è aperto
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
@@ -72,9 +58,14 @@ export const Login: React.FC = () => {
         await login(credentials);
       } else {
         await handleRegistration();
+        // Se handleRegistration completa senza errori, il modal viene mostrato dentro handleRegistration
+        // Non facciamo nulla qui perché il modal è già stato mostrato
       }
     } catch (err) {
+      console.error('❌ Errore in handleSubmit:', err);
       setError(err instanceof Error ? err.message : 'Errore durante l\'operazione');
+      // Assicurati che il modal non sia mostrato in caso di errore
+      setShowRegistrationSuccess(false);
     }
   };
 
@@ -96,26 +87,28 @@ export const Login: React.FC = () => {
     // Registra il nuovo utente in Supabase
     const registrationEmail = registrationData.email;
     
-    try {
-      await register({
-        email: registrationData.email,
-        password: registrationData.password,
-        full_name: `${registrationData.firstName} ${registrationData.lastName}`,
-        role: 'client',
-        phone: registrationData.phone || undefined,
-      });
-      
-      // Se la registrazione è andata a buon fine, imposta i flag per mostrare il modal
-      console.log('✅ Registrazione completata con successo');
+    console.log('🔄 Inizio registrazione...');
+    
+    await register({
+      email: registrationData.email,
+      password: registrationData.password,
+      full_name: `${registrationData.firstName} ${registrationData.lastName}`,
+      role: 'client',
+      phone: registrationData.phone || undefined,
+    });
+    
+    // Se arriviamo qui, la registrazione è andata a buon fine
+    console.log('✅ Registrazione completata con successo - mostro modal');
+    
+    // Imposta l'email e mostra il modal IMMEDIATAMENTE
+    // Usa flushSync per forzare un aggiornamento sincrono dello stato
+    flushSync(() => {
       setRegisteredEmail(registrationEmail);
-      setRegistrationCompleted(true);
-      
-    } catch (error) {
-      // Se la registrazione fallisce, rilanciamo l'errore
-      console.error('❌ Errore durante la registrazione:', error);
-      setRegistrationCompleted(false); // Reset del flag in caso di errore
-      throw error;
-    }
+      setShowRegistrationSuccess(true);
+    });
+    
+    console.log('🎯 Stato aggiornato - showRegistrationSuccess:', true);
+    console.log('📧 Email registrata:', registrationEmail);
   };
 
   const handleDemoLogin = (role: 'admin' | 'barber' | 'client') => {
@@ -383,6 +376,10 @@ export const Login: React.FC = () => {
       </Card>
 
       {/* Modale successo registrazione - FORZATO IN PRIMO PIANO */}
+      {(() => {
+        console.log('🔍 Render modal - showRegistrationSuccess:', showRegistrationSuccess);
+        return null;
+      })()}
       {showRegistrationSuccess && (
         <div 
           className="fixed inset-0 z-[99999] flex items-center justify-center p-3 bg-black/70 backdrop-blur-sm" 
@@ -409,7 +406,6 @@ export const Login: React.FC = () => {
                   });
                   setPrivacyAccepted(false);
                   setShowRegistrationSuccess(false);
-                  setRegistrationCompleted(false);
                   setHasJustRegistered(true);
                   setMode('login');
                   setCredentials(prev => ({ ...prev, email: registeredEmail, password: '' }));
@@ -429,9 +425,11 @@ export const Login: React.FC = () => {
                 <p className="text-gray-700">
                   La tua registrazione è andata a buon fine! Ora puoi accedere utilizzando le credenziali appena create.
                 </p>
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-4">
-                  <p className="text-yellow-800 text-sm text-center">
-                    <strong>⚠️ Importante:</strong> Controlla la tua casella email (inclusa la cartella <strong>spam</strong>) per eventuali conferme o comunicazioni importanti.
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+                  <p className="text-blue-800 text-sm text-center leading-relaxed">
+                    <strong>📧 Controlla la tua email</strong>
+                    <br />
+                    Ti abbiamo inviato un'email di conferma. Se non la trovi nella posta in arrivo, <strong>controlla anche la cartella spam</strong> della tua casella email.
                   </p>
                 </div>
                 <Button
@@ -447,7 +445,6 @@ export const Login: React.FC = () => {
                     });
                     setPrivacyAccepted(false);
                     setShowRegistrationSuccess(false);
-                    setRegistrationCompleted(false);
                     setHasJustRegistered(true);
                     setMode('login');
                     setCredentials(prev => ({ ...prev, email: registeredEmail, password: '' }));

@@ -5,7 +5,6 @@ import { Calendar } from './components/Calendar';
 import { Clients } from './components/Clients';
 import { Products } from './components/Products';
 import { Services } from './components/Services';
-// import { Analytics } from './components/Analytics'; // Temporaneamente nascosto
 import { BarberProfile } from './components/BarberProfile';
 import { ShopManagement } from './components/Shop';
 import { AppointmentForm } from './components/AppointmentForm';
@@ -22,12 +21,12 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { ChatProvider } from './contexts/ChatContext';
 import { apiService } from './services/api';
-import type { CreateAppointmentRequest, UpdateAppointmentRequest } from './types';
+import type { CreateAppointmentRequest, UpdateAppointmentRequest, Appointment } from './types';
 
 const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isAppointmentFormOpen, setIsAppointmentFormOpen] = useState(false);
-  const [editingAppointment, setEditingAppointment] = useState(null);
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const { toast, showToast, hideToast } = useToast();
   const { isAuthenticated, isLoading, user } = useAuth();
 
@@ -43,7 +42,7 @@ const AppContent: React.FC = () => {
     setIsAppointmentFormOpen(true);
   };
 
-  const handleEditAppointment = (appointment: any) => {
+  const handleEditAppointment = (appointment: Appointment) => {
     setEditingAppointment(appointment);
     setIsAppointmentFormOpen(true);
   };
@@ -94,8 +93,6 @@ const AppContent: React.FC = () => {
         return <BarberProfile />;
       case 'shop':
         return <ShopManagement />;
-      // case 'analytics':
-      //   return <Analytics />; // Temporaneamente nascosto
       case 'client_profile':
         return <ClientProfile />;
       case 'client_bookings':
@@ -158,8 +155,6 @@ const AppContent: React.FC = () => {
         isVisible={toast.isVisible}
         onClose={hideToast}
       />
-
-      {/* no debug UI */}
     </div>
   );
 };

@@ -132,20 +132,16 @@ export const ProductCreationForm = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('ProductCreationForm: handleSubmit called');
     
     if (!validateForm()) {
-      console.log('ProductCreationForm: validation failed', errors);
       return;
     }
 
     setIsLoading(true);
     try {
-      console.log('ProductCreationForm: building payload');
       const productData = {
         name: formData.name.trim(),
         description: formData.description.trim(),
-        // map to DB schema fields
         price: formData.price,
         brand: formData.brand.trim(),
         imageUrl: imageUrl || formData.imageUrl,
@@ -154,7 +150,6 @@ export const ProductCreationForm = ({
         isOnSale: formData.isOnSale,
         features: formData.features,
       };
-      console.log('ProductCreationForm: calling onSave with', productData);
       await onSave(productData);
       handleClose();
     } catch (error) {
@@ -165,12 +160,11 @@ export const ProductCreationForm = ({
   };
 
   const triggerSubmit = () => {
-    console.log('ProductCreationForm: submit button clicked');
     try {
       const fakeEvent = { preventDefault: () => {} } as unknown as React.FormEvent;
       void handleSubmit(fakeEvent);
     } catch (e) {
-      console.error('ProductCreationForm: triggerSubmit error', e);
+      console.error('Error submitting form:', e);
     }
   };
 
@@ -235,9 +229,6 @@ export const ProductCreationForm = ({
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title={title} size="medium">
-      <div className="text-xs text-yellow-800 bg-yellow-50 border border-yellow-200 rounded p-2 mb-2">
-        DEBUG: il salvataggio mostra log in console. Se non vedi log, segnalamelo.
-      </div>
       <form onSubmit={handleSubmit} className="space-y-5 max-h-[75vh] overflow-y-auto">
         {/* Informazioni Base */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

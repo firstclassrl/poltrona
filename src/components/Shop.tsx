@@ -156,11 +156,7 @@ export const ShopManagement = () => {
 
   const loadShopData = async () => {
      try {
-       console.log('🔄 [DEBUG] Loading shop data...');
        const shopData = await apiService.getShop();
-       console.log('📊 [DEBUG] Shop data loaded:', shopData);
-       console.log('🔧 [DEBUG] products_enabled value:', shopData.products_enabled);
-       console.log('🔧 [DEBUG] products_enabled type:', typeof shopData.products_enabled);
       
       const syncedShop = persistShopState(shopData, false);
       setBasicFormData({
@@ -177,7 +173,6 @@ export const ShopManagement = () => {
       });
       
       const enabled = syncedShop.products_enabled ?? true;
-      console.log('🔧 [DEBUG] Setting productsEnabled to:', enabled);
  
       setProductsEnabled(enabled);
       setExtraOpeningForm({
@@ -188,7 +183,7 @@ export const ShopManagement = () => {
         afternoonEnd: syncedShop.extra_afternoon_end ?? '',
       });
     } catch (error) {
-      console.error('❌ [DEBUG] Error loading shop data:', error);
+      console.error('Error loading shop data:', error);
       const localShop = loadShopFromLocal();
       if (localShop) {
         const syncedShop = persistShopState(localShop, false);
@@ -292,7 +287,7 @@ export const ShopManagement = () => {
        setIsEditingProducts(false);
        showMessage(setProductsMessage, 'success', 'Sistema prodotti aggiornato!');
      } catch (error) {
-       console.error('❌ [DEBUG] Error saving products setting:', error);
+       console.error('Error saving products setting:', error);
        showMessage(setProductsMessage, 'error', 'Errore durante il salvataggio del sistema prodotti.', 5000);
      } finally {
        setIsSavingProducts(false);
@@ -400,7 +395,7 @@ export const ShopManagement = () => {
          : 'Apertura straordinaria rimossa.';
        showMessage(setExtraOpeningMessage, 'success', successMessage);
      } catch (error) {
-       console.error('❌ [DEBUG] Error saving extra opening:', error);
+       console.error('Error saving extra opening:', error);
        showMessage(setExtraOpeningMessage, 'error', 'Errore durante il salvataggio dell’apertura straordinaria.', 5000);
      } finally {
        setIsSavingExtraOpening(false);

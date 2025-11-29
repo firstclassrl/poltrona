@@ -213,68 +213,70 @@ export const ClientProfile: React.FC = () => {
         }
       }
       
-      // 5. Invia email al negozio (usa notification_email del negozio)
+      // Prepara i dati comuni per le email
+      const cancellationData = {
+        clientName: clientName,
+        clientEmail: clientEmail,
+        clientPhone: clientPhone,
+        serviceName: serviceName,
+        appointmentDate: appointmentDate,
+        appointmentTime: appointmentTime,
+        barberName: barberName,
+        shopName: shop?.name || 'Barbershop',
+      };
+      
+      // 5. INVIA EMAIL AL NEGOZIO - SEMPRE, anche se notification_email non è configurato
+      console.log('📧 [EMAIL] Inizio invio email annullamento...');
+      console.log('📧 [EMAIL] Shop notification_email:', shop?.notification_email || 'NON CONFIGURATO');
+      console.log('📧 [EMAIL] Client email:', clientEmail || 'NON DISPONIBILE');
+      
       if (shop?.notification_email) {
         try {
-          const cancellationData = {
-            clientName: clientName,
-            clientEmail: clientEmail,
-            clientPhone: clientPhone,
-            serviceName: serviceName,
-            appointmentDate: appointmentDate,
-            appointmentTime: appointmentTime,
-            barberName: barberName,
-            shopName: shop.name || 'Barbershop',
-          };
-
-          console.log('📧 Tentativo invio email annullamento al negozio:', shop.notification_email);
+          console.log('📧 [EMAIL NEGOZIO] Invio email a:', shop.notification_email);
+          console.log('📧 [EMAIL NEGOZIO] Dati:', cancellationData);
+          
           const emailResult = await emailNotificationService.sendCancellationNotification(
             cancellationData,
             shop.notification_email
           );
           
           if (emailResult.success) {
-            console.log('✅ Email annullamento inviata al negozio:', shop.notification_email);
+            console.log('✅ [EMAIL NEGOZIO] Email inviata con successo! Message ID:', emailResult.messageId);
           } else {
-            console.error('❌ Errore invio email annullamento al negozio:', emailResult.error);
+            console.error('❌ [EMAIL NEGOZIO] Errore:', emailResult.error);
           }
         } catch (emailError) {
-          console.error('❌ Errore durante invio email al negozio:', emailError);
+          console.error('❌ [EMAIL NEGOZIO] Eccezione durante invio:', emailError);
         }
       } else {
-        console.warn('⚠️ Email notifica negozio non configurata (shop.notification_email mancante)');
+        console.error('❌ [EMAIL NEGOZIO] IMPOSSIBILE INVIARE: shop.notification_email non configurato!');
+        console.error('❌ [EMAIL NEGOZIO] Shop object:', shop);
       }
 
-      // 6. Invia email di conferma annullamento al cliente
+      // 6. INVIA EMAIL AL CLIENTE - SEMPRE se email disponibile
       if (clientEmail) {
         try {
-          const clientCancellationData = {
-            clientName: clientName,
-            clientEmail: clientEmail,
-            clientPhone: clientPhone,
-            serviceName: serviceName,
-            appointmentDate: appointmentDate,
-            appointmentTime: appointmentTime,
-            barberName: barberName,
-            shopName: shop?.name || 'Barbershop',
-          };
-
-          console.log('📧 Tentativo invio email annullamento al cliente:', clientEmail);
+          console.log('📧 [EMAIL CLIENTE] Invio email a:', clientEmail);
+          console.log('📧 [EMAIL CLIENTE] Dati:', cancellationData);
+          
           const clientEmailResult = await emailNotificationService.sendClientCancellationEmail(
-            clientCancellationData
+            cancellationData
           );
           
           if (clientEmailResult.success) {
-            console.log('✅ Email annullamento inviata al cliente:', clientEmail);
+            console.log('✅ [EMAIL CLIENTE] Email inviata con successo! Message ID:', clientEmailResult.messageId);
           } else {
-            console.error('❌ Errore invio email annullamento al cliente:', clientEmailResult.error);
+            console.error('❌ [EMAIL CLIENTE] Errore:', clientEmailResult.error);
           }
         } catch (emailError) {
-          console.error('❌ Errore durante invio email al cliente:', emailError);
+          console.error('❌ [EMAIL CLIENTE] Eccezione durante invio:', emailError);
         }
       } else {
-        console.warn('⚠️ Email cliente non disponibile per invio conferma annullamento');
+        console.error('❌ [EMAIL CLIENTE] IMPOSSIBILE INVIARE: clientEmail non disponibile!');
+        console.error('❌ [EMAIL CLIENTE] Client info:', { clientInfo, userEmail: user?.email });
       }
+      
+      console.log('📧 [EMAIL] Fine processo invio email annullamento');
       
       // Ricarica gli appuntamenti per mostrare lo stato aggiornato
       await loadAppointments();

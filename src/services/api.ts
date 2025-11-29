@@ -54,7 +54,6 @@ const tryRefreshToken = async (): Promise<boolean> => {
   }
 
   try {
-    console.log('🔄 API: Tentativo refresh token...');
     const refreshUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/token?grant_type=refresh_token`;
     const refreshRes = await fetch(refreshUrl, {
       method: 'POST',
@@ -71,14 +70,12 @@ const tryRefreshToken = async (): Promise<boolean> => {
       if (tokenJson.refresh_token) {
         localStorage.setItem('refresh_token', tokenJson.refresh_token);
       }
-      console.log('✅ API: Token refreshato con successo');
       return true;
     }
     
-    console.log('❌ API: Refresh token fallito');
     return false;
   } catch (error) {
-    console.error('❌ API: Errore refresh token:', error);
+    console.error('Error refreshing token:', error);
     return false;
   }
 };
@@ -95,7 +92,6 @@ const fetchWithTokenRefresh = async (
   if (response.status === 401 && useAuth) {
     const responseText = await response.clone().text();
     if (responseText.includes('JWT expired') || responseText.includes('jwt expired')) {
-      console.log('🔄 API: JWT scaduto, tentativo refresh...');
       const refreshed = await tryRefreshToken();
       
       if (refreshed) {
@@ -108,11 +104,8 @@ const fetchWithTokenRefresh = async (
         
         // Riprova la chiamata
         response = await fetch(url, { ...options, headers: newHeaders });
-        console.log('🔄 API: Chiamata riprovata dopo refresh');
       } else {
         // Refresh fallito, forza logout
-        console.log('❌ API: Refresh fallito, richiesto nuovo login');
-        // Dispatch un evento per notificare l'app
         window.dispatchEvent(new CustomEvent('auth:session-expired'));
       }
     }
@@ -248,7 +241,7 @@ export const apiService = {
           });
           
           if (updateResponse.ok) {
-            console.log('✅ Record client aggiornato nel database, ID:', clientId);
+            // Client updated successfully
           } else {
             // Se fallisce, non loggare come errore - potrebbe essere un problema di RLS
             // Non bloccare il flusso
@@ -271,7 +264,7 @@ export const apiService = {
           });
           
           if (createResponse.ok) {
-            console.log('✅ Nuovo client creato nel database per email:', email);
+            // Client created successfully
           } else {
             // Se fallisce, non loggare come errore - potrebbe essere un problema di RLS
             // Non bloccare il flusso
@@ -317,13 +310,11 @@ export const apiService = {
                   body: JSON.stringify({ phone_e164: user.phone }),
                 });
                 existingClient.phone_e164 = user.phone;
-                console.log('☎️ Numero cliente aggiornato per:', existingClient.id);
               } catch (updateError) {
-                console.warn('⚠️ Impossibile aggiornare il numero del cliente:', updateError);
+                console.warn('Unable to update client phone:', updateError);
               }
             }
             
-            console.log('✅ Cliente esistente trovato:', existingClient.id);
             return existingClient;
           }
         } else if (searchResponse.status === 401) {
@@ -356,27 +347,25 @@ export const apiService = {
       if (createResponse.ok) {
         const created = await createResponse.json();
         const client = created[0];
-        console.log('✅ Nuovo cliente creato:', client?.id);
         return client;
       } else {
         // Se è un errore 401 (non autenticato), non generare ID temporaneo per evitare loop
         if (createResponse.status === 401) {
-          // Ritorna un errore silenzioso invece di generare ID temporaneo
           throw new Error('Unauthorized: autenticazione richiesta');
         }
         // Per altri errori, genera un ID temporaneo (ma solo una volta)
         const tempId = `temp_client_${Date.now()}`;
-        console.warn('⚠️ Impossibile creare cliente nel DB, uso ID temporaneo:', tempId);
+        console.warn('Unable to create client in DB, using temporary ID:', tempId);
         return { id: tempId, email: user.email ?? null, phone_e164: user.phone ?? null };
       }
     } catch (error) {
       // Se è un errore 401, non generare ID temporaneo per evitare loop
       if (error instanceof Error && error.message.includes('Unauthorized')) {
-        throw error; // Rilancia l'errore invece di generare ID temporaneo
+        throw error;
       }
       // Per altri errori, genera un ID temporaneo (ma solo una volta)
       const tempId = `temp_client_${Date.now()}`;
-      console.warn('⚠️ Errore creazione cliente, uso ID temporaneo:', tempId);
+      console.warn('Error creating client, using temporary ID:', tempId);
       return { id: tempId, email: user.email ?? null, phone_e164: user.phone ?? null };
     }
   },
@@ -540,7 +529,6 @@ export const apiService = {
         throw new Error(`Failed to fetch appointments: ${response.status}`);
       }
       const data = await response.json();
-      console.log('📅 Appuntamenti caricati dal database:', data.length);
       return data;
     } catch (error) {
       console.error('Error fetching appointments:', error);
@@ -616,9 +604,6 @@ export const apiService = {
         status: data.status || 'confirmed',
       };
       
-      console.log('📝 Tentativo creazione appuntamento con payload:', payload);
-      console.log('📝 Endpoint:', API_ENDPOINTS.APPOINTMENTS_FEED);
-      
       // Usa fetchWithTokenRefresh per gestire automaticamente il refresh del token
       const response = await fetchWithTokenRefresh(
         API_ENDPOINTS.APPOINTMENTS_FEED,
@@ -637,7 +622,6 @@ export const apiService = {
       }
       
       const created = await response.json();
-      console.log('✅ Appuntamento creato nel database:', created[0]);
       return created[0];
     } catch (error) {
       console.error('❌ Errore critico creazione appuntamento:', error);
@@ -1345,7 +1329,6 @@ export const apiService = {
         ...productData,
         active: true,
       } as any;
-      console.log('DEBUG createProduct payload', payload);
       const response = await fetch(API_ENDPOINTS.PRODUCTS, {
         method: 'POST',
         headers: { ...buildHeaders(true), Prefer: 'return=representation' },
@@ -1370,7 +1353,6 @@ export const apiService = {
     
     try {
       const payload = { ...(productData as any) } as any;
-      console.log('DEBUG updateProduct payload', id, payload);
       const response = await fetch(`${API_ENDPOINTS.PRODUCTS}?id=eq.${id}`, {
         method: 'PATCH',
         headers: { ...buildHeaders(true), Prefer: 'return=representation' },
@@ -1532,7 +1514,7 @@ export const apiService = {
         throw new Error(`Failed to delete notification: ${response.status} ${errorText}`);
       }
       
-      console.log('✅ Notifica eliminata:', notificationId);
+      // Notification deleted successfully
     } catch (error) {
       console.error('Error deleting notification:', error);
       throw error;
@@ -1557,7 +1539,7 @@ export const apiService = {
         throw new Error(`Failed to delete all notifications: ${response.status} ${errorText}`);
       }
       
-      console.log('✅ Tutte le notifiche eliminate per user:', userId);
+      // All notifications deleted successfully
     } catch (error) {
       console.error('Error deleting all notifications:', error);
       throw error;
@@ -1589,7 +1571,7 @@ export const apiService = {
         throw new Error(`Failed to cancel appointment: ${response.status} ${errorText}`);
       }
       
-      console.log('✅ Appuntamento cancellato:', appointmentId);
+      // Appointment cancelled successfully
     } catch (error) {
       console.error('❌ Errore critico cancellazione appuntamento:', error);
       throw error;
@@ -1623,9 +1605,6 @@ export const apiService = {
         data: data.data || {},
       };
       
-      console.log('📤 Tentativo creazione notifica:', payload);
-      console.log('📤 Endpoint:', API_ENDPOINTS.NOTIFICATIONS);
-      
       const response = await fetch(API_ENDPOINTS.NOTIFICATIONS, {
         method: 'POST',
         headers: { ...buildHeaders(true), Prefer: 'return=representation' },
@@ -1650,7 +1629,6 @@ export const apiService = {
       }
       
       const created = await response.json();
-      console.log('✅ Notifica creata con successo:', created[0]);
       return created[0];
     } catch (error) {
       console.error('❌ Errore critico creazione notifica:', error);
@@ -1741,8 +1719,6 @@ export const apiService = {
         notes: data.notes || null,
       };
       
-      console.log('📝 Tentativo inserimento in waitlist:', payload);
-      
       const response = await fetch(API_ENDPOINTS.WAITLIST, {
         method: 'POST',
         headers: { ...buildHeaders(true), Prefer: 'return=representation' },
@@ -1756,7 +1732,6 @@ export const apiService = {
       }
       
       const created = await response.json();
-      console.log('✅ Aggiunto alla lista d\'attesa:', created[0]);
       return created[0];
     } catch (error) {
       console.error('❌ Errore critico inserimento in waitlist:', error);
@@ -1779,7 +1754,7 @@ export const apiService = {
         throw new Error(`Failed to leave waitlist: ${response.status} ${errorText}`);
       }
       
-      console.log('✅ Rimosso dalla lista d\'attesa:', waitlistId);
+      // Waitlist entry removed successfully
     } catch (error) {
       console.error('❌ Errore rimozione da waitlist:', error);
       throw error;
@@ -1829,7 +1804,7 @@ export const apiService = {
         throw new Error(`Failed to update waitlist status: ${response.status} ${errorText}`);
       }
       
-      console.log('✅ Stato waitlist aggiornato:', waitlistId, status);
+      // Waitlist status updated successfully
     } catch (error) {
       console.error('❌ Errore aggiornamento stato waitlist:', error);
       throw error;
