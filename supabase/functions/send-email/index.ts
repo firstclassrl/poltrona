@@ -44,7 +44,12 @@ serve(async (req) => {
       )
     }
 
-    console.log(`📧 Invio email a: ${to} via Resend API`)
+    // Ottieni l'indirizzo email sender
+    // Usa il dominio verificato abruzzo.ai
+    // Puoi configurare RESEND_FROM_EMAIL in Supabase Secrets per personalizzarlo
+    const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') || 'noreply@abruzzo.ai'
+
+    console.log(`📧 Invio email a: ${to} via Resend API (da: ${fromEmail})`)
 
     // Chiama Resend API
     const response = await fetch('https://api.resend.com/emails', {
@@ -54,7 +59,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: 'noreply@resend.dev',
+        from: fromEmail,
         to: to,
         subject: subject,
         html: html || '',
