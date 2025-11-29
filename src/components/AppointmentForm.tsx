@@ -239,21 +239,28 @@ export const AppointmentForm = ({
     if (formData.staff_id && formData.service_id && formData.date && formData.time) {
       const selectedService = services.find(s => s.id === formData.service_id);
       const durationMinutes = selectedService?.duration_min || 30;
-      const startAt = new Date(`${formData.date}T${formData.time}`).toISOString();
-      const endAt = new Date(new Date(startAt).getTime() + durationMinutes * 60000).toISOString();
+      const startAt = new Date(`${formData.date}T${formData.time}:00`);
+      const endAt = new Date(startAt.getTime() + durationMinutes * 60000);
 
       // Filter out cancelled appointments and the current appointment if editing
       const relevantAppointments = appointments.filter(apt => {
         if (apt.status === 'cancelled') return false;
         if (isEditing && appointment && apt.id === appointment.id) return false;
-        return apt.staff_id === formData.staff_id;
+        if (apt.staff_id !== formData.staff_id) return false;
+        
+        // Only check appointments on the same day
+        const aptDate = new Date(apt.start_at);
+        const selectedDate = new Date(formData.date);
+        if (aptDate.toDateString() !== selectedDate.toDateString()) return false;
+        
+        return true;
       });
 
       const hasOverlap = checkAppointmentOverlap(
         {
           staff_id: formData.staff_id,
-          start_at: startAt,
-          end_at: endAt,
+          start_at: startAt.toISOString(),
+          end_at: endAt.toISOString(),
         },
         relevantAppointments
       );

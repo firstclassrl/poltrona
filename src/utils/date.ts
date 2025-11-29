@@ -159,6 +159,8 @@ export const checkAppointmentOverlap = (
 ): boolean => {
   const newStart = new Date(newAppointment.start_at);
   const newEnd = new Date(newAppointment.end_at);
+  const newStartTime = newStart.getTime();
+  const newEndTime = newEnd.getTime();
 
   return existingAppointments.some(existing => {
     if (existing.status === 'cancelled') return false;
@@ -168,7 +170,14 @@ export const checkAppointmentOverlap = (
     const existingEnd = existing.end_at 
       ? new Date(existing.end_at)
       : addMinutes(existingStart, existing.services?.duration_min || 30);
+    
+    const existingStartTime = existingStart.getTime();
+    const existingEndTime = existingEnd.getTime();
 
-    return newStart < existingEnd && newEnd > existingStart;
+    // Check if appointments overlap: start1 < end2 && end1 > start2
+    // Allow exact boundaries (one ends exactly when the other starts)
+    const overlaps = newStartTime < existingEndTime && newEndTime > existingStartTime;
+    
+    return overlaps;
   });
 };

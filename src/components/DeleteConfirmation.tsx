@@ -54,14 +54,22 @@ export const DeleteConfirmation = ({
         <div className="flex space-x-3">
           <Button
             variant="secondary"
-            onClick={onClose}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onClose();
+            }}
             className="flex-1"
             disabled={isLoading}
           >
             Annulla
           </Button>
           <Button
-            onClick={onConfirm}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onConfirm();
+            }}
             className="flex-1 bg-red-600 hover:bg-red-700 text-white"
             disabled={isLoading}
           >

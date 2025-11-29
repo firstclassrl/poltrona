@@ -593,10 +593,16 @@ export const apiService = {
       // Check for overlapping appointments before creating
       const startDate = new Date(data.start_at);
       const endDate = new Date(data.end_at);
+      
+      // Normalize dates to avoid timezone issues
+      const startTime = startDate.getTime();
+      const endTime = endDate.getTime();
+      
+      // Check only the same day to avoid unnecessary queries
       const checkStart = new Date(startDate);
-      checkStart.setDate(checkStart.getDate() - 1); // Check 1 day before
-      const checkEnd = new Date(endDate);
-      checkEnd.setDate(checkEnd.getDate() + 1); // Check 1 day after
+      checkStart.setHours(0, 0, 0, 0);
+      const checkEnd = new Date(startDate);
+      checkEnd.setHours(23, 59, 59, 999);
       
       const existingAppointments = await this.getAppointments(
         checkStart.toISOString(),
@@ -605,17 +611,37 @@ export const apiService = {
       
       // Filter appointments for the same staff and check for overlaps
       const overlappingAppointments = existingAppointments.filter(apt => {
+        // Skip cancelled appointments
         if (apt.status === 'cancelled') return false;
+        
+        // Must be same staff
         if (apt.staff_id !== data.staff_id) return false;
         
         const aptStart = new Date(apt.start_at);
         const aptEnd = apt.end_at ? new Date(apt.end_at) : new Date(aptStart.getTime() + (apt.services?.duration_min || 30) * 60000);
         
+        const aptStartTime = aptStart.getTime();
+        const aptEndTime = aptEnd.getTime();
+        
         // Check if appointments overlap: start1 < end2 && end1 > start2
-        return startDate < aptEnd && endDate > aptStart;
+        // But allow exact boundaries (one ends exactly when the other starts)
+        const hasOverlap = startTime < aptEndTime && endTime > aptStartTime;
+        
+        // Log for debugging
+        if (hasOverlap) {
+          console.log('🔍 Overlap detected:', {
+            newAppointment: { start: data.start_at, end: data.end_at },
+            existingAppointment: { start: apt.start_at, end: apt.end_at },
+            staff_id: data.staff_id,
+            apt_staff_id: apt.staff_id
+          });
+        }
+        
+        return hasOverlap;
       });
       
       if (overlappingAppointments.length > 0) {
+        console.error('❌ Overlapping appointments found:', overlappingAppointments);
         throw new Error('Impossibile creare l\'appuntamento: c\'è un conflitto con un altro appuntamento per lo stesso barbiere');
       }
       

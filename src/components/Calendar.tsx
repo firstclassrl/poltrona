@@ -665,7 +665,15 @@ export const Calendar = () => {
       {/* Delete Confirmation Modal */}
       <DeleteConfirmation
         isOpen={showDeleteConfirmation}
-        onClose={() => setShowDeleteConfirmation(false)}
+        onClose={() => {
+          setShowDeleteConfirmation(false);
+          // Reopen details modal if user cancels
+          if (selectedAppointment) {
+            setTimeout(() => {
+              setShowAppointmentDetails(true);
+            }, 100);
+          }
+        }}
         onConfirm={async () => {
           if (!selectedAppointment?.id) return;
           
@@ -690,7 +698,7 @@ export const Calendar = () => {
 
       {/* Appointment Details Modal */}
       <Modal
-        isOpen={showAppointmentDetails}
+        isOpen={showAppointmentDetails && !showDeleteConfirmation}
         onClose={() => {
           setShowAppointmentDetails(false);
           setSelectedAppointment(null);
@@ -785,8 +793,14 @@ export const Calendar = () => {
               </Button>
               <Button 
                 variant="secondary"
-                onClick={() => {
-                  setShowDeleteConfirmation(true);
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowAppointmentDetails(false);
+                  // Small delay to ensure the details modal closes before opening confirmation
+                  setTimeout(() => {
+                    setShowDeleteConfirmation(true);
+                  }, 100);
                 }}
                 className="flex-1 bg-red-600 hover:bg-red-700 text-white"
               >
