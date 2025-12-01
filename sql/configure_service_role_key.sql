@@ -53,3 +53,4 @@ FROM public.app_settings
 WHERE key = 'service_role_key';
 
 
+

@@ -60,3 +60,4 @@ LEFT JOIN public.profiles p ON s.user_id = p.user_id
 ORDER BY s.full_name;
 
 
+

@@ -68,3 +68,4 @@ Per testare la funzionalità:
 - Il trigger gestisce gli errori gracefully: se c'è un errore nella creazione della notifica, viene loggato ma l'inserimento del profilo continua
 
 
+

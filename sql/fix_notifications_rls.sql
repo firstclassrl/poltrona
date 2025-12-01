@@ -66,3 +66,4 @@ FROM pg_constraint
 WHERE conrelid = 'public.notifications'::regclass;
 
 
+

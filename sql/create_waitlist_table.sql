@@ -211,3 +211,4 @@ COMMENT ON COLUMN public.waitlist.expires_at IS 'Scadenza automatica dopo l''ult
 COMMENT ON FUNCTION public.notify_waitlist_on_cancellation() IS 'Trigger function che notifica i clienti in waitlist quando un appuntamento viene cancellato';
 
 
+

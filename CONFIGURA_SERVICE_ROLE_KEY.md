@@ -81,3 +81,4 @@ Significa che la chiave non è stata configurata correttamente.
 - La chiave viene letta automaticamente dal trigger quando un appuntamento viene cancellato
 
 
+

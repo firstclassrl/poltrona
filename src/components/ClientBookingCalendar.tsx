@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { User, Scissors, Check, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Sun, Moon } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Modal } from './ui/Modal';
@@ -12,6 +12,7 @@ import { useVacationMode } from '../hooks/useVacationMode';
 import { emailNotificationService } from '../services/emailNotificationService';
 import { apiService } from '../services/api';
 import type { Service, Staff, Shop } from '../types';
+import { findAvailableSlotsForDuration } from '../utils/availability';
 
 interface ClientBookingCalendarProps {
   onNavigateToProfile?: () => void;
@@ -22,7 +23,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   const { availableStaff } = useChairAssignment();
   const { refreshUnreadCount } = useNotifications();
   const { user } = useAuth();
-  const { createAppointment, isTimeSlotBooked } = useAppointments();
+  const { appointments, createAppointment } = useAppointments();
   const { isDateInVacation } = useVacationMode();
   const [currentWeek, setCurrentWeek] = useState(0);
   // Removed timePeriod state - now using daily configured hours
@@ -80,58 +81,105 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Generate 2 weeks from today, filtering out closed days
+  // Get available barbers (those assigned to chairs)
+  const availableBarbers = availableStaff.filter(staff => staff.active && staff.chair_id);
+
+  const selectedServiceObj = useMemo(
+    () => services.find((s) => s.id === selectedService) || null,
+    [services, selectedService]
+  );
+
+  const bookingDuration = selectedServiceObj?.duration_min || 0;
+
+  // Pre-calculated available slots for the next 30 days based on selected service duration
+  const availableSlots = useMemo(() => {
+    if (!shopHoursLoaded || !bookingDuration || !selectedBarber) return [];
+
+    const today = new Date();
+    const startDate = new Date(today);
+    startDate.setHours(0, 0, 0, 0);
+
+    const endDate = new Date(today);
+    endDate.setDate(today.getDate() + 30);
+    endDate.setHours(0, 0, 0, 0);
+
+    return findAvailableSlotsForDuration({
+      startDate,
+      endDate,
+      durationMin: bookingDuration,
+      appointments,
+      isDateOpen,
+      isDateInVacation,
+      getAvailableTimeSlots,
+      staffId: selectedBarber,
+    });
+  }, [
+    appointments,
+    bookingDuration,
+    getAvailableTimeSlots,
+    isDateInVacation,
+    isDateOpen,
+    selectedBarber,
+    shopHoursLoaded,
+  ]);
+
+  // Utility to get all days that have at least one available slot
+  const daysWithAvailability = useMemo(() => {
+    const map = new Map<string, Date>();
+    availableSlots.forEach(({ date }) => {
+      const key = date.toISOString().split('T')[0];
+      if (!map.has(key)) {
+        map.set(key, new Date(date));
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.getTime() - b.getTime());
+  }, [availableSlots]);
+
+  // Generate up to 4 weeks from the days that actually have availability
   const generateWeeks = () => {
-    if (!shopHoursLoaded) {
-      return [];
+    if (!shopHoursLoaded) return [];
+    if (!daysWithAvailability.length) return [];
+
+    const weeks: Date[][] = [];
+    let currentWeekDays: Date[] = [];
+
+    let currentWeekStart = new Date(daysWithAvailability[0]);
+    currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay() + 1); // Monday
+
+    daysWithAvailability.forEach((date) => {
+      const weekStart = new Date(currentWeekStart);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+
+      if (date >= weekStart && date <= weekEnd) {
+        currentWeekDays.push(date);
+      } else {
+        if (currentWeekDays.length) {
+          weeks.push(currentWeekDays);
+        }
+        currentWeekDays = [date];
+        currentWeekStart = new Date(date);
+        currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay() + 1);
+      }
+    });
+
+    if (currentWeekDays.length) {
+      weeks.push(currentWeekDays);
     }
 
-    const weeks = [];
-    const today = new Date();
-    
-    for (let week = 0; week < 2; week++) {
-      const weekStart = new Date(today);
-      weekStart.setDate(today.getDate() + (week * 7));
-      
-      const days = [];
-      for (let day = 0; day < 7; day++) {
-        const date = new Date(weekStart);
-        date.setDate(weekStart.getDate() + day);
-        
-        // Only include days that are not closed and not in vacation
-        if (isDateOpen(date) && !isDateInVacation(date)) {
-          days.push(date);
-        }
-      }
-      weeks.push(days);
-    }
-    
-    return weeks;
+    return weeks.slice(0, 4);
   };
 
   const weeks = generateWeeks();
   const currentWeekDays = weeks[currentWeek] || [];
 
-
-  // Get available barbers (those assigned to chairs)
-  const availableBarbers = availableStaff.filter(staff => staff.active && staff.chair_id);
-
-  // Check if a time slot is available
-  const isTimeSlotAvailable = (date: Date, time: string) => {
-    if (!shopHoursLoaded || !isDateOpen(date) || isDateInVacation(date)) return false;
-    
-    const timeSlots = getTimeSlotsForDate(date);
-    if (!timeSlots.includes(time)) return false;
-    
-    // Check if there's already an appointment at this time (from saved appointments)
-    return !isTimeSlotBooked(date, time);
-  };
-
-  // Get time slots for a specific date using daily configured hours
+  // Get time slots for a specific date using pre-computed availability
   const getTimeSlotsForDate = (date: Date) => {
-    // Use the new daily shop hours system
-    if (!shopHoursLoaded) return [];
-    return getAvailableTimeSlots(date, 30); // 30 minutes slots
+    if (!shopHoursLoaded || !bookingDuration || !selectedBarber) return [];
+    const iso = date.toISOString().split('T')[0];
+    return availableSlots
+      .filter((slot) => slot.date.toISOString().split('T')[0] === iso)
+      .map((slot) => slot.time);
   };
 
   // Mobile navigation functions
@@ -169,11 +217,18 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   };
 
   const handleTimeSlotClick = (date: Date, time: string) => {
-    if (isTimeSlotAvailable(date, time)) {
-      setSelectedDate(date);
-      setSelectedTime(time);
-      setShowBookingModal(true);
-    }
+    // Protection: allow click only if the slot is in our computed availability
+    if (!shopHoursLoaded || !bookingDuration || !selectedBarber) return;
+
+    const iso = date.toISOString().split('T')[0];
+    const exists = availableSlots.some(
+      (slot) => slot.date.toISOString().split('T')[0] === iso && slot.time === time
+    );
+    if (!exists) return;
+
+    setSelectedDate(date);
+    setSelectedTime(time);
+    setShowBookingModal(true);
   };
 
   const handleBookingSubmit = async () => {
@@ -407,7 +462,74 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     <div className="space-y-8">
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-900">Prenota Appuntamento</h1>
-        <p className="text-gray-600 mt-2">Scegli data e orario disponibili</p>
+        <p className="text-gray-600 mt-2">
+          Seleziona prima il servizio e il barbiere, poi scegli tra gli orari disponibili entro 30 giorni.
+        </p>
+      </div>
+
+      {/* Step 1: scelta servizio e barbiere */}
+      <div className="max-w-2xl mx-auto bg-white rounded-xl border border-gray-200 shadow-sm p-4 md:p-6 space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            <Scissors className="w-4 h-4 inline mr-2" />
+            Servizio
+          </label>
+          <select
+            value={selectedService}
+            onChange={(e) => {
+              setSelectedService(e.target.value);
+              // reset eventuale selezione precedente
+              setSelectedDate(null);
+              setSelectedTime('');
+            }}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={isLoading}
+          >
+            <option value="">{isLoading ? 'Caricamento servizi...' : 'Seleziona un servizio'}</option>
+            {services
+              .filter((service) => service.active)
+              .map((service) => (
+                <option key={service.id} value={service.id}>
+                  {service.name} - €{(service.price_cents || 0) / 100} ({service.duration_min} min)
+                </option>
+              ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            <User className="w-4 h-4 inline mr-2" />
+            Barbiere
+          </label>
+          <select
+            value={selectedBarber}
+            onChange={(e) => {
+              setSelectedBarber(e.target.value);
+              setSelectedDate(null);
+              setSelectedTime('');
+            }}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={!selectedService || isLoading}
+          >
+            <option value="">{isLoading ? 'Caricamento barbieri...' : 'Seleziona un barbiere'}</option>
+            {availableBarbers.map((barber) => (
+              <option key={barber.id} value={barber.id}>
+                {barber.full_name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {!bookingDuration || !selectedBarber ? (
+          <p className="text-xs text-gray-500">
+            Seleziona servizio e barbiere per vedere solo gli orari con tempo sufficiente disponibile.
+          </p>
+        ) : (
+          <p className="text-xs text-gray-600">
+            Durata appuntamento: <span className="font-medium">{bookingDuration} minuti</span>.
+            Mostriamo solo slot con almeno questo tempo libero entro 30 giorni.
+          </p>
+        )}
       </div>
 
       {/* Mobile Daily View */}
@@ -478,35 +600,28 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
 
           {/* Time Slots List */}
           <div className="space-y-3">
-            {isDateInVacation(currentDay) ? (
+            {!bookingDuration || !selectedBarber ? (
+              <div className="text-center py-8 text-gray-500">
+                <p>Seleziona prima servizio e barbiere per vedere gli orari disponibili.</p>
+              </div>
+            ) : isDateInVacation(currentDay) ? (
               <div className="text-center py-8 text-red-600 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-lg font-semibold">CHIUSO PER FERIE</p>
                 <p className="text-sm">Il negozio è chiuso per le vacanze in questa data</p>
               </div>
             ) : isDateOpen(currentDay) ? (
-              getFilteredTimeSlots(currentDay, timePeriod).map((time) => {
-                const isAvailable = isTimeSlotAvailable(currentDay, time);
-                
-                return (
-                  <button
-                    key={time}
-                    onClick={() => handleTimeSlotClick(currentDay, time)}
-                    disabled={!isAvailable}
-                    className={`w-full min-h-[48px] py-3 px-4 rounded-lg text-left transition-colors ${
-                      isAvailable
-                        ? 'bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer border border-green-200'
-                        : 'bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-200'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-lg font-medium">{time}</span>
-                      <span className="text-sm">
-                        {isAvailable ? 'Disponibile' : 'Occupato'}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })
+              getFilteredTimeSlots(currentDay, timePeriod).map((time) => (
+                <button
+                  key={time}
+                  onClick={() => handleTimeSlotClick(currentDay, time)}
+                  className="w-full min-h-[48px] py-3 px-4 rounded-lg text-left transition-colors bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer border border-green-200"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-lg font-medium">{time}</span>
+                    <span className="text-sm">Disponibile</span>
+                  </div>
+                </button>
+              ))
             ) : (
               <div className="text-center py-8 text-gray-500">
                 <p>Il negozio è chiuso in questa data</p>
@@ -548,13 +663,13 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
           </Button>
           
           <h2 className="text-xl font-semibold text-gray-900">
-            Settimana {currentWeek + 1} di 2
+            {weeks.length > 0 ? `Settimana ${currentWeek + 1} di ${weeks.length}` : 'Nessuna disponibilità'}
           </h2>
           
           <Button
             variant="secondary"
-            onClick={() => setCurrentWeek(Math.min(1, currentWeek + 1))}
-            disabled={currentWeek === 1}
+            onClick={() => setCurrentWeek(Math.min(Math.max(weeks.length - 1, 0), currentWeek + 1))}
+            disabled={currentWeek >= weeks.length - 1}
           >
             Settimana Successiva
             <ArrowRight className="w-4 h-4 ml-2" />
@@ -564,7 +679,13 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
         {/* Info banner rimosso per visualizzazione cliente */}
 
         {/* Calendar Grid */}
-        {currentWeekDays.length > 0 ? (
+        {(!bookingDuration || !selectedBarber) && (
+          <div className="text-center py-12 text-gray-500 bg-gray-50 border border-gray-200 rounded-lg">
+            <p className="text-lg font-semibold">Seleziona servizio e barbiere</p>
+            <p className="text-sm mt-1">Poi vedrai solo gli orari con abbastanza tempo libero entro 30 giorni.</p>
+          </div>
+        )}
+        {bookingDuration && selectedBarber && currentWeekDays.length > 0 ? (
           <div 
             className="grid gap-2"
             style={{ gridTemplateColumns: `repeat(${currentWeekDays.length}, 1fr)` }}
@@ -609,10 +730,10 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
             );
           })}
           </div>
-        ) : (
+        ) : bookingDuration && selectedBarber ? (
           <div className="text-center py-12 text-red-600 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-lg font-semibold">CHIUSO PER FERIE</p>
-            <p className="text-sm">Il negozio è chiuso per le vacanze in questa settimana</p>
+            <p className="text-lg font-semibold">Nessuna disponibilità</p>
+            <p className="text-sm">Non ci sono slot abbastanza lunghi entro 30 giorni per il servizio selezionato.</p>
           </div>
         )}
 
@@ -636,7 +757,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       <Modal
         isOpen={showBookingModal}
         onClose={() => setShowBookingModal(false)}
-        title="Completa Prenotazione"
+        title="Conferma Prenotazione"
         size="medium"
       >
         <div className="space-y-6">
@@ -646,55 +767,18 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
             <div className="text-sm text-blue-800">
               <p><strong>Data:</strong> {selectedDate?.toLocaleDateString('it-IT')}</p>
               <p><strong>Orario:</strong> {selectedTime}</p>
+              {selectedServiceObj && (
+                <p>
+                  <strong>Servizio:</strong> {selectedServiceObj.name} ({selectedServiceObj.duration_min} min)
+                </p>
+              )}
+              {selectedBarber && (
+                <p>
+                  <strong>Barbiere:</strong>{' '}
+                  {staff.find((b) => b.id === selectedBarber)?.full_name || ''}
+                </p>
+              )}
             </div>
-          </div>
-
-          {/* Service Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Scissors className="w-4 h-4 inline mr-2" />
-              Servizio
-            </label>
-            <select
-              value={selectedService}
-              onChange={(e) => setSelectedService(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-              disabled={isLoading}
-            >
-              <option value="">{isLoading ? 'Caricamento servizi...' : 'Seleziona un servizio'}</option>
-              {services
-                .filter(service => service.active)
-                .map(service => (
-                  <option key={service.id} value={service.id}>
-                    {service.name} - €{(service.price_cents || 0) / 100} ({service.duration_min} min)
-                  </option>
-                ))}
-            </select>
-          </div>
-
-          {/* Barber Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <User className="w-4 h-4 inline mr-2" />
-              Barbiere
-            </label>
-            <select
-              value={selectedBarber}
-              onChange={(e) => setSelectedBarber(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-              disabled={isLoading}
-            >
-              <option value="">{isLoading ? 'Caricamento barbieri...' : 'Seleziona un barbiere'}</option>
-              {staff
-                .filter(barber => barber.active && barber.chair_id)
-                .map(barber => (
-                  <option key={barber.id} value={barber.id}>
-                    {barber.full_name}
-                  </option>
-                ))}
-            </select>
           </div>
 
           {/* Submit Button */}

@@ -82,3 +82,4 @@ COMMENT ON COLUMN public.notifications.type IS 'Tipo: new_appointment, appointme
 COMMENT ON COLUMN public.notifications.data IS 'Dati JSON aggiuntivi (appointment_id, client_name, service_name, etc.)';
 
 
+

@@ -40,3 +40,4 @@ curl -X POST 'https://TUO_PROJECT.supabase.co/functions/v1/send-email' \
 ```
 
 
+

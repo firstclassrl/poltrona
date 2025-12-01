@@ -149,3 +149,4 @@ COMMENT ON FUNCTION public.notify_client_on_chat_message() IS 'Funzione trigger 
 COMMENT ON COLUMN public.notifications.type IS 'Tipo: new_appointment, appointment_cancelled, appointment_reminder, system, waitlist_available, new_client, chat_message';
 
 
+

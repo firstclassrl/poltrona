@@ -66,3 +66,4 @@ WHERE table_schema = 'public'
   AND table_name = 'chats_with_details';
 
 
+
