@@ -707,24 +707,15 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
                 </div>
                 
                 <div className="space-y-1">
-                  {timeSlots.map((time) => {
-                    const isAvailable = isTimeSlotAvailable(date, time);
-                    
-                    return (
-                      <button
-                        key={time}
-                        onClick={() => handleTimeSlotClick(date, time)}
-                        disabled={!isAvailable}
-                        className={`w-full text-xs py-1 px-2 rounded transition-colors ${
-                          isAvailable
-                            ? 'bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer'
-                            : 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                        }`}
-                      >
-                        {formatTime(time)}
-                      </button>
-                    );
-                  })}
+                  {timeSlots.map((time) => (
+                    <button
+                      key={time}
+                      onClick={() => handleTimeSlotClick(date, time)}
+                      className="w-full text-xs py-1 px-2 rounded transition-colors bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer"
+                    >
+                      {formatTime(time)}
+                    </button>
+                  ))}
                 </div>
               </div>
             );
@@ -735,7 +726,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
             <p className="text-lg font-semibold">Nessuna disponibilità</p>
             <p className="text-sm">Non ci sono slot abbastanza lunghi entro 30 giorni per il servizio selezionato.</p>
           </div>
-        )}
+        ) : null}
 
         {/* Legend */}
         <div className="flex items-center justify-center space-x-6 text-sm">
