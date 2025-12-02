@@ -2,6 +2,19 @@
   command = "npm run build"
   publish = "dist"
 
+[[headers]]
+  # Cache aggressiva per asset statici generati da Vite (con hash nel nome)
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  # Per tutte le route HTML della SPA servite da Netlify (redirect a /index.html)
+  # chiedi sempre al server se esiste una versione più recente dopo ogni deploy
+  for = "/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
@@ -9,6 +22,7 @@
 
 [build.environment]
   NODE_VERSION = "18"
+
 
 
 

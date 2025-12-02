@@ -20,11 +20,14 @@ import { useToast } from './hooks/useToast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { ChatProvider } from './contexts/ChatContext';
+import { APP_VERSION, VERSION_ENDPOINT } from './config/version';
 import { apiService } from './services/api';
 import type { CreateAppointmentRequest, UpdateAppointmentRequest, Appointment } from './types';
 
 const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [latestVersion, setLatestVersion] = useState<string | null>(null);
+  const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
   const [isAppointmentFormOpen, setIsAppointmentFormOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const { toast, showToast, hideToast } = useToast();
@@ -36,6 +39,46 @@ const AppContent: React.FC = () => {
       setActiveTab('client_booking');
     }
   }, [user]);
+
+  // Poll di controllo versione: verifica periodicamente se esiste una versione più recente
+  useEffect(() => {
+    let isMounted = true;
+
+    const checkVersion = async () => {
+      try {
+        const response = await fetch(VERSION_ENDPOINT, {
+          cache: 'no-cache',
+        });
+
+        if (!response.ok) return;
+
+        const data = (await response.json()) as { version?: string };
+        const remoteVersion = data.version;
+
+        if (!remoteVersion) return;
+
+        if (isMounted) {
+          setLatestVersion(remoteVersion);
+          if (remoteVersion !== APP_VERSION) {
+            setIsUpdateAvailable(true);
+          }
+        }
+      } catch {
+        // In caso di errore (offline, ecc.) non facciamo nulla
+      }
+    };
+
+    // Primo controllo immediato
+    void checkVersion();
+
+    // Controlli successivi ogni 5 minuti
+    const intervalId = window.setInterval(checkVersion, 5 * 60 * 1000);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   const handleEditAppointment = (appointment: Appointment) => {
     setEditingAppointment(appointment);
@@ -122,7 +165,29 @@ const AppContent: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-purple-950/20 to-pink-950/20">
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
-      
+
+      {/* Banner aggiornamento versione */}
+      {isUpdateAvailable && (
+        <div className="md:pl-64">
+          <div className="bg-yellow-500 text-black px-4 py-2 text-sm flex items-center justify-between shadow-md">
+            <span>
+              È disponibile una nuova versione di Poltrona
+              {latestVersion ? ` (v${latestVersion})` : ''}. Clicca per aggiornare.
+            </span>
+            <button
+              type="button"
+              className="ml-4 px-3 py-1 rounded bg-black text-yellow-300 text-xs font-semibold hover:bg-gray-900"
+              onClick={() => {
+                // Forza un reload completo per caricare la nuova index.html e i nuovi bundle
+                window.location.reload();
+              }}
+            >
+              Aggiorna ora
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <div className="md:pl-64 pb-20 md:pb-0 bg-white">
         <main className="p-6 max-w-7xl mx-auto bg-white min-h-screen">

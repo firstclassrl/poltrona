@@ -91,7 +91,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
 
   const bookingDuration = selectedServiceObj?.duration_min || 0;
 
-  // Pre-calculated available slots for the next 30 days based on selected service duration
+  // Pre-calculated available slots for the next 6 months based on selected service duration
   const availableSlots = useMemo(() => {
     if (!shopHoursLoaded || !bookingDuration || !selectedBarber) return [];
 
@@ -100,7 +100,8 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     startDate.setHours(0, 0, 0, 0);
 
     const endDate = new Date(today);
-    endDate.setDate(today.getDate() + 30);
+    // Cerca disponibilità per i prossimi 6 mesi
+    endDate.setMonth(endDate.getMonth() + 6);
     endDate.setHours(0, 0, 0, 0);
 
     return findAvailableSlotsForDuration({
@@ -463,7 +464,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-900">Prenota Appuntamento</h1>
         <p className="text-gray-600 mt-2">
-          Seleziona prima il servizio e il barbiere, poi scegli tra gli orari disponibili entro 30 giorni.
+          Seleziona prima il servizio e il barbiere, poi scegli tra gli orari disponibili entro 6 mesi.
         </p>
       </div>
 
@@ -527,7 +528,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
         ) : (
           <p className="text-xs text-gray-600">
             Durata appuntamento: <span className="font-medium">{bookingDuration} minuti</span>.
-            Mostriamo solo slot con almeno questo tempo libero entro 30 giorni.
+            Mostriamo solo slot con almeno questo tempo libero entro 6 mesi.
           </p>
         )}
       </div>
@@ -682,7 +683,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
         {(!bookingDuration || !selectedBarber) && (
           <div className="text-center py-12 text-gray-500 bg-gray-50 border border-gray-200 rounded-lg">
             <p className="text-lg font-semibold">Seleziona servizio e barbiere</p>
-            <p className="text-sm mt-1">Poi vedrai solo gli orari con abbastanza tempo libero entro 30 giorni.</p>
+            <p className="text-sm mt-1">Poi vedrai solo gli orari con abbastanza tempo libero entro 6 mesi.</p>
           </div>
         )}
         {bookingDuration && selectedBarber && currentWeekDays.length > 0 ? (
@@ -724,7 +725,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
         ) : bookingDuration && selectedBarber ? (
           <div className="text-center py-12 text-red-600 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-lg font-semibold">Nessuna disponibilità</p>
-            <p className="text-sm">Non ci sono slot abbastanza lunghi entro 30 giorni per il servizio selezionato.</p>
+            <p className="text-sm">Non ci sono slot abbastanza lunghi entro 6 mesi per il servizio selezionato.</p>
           </div>
         ) : null}
 
