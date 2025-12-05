@@ -828,8 +828,6 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
           isSubmitting={isSubmitting}
         />
       )}
-        </>
-      )}
     </div>
   );
 };
