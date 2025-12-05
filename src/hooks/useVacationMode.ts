@@ -1,108 +1,73 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { VacationPeriod } from '../types';
+import { apiService } from '../services/api';
 
-const VACATION_STORAGE_KEY = 'vacationPeriod';
+const VACATION_STORAGE_KEY = 'vacationPeriod'; // Keep for backward compatibility/fallback
 
 interface UseVacationModeReturn {
   vacationPeriod: VacationPeriod | null;
   isDateInVacation: (date: Date) => boolean;
-  setVacationPeriod: (start: string, end: string) => void;
-  clearVacationPeriod: () => void;
+  setVacationPeriod: (start: string, end: string) => Promise<void>;
+  clearVacationPeriod: () => Promise<void>;
   getVacationPeriod: () => VacationPeriod | null;
+  isLoading: boolean;
 }
 
 export const useVacationMode = (): UseVacationModeReturn => {
-  // Initialize state by reading from localStorage immediately
-  const getInitialVacationPeriod = (): VacationPeriod | null => {
-    if (typeof window === 'undefined') {
-      console.log('⚠️ Window is undefined, cannot read localStorage');
-      return null;
-    }
-    try {
-      const savedVacation = localStorage.getItem(VACATION_STORAGE_KEY);
-      console.log('🔍 getInitialVacationPeriod - raw localStorage value:', savedVacation);
-      
-      if (savedVacation) {
-        try {
-          const parsed = JSON.parse(savedVacation);
-          console.log('📅 Initial vacation period from localStorage:', parsed);
-          return parsed;
-        } catch (parseError) {
-          console.error('Error parsing initial vacation period:', parseError);
-          return null;
-        }
-      } else {
-        console.log('📅 No vacation period in localStorage during initial state');
-      }
-    } catch (error) {
-      console.error('Error reading initial vacation period:', error);
-    }
-    return null;
-  };
-  
-  const [vacationPeriod, setVacationPeriod] = useState<VacationPeriod | null>(getInitialVacationPeriod());
+  const [vacationPeriod, setVacationPeriod] = useState<VacationPeriod | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Load vacation period from localStorage
-    const loadVacationPeriod = () => {
+    // Load vacation period from database
+    const loadVacationPeriod = async () => {
+      setIsLoading(true);
       try {
-        const savedVacation = localStorage.getItem(VACATION_STORAGE_KEY);
-        console.log('🔍 loadVacationPeriod - raw localStorage value:', savedVacation);
+        const shop = await apiService.getShop();
+        const period = shop.vacation_period || null;
+        console.log('📅 Loading vacation period from database:', period);
+        setVacationPeriod(period);
         
-        if (savedVacation) {
-          try {
+        // Also sync to localStorage for backward compatibility
+        if (period) {
+          localStorage.setItem(VACATION_STORAGE_KEY, JSON.stringify(period));
+        } else {
+          localStorage.removeItem(VACATION_STORAGE_KEY);
+        }
+        
+        return period;
+      } catch (error) {
+        console.error('Error loading vacation period from database:', error);
+        // Fallback to localStorage if database fails
+        try {
+          const savedVacation = localStorage.getItem(VACATION_STORAGE_KEY);
+          if (savedVacation) {
             const parsed = JSON.parse(savedVacation);
-            console.log('📅 Loading vacation period from localStorage:', parsed);
+            console.log('📅 Fallback: Loading vacation period from localStorage:', parsed);
             setVacationPeriod(parsed);
             return parsed;
-          } catch (error) {
-            console.error('Error parsing vacation period:', error);
-            setVacationPeriod(null);
-            return null;
           }
-        } else {
-          console.log('📅 No vacation period found in localStorage');
-          setVacationPeriod(null);
-          return null;
+        } catch (localError) {
+          console.error('Error reading from localStorage fallback:', localError);
         }
-      } catch (error) {
-        console.error('Error accessing localStorage:', error);
         setVacationPeriod(null);
         return null;
+      } finally {
+        setIsLoading(false);
       }
     };
     
-    // Load initially - check if state already has it
-    if (vacationPeriod) {
-      console.log('📅 Vacation period already in state, skipping initial load:', vacationPeriod);
-    } else {
-      const loaded = loadVacationPeriod();
-      if (loaded) {
-        console.log('📅 Loaded vacation period in useEffect:', loaded);
-      } else {
-        console.log('📅 No vacation period loaded in useEffect');
-      }
-    }
-    
-    // Listen for storage changes (sync across tabs/components)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === VACATION_STORAGE_KEY) {
-        console.log('📅 Storage event detected, reloading vacation period');
-        loadVacationPeriod();
-      }
-    };
+    // Load initially
+    loadVacationPeriod();
     
     // Listen for custom events (sync within same tab)
     const handleCustomEvent = () => {
-      console.log('📅 Custom event detected, reloading vacation period');
+      console.log('📅 Custom event detected, reloading vacation period from database');
       loadVacationPeriod();
     };
     
-    window.addEventListener('storage', handleStorageChange);
     window.addEventListener('vacation-period-updated', handleCustomEvent);
     
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('vacation-period-updated', handleCustomEvent);
     };
   }, []); // Only run once on mount
@@ -156,7 +121,7 @@ export const useVacationMode = (): UseVacationModeReturn => {
     return isInVacation;
   }, [vacationPeriod]);
 
-  const setVacationPeriodData = (start: string, end: string): void => {
+  const setVacationPeriodData = async (start: string, end: string): Promise<void> => {
     // Ensure dates are in YYYY-MM-DD format
     const startDate = start.includes('T') ? start.split('T')[0] : start;
     const endDate = end.includes('T') ? end.split('T')[0] : end;
@@ -169,51 +134,52 @@ export const useVacationMode = (): UseVacationModeReturn => {
     
     console.log('💾 setVacationPeriodData called with:', { startDate, endDate, newVacationPeriod });
     
-    setVacationPeriod(newVacationPeriod);
-    
-    // Save to localStorage with error handling
     try {
+      // Save to database
+      await apiService.updateShopVacationPeriod(newVacationPeriod);
+      console.log('✅ Vacation period saved to database');
+      
+      // Update local state
+      setVacationPeriod(newVacationPeriod);
+      
+      // Also sync to localStorage for backward compatibility
       localStorage.setItem(VACATION_STORAGE_KEY, JSON.stringify(newVacationPeriod));
       
-      // Verify it was saved immediately
-      const saved = localStorage.getItem(VACATION_STORAGE_KEY);
-      console.log('✅ Vacation period saved to localStorage:', saved);
-      
-      // Also verify after a small delay to ensure it persisted
-      setTimeout(() => {
-        const savedAgain = localStorage.getItem(VACATION_STORAGE_KEY);
-        if (savedAgain) {
-          console.log('✅ Vacation period still in localStorage after delay:', savedAgain);
-        } else {
-          console.error('❌ Vacation period was removed from localStorage!');
-        }
-      }, 500);
+      // Dispatch custom event to sync across components in same tab
+      console.log('📢 Dispatching vacation-period-updated event');
+      window.dispatchEvent(new CustomEvent('vacation-period-updated'));
     } catch (error) {
-      console.error('❌ Error saving vacation period to localStorage:', error);
-    }
-    
-    // Dispatch custom event to sync across components in same tab
-    console.log('📢 Dispatching vacation-period-updated event');
-    window.dispatchEvent(new CustomEvent('vacation-period-updated'));
-    
-    // Also dispatch a storage event manually for same-tab sync
-    // (StorageEvent only fires for other tabs/windows)
-    if (typeof StorageEvent !== 'undefined') {
-      const storageEvent = new StorageEvent('storage', {
-        key: VACATION_STORAGE_KEY,
-        newValue: JSON.stringify(newVacationPeriod),
-        oldValue: null,
-        storageArea: localStorage
-      });
-      window.dispatchEvent(storageEvent);
+      console.error('❌ Error saving vacation period to database:', error);
+      // Fallback to localStorage if database fails
+      setVacationPeriod(newVacationPeriod);
+      localStorage.setItem(VACATION_STORAGE_KEY, JSON.stringify(newVacationPeriod));
+      window.dispatchEvent(new CustomEvent('vacation-period-updated'));
+      throw error;
     }
   };
 
-  const clearVacationPeriod = (): void => {
-    setVacationPeriod(null);
-    localStorage.removeItem(VACATION_STORAGE_KEY);
-    // Dispatch custom event to sync across components in same tab
-    window.dispatchEvent(new CustomEvent('vacation-period-updated'));
+  const clearVacationPeriod = async (): Promise<void> => {
+    try {
+      // Clear from database
+      await apiService.updateShopVacationPeriod(null);
+      console.log('✅ Vacation period cleared from database');
+      
+      // Update local state
+      setVacationPeriod(null);
+      
+      // Also clear from localStorage
+      localStorage.removeItem(VACATION_STORAGE_KEY);
+      
+      // Dispatch custom event to sync across components in same tab
+      window.dispatchEvent(new CustomEvent('vacation-period-updated'));
+    } catch (error) {
+      console.error('❌ Error clearing vacation period from database:', error);
+      // Fallback to localStorage if database fails
+      setVacationPeriod(null);
+      localStorage.removeItem(VACATION_STORAGE_KEY);
+      window.dispatchEvent(new CustomEvent('vacation-period-updated'));
+      throw error;
+    }
   };
 
   const getVacationPeriod = (): VacationPeriod | null => {
@@ -225,6 +191,7 @@ export const useVacationMode = (): UseVacationModeReturn => {
     isDateInVacation,
     setVacationPeriod: setVacationPeriodData,
     clearVacationPeriod,
-    getVacationPeriod
+    getVacationPeriod,
+    isLoading
   };
 };

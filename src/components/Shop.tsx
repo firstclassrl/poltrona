@@ -438,15 +438,9 @@ export const ShopManagement = () => {
       // Try to cancel appointments (will skip if backend not configured)
       await apiService.cancelAppointmentsInRange(startDateStr, endDateStr);
       
-      // Set vacation period
-      console.log('💾 Saving vacation period:', { startDateStr, endDateStr });
-      setVacationPeriod(startDateStr, endDateStr);
-      
-      // Verify it was saved
-      setTimeout(() => {
-        const saved = localStorage.getItem('vacationPeriod');
-        console.log('✅ Vacation period saved to localStorage:', saved);
-      }, 100);
+      // Set vacation period (now saves to database)
+      console.log('💾 Saving vacation period to database:', { startDateStr, endDateStr });
+      await setVacationPeriod(startDateStr, endDateStr);
       
       setShowVacationConfirm(false);
       setVacationStartDate('');
@@ -473,10 +467,15 @@ export const ShopManagement = () => {
     }
   };
 
-  const handleDeactivateVacation = () => {
+  const handleDeactivateVacation = async () => {
     if (!isEditingVacation) return;
-    clearVacationPeriod();
-    showMessage(setVacationMessage, 'success', 'Modalità ferie disattivata!', 4000);
+    try {
+      await clearVacationPeriod();
+      showMessage(setVacationMessage, 'success', 'Modalità ferie disattivata!', 4000);
+    } catch (error) {
+      console.error('Error deactivating vacation mode:', error);
+      showMessage(setVacationMessage, 'error', 'Errore durante la disattivazione della modalità ferie', 5000);
+    }
   };
 
   const handleCancelAutoCloseHolidays = () => {

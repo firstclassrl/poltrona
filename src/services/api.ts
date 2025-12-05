@@ -19,7 +19,8 @@ import type {
   ShopDailyTimeSlotRow,
   Notification,
   WaitlistEntry,
-  JoinWaitlistRequest
+  JoinWaitlistRequest,
+  VacationPeriod
 } from '../types';
 import { createDefaultShopHoursConfig, formatTimeToHHMM, normalizeTimeString } from '../utils/shopHours';
 
@@ -1011,6 +1012,7 @@ export const apiService = {
         extra_morning_end: null,
         extra_afternoon_start: null,
         extra_afternoon_end: null,
+        vacation_period: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -1039,6 +1041,7 @@ export const apiService = {
           extra_morning_end: null,
           extra_afternoon_start: null,
           extra_afternoon_end: null,
+          vacation_period: null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -1064,6 +1067,7 @@ export const apiService = {
           extra_morning_end: null,
           extra_afternoon_start: null,
           extra_afternoon_end: null,
+          vacation_period: null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -1091,6 +1095,7 @@ export const apiService = {
         extra_morning_end: null,
         extra_afternoon_start: null,
         extra_afternoon_end: null,
+        vacation_period: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -1102,9 +1107,19 @@ export const apiService = {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
     
     try {
+      // Prepare data for update - ensure vacation_period is properly formatted
+      const updateData: any = { ...data };
+      
+      // Convert vacation_period to JSON string if it's an object
+      if (updateData.vacation_period && typeof updateData.vacation_period === 'object') {
+        updateData.vacation_period = JSON.stringify(updateData.vacation_period);
+      } else if (updateData.vacation_period === null) {
+        updateData.vacation_period = null;
+      }
+      
       if (data.id === 'default') {
         // Se è un shop di default, crea un nuovo record
-        const { id, ...shopData } = data;
+        const { id, ...shopData } = updateData;
         const response = await fetch(API_ENDPOINTS.SHOPS, {
           method: 'POST',
           headers: { ...buildHeaders(true), Prefer: 'return=representation' },
@@ -1116,9 +1131,13 @@ export const apiService = {
         const response = await fetch(`${API_ENDPOINTS.SHOPS}?id=eq.${data.id}`, {
           method: 'PATCH',
           headers: { ...buildHeaders(true) },
-          body: JSON.stringify(data),
+          body: JSON.stringify(updateData),
         });
-        if (!response.ok) throw new Error('Failed to update shop');
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Failed to update shop:', response.status, errorText);
+          throw new Error(`Failed to update shop: ${response.status} ${errorText}`);
+        }
       }
     } catch (error) {
       console.error('Error updating shop:', error);
@@ -1139,6 +1158,23 @@ export const apiService = {
       await this.updateShop(updatedShop);
     } catch (error) {
       console.error('Error updating shop auto close holidays:', error);
+      throw error;
+    }
+  },
+
+  // Update shop vacation period
+  async updateShopVacationPeriod(vacationPeriod: VacationPeriod | null): Promise<void> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    
+    try {
+      const shop = await this.getShop();
+      const updatedShop: Shop = {
+        ...shop,
+        vacation_period: vacationPeriod,
+      };
+      await this.updateShop(updatedShop);
+    } catch (error) {
+      console.error('Error updating shop vacation period:', error);
       throw error;
     }
   },
