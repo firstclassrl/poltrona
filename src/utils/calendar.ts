@@ -12,25 +12,22 @@ export interface CalendarEventData {
 }
 
 /**
- * Formatta una data nel formato iCalendar (YYYYMMDDTHHMMSS)
- * Usa il timezone locale invece di UTC per evitare problemi di conversione
+ * Formatta una data nel formato iCalendar (YYYYMMDDTHHMMSSZ)
+ * Usa il formato UTC standard che Safari e tutti i calendari supportano
+ * La data passata deve essere creata correttamente in locale (come nel componente)
+ * Il timestamp è universale, quindi getUTC* restituisce i valori corretti
  */
 function formatICalDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
+  // Usa i metodi UTC - il timestamp della data è già corretto
+  // Il calendario convertirà automaticamente l'UTC nel timezone locale quando visualizza
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const hours = String(date.getUTCHours()).padStart(2, '0');
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(date.getUTCSeconds()).padStart(2, '0');
   
-  // Calcola l'offset del timezone in formato ±HHMM
-  const offset = -date.getTimezoneOffset(); // Invertito perché getTimezoneOffset restituisce l'offset opposto
-  const offsetHours = Math.floor(Math.abs(offset) / 60);
-  const offsetMinutes = Math.abs(offset) % 60;
-  const offsetSign = offset >= 0 ? '+' : '-';
-  const offsetString = `${offsetSign}${String(offsetHours).padStart(2, '0')}${String(offsetMinutes).padStart(2, '0')}`;
-  
-  return `${year}${month}${day}T${hours}${minutes}${seconds}${offsetString}`;
+  return `${year}${month}${day}T${hours}${minutes}${seconds}Z`;
 }
 
 /**
@@ -104,9 +101,32 @@ export function generateICSFile(data: CalendarEventData): string {
 }
 
 /**
+ * Rileva se il browser è Safari su iOS
+ */
+function isIOS(): boolean {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+}
+
+/**
+ * Rileva se il browser è Safari (desktop o mobile)
+ */
+function isSafari(): boolean {
+  return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+}
+
+/**
  * Scarica un file .ics generato
+ * Su iOS/Safari usa un data URL che apre direttamente l'app Calendario
  */
 export function downloadICSFile(icsContent: string, filename: string = 'appuntamento.ics'): void {
+  // Su iOS, usa un data URL che aprirà direttamente l'app Calendario
+  if (isIOS() || (isSafari() && /iPhone|iPad|iPod/.test(navigator.userAgent))) {
+    const dataUrl = `data:text/calendar;charset=utf-8,${encodeURIComponent(icsContent)}`;
+    window.location.href = dataUrl;
+    return;
+  }
+
+  // Per altri browser, usa il metodo standard di download
   const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
