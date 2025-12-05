@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { User, Scissors, Check, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { User, Scissors, Check, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Modal } from './ui/Modal';
 import { ProductUpsell } from './ProductUpsell';
@@ -14,6 +14,7 @@ import { apiService } from '../services/api';
 import type { Service, Staff, Shop, Appointment } from '../types';
 import { findAvailableSlotsForDuration } from '../utils/availability';
 import { getSlotDateTime, addMinutes } from '../utils/date';
+import { generateICSFile, downloadICSFile } from '../utils/calendar';
 
 interface ClientBookingCalendarProps {
   onNavigateToProfile?: () => void;
@@ -44,6 +45,12 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   const [staff, setStaff] = useState<Staff[]>([]);
   const [shop, setShop] = useState<Shop | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [lastAppointmentData, setLastAppointmentData] = useState<{
+    service: Service | null;
+    barber: Staff | null;
+    startDateTime: Date;
+    endDateTime: Date;
+  } | null>(null);
 
   // Load services, staff, and shop data from API
   useEffect(() => {
@@ -301,6 +308,14 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       
       const savedAppointment = await createAppointment(appointmentData);
       console.log('✅ Appuntamento salvato con successo:', savedAppointment);
+      
+      // Save appointment data for calendar export
+      setLastAppointmentData({
+        service: service || null,
+        barber: barber || null,
+        startDateTime,
+        endDateTime,
+      });
       
       // Send notification to the barber
       if (barber && user) {
@@ -631,8 +646,8 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
               clickedDate.setHours(0, 0, 0, 0);
               const isClickable = isCurrentMonthDay && hasAvailability && clickedDate >= today;
               
-              // Calculate bar heights (approximate visual representation)
-              const totalBars = 8; // Maximum number of bars to show
+              // Calculate bar count (approximate visual representation - fewer and smaller)
+              const totalBars = 4; // Maximum number of bars to show (reduced from 8)
               const availableBars = availability.total > 0 
                 ? Math.max(1, Math.round((availability.available / availability.total) * totalBars))
                 : 0;
@@ -643,7 +658,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
                   key={index}
                   onClick={() => isClickable && handleDayClick(date)}
                   className={`
-                    aspect-square p-2 border rounded-lg transition-all
+                    aspect-square p-1.5 border rounded-lg transition-all overflow-hidden
                     ${isCurrentMonthDay ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100'}
                     ${isTodayDate ? 'ring-2 ring-blue-500 ring-offset-1' : ''}
                     ${isClickable ? 'cursor-pointer hover:bg-blue-50 hover:border-blue-300' : 'cursor-not-allowed opacity-60'}
@@ -651,29 +666,29 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
                 >
                   {/* Day Number */}
                   <div className={`
-                    text-sm font-medium mb-1
+                    text-xs sm:text-sm font-medium mb-0.5
                     ${isCurrentMonthDay ? (isTodayDate ? 'text-blue-600' : 'text-gray-900') : 'text-gray-400'}
                   `}>
                     {date.getDate()}
                   </div>
 
-                  {/* Availability Bars */}
+                  {/* Availability Bars - smaller and contained */}
                   {isCurrentMonthDay && availability.total > 0 && (
-                    <div className="flex flex-wrap gap-0.5 items-end h-8">
+                    <div className="flex flex-wrap gap-0.5 items-end h-4 overflow-hidden">
                       {/* Available bars (green) */}
                       {Array.from({ length: availableBars }).map((_, i) => (
                         <div
                           key={`available-${i}`}
-                          className="w-full bg-green-500 rounded-sm"
-                          style={{ height: `${Math.random() * 30 + 20}%` }}
+                          className="flex-1 bg-green-500 rounded-sm min-w-[2px]"
+                          style={{ height: `${40 + (i % 3) * 20}%` }}
                         />
                       ))}
                       {/* Occupied bars (gray) */}
                       {Array.from({ length: occupiedBars }).map((_, i) => (
                         <div
                           key={`occupied-${i}`}
-                          className="w-full bg-gray-300 rounded-sm"
-                          style={{ height: `${Math.random() * 30 + 20}%` }}
+                          className="flex-1 bg-gray-300 rounded-sm min-w-[2px]"
+                          style={{ height: `${40 + (i % 3) * 20}%` }}
                         />
                       ))}
                     </div>
