@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Calendar, Clock, User, AlertTriangle, CheckCircle2, Ban } from 'lucide-react';
+import { Calendar, Clock, User, AlertTriangle, CheckCircle2, Ban, CalendarPlus } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
@@ -8,7 +8,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useAppointments } from '../hooks/useAppointments';
 import { useClientRegistration } from '../hooks/useClientRegistration';
 import { apiService } from '../services/api';
-import type { Appointment } from '../types';
+import type { Appointment, Shop } from '../types';
+import { generateICSFile, downloadICSFile } from '../utils/calendar';
 
 const normalizeEmail = (email?: string | null) => email?.trim().toLowerCase() || '';
 
@@ -33,6 +34,7 @@ export const ClientBookings: React.FC = () => {
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [shop, setShop] = useState<Shop | null>(null);
 
   useEffect(() => {
     if (user?.email) {
@@ -41,6 +43,19 @@ export const ClientBookings: React.FC = () => {
       setRegisteredEmail(normalizeEmail(client?.email));
     }
   }, [user, getClientByEmail]);
+
+  // Load shop data for calendar events
+  useEffect(() => {
+    const loadShop = async () => {
+      try {
+        const shopData = await apiService.getShop();
+        setShop(shopData);
+      } catch (error) {
+        console.error('Error loading shop data:', error);
+      }
+    };
+    loadShop();
+  }, []);
 
   const filteredAppointments = useMemo(() => {
     const authEmail = normalizeEmail(user?.email);
@@ -71,6 +86,56 @@ export const ClientBookings: React.FC = () => {
   const handleRequestCancel = (appointment: Appointment) => {
     setSelectedAppointment(appointment);
     setIsCancelModalOpen(true);
+  };
+
+  const handleAddToCalendar = (appointment: Appointment) => {
+    if (!appointment.services || !appointment.staff) {
+      console.error('Dati appuntamento incompleti per il calendario');
+      return;
+    }
+
+    const service = appointment.services;
+    const barber = appointment.staff;
+    const startDateTime = new Date(appointment.start_at);
+    const endDateTime = appointment.end_at ? new Date(appointment.end_at) : new Date(startDateTime.getTime() + (service.duration_min || 60) * 60000);
+    
+    // Build location string
+    const locationParts: string[] = [];
+    if (shop?.name) {
+      locationParts.push(shop.name);
+    }
+    if (shop?.address) {
+      locationParts.push(shop.address);
+    }
+    if (shop?.city) {
+      locationParts.push(shop.city);
+    }
+    const location = locationParts.join(', ');
+
+    // Build description
+    const descriptionParts: string[] = [];
+    descriptionParts.push(`Barbiere: ${barber.full_name}`);
+    if (shop?.name) {
+      descriptionParts.push(`Negozio: ${shop.name}`);
+    }
+    if (shop?.phone) {
+      descriptionParts.push(`Telefono: ${shop.phone}`);
+    }
+    const description = descriptionParts.join('\n');
+
+    // Generate calendar event
+    const icsContent = generateICSFile({
+      title: service.name,
+      startDate: startDateTime,
+      endDate: endDateTime,
+      description,
+      location: location || undefined,
+      uid: `appointment-${appointment.id}@poltrona`,
+    });
+
+    // Download the file
+    const filename = `appuntamento-${service.name.toLowerCase().replace(/\s+/g, '-')}-${startDateTime.toISOString().split('T')[0]}.ics`;
+    downloadICSFile(icsContent, filename);
   };
 
   const handleConfirmCancel = async () => {
@@ -180,7 +245,15 @@ export const ClientBookings: React.FC = () => {
         </div>
 
         {canCancel && (
-          <div className="flex justify-end">
+          <div className="flex justify-end space-x-2">
+            <Button
+              variant="secondary"
+              onClick={() => handleAddToCalendar(appointment)}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <CalendarPlus className="w-4 h-4 mr-2" />
+              Aggiungi al calendario
+            </Button>
             <Button
               variant="danger"
               onClick={() => handleRequestCancel(appointment)}

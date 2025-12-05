@@ -1032,14 +1032,61 @@ export const ShopManagement = () => {
               )}
 
               <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg space-y-4">
-                {vacationPeriod && (
-                  <div className="p-3 bg-white border border-orange-200 rounded-lg">
-                    <p className="text-sm font-medium text-orange-700">Modalità ferie attiva</p>
-                    <p className="text-xs text-orange-600">
-                      Periodo corrente: {new Date(vacationPeriod.start_date).toLocaleDateString('it-IT')} - {new Date(vacationPeriod.end_date).toLocaleDateString('it-IT')}
-                    </p>
-                  </div>
-                )}
+                {vacationPeriod && (() => {
+                  // Ensure vacationPeriod is an object, not a string
+                  let period = vacationPeriod;
+                  if (typeof period === 'string') {
+                    try {
+                      period = JSON.parse(period);
+                    } catch (e) {
+                      console.error('Error parsing vacationPeriod:', e);
+                      return null;
+                    }
+                  }
+                  
+                  // Format dates safely
+                  const formatVacationDate = (dateStr: string): string => {
+                    if (!dateStr) return 'Data non valida';
+                    try {
+                      // Handle YYYY-MM-DD format
+                      const parts = dateStr.split('-');
+                      if (parts.length === 3) {
+                        const [year, month, day] = parts.map(Number);
+                        const date = new Date(year, month - 1, day);
+                        return date.toLocaleDateString('it-IT', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric'
+                        });
+                      }
+                      // Fallback to standard Date parsing
+                      const date = new Date(dateStr);
+                      if (isNaN(date.getTime())) {
+                        return 'Data non valida';
+                      }
+                      return date.toLocaleDateString('it-IT', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                      });
+                    } catch (e) {
+                      console.error('Error formatting date:', e, dateStr);
+                      return 'Data non valida';
+                    }
+                  };
+                  
+                  const startDateFormatted = formatVacationDate(period.start_date || '');
+                  const endDateFormatted = formatVacationDate(period.end_date || '');
+                  
+                  return (
+                    <div className="p-3 bg-white border border-orange-200 rounded-lg">
+                      <p className="text-sm font-medium text-orange-700">Modalità ferie attiva</p>
+                      <p className="text-xs text-orange-600">
+                        Periodo corrente: {startDateFormatted} - {endDateFormatted}
+                      </p>
+                    </div>
+                  );
+                })()}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
