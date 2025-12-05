@@ -34,6 +34,19 @@ export const useVacationMode = (): UseVacationModeReturn => {
     // Load initially
     loadVacationPeriod();
     
+    // Debug: log loaded vacation period
+    const savedVacation = localStorage.getItem(VACATION_STORAGE_KEY);
+    if (savedVacation) {
+      try {
+        const parsed = JSON.parse(savedVacation);
+        console.log('📅 Vacation period loaded from localStorage:', parsed);
+      } catch (e) {
+        console.error('Error parsing vacation period:', e);
+      }
+    } else {
+      console.log('📅 No vacation period found in localStorage');
+    }
+    
     // Listen for storage changes (sync across tabs/components)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === VACATION_STORAGE_KEY) {
@@ -84,7 +97,24 @@ export const useVacationMode = (): UseVacationModeReturn => {
     const endDate = parseLocalDate(vacationPeriod.end_date);
     endDate.setHours(23, 59, 59, 999);
     
-    return checkDate >= startDate && checkDate <= endDate;
+    const isInVacation = checkDate >= startDate && checkDate <= endDate;
+    
+    // Debug log for specific dates (2 and 3 January 2026)
+    const checkDateStr = checkDate.toISOString().split('T')[0];
+    if (checkDateStr === '2026-01-02' || checkDateStr === '2026-01-03') {
+      console.log('🔍 Checking vacation for date:', {
+        checkDate: checkDateStr,
+        checkDateObj: checkDate,
+        startDate: vacationPeriod.start_date,
+        endDate: vacationPeriod.end_date,
+        startDateObj: startDate.toISOString().split('T')[0],
+        endDateObj: endDate.toISOString().split('T')[0],
+        isInVacation,
+        vacationPeriod
+      });
+    }
+    
+    return isInVacation;
   }, [vacationPeriod]);
 
   const setVacationPeriodData = (start: string, end: string): void => {

@@ -28,10 +28,17 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   const { appointments, createAppointment } = useAppointments();
   const { isDateInVacation, vacationPeriod } = useVacationMode();
   
-  // Force re-render when vacation period changes
+  // Debug: log vacation period when it changes
   useEffect(() => {
-    // This effect ensures the component re-renders when vacation period changes
-    // The dependency on vacationPeriod will trigger a re-render
+    console.log('🔄 ClientBookingCalendar - vacationPeriod changed:', vacationPeriod);
+    if (vacationPeriod) {
+      console.log('📅 Active vacation period:', {
+        start: vacationPeriod.start_date,
+        end: vacationPeriod.end_date
+      });
+    } else {
+      console.log('📅 No active vacation period');
+    }
   }, [vacationPeriod]);
   // View state: 'monthly' | 'day_detail'
   const [currentView, setCurrentView] = useState<'monthly' | 'day_detail'>('monthly');
@@ -134,7 +141,19 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     }
 
     // If date is in vacation mode, return no availability
-    if (isDateInVacation(date)) {
+    const dateStr = date.toISOString().split('T')[0];
+    const inVacation = isDateInVacation(date);
+    
+    // Debug log for specific dates
+    if (dateStr === '2026-01-02' || dateStr === '2026-01-03') {
+      console.log('📊 getDayAvailabilityPreview for', dateStr, {
+        inVacation,
+        vacationPeriod,
+        isDateInVacation: isDateInVacation(date)
+      });
+    }
+    
+    if (inVacation) {
       return { available: 0, total: 0 };
     }
 
