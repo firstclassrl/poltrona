@@ -452,9 +452,12 @@ export const ShopManagement = () => {
                                   API_CONFIG.N8N_BASE_URL;
       const messageText = isBackendConfigured 
         ? 'Modalità ferie attivata! Tutti gli appuntamenti nel periodo sono stati cancellati.'
-        : 'Modalità ferie attivata! Le prenotazioni per questo periodo sono bloccate. (Gli appuntamenti esistenti non sono stati cancellati perché il backend non è configurato)';
+        : 'Modalità ferie attivata! Le prenotazioni per questo periodo sono bloccate.';
       
       showMessage(setVacationMessage, 'success', messageText, 5000);
+      
+      // Force reload of vacation period in all components
+      window.dispatchEvent(new CustomEvent('vacation-period-updated'));
     } catch (error) {
       console.error('Error activating vacation mode:', error);
       showMessage(setVacationMessage, 'error', 'Errore durante l\'attivazione della modalità ferie', 5000);

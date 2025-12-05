@@ -741,7 +741,8 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
                   </div>
 
                   {/* Availability Bars - smaller and contained */}
-                  {isCurrentMonthDay && availability.total > 0 && (
+                  {/* Only show bars if date is not in vacation mode and has availability */}
+                  {isCurrentMonthDay && !isDateInVacation(date) && availability.total > 0 && (
                     <div className="flex flex-wrap gap-0.5 items-end h-4 overflow-hidden">
                       {/* Available bars (green) */}
                       {Array.from({ length: availableBars }).map((_, i) => (

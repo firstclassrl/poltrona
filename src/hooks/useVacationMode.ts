@@ -56,7 +56,9 @@ export const useVacationMode = (): UseVacationModeReturn => {
   }, []);
 
   const isDateInVacation = (date: Date): boolean => {
-    if (!vacationPeriod) return false;
+    if (!vacationPeriod) {
+      return false;
+    }
     
     // Create date objects in local timezone to avoid timezone issues
     const checkDate = new Date(date);
@@ -64,7 +66,17 @@ export const useVacationMode = (): UseVacationModeReturn => {
     
     // Parse YYYY-MM-DD format dates in local timezone
     const parseLocalDate = (dateStr: string): Date => {
-      const [year, month, day] = dateStr.split('-').map(Number);
+      if (!dateStr) return new Date(0);
+      const parts = dateStr.split('-');
+      if (parts.length !== 3) {
+        console.warn('Invalid date format in vacation period:', dateStr);
+        return new Date(0);
+      }
+      const [year, month, day] = parts.map(Number);
+      if (isNaN(year) || isNaN(month) || isNaN(day)) {
+        console.warn('Invalid date values in vacation period:', dateStr);
+        return new Date(0);
+      }
       return new Date(year, month - 1, day, 0, 0, 0, 0);
     };
     
