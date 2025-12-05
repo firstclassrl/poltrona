@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { VacationPeriod } from '../types';
 
 const VACATION_STORAGE_KEY = 'vacationPeriod';
@@ -55,7 +55,7 @@ export const useVacationMode = (): UseVacationModeReturn => {
     };
   }, []);
 
-  const isDateInVacation = (date: Date): boolean => {
+  const isDateInVacation = useCallback((date: Date): boolean => {
     if (!vacationPeriod) {
       return false;
     }
@@ -85,7 +85,7 @@ export const useVacationMode = (): UseVacationModeReturn => {
     endDate.setHours(23, 59, 59, 999);
     
     return checkDate >= startDate && checkDate <= endDate;
-  };
+  }, [vacationPeriod]);
 
   const setVacationPeriodData = (start: string, end: string): void => {
     // Ensure dates are in YYYY-MM-DD format

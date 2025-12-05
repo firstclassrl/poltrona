@@ -27,6 +27,12 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   const { user } = useAuth();
   const { appointments, createAppointment } = useAppointments();
   const { isDateInVacation, vacationPeriod } = useVacationMode();
+  
+  // Force re-render when vacation period changes
+  useEffect(() => {
+    // This effect ensures the component re-renders when vacation period changes
+    // The dependency on vacationPeriod will trigger a re-render
+  }, [vacationPeriod]);
   // View state: 'monthly' | 'day_detail'
   const [currentView, setCurrentView] = useState<'monthly' | 'day_detail'>('monthly');
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -170,7 +176,8 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   };
 
   // Generate calendar days for current month
-  const getCalendarDays = (): Date[] => {
+  // Memoize to recalculate when month or vacation period changes
+  const calendarDays = useMemo(() => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
     
@@ -200,9 +207,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     }
     
     return days;
-  };
-
-  const calendarDays = getCalendarDays();
+  }, [currentMonth, vacationPeriod]); // Recalculate when month or vacation period changes
 
   // Get time slots for a specific date using pre-computed availability
   const getTimeSlotsForDate = (date: Date) => {
