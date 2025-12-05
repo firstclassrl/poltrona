@@ -452,13 +452,14 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       setSelectedProducts([]);
       setCurrentView('monthly');
       
-      // Navigate to profile after 2.5 seconds
+      // Navigate to profile after 5 seconds (increased to allow time for calendar action)
       setTimeout(() => {
         setIsSuccess(false);
+        setLastAppointmentData(null);
         if (onNavigateToProfile) {
           onNavigateToProfile();
         }
-      }, 2500);
+      }, 5000);
     } catch (error) {
       console.error('Error booking appointment:', error);
       // Close modals on error too
@@ -477,6 +478,53 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     // Solo chiude la modale senza confermare l'appuntamento
     setShowUpsellModal(false);
     setShowBookingModal(true); // Torna alla modale di prenotazione
+  };
+
+  const handleAddToCalendar = () => {
+    if (!lastAppointmentData || !lastAppointmentData.service || !lastAppointmentData.barber) {
+      console.error('Dati appuntamento non disponibili per il calendario');
+      return;
+    }
+
+    const { service, barber, startDateTime, endDateTime } = lastAppointmentData;
+    
+    // Build location string
+    const locationParts: string[] = [];
+    if (shop?.name) {
+      locationParts.push(shop.name);
+    }
+    if (shop?.address) {
+      locationParts.push(shop.address);
+    }
+    if (shop?.city) {
+      locationParts.push(shop.city);
+    }
+    const location = locationParts.join(', ');
+
+    // Build description
+    const descriptionParts: string[] = [];
+    descriptionParts.push(`Barbiere: ${barber.full_name}`);
+    if (shop?.name) {
+      descriptionParts.push(`Negozio: ${shop.name}`);
+    }
+    if (shop?.phone) {
+      descriptionParts.push(`Telefono: ${shop.phone}`);
+    }
+    const description = descriptionParts.join('\n');
+
+    // Generate calendar event
+    const icsContent = generateICSFile({
+      title: service.name,
+      startDate: startDateTime,
+      endDate: endDateTime,
+      description,
+      location: location || undefined,
+      uid: `appointment-${Date.now()}@poltrona`,
+    });
+
+    // Download the file
+    const filename = `appuntamento-${service.name.toLowerCase().replace(/\s+/g, '-')}-${startDateTime.toISOString().split('T')[0]}.ics`;
+    downloadICSFile(icsContent, filename);
   };
 
   const formatDate = (date: Date) => {
@@ -772,14 +820,28 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       {/* Success Message */}
       {isSuccess && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-8 max-w-md mx-4 text-center shadow-2xl animate-pulse">
+          <div className="bg-white rounded-2xl p-8 max-w-md mx-4 text-center shadow-2xl">
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <Check className="w-10 h-10 text-green-600" />
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Grazie per la prenotazione!</h2>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 mb-6">
               Il tuo appuntamento è stato confermato con successo.
             </p>
+            
+            {/* Add to Calendar Button */}
+            {lastAppointmentData && (
+              <div className="mb-6">
+                <Button
+                  onClick={handleAddToCalendar}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center space-x-2"
+                >
+                  <Calendar className="w-5 h-5" />
+                  <span>Aggiungi al calendario</span>
+                </Button>
+              </div>
+            )}
+            
             <p className="text-sm text-gray-500">
               Verrai reindirizzato al tuo profilo...
             </p>
