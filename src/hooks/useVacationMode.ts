@@ -16,16 +16,43 @@ export const useVacationMode = (): UseVacationModeReturn => {
 
   useEffect(() => {
     // Load vacation period from localStorage
-    const savedVacation = localStorage.getItem(VACATION_STORAGE_KEY);
-    if (savedVacation) {
-      try {
-        const parsed = JSON.parse(savedVacation);
-        setVacationPeriod(parsed);
-      } catch (error) {
-        console.error('Error loading vacation period:', error);
+    const loadVacationPeriod = () => {
+      const savedVacation = localStorage.getItem(VACATION_STORAGE_KEY);
+      if (savedVacation) {
+        try {
+          const parsed = JSON.parse(savedVacation);
+          setVacationPeriod(parsed);
+        } catch (error) {
+          console.error('Error loading vacation period:', error);
+          setVacationPeriod(null);
+        }
+      } else {
         setVacationPeriod(null);
       }
-    }
+    };
+    
+    // Load initially
+    loadVacationPeriod();
+    
+    // Listen for storage changes (sync across tabs/components)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === VACATION_STORAGE_KEY) {
+        loadVacationPeriod();
+      }
+    };
+    
+    // Listen for custom events (sync within same tab)
+    const handleCustomEvent = () => {
+      loadVacationPeriod();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('vacation-period-updated', handleCustomEvent);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('vacation-period-updated', handleCustomEvent);
+    };
   }, []);
 
   const isDateInVacation = (date: Date): boolean => {
@@ -44,19 +71,27 @@ export const useVacationMode = (): UseVacationModeReturn => {
   };
 
   const setVacationPeriodData = (start: string, end: string): void => {
+    // Ensure dates are in YYYY-MM-DD format
+    const startDate = start.includes('T') ? start.split('T')[0] : start;
+    const endDate = end.includes('T') ? end.split('T')[0] : end;
+    
     const newVacationPeriod: VacationPeriod = {
-      start_date: start,
-      end_date: end,
+      start_date: startDate,
+      end_date: endDate,
       created_at: new Date().toISOString()
     };
     
     setVacationPeriod(newVacationPeriod);
     localStorage.setItem(VACATION_STORAGE_KEY, JSON.stringify(newVacationPeriod));
+    // Dispatch custom event to sync across components in same tab
+    window.dispatchEvent(new CustomEvent('vacation-period-updated'));
   };
 
   const clearVacationPeriod = (): void => {
     setVacationPeriod(null);
     localStorage.removeItem(VACATION_STORAGE_KEY);
+    // Dispatch custom event to sync across components in same tab
+    window.dispatchEvent(new CustomEvent('vacation-period-updated'));
   };
 
   const getVacationPeriod = (): VacationPeriod | null => {

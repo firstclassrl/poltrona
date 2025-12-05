@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { User, Scissors, Check, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { User, Scissors, Check, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Calendar, X } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Modal } from './ui/Modal';
 import { ProductUpsell } from './ProductUpsell';
@@ -38,6 +38,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   const [selectedBarber, setSelectedBarber] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showUpsellModal, setShowUpsellModal] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<{ productId: string; quantity: number }[]>([]);
@@ -282,6 +283,11 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
         throw new Error('Dati mancanti per la prenotazione');
       }
       
+      // Check if date is in vacation mode
+      if (isDateInVacation(selectedDate)) {
+        throw new Error('Non è possibile prenotare durante il periodo di ferie');
+      }
+      
       // Get or create client record in clients table
       const clientRecord = await apiService.getOrCreateClientFromUser({
         id: user.id,
@@ -446,6 +452,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       
       // Show success message
       setIsSuccess(true);
+      setError(null); // Clear any previous errors
       
       // Reset form
       setSelectedDate(null);
@@ -465,9 +472,13 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       }, 5000);
     } catch (error) {
       console.error('Error booking appointment:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Errore durante la prenotazione. Riprova.';
+      setError(errorMessage);
       // Close modals on error too
       setShowUpsellModal(false);
       setShowBookingModal(false);
+      // Clear error after 5 seconds
+      setTimeout(() => setError(null), 5000);
     } finally {
       setIsSubmitting(false);
     }
@@ -848,6 +859,27 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
             <p className="text-sm text-gray-500">
               Verrai reindirizzato al tuo profilo...
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Error Message */}
+      {error && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 max-w-md mx-4 text-center shadow-2xl">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <X className="w-10 h-10 text-red-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Errore nella prenotazione</h2>
+            <p className="text-gray-600 mb-6">
+              {error}
+            </p>
+            <Button
+              onClick={() => setError(null)}
+              className="w-full bg-red-600 hover:bg-red-700 text-white"
+            >
+              Chiudi
+            </Button>
           </div>
         </div>
       )}

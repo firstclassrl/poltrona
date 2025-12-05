@@ -415,13 +415,31 @@ export const ShopManagement = () => {
     }
     if (!vacationStartDate || !vacationEndDate) return;
     
+    // Validate dates
+    const startDate = new Date(vacationStartDate);
+    const endDate = new Date(vacationEndDate);
+    
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      showMessage(setVacationMessage, 'error', 'Date non valide. Inserisci date corrette.', 5000);
+      return;
+    }
+    
+    if (startDate > endDate) {
+      showMessage(setVacationMessage, 'error', 'La data di inizio deve essere precedente alla data di fine.', 5000);
+      return;
+    }
+    
     setIsSavingVacation(true);
     try {
+      // Ensure dates are in YYYY-MM-DD format (input type="date" already provides this)
+      const startDateStr = vacationStartDate.includes('T') ? vacationStartDate.split('T')[0] : vacationStartDate;
+      const endDateStr = vacationEndDate.includes('T') ? vacationEndDate.split('T')[0] : vacationEndDate;
+      
       // Try to cancel appointments (will skip if backend not configured)
-      await apiService.cancelAppointmentsInRange(vacationStartDate, vacationEndDate);
+      await apiService.cancelAppointmentsInRange(startDateStr, endDateStr);
       
       // Set vacation period
-      setVacationPeriod(vacationStartDate, vacationEndDate);
+      setVacationPeriod(startDateStr, endDateStr);
       
       setShowVacationConfirm(false);
       setVacationStartDate('');

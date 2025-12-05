@@ -316,10 +316,15 @@ export const Calendar = () => {
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
-          <Button variant="secondary" size="sm">
-            <Filter className="w-4 h-4 mr-2" />
-            Filtri
-          </Button>
+          <div className="text-2xl font-bold text-gray-900">
+            {currentDate.toLocaleDateString('it-IT', { 
+              month: 'long', 
+              year: 'numeric' 
+            }).charAt(0).toUpperCase() + currentDate.toLocaleDateString('it-IT', { 
+              month: 'long', 
+              year: 'numeric' 
+            }).slice(1)}
+          </div>
         </div>
 
         {/* Calendar Grid */}
