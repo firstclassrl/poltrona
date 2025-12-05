@@ -12,21 +12,44 @@ interface UseVacationModeReturn {
 }
 
 export const useVacationMode = (): UseVacationModeReturn => {
-  const [vacationPeriod, setVacationPeriod] = useState<VacationPeriod | null>(null);
+  // Initialize state by reading from localStorage immediately
+  const getInitialVacationPeriod = (): VacationPeriod | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const savedVacation = localStorage.getItem(VACATION_STORAGE_KEY);
+      if (savedVacation) {
+        const parsed = JSON.parse(savedVacation);
+        console.log('📅 Initial vacation period from localStorage:', parsed);
+        return parsed;
+      }
+    } catch (error) {
+      console.error('Error reading initial vacation period:', error);
+    }
+    return null;
+  };
+  
+  const [vacationPeriod, setVacationPeriod] = useState<VacationPeriod | null>(getInitialVacationPeriod());
 
   useEffect(() => {
     // Load vacation period from localStorage
     const loadVacationPeriod = () => {
-      const savedVacation = localStorage.getItem(VACATION_STORAGE_KEY);
-      if (savedVacation) {
-        try {
-          const parsed = JSON.parse(savedVacation);
-          setVacationPeriod(parsed);
-        } catch (error) {
-          console.error('Error loading vacation period:', error);
+      try {
+        const savedVacation = localStorage.getItem(VACATION_STORAGE_KEY);
+        if (savedVacation) {
+          try {
+            const parsed = JSON.parse(savedVacation);
+            console.log('📅 Loading vacation period from localStorage:', parsed);
+            setVacationPeriod(parsed);
+          } catch (error) {
+            console.error('Error parsing vacation period:', error);
+            setVacationPeriod(null);
+          }
+        } else {
+          console.log('📅 No vacation period found in localStorage');
           setVacationPeriod(null);
         }
-      } else {
+      } catch (error) {
+        console.error('Error accessing localStorage:', error);
         setVacationPeriod(null);
       }
     };
@@ -34,28 +57,17 @@ export const useVacationMode = (): UseVacationModeReturn => {
     // Load initially
     loadVacationPeriod();
     
-    // Debug: log loaded vacation period
-    const savedVacation = localStorage.getItem(VACATION_STORAGE_KEY);
-    if (savedVacation) {
-      try {
-        const parsed = JSON.parse(savedVacation);
-        console.log('📅 Vacation period loaded from localStorage:', parsed);
-      } catch (e) {
-        console.error('Error parsing vacation period:', e);
-      }
-    } else {
-      console.log('📅 No vacation period found in localStorage');
-    }
-    
     // Listen for storage changes (sync across tabs/components)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === VACATION_STORAGE_KEY) {
+        console.log('📅 Storage event detected, reloading vacation period');
         loadVacationPeriod();
       }
     };
     
     // Listen for custom events (sync within same tab)
     const handleCustomEvent = () => {
+      console.log('📅 Custom event detected, reloading vacation period');
       loadVacationPeriod();
     };
     
@@ -128,9 +140,17 @@ export const useVacationMode = (): UseVacationModeReturn => {
       created_at: new Date().toISOString()
     };
     
+    console.log('💾 setVacationPeriodData called with:', { startDate, endDate, newVacationPeriod });
+    
     setVacationPeriod(newVacationPeriod);
     localStorage.setItem(VACATION_STORAGE_KEY, JSON.stringify(newVacationPeriod));
+    
+    // Verify it was saved
+    const saved = localStorage.getItem(VACATION_STORAGE_KEY);
+    console.log('✅ Vacation period saved to localStorage:', saved);
+    
     // Dispatch custom event to sync across components in same tab
+    console.log('📢 Dispatching vacation-period-updated event');
     window.dispatchEvent(new CustomEvent('vacation-period-updated'));
   };
 

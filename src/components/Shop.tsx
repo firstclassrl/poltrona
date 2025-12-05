@@ -439,7 +439,14 @@ export const ShopManagement = () => {
       await apiService.cancelAppointmentsInRange(startDateStr, endDateStr);
       
       // Set vacation period
+      console.log('💾 Saving vacation period:', { startDateStr, endDateStr });
       setVacationPeriod(startDateStr, endDateStr);
+      
+      // Verify it was saved
+      setTimeout(() => {
+        const saved = localStorage.getItem('vacationPeriod');
+        console.log('✅ Vacation period saved to localStorage:', saved);
+      }, 100);
       
       setShowVacationConfirm(false);
       setVacationStartDate('');
