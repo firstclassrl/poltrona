@@ -1074,7 +1074,30 @@ export const apiService = {
         return defaultShop;
       }
       
-      return shops[0];
+      const shopData = shops[0];
+      
+      // Parse vacation_period if it's a JSONB string
+      // Supabase JSONB columns can come as strings or objects depending on how they're queried
+      if (shopData.vacation_period) {
+        if (typeof shopData.vacation_period === 'string') {
+          try {
+            const parsed = JSON.parse(shopData.vacation_period);
+            shopData.vacation_period = parsed;
+            console.log('📅 Parsed vacation_period from JSONB string:', parsed);
+          } catch (e) {
+            console.warn('Error parsing vacation_period from database:', e, shopData.vacation_period);
+            shopData.vacation_period = null;
+          }
+        } else if (typeof shopData.vacation_period === 'object') {
+          // Already an object, ensure it has the right structure
+          if (!shopData.vacation_period.start_date || !shopData.vacation_period.end_date) {
+            console.warn('Invalid vacation_period structure:', shopData.vacation_period);
+            shopData.vacation_period = null;
+          }
+        }
+      }
+      
+      return shopData;
     } catch (error) {
       // Non loggare errori per getShop - è normale se non autenticato
       // Restituisci shop di default

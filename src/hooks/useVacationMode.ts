@@ -23,7 +23,19 @@ export const useVacationMode = (): UseVacationModeReturn => {
       setIsLoading(true);
       try {
         const shop = await apiService.getShop();
-        const period = shop.vacation_period || null;
+        let period = shop.vacation_period || null;
+        
+        // Parse if it's a string (JSONB from database might come as string)
+        if (period && typeof period === 'string') {
+          try {
+            period = JSON.parse(period);
+            console.log('📅 Parsed vacation period from string:', period);
+          } catch (parseError) {
+            console.error('Error parsing vacation_period string:', parseError);
+            period = null;
+          }
+        }
+        
         console.log('📅 Loading vacation period from database:', period);
         setVacationPeriod(period);
         
@@ -77,6 +89,23 @@ export const useVacationMode = (): UseVacationModeReturn => {
       return false;
     }
     
+    // Handle case where vacationPeriod might be a string (shouldn't happen, but defensive)
+    let period = vacationPeriod;
+    if (typeof period === 'string') {
+      try {
+        period = JSON.parse(period);
+      } catch (e) {
+        console.error('Error parsing vacationPeriod in isDateInVacation:', e);
+        return false;
+      }
+    }
+    
+    // Ensure period has required fields
+    if (!period || !period.start_date || !period.end_date) {
+      console.warn('Invalid vacation period structure:', period);
+      return false;
+    }
+    
     // Create date objects in local timezone to avoid timezone issues
     const checkDate = new Date(date);
     checkDate.setHours(0, 0, 0, 0);
@@ -97,8 +126,8 @@ export const useVacationMode = (): UseVacationModeReturn => {
       return new Date(year, month - 1, day, 0, 0, 0, 0);
     };
     
-    const startDate = parseLocalDate(vacationPeriod.start_date);
-    const endDate = parseLocalDate(vacationPeriod.end_date);
+    const startDate = parseLocalDate(period.start_date);
+    const endDate = parseLocalDate(period.end_date);
     endDate.setHours(23, 59, 59, 999);
     
     const isInVacation = checkDate >= startDate && checkDate <= endDate;
@@ -109,12 +138,12 @@ export const useVacationMode = (): UseVacationModeReturn => {
       console.log('🔍 Checking vacation for date:', {
         checkDate: checkDateStr,
         checkDateObj: checkDate,
-        startDate: vacationPeriod.start_date,
-        endDate: vacationPeriod.end_date,
+        startDate: period.start_date,
+        endDate: period.end_date,
         startDateObj: startDate.toISOString().split('T')[0],
         endDateObj: endDate.toISOString().split('T')[0],
         isInVacation,
-        vacationPeriod
+        vacationPeriod: period
       });
     }
     

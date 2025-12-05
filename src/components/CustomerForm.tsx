@@ -232,6 +232,7 @@ export const CustomerForm = ({
               onChange={(e) => handleInputChange('email', e.target.value)}
               placeholder="Mail cliente"
               error={errors.email}
+              autoComplete="off"
               required
             />
           </div>
@@ -254,6 +255,7 @@ export const CustomerForm = ({
                   onChange={(e) => handleInputChange('password', e.target.value)}
                   placeholder="Password cliente"
                   error={errors.password}
+                  autoComplete="new-password"
                   required
                 />
                 <button
@@ -273,6 +275,7 @@ export const CustomerForm = ({
                   onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                   placeholder="Conferma password"
                   error={errors.confirmPassword}
+                  autoComplete="new-password"
                   required
                 />
                 <button
