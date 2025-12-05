@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { User, Scissors, Check, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Sun, Moon } from 'lucide-react';
+import { User, Scissors, Check, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Modal } from './ui/Modal';
 import { ProductUpsell } from './ProductUpsell';
@@ -11,8 +11,9 @@ import { useAppointments } from '../hooks/useAppointments';
 import { useVacationMode } from '../hooks/useVacationMode';
 import { emailNotificationService } from '../services/emailNotificationService';
 import { apiService } from '../services/api';
-import type { Service, Staff, Shop } from '../types';
+import type { Service, Staff, Shop, Appointment } from '../types';
 import { findAvailableSlotsForDuration } from '../utils/availability';
+import { getSlotDateTime, addMinutes } from '../utils/date';
 
 interface ClientBookingCalendarProps {
   onNavigateToProfile?: () => void;
@@ -25,8 +26,11 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   const { user } = useAuth();
   const { appointments, createAppointment } = useAppointments();
   const { isDateInVacation } = useVacationMode();
-  const [currentWeek, setCurrentWeek] = useState(0);
-  // Removed timePeriod state - now using daily configured hours
+  // View state: 'monthly' | 'day_detail'
+  const [currentView, setCurrentView] = useState<'monthly' | 'day_detail'>('monthly');
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDayForDetail, setSelectedDayForDetail] = useState<Date | null>(null);
+  
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState('');
   const [selectedService, setSelectedService] = useState('');
@@ -40,11 +44,6 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   const [staff, setStaff] = useState<Staff[]>([]);
   const [shop, setShop] = useState<Shop | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Mobile-specific states
-  const [isMobile, setIsMobile] = useState(false);
-  const [currentDay, setCurrentDay] = useState(new Date());
-  const [timePeriod, setTimePeriod] = useState<'morning' | 'afternoon'>('morning');
 
   // Load services, staff, and shop data from API
   useEffect(() => {
@@ -69,17 +68,6 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     loadData();
   }, []);
 
-  // Mobile detection
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   // Get available barbers (those assigned to chairs)
   const availableBarbers = availableStaff.filter(staff => staff.active && staff.chair_id);
@@ -124,55 +112,83 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     shopHoursLoaded,
   ]);
 
-  // Utility to get all days that have at least one available slot
-  const daysWithAvailability = useMemo(() => {
-    const map = new Map<string, Date>();
-    availableSlots.forEach(({ date }) => {
-      const key = date.toISOString().split('T')[0];
-      if (!map.has(key)) {
-        map.set(key, new Date(date));
-      }
-    });
-    return Array.from(map.values()).sort((a, b) => a.getTime() - b.getTime());
-  }, [availableSlots]);
-
-  // Generate up to 4 weeks from the days that actually have availability
-  const generateWeeks = () => {
-    if (!shopHoursLoaded) return [];
-    if (!daysWithAvailability.length) return [];
-
-    const weeks: Date[][] = [];
-    let currentWeekDays: Date[] = [];
-
-    let currentWeekStart = new Date(daysWithAvailability[0]);
-    currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay() + 1); // Monday
-
-    daysWithAvailability.forEach((date) => {
-      const weekStart = new Date(currentWeekStart);
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekStart.getDate() + 6);
-
-      if (date >= weekStart && date <= weekEnd) {
-        currentWeekDays.push(date);
-      } else {
-        if (currentWeekDays.length) {
-          weeks.push(currentWeekDays);
-        }
-        currentWeekDays = [date];
-        currentWeekStart = new Date(date);
-        currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay() + 1);
-      }
-    });
-
-    if (currentWeekDays.length) {
-      weeks.push(currentWeekDays);
+  // Calculate approximate availability for a day (for calendar preview bars)
+  const getDayAvailabilityPreview = (date: Date): { available: number; total: number } => {
+    if (!shopHoursLoaded || !bookingDuration || !selectedBarber) {
+      return { available: 0, total: 0 };
     }
 
-    return weeks.slice(0, 4);
+    // Get all possible slots for the day
+    const allSlots = getAvailableTimeSlots(date, 15);
+    if (allSlots.length === 0) {
+      return { available: 0, total: 0 };
+    }
+
+    // Count how many slots are available (not overlapping with appointments)
+    const availableCount = allSlots.filter(slot => {
+      const slotStart = getSlotDateTime(date, slot);
+      const slotEnd = addMinutes(slotStart, bookingDuration);
+
+      // Check if this slot overlaps with any appointment for the selected barber
+      const overlaps = appointments.some((apt: Appointment) => {
+        if (apt.status === 'cancelled') return false;
+        if (apt.staff_id !== selectedBarber) return false;
+
+        const aptStart = new Date(apt.start_at);
+        const aptEnd = apt.end_at
+          ? new Date(apt.end_at)
+          : addMinutes(aptStart, apt.services?.duration_min || bookingDuration);
+
+        // Same day check
+        if (aptStart.toDateString() !== date.toDateString()) return false;
+
+        // Overlap check
+        return slotStart < aptEnd && slotEnd > aptStart;
+      });
+
+      return !overlaps;
+    }).length;
+
+    return {
+      available: availableCount,
+      total: allSlots.length
+    };
   };
 
-  const weeks = generateWeeks();
-  const currentWeekDays = weeks[currentWeek] || [];
+  // Generate calendar days for current month
+  const getCalendarDays = (): Date[] => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    
+    // First day of the month
+    const firstDay = new Date(year, month, 1);
+    // Last day of the month
+    const lastDay = new Date(year, month + 1, 0);
+    
+    // Start from Monday of the week containing the first day
+    const startDate = new Date(firstDay);
+    const dayOfWeek = firstDay.getDay();
+    const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert Sunday (0) to 6
+    startDate.setDate(firstDay.getDate() - daysToSubtract);
+    
+    // End on Sunday of the week containing the last day
+    const endDate = new Date(lastDay);
+    const lastDayOfWeek = lastDay.getDay();
+    const daysToAdd = lastDayOfWeek === 0 ? 0 : 7 - lastDayOfWeek;
+    endDate.setDate(lastDay.getDate() + daysToAdd);
+    
+    const days: Date[] = [];
+    const current = new Date(startDate);
+    
+    while (current <= endDate) {
+      days.push(new Date(current));
+      current.setDate(current.getDate() + 1);
+    }
+    
+    return days;
+  };
+
+  const calendarDays = getCalendarDays();
 
   // Get time slots for a specific date using pre-computed availability
   const getTimeSlotsForDate = (date: Date) => {
@@ -183,38 +199,38 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       .map((slot) => slot.time);
   };
 
-  // Mobile navigation functions
-  const navigateDay = (direction: 'prev' | 'next') => {
-    const newDay = new Date(currentDay);
+  // Navigate months
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    const newMonth = new Date(currentMonth);
     if (direction === 'prev') {
-      newDay.setDate(currentDay.getDate() - 1);
+      newMonth.setMonth(currentMonth.getMonth() - 1);
     } else {
-      newDay.setDate(currentDay.getDate() + 1);
+      newMonth.setMonth(currentMonth.getMonth() + 1);
     }
-    setCurrentDay(newDay);
+    setCurrentMonth(newMonth);
   };
 
-  // Filter time slots by period (morning/afternoon)
-  const getFilteredTimeSlots = (date: Date, period: 'morning' | 'afternoon') => {
-    // Don't show time slots if date is in vacation
-    if (!shopHoursLoaded || isDateInVacation(date)) return [];
+  // Handle day click - show detail view
+  const handleDayClick = (date: Date) => {
+    // Only allow clicking on days that are in the current month and have availability
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const dayYear = date.getFullYear();
+    const dayMonth = date.getMonth();
     
-    const allSlots = getTimeSlotsForDate(date);
-    return allSlots.filter(time => {
-      const [hours] = time.split(':').map(Number);
-      if (period === 'morning') {
-        return hours < 13; // Before 1 PM
-      } else {
-        return hours >= 13; // From 1 PM onwards
+    // Allow clicking on current month days
+    if (dayYear === year && dayMonth === month) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const clickedDate = new Date(date);
+      clickedDate.setHours(0, 0, 0, 0);
+      
+      // Only allow clicking on today or future dates
+      if (clickedDate >= today) {
+        setSelectedDayForDetail(date);
+        setCurrentView('day_detail');
       }
-    });
-  };
-
-  // Check if we can navigate to previous day (not before today)
-  const canNavigatePrev = () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return currentDay > today;
+    }
   };
 
   const handleTimeSlotClick = (date: Date, time: string) => {
@@ -419,6 +435,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       setSelectedService('');
       setSelectedBarber('');
       setSelectedProducts([]);
+      setCurrentView('monthly');
       
       // Navigate to profile after 2.5 seconds
       setTimeout(() => {
@@ -459,6 +476,25 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     return time;
   };
 
+  const formatMonthYear = (date: Date) => {
+    return date.toLocaleDateString('it-IT', {
+      month: 'long',
+      year: 'numeric'
+    });
+  };
+
+  const isCurrentMonth = (date: Date) => {
+    return date.getMonth() === currentMonth.getMonth() && 
+           date.getFullYear() === currentMonth.getFullYear();
+  };
+
+  const isToday = (date: Date) => {
+    const today = new Date();
+    return date.getDate() === today.getDate() &&
+           date.getMonth() === today.getMonth() &&
+           date.getFullYear() === today.getFullYear();
+  };
+
   return (
     <div className="space-y-8">
       <div className="text-center">
@@ -482,6 +518,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
               // reset eventuale selezione precedente
               setSelectedDate(null);
               setSelectedTime('');
+              setCurrentView('monthly');
             }}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={isLoading}
@@ -508,6 +545,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
               setSelectedBarber(e.target.value);
               setSelectedDate(null);
               setSelectedTime('');
+              setCurrentView('monthly');
             }}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={!selectedService || isLoading}
@@ -533,106 +571,190 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
         )}
       </div>
 
-      {/* Mobile Daily View */}
+      {/* Calendar View */}
       {!shopHoursLoaded ? (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center text-gray-600">
           Caricamento orari del negozio...
         </div>
-      ) : (
-        <>
-      {isMobile && (
-        <div className="md:hidden space-y-6">
-          {/* Day Navigation */}
-          <div className="flex items-center justify-between bg-white rounded-lg shadow-sm border p-4">
+      ) : !bookingDuration || !selectedBarber ? (
+        <div className="text-center py-12 text-gray-500 bg-gray-50 border border-gray-200 rounded-lg">
+          <p className="text-lg font-semibold">Seleziona servizio e barbiere</p>
+          <p className="text-sm mt-1">Poi vedrai il calendario mensile con gli orari disponibili.</p>
+        </div>
+      ) : currentView === 'monthly' ? (
+        /* Monthly Calendar View */
+        <div className="w-full">
+          {/* Month Header */}
+          <div className="flex items-center justify-between mb-6">
             <Button
               variant="ghost"
               size="lg"
-              onClick={() => navigateDay('prev')}
-              disabled={!canNavigatePrev()}
+              onClick={() => navigateMonth('prev')}
               className="flex items-center space-x-2"
             >
               <ChevronLeft className="w-6 h-6" />
             </Button>
             
-            <div className="text-center">
-              <div className="text-lg font-semibold text-gray-900">
-                {currentDay.toLocaleDateString('it-IT', { 
-                  weekday: 'long', 
-                  day: 'numeric', 
-                  month: 'long' 
-                })}
-              </div>
-              {currentDay.toDateString() === new Date().toDateString() && (
-                <div className="text-sm text-blue-600 font-medium">Oggi</div>
-              )}
-            </div>
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+              {formatMonthYear(currentMonth)}
+            </h2>
             
             <Button
               variant="ghost"
               size="lg"
-              onClick={() => navigateDay('next')}
+              onClick={() => navigateMonth('next')}
               className="flex items-center space-x-2"
             >
               <ChevronRight className="w-6 h-6" />
             </Button>
           </div>
 
-          {/* Morning/Afternoon Toggle */}
-          <div className="flex items-center justify-center space-x-2 bg-gray-100 rounded-lg p-1">
-            <Button
-              variant={timePeriod === 'morning' ? 'primary' : 'ghost'}
-              size="lg"
-              onClick={() => setTimePeriod('morning')}
-              className="flex items-center space-x-2 flex-1"
-            >
-              <Sun className="w-5 h-5" />
-              <span>Mattina</span>
-            </Button>
-            <Button
-              variant={timePeriod === 'afternoon' ? 'primary' : 'ghost'}
-              size="lg"
-              onClick={() => setTimePeriod('afternoon')}
-              className="flex items-center space-x-2 flex-1"
-            >
-              <Moon className="w-5 h-5" />
-              <span>Pomeriggio</span>
-            </Button>
+          {/* Days of Week Header */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['L', 'M', 'M', 'G', 'V', 'S', 'D'].map((day, index) => (
+              <div key={index} className="text-center text-sm font-semibold text-gray-600 py-2">
+                {day}
+              </div>
+            ))}
           </div>
 
-          {/* Time Slots List */}
-          <div className="space-y-3">
-            {!bookingDuration || !selectedBarber ? (
-              <div className="text-center py-8 text-gray-500">
-                <p>Seleziona prima servizio e barbiere per vedere gli orari disponibili.</p>
+          {/* Calendar Grid */}
+          <div className="grid grid-cols-7 gap-1">
+            {calendarDays.map((date, index) => {
+              const isCurrentMonthDay = isCurrentMonth(date);
+              const isTodayDate = isToday(date);
+              const availability = getDayAvailabilityPreview(date);
+              const hasAvailability = availability.available > 0;
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              const clickedDate = new Date(date);
+              clickedDate.setHours(0, 0, 0, 0);
+              const isClickable = isCurrentMonthDay && hasAvailability && clickedDate >= today;
+              
+              // Calculate bar heights (approximate visual representation)
+              const totalBars = 8; // Maximum number of bars to show
+              const availableBars = availability.total > 0 
+                ? Math.max(1, Math.round((availability.available / availability.total) * totalBars))
+                : 0;
+              const occupiedBars = totalBars - availableBars;
+
+              return (
+                <div
+                  key={index}
+                  onClick={() => isClickable && handleDayClick(date)}
+                  className={`
+                    aspect-square p-2 border rounded-lg transition-all
+                    ${isCurrentMonthDay ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100'}
+                    ${isTodayDate ? 'ring-2 ring-blue-500 ring-offset-1' : ''}
+                    ${isClickable ? 'cursor-pointer hover:bg-blue-50 hover:border-blue-300' : 'cursor-not-allowed opacity-60'}
+                  `}
+                >
+                  {/* Day Number */}
+                  <div className={`
+                    text-sm font-medium mb-1
+                    ${isCurrentMonthDay ? (isTodayDate ? 'text-blue-600' : 'text-gray-900') : 'text-gray-400'}
+                  `}>
+                    {date.getDate()}
+                  </div>
+
+                  {/* Availability Bars */}
+                  {isCurrentMonthDay && availability.total > 0 && (
+                    <div className="flex flex-wrap gap-0.5 items-end h-8">
+                      {/* Available bars (green) */}
+                      {Array.from({ length: availableBars }).map((_, i) => (
+                        <div
+                          key={`available-${i}`}
+                          className="w-full bg-green-500 rounded-sm"
+                          style={{ height: `${Math.random() * 30 + 20}%` }}
+                        />
+                      ))}
+                      {/* Occupied bars (gray) */}
+                      {Array.from({ length: occupiedBars }).map((_, i) => (
+                        <div
+                          key={`occupied-${i}`}
+                          className="w-full bg-gray-300 rounded-sm"
+                          style={{ height: `${Math.random() * 30 + 20}%` }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Closed/Vacation indicator */}
+                  {isCurrentMonthDay && (isDateInVacation(date) || !isDateOpen(date)) && (
+                    <div className="text-xs text-red-500 mt-1">Chiuso</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        /* Day Detail View */
+        selectedDayForDetail && (
+          <div className="w-full space-y-6">
+            {/* Back Button and Date Header */}
+            <div className="flex items-center justify-between">
+              <Button
+                variant="ghost"
+                onClick={() => setCurrentView('monthly')}
+                className="flex items-center space-x-2"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span>Torna al calendario</span>
+              </Button>
+              
+              <div className="text-center">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900">
+                  {selectedDayForDetail.toLocaleDateString('it-IT', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                  })}
+                </h2>
+                {isToday(selectedDayForDetail) && (
+                  <div className="text-sm text-blue-600 font-medium mt-1">Oggi</div>
+                )}
               </div>
-            ) : isDateInVacation(currentDay) ? (
-              <div className="text-center py-8 text-red-600 bg-red-50 border border-red-200 rounded-lg">
+              
+              <div className="w-32"></div> {/* Spacer for centering */}
+            </div>
+
+            {/* Time Slots */}
+            {isDateInVacation(selectedDayForDetail) ? (
+              <div className="text-center py-12 text-red-600 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-lg font-semibold">CHIUSO PER FERIE</p>
                 <p className="text-sm">Il negozio è chiuso per le vacanze in questa data</p>
               </div>
-            ) : isDateOpen(currentDay) ? (
-              getFilteredTimeSlots(currentDay, timePeriod).map((time) => (
-                <button
-                  key={time}
-                  onClick={() => handleTimeSlotClick(currentDay, time)}
-                  className="w-full min-h-[48px] py-3 px-4 rounded-lg text-left transition-colors bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer border border-green-200"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-lg font-medium">{time}</span>
-                    <span className="text-sm">Disponibile</span>
-                  </div>
-                </button>
-              ))
+            ) : !isDateOpen(selectedDayForDetail) ? (
+              <div className="text-center py-12 text-gray-500 bg-gray-50 border border-gray-200 rounded-lg">
+                <p className="text-lg font-semibold">Il negozio è chiuso in questa data</p>
+              </div>
             ) : (
-              <div className="text-center py-8 text-gray-500">
-                <p>Il negozio è chiuso in questa data</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {getTimeSlotsForDate(selectedDayForDetail).map((time) => (
+                  <button
+                    key={time}
+                    onClick={() => handleTimeSlotClick(selectedDayForDetail, time)}
+                    className="py-3 px-4 rounded-lg text-center transition-colors bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer border border-green-200 font-medium"
+                  >
+                    {time}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {getTimeSlotsForDate(selectedDayForDetail).length === 0 && isDateOpen(selectedDayForDetail) && !isDateInVacation(selectedDayForDetail) && (
+              <div className="text-center py-12 text-gray-500">
+                <p className="text-lg font-semibold">Nessun orario disponibile</p>
+                <p className="text-sm mt-1">Non ci sono slot disponibili per questo giorno.</p>
               </div>
             )}
           </div>
-        </div>
+        )
       )}
 
-      {/* Success Message - Both Mobile and Desktop */}
+      {/* Success Message */}
       {isSuccess && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-8 max-w-md mx-4 text-center shadow-2xl animate-pulse">
@@ -649,101 +771,6 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
           </div>
         </div>
       )}
-
-      {/* Desktop Weekly View */}
-      <div className="hidden md:block space-y-8">
-        {/* Week Navigation */}
-        <div className="flex items-center justify-between">
-          <Button
-            variant="secondary"
-            onClick={() => setCurrentWeek(Math.max(0, currentWeek - 1))}
-            disabled={currentWeek === 0}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Settimana Precedente
-          </Button>
-          
-          <h2 className="text-xl font-semibold text-gray-900">
-            {weeks.length > 0 ? `Settimana ${currentWeek + 1} di ${weeks.length}` : 'Nessuna disponibilità'}
-          </h2>
-          
-          <Button
-            variant="secondary"
-            onClick={() => setCurrentWeek(Math.min(Math.max(weeks.length - 1, 0), currentWeek + 1))}
-            disabled={currentWeek >= weeks.length - 1}
-          >
-            Settimana Successiva
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
-        </div>
-
-        {/* Info banner rimosso per visualizzazione cliente */}
-
-        {/* Calendar Grid */}
-        {(!bookingDuration || !selectedBarber) && (
-          <div className="text-center py-12 text-gray-500 bg-gray-50 border border-gray-200 rounded-lg">
-            <p className="text-lg font-semibold">Seleziona servizio e barbiere</p>
-            <p className="text-sm mt-1">Poi vedrai solo gli orari con abbastanza tempo libero entro 6 mesi.</p>
-          </div>
-        )}
-        {bookingDuration && selectedBarber && currentWeekDays.length > 0 ? (
-          <div 
-            className="grid gap-2"
-            style={{ gridTemplateColumns: `repeat(${currentWeekDays.length}, 1fr)` }}
-          >
-            {/* Calendar Days */}
-            {currentWeekDays.map((date, index) => {
-            const timeSlots = getTimeSlotsForDate(date);
-            const isToday = date.toDateString() === new Date().toDateString();
-            
-            return (
-              <div key={index} className="flex flex-col">
-                <div className="text-center mb-3 h-8 flex items-center justify-center">
-                  <div className={`text-sm font-medium ${isToday ? 'text-blue-600' : 'text-gray-700'}`}>
-                    {formatDate(date)}
-                  </div>
-                  {isToday && (
-                    <div className="text-xs text-blue-500">Oggi</div>
-                  )}
-                </div>
-                
-                <div className="space-y-1">
-                  {timeSlots.map((time) => (
-                    <button
-                      key={time}
-                      onClick={() => handleTimeSlotClick(date, time)}
-                      className="w-full text-xs py-1 px-2 rounded transition-colors bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer"
-                    >
-                      {formatTime(time)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-          </div>
-        ) : bookingDuration && selectedBarber ? (
-          <div className="text-center py-12 text-red-600 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-lg font-semibold">Nessuna disponibilità</p>
-            <p className="text-sm">Non ci sono slot abbastanza lunghi entro 6 mesi per il servizio selezionato.</p>
-          </div>
-        ) : null}
-
-        {/* Legend */}
-        <div className="flex items-center justify-center space-x-6 text-sm">
-          <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-green-100 rounded"></div>
-            <span className="text-gray-600">Disponibile</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-gray-100 rounded"></div>
-            <span className="text-gray-600">Occupato</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <span className="text-gray-500">📅 Orari configurati per giorno</span>
-          </div>
-        </div>
-      </div>
 
       {/* Booking Modal */}
       <Modal
