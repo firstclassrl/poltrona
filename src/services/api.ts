@@ -144,23 +144,117 @@ export const apiService = {
   },
 
   // Create new client (requires authentication)
-  async createClient(data: Partial<Client>, options?: { accessToken?: string }): Promise<Client> {
+  async createClient(data: Partial<Client> & { password?: string }, options?: { accessToken?: string }): Promise<Client> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    
+    // Validate required fields
+    if (!data.first_name?.trim()) throw new Error('Nome è obbligatorio');
+    if (!data.last_name?.trim()) throw new Error('Cognome è obbligatorio');
+    if (!data.phone_e164?.trim()) throw new Error('Telefono è obbligatorio');
+    if (!data.email?.trim()) throw new Error('Email è obbligatoria');
+    
+    let authUserId: string | undefined;
+    let authAccessToken: string | undefined;
+    
+    // If password is provided, create Auth user first
+    if (data.password) {
+      try {
+        const fullName = `${data.first_name.trim()} ${data.last_name.trim()}`.trim();
+        
+        // Create user in Supabase Auth
+        const signupUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/signup`;
+        const signupRes = await fetch(signupUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${API_CONFIG.SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            email: data.email.trim().toLowerCase(),
+            password: data.password,
+            data: {
+              full_name: fullName,
+              role: 'client'
+            }
+          })
+        });
+
+        if (!signupRes.ok) {
+          let serverMsg = 'Errore durante la creazione dell\'utente';
+          try {
+            const maybeJson = await signupRes.clone().json();
+            serverMsg = maybeJson?.error_description || maybeJson?.msg || maybeJson?.message || serverMsg;
+          } catch {
+            try {
+              const errText = await signupRes.text();
+              serverMsg = errText || serverMsg;
+            } catch {}
+          }
+          
+          // If user already exists, try to get existing user
+          if (serverMsg.toLowerCase().includes('already registered') || 
+              serverMsg.toLowerCase().includes('user already exists') ||
+              signupRes.status === 422) {
+            // User already exists, we'll create client record without Auth user
+            console.warn('⚠️ Utente già registrato, creo solo record client');
+          } else {
+            throw new Error(serverMsg);
+          }
+        } else {
+          const signupJson = await signupRes.json();
+          authUserId = signupJson.user?.id;
+          authAccessToken = signupJson.session?.access_token;
+
+          // If no session token, try silent login
+          if (!authAccessToken) {
+            try {
+              const tokenUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/token?grant_type=password`;
+              const tokenRes = await fetch(tokenUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+                  'Authorization': `Bearer ${API_CONFIG.SUPABASE_ANON_KEY}`,
+                },
+                body: JSON.stringify({ 
+                  email: data.email.trim().toLowerCase(), 
+                  password: data.password 
+                })
+              });
+              if (tokenRes.ok) {
+                const tokenJson = await tokenRes.json();
+                authAccessToken = tokenJson.access_token;
+              }
+            } catch (silentLoginError) {
+              console.warn('⚠️ Login silente fallito:', silentLoginError);
+            }
+          }
+        }
+      } catch (authError) {
+        console.error('Error creating Auth user:', authError);
+        // If Auth creation fails but we have email, still try to create client
+        // (might be duplicate email case)
+      }
+    }
     
     const shop = await this.getShop();
     const payload: Partial<Client> = {
       shop_id: shop?.id && shop.id !== 'default' ? shop.id : null,
-      first_name: data.first_name?.trim() || 'Cliente',
-      last_name: data.last_name?.trim() || null,
-      phone_e164: data.phone_e164?.trim() || '+39000000000',
-      email: data.email?.trim() || null,
+      first_name: data.first_name.trim(),
+      last_name: data.last_name.trim(),
+      phone_e164: data.phone_e164.trim(),
+      email: data.email.trim(),
       notes: data.notes || null,
     };
 
     try {
+      // Use auth token if available, otherwise use provided token
+      const accessToken = authAccessToken || options?.accessToken;
+      
       const response = await fetch(API_ENDPOINTS.SEARCH_CLIENTS, {
         method: 'POST',
-        headers: { ...buildHeaders(true, options?.accessToken), Prefer: 'return=representation' },
+        headers: { ...buildHeaders(true, accessToken), Prefer: 'return=representation' },
         body: JSON.stringify(payload),
       });
       
@@ -170,7 +264,28 @@ export const apiService = {
       }
       
       const created = await response.json();
-      return created[0];
+      const newClient = created[0];
+      
+      // If we created an Auth user, ensure the client record is linked via getOrCreateClientFromUser
+      // This ensures consistency with the profiles table
+      if (authUserId && authAccessToken) {
+        try {
+          await this.getOrCreateClientFromUser(
+            {
+              id: authUserId,
+              email: data.email.trim(),
+              full_name: `${data.first_name.trim()} ${data.last_name.trim()}`.trim(),
+              phone: data.phone_e164.trim(),
+            },
+            { accessToken: authAccessToken }
+          );
+        } catch (linkError) {
+          console.warn('⚠️ Errore nel collegamento client-utente:', linkError);
+          // Don't fail if linking fails, client is already created
+        }
+      }
+      
+      return newClient;
     } catch (error) {
       console.error('Error creating client:', error);
       throw error;
@@ -742,7 +857,7 @@ export const apiService = {
   // Cancel appointments in date range (for vacation mode)
   async cancelAppointmentsInRange(startDate: string, endDate: string): Promise<void> {
     if (!isSupabaseConfigured() || !API_CONFIG.N8N_BASE_URL) {
-      console.warn('Backend non configurato - modalità ferie attivata senza cancellazione appuntamenti');
+      console.warn('Backend non configurato - la modalità ferie bloccherà le nuove prenotazioni, ma gli appuntamenti esistenti non verranno cancellati automaticamente');
       return; // Permetti l'attivazione della modalità ferie anche senza backend
     }
     
@@ -1007,6 +1122,23 @@ export const apiService = {
       }
     } catch (error) {
       console.error('Error updating shop:', error);
+      throw error;
+    }
+  },
+
+  // Update shop auto close holidays setting
+  async updateShopAutoCloseHolidays(enabled: boolean): Promise<void> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    
+    try {
+      const shop = await this.getShop();
+      const updatedShop: Shop = {
+        ...shop,
+        auto_close_holidays: enabled,
+      };
+      await this.updateShop(updatedShop);
+    } catch (error) {
+      console.error('Error updating shop auto close holidays:', error);
       throw error;
     }
   },

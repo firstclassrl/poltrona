@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { ShopHoursConfig, DailyHours, TimeSlot } from '../types';
 import { apiService } from '../services/api';
 import { createDefaultShopHoursConfig } from '../utils/shopHours';
+import { isItalianHoliday } from '../utils/italianHolidays';
 
 const EXTRA_OPENING_STORAGE_KEY = 'extraShopOpening';
 const EXTRA_OPENING_EVENT = 'extra-opening-updated';
@@ -89,6 +90,7 @@ export const useDailyShopHours = () => {
   const [shopHours, setShopHours] = useState<ShopHoursConfig>(createDefaultShopHoursConfig());
   const [extraOpening, setExtraOpening] = useState<ExtraOpeningConfig | null>(null);
   const [shopHoursLoaded, setShopHoursLoaded] = useState(!isBrowser);
+  const [autoCloseHolidays, setAutoCloseHolidays] = useState<boolean>(true); // Default true
 
   useEffect(() => {
     if (!isBrowser) return;
@@ -114,6 +116,17 @@ export const useDailyShopHours = () => {
         if (!isMounted) return;
         setShopHours(remoteHours);
         persistHoursLocally(remoteHours);
+        
+        // Load shop auto_close_holidays setting
+        try {
+          const shop = await apiService.getShop();
+          if (!isMounted) return;
+          setAutoCloseHolidays(shop.auto_close_holidays ?? true);
+        } catch (shopError) {
+          // If shop fetch fails, use default (true)
+          console.warn('Error loading shop auto_close_holidays setting:', shopError);
+          setAutoCloseHolidays(true);
+        }
       } catch (error) {
         console.error('Error loading shop hours from backend:', error);
       } finally {
@@ -240,7 +253,15 @@ export const useDailyShopHours = () => {
 
   // Check if a specific date is open
   const isDateOpen = (date: Date): boolean => {
+    // Check if there's an extra opening for this date first
     if (isExtraOpeningActiveForDate(date)) return true;
+    
+    // Check if it's an Italian holiday and auto_close_holidays is enabled
+    if (autoCloseHolidays && isItalianHoliday(date)) {
+      return false;
+    }
+    
+    // Check regular shop hours
     const dayOfWeek = date.getDay();
     return shopHours[dayOfWeek]?.isOpen || false;
   };

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Building2, MapPin, Edit, Save, X, Lock, CalendarPlus, Package, Clock, Sun } from 'lucide-react';
+import { Building2, MapPin, Edit, Save, X, Lock, CalendarPlus, Package, Clock, Sun, Flag } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { DailyHoursManager } from './DailyHoursManager';
 import { useVacationMode } from '../hooks/useVacationMode';
 import { apiService } from '../services/api';
+import { API_CONFIG } from '../config/api';
 import type { Shop } from '../types';
 
 const formatDateForDisplay = (isoDate?: string | null): string => {
@@ -103,6 +104,10 @@ export const ShopManagement = () => {
   const [vacationStartDate, setVacationStartDate] = useState('');
   const [vacationEndDate, setVacationEndDate] = useState('');
   const [showVacationConfirm, setShowVacationConfirm] = useState(false);
+  const [autoCloseHolidays, setAutoCloseHolidays] = useState(true);
+  const [isEditingAutoCloseHolidays, setIsEditingAutoCloseHolidays] = useState(false);
+  const [isSavingAutoCloseHolidays, setIsSavingAutoCloseHolidays] = useState(false);
+  const [autoCloseHolidaysMessage, setAutoCloseHolidaysMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
   const { vacationPeriod, setVacationPeriod, clearVacationPeriod } = useVacationMode();
 
@@ -200,6 +205,7 @@ export const ShopManagement = () => {
           description: syncedShop.description || '',
         });
         setProductsEnabled(syncedShop.products_enabled ?? true);
+        setAutoCloseHolidays(syncedShop.auto_close_holidays ?? true);
         setExtraOpeningForm({
           date: formatDateForDisplay(syncedShop.extra_opening_date),
           morningStart: syncedShop.extra_morning_start ?? '',
@@ -422,12 +428,15 @@ export const ShopManagement = () => {
       setVacationEndDate('');
       
       // Check if backend is configured to show appropriate message
-      const isBackendConfigured = localStorage.getItem('supabase_url') && localStorage.getItem('n8n_base_url');
+      // Use the same logic as in api.ts
+      const isBackendConfigured = API_CONFIG.SUPABASE_EDGE_URL && 
+                                  API_CONFIG.SUPABASE_ANON_KEY && 
+                                  API_CONFIG.N8N_BASE_URL;
       const messageText = isBackendConfigured 
         ? 'Modalità ferie attivata! Tutti gli appuntamenti nel periodo sono stati cancellati.'
-        : 'Modalità ferie attivata! (Backend non configurato - appuntamenti non cancellati)';
+        : 'Modalità ferie attivata! Le prenotazioni per questo periodo sono bloccate. (Gli appuntamenti esistenti non sono stati cancellati perché il backend non è configurato)';
       
-      showMessage(setVacationMessage, 'success', messageText, 4000);
+      showMessage(setVacationMessage, 'success', messageText, 5000);
     } catch (error) {
       console.error('Error activating vacation mode:', error);
       showMessage(setVacationMessage, 'error', 'Errore durante l\'attivazione della modalità ferie', 5000);
@@ -440,6 +449,38 @@ export const ShopManagement = () => {
     if (!isEditingVacation) return;
     clearVacationPeriod();
     showMessage(setVacationMessage, 'success', 'Modalità ferie disattivata!', 4000);
+  };
+
+  const handleCancelAutoCloseHolidays = () => {
+    if (shop) {
+      setAutoCloseHolidays(shop.auto_close_holidays ?? true);
+    }
+    setIsEditingAutoCloseHolidays(false);
+  };
+
+  const handleSaveAutoCloseHolidays = async () => {
+    if (!shop) {
+      showMessage(setAutoCloseHolidaysMessage, 'error', 'Impossibile salvare: dati negozio non disponibili.', 5000);
+      return;
+    }
+
+    setIsSavingAutoCloseHolidays(true);
+    try {
+      await apiService.updateShopAutoCloseHolidays(autoCloseHolidays);
+      const updatedShop: Shop = {
+        ...shop,
+        auto_close_holidays: autoCloseHolidays,
+      };
+      persistShopLocally(updatedShop);
+      setShop(updatedShop);
+      setIsEditingAutoCloseHolidays(false);
+      showMessage(setAutoCloseHolidaysMessage, 'success', 'Impostazione chiusura automatica feste aggiornata!');
+    } catch (error) {
+      console.error('Error saving auto close holidays setting:', error);
+      showMessage(setAutoCloseHolidaysMessage, 'error', 'Errore durante il salvataggio. Riprova.', 5000);
+    } finally {
+      setIsSavingAutoCloseHolidays(false);
+    }
   };
 
   return (
@@ -1021,6 +1062,90 @@ export const ShopManagement = () => {
                   </p>
                 )}
               </div>
+            </div>
+          </Card>
+
+          <Card className="!border-2 !border-red-400">
+            <div className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                    <Flag className="w-5 h-5 text-red-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900">Chiusura Automatica Giorni Festivi</h3>
+                    <p className="text-sm text-gray-600">Chiudi automaticamente il negozio nei giorni festivi nazionali italiani (feste rosse).</p>
+                  </div>
+                </div>
+                {!isEditingAutoCloseHolidays ? (
+                  <Button
+                    onClick={() => setIsEditingAutoCloseHolidays(true)}
+                    size="sm"
+                    className="bg-red-600 hover:bg-red-700 text-white border-red-600"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Modifica
+                  </Button>
+                ) : (
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleCancelAutoCloseHolidays}
+                      disabled={isSavingAutoCloseHolidays}
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Annulla
+                    </Button>
+                    <Button
+                      onClick={handleSaveAutoCloseHolidays}
+                      size="sm"
+                      loading={isSavingAutoCloseHolidays}
+                      disabled={isSavingAutoCloseHolidays}
+                      className="bg-red-600 hover:bg-red-700 text-white border-red-600"
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      Salva
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {autoCloseHolidaysMessage && (
+                <div
+                  className={`p-3 rounded-lg ${
+                    autoCloseHolidaysMessage.type === 'success'
+                      ? 'bg-red-50 border border-red-200 text-red-800'
+                      : 'bg-red-50 border border-red-200 text-red-800'
+                  }`}
+                >
+                  <p className="text-sm font-medium">{autoCloseHolidaysMessage.text}</p>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-700">
+                  {autoCloseHolidays 
+                    ? 'Il negozio chiude automaticamente nei giorni festivi nazionali italiani.' 
+                    : 'Il negozio rimane aperto anche nei giorni festivi nazionali.'}
+                </p>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={autoCloseHolidays}
+                    onChange={(e) => setAutoCloseHolidays(e.target.checked)}
+                    disabled={!isEditingAutoCloseHolidays}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                </label>
+              </div>
+
+              {!isEditingAutoCloseHolidays && (
+                <p className="text-xs text-gray-500">
+                  Clicca su Modifica per cambiare l'impostazione.
+                </p>
+              )}
             </div>
           </Card>
         </div>

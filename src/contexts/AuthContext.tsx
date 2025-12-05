@@ -459,39 +459,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
         }
         
-        // Crea notifiche in-app per tutti i barbieri
-        try {
-          const staffList = await apiService.getStaff();
-          const registrationDate = new Date().toLocaleDateString('it-IT', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          });
-          
-          for (const staffMember of staffList) {
-            if (staffMember.active) {
-              await apiService.createNotification({
-                user_id: staffMember.user_id || staffMember.id,
-                user_type: 'staff',
-                type: 'new_client',
-                title: '👤 Nuovo Cliente Registrato!',
-                message: `${data.full_name} si è appena registrato all'app. Email: ${data.email}`,
-                data: {
-                  client_name: data.full_name,
-                  client_email: data.email,
-                  client_phone: data.phone || '',
-                  registration_date: registrationDate,
-                }
-              });
-            }
-          }
-          console.log('✅ Notifiche in-app create per lo staff');
-        } catch (notifError) {
-          console.warn('⚠️ Errore creazione notifiche in-app:', notifError);
-        }
+        // Nota: Le notifiche in-app vengono create automaticamente dal trigger del database
+        // quando viene creato un nuovo utente in auth.users (vedi sql/triggers.sql)
+        // Non è necessario crearle manualmente qui per evitare duplicati
+        
       } catch (emailError) {
         // Non bloccare la registrazione se l'email fallisce
         console.warn('⚠️ Errore nel recupero dati negozio o invio email:', emailError);

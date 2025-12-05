@@ -105,6 +105,7 @@ export interface Shop {
   opening_date?: string;
   description?: string;
   products_enabled?: boolean; // Controlla se il sistema prodotti è abilitato
+  auto_close_holidays?: boolean; // Se true, chiude automaticamente nei giorni festivi nazionali italiani
   vacation_period?: VacationPeriod | null;
   extra_opening_date?: string | null;
   extra_morning_start?: string | null;
