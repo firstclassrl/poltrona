@@ -37,7 +37,18 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
         end: vacationPeriod.end_date
       });
     } else {
-      console.log('📅 No active vacation period');
+      console.log('📅 No active vacation period in ClientBookingCalendar');
+      // Try to read directly from localStorage as fallback
+      try {
+        const saved = localStorage.getItem('vacationPeriod');
+        if (saved) {
+          console.log('⚠️ Found vacation period in localStorage but not in state:', saved);
+        } else {
+          console.log('⚠️ No vacation period in localStorage either');
+        }
+      } catch (e) {
+        console.error('Error reading localStorage:', e);
+      }
     }
   }, [vacationPeriod]);
   // View state: 'monthly' | 'day_detail'
@@ -87,6 +98,12 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     };
 
     loadData();
+    
+    // Force reload vacation period after component mounts
+    // This ensures we get the latest vacation period even if it was set before this component mounted
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('vacation-period-updated'));
+    }, 100);
   }, []);
 
 

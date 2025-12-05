@@ -40,22 +40,30 @@ export const useVacationMode = (): UseVacationModeReturn => {
             const parsed = JSON.parse(savedVacation);
             console.log('📅 Loading vacation period from localStorage:', parsed);
             setVacationPeriod(parsed);
+            return parsed;
           } catch (error) {
             console.error('Error parsing vacation period:', error);
             setVacationPeriod(null);
+            return null;
           }
         } else {
           console.log('📅 No vacation period found in localStorage');
           setVacationPeriod(null);
+          return null;
         }
       } catch (error) {
         console.error('Error accessing localStorage:', error);
         setVacationPeriod(null);
+        return null;
       }
     };
     
-    // Load initially
-    loadVacationPeriod();
+    // Load initially - only if not already loaded
+    // The initial state should already have it, but reload to be sure
+    const loaded = loadVacationPeriod();
+    if (loaded) {
+      console.log('📅 Loaded vacation period in useEffect:', loaded);
+    }
     
     // Listen for storage changes (sync across tabs/components)
     const handleStorageChange = (e: StorageEvent) => {
@@ -78,7 +86,7 @@ export const useVacationMode = (): UseVacationModeReturn => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('vacation-period-updated', handleCustomEvent);
     };
-  }, []);
+  }, []); // Only run once on mount
 
   const isDateInVacation = useCallback((date: Date): boolean => {
     if (!vacationPeriod) {
