@@ -26,7 +26,30 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   const { refreshUnreadCount } = useNotifications();
   const { user } = useAuth();
   const { appointments, createAppointment } = useAppointments();
-  const { isDateInVacation, vacationPeriod } = useVacationMode();
+  const { isDateInVacation, vacationPeriod, getVacationPeriod } = useVacationMode();
+  
+  // Force reload vacation period on mount - sometimes the hook doesn't load it initially
+  useEffect(() => {
+    // Check if vacation period is loaded
+    const currentPeriod = getVacationPeriod();
+    console.log('🔄 ClientBookingCalendar mounted - current vacationPeriod from hook:', currentPeriod);
+    
+    if (!currentPeriod) {
+      // Try to read directly from localStorage and force update
+      try {
+        const saved = localStorage.getItem('vacationPeriod');
+        if (saved) {
+          console.log('⚠️ Found vacation period in localStorage but not in hook state, forcing reload:', saved);
+          // Force reload by dispatching event
+          window.dispatchEvent(new CustomEvent('vacation-period-updated'));
+        } else {
+          console.log('⚠️ No vacation period in localStorage');
+        }
+      } catch (e) {
+        console.error('Error reading localStorage:', e);
+      }
+    }
+  }, []); // Only run once on mount
   
   // Debug: log vacation period when it changes
   useEffect(() => {
@@ -38,17 +61,6 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       });
     } else {
       console.log('📅 No active vacation period in ClientBookingCalendar');
-      // Try to read directly from localStorage as fallback
-      try {
-        const saved = localStorage.getItem('vacationPeriod');
-        if (saved) {
-          console.log('⚠️ Found vacation period in localStorage but not in state:', saved);
-        } else {
-          console.log('⚠️ No vacation period in localStorage either');
-        }
-      } catch (e) {
-        console.error('Error reading localStorage:', e);
-      }
     }
   }, [vacationPeriod]);
   // View state: 'monthly' | 'day_detail'
