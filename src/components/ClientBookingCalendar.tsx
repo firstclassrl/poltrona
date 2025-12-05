@@ -26,7 +26,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   const { refreshUnreadCount } = useNotifications();
   const { user } = useAuth();
   const { appointments, createAppointment } = useAppointments();
-  const { isDateInVacation } = useVacationMode();
+  const { isDateInVacation, vacationPeriod } = useVacationMode();
   // View state: 'monthly' | 'day_detail'
   const [currentView, setCurrentView] = useState<'monthly' | 'day_detail'>('monthly');
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -118,11 +118,17 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     isDateOpen,
     selectedBarber,
     shopHoursLoaded,
+    vacationPeriod, // Recalculate when vacation period changes
   ]);
 
   // Calculate approximate availability for a day (for calendar preview bars)
   const getDayAvailabilityPreview = (date: Date): { available: number; total: number } => {
     if (!shopHoursLoaded || !bookingDuration || !selectedBarber) {
+      return { available: 0, total: 0 };
+    }
+
+    // If date is in vacation mode, return no availability
+    if (isDateInVacation(date)) {
       return { available: 0, total: 0 };
     }
 

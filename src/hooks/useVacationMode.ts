@@ -58,13 +58,18 @@ export const useVacationMode = (): UseVacationModeReturn => {
   const isDateInVacation = (date: Date): boolean => {
     if (!vacationPeriod) return false;
     
+    // Create date objects in local timezone to avoid timezone issues
     const checkDate = new Date(date);
-    const startDate = new Date(vacationPeriod.start_date);
-    const endDate = new Date(vacationPeriod.end_date);
-    
-    // Set time to start of day for accurate comparison
     checkDate.setHours(0, 0, 0, 0);
-    startDate.setHours(0, 0, 0, 0);
+    
+    // Parse YYYY-MM-DD format dates in local timezone
+    const parseLocalDate = (dateStr: string): Date => {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      return new Date(year, month - 1, day, 0, 0, 0, 0);
+    };
+    
+    const startDate = parseLocalDate(vacationPeriod.start_date);
+    const endDate = parseLocalDate(vacationPeriod.end_date);
     endDate.setHours(23, 59, 59, 999);
     
     return checkDate >= startDate && checkDate <= endDate;
