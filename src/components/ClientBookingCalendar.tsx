@@ -293,7 +293,10 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       const clientPhone = clientRecord.phone_e164 || user.phone || '';
       
       // Create and save the appointment
-      const startDateTime = new Date(`${selectedDate.toISOString().split('T')[0]}T${selectedTime}:00`);
+      // Use local date methods to avoid timezone issues
+      const [hours, minutes] = selectedTime.split(':').map(Number);
+      const startDateTime = new Date(selectedDate);
+      startDateTime.setHours(hours, minutes, 0, 0);
       const endDateTime = new Date(startDateTime.getTime() + (service?.duration_min || 60) * 60000);
       
       const appointmentData = {
