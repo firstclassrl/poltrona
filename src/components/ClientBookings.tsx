@@ -249,7 +249,7 @@ export const ClientBookings: React.FC = () => {
             <Button
               variant="secondary"
               onClick={() => handleAddToCalendar(appointment)}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-green-600 hover:bg-green-700 text-white"
             >
               <CalendarPlus className="w-4 h-4 mr-2" />
               Aggiungi al calendario
