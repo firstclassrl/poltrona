@@ -230,7 +230,7 @@ export const CustomerForm = ({
               type="email"
               value={formData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
-              placeholder="cliente@email.com"
+              placeholder="Mail cliente"
               error={errors.email}
               required
             />
@@ -252,7 +252,7 @@ export const CustomerForm = ({
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
-                  placeholder="Inserisci password"
+                  placeholder="Password cliente"
                   error={errors.password}
                   required
                 />

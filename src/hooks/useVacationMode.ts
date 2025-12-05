@@ -14,13 +14,25 @@ interface UseVacationModeReturn {
 export const useVacationMode = (): UseVacationModeReturn => {
   // Initialize state by reading from localStorage immediately
   const getInitialVacationPeriod = (): VacationPeriod | null => {
-    if (typeof window === 'undefined') return null;
+    if (typeof window === 'undefined') {
+      console.log('⚠️ Window is undefined, cannot read localStorage');
+      return null;
+    }
     try {
       const savedVacation = localStorage.getItem(VACATION_STORAGE_KEY);
+      console.log('🔍 getInitialVacationPeriod - raw localStorage value:', savedVacation);
+      
       if (savedVacation) {
-        const parsed = JSON.parse(savedVacation);
-        console.log('📅 Initial vacation period from localStorage:', parsed);
-        return parsed;
+        try {
+          const parsed = JSON.parse(savedVacation);
+          console.log('📅 Initial vacation period from localStorage:', parsed);
+          return parsed;
+        } catch (parseError) {
+          console.error('Error parsing initial vacation period:', parseError);
+          return null;
+        }
+      } else {
+        console.log('📅 No vacation period in localStorage during initial state');
       }
     } catch (error) {
       console.error('Error reading initial vacation period:', error);
@@ -35,6 +47,8 @@ export const useVacationMode = (): UseVacationModeReturn => {
     const loadVacationPeriod = () => {
       try {
         const savedVacation = localStorage.getItem(VACATION_STORAGE_KEY);
+        console.log('🔍 loadVacationPeriod - raw localStorage value:', savedVacation);
+        
         if (savedVacation) {
           try {
             const parsed = JSON.parse(savedVacation);
@@ -58,11 +72,16 @@ export const useVacationMode = (): UseVacationModeReturn => {
       }
     };
     
-    // Load initially - only if not already loaded
-    // The initial state should already have it, but reload to be sure
-    const loaded = loadVacationPeriod();
-    if (loaded) {
-      console.log('📅 Loaded vacation period in useEffect:', loaded);
+    // Load initially - check if state already has it
+    if (vacationPeriod) {
+      console.log('📅 Vacation period already in state, skipping initial load:', vacationPeriod);
+    } else {
+      const loaded = loadVacationPeriod();
+      if (loaded) {
+        console.log('📅 Loaded vacation period in useEffect:', loaded);
+      } else {
+        console.log('📅 No vacation period loaded in useEffect');
+      }
     }
     
     // Listen for storage changes (sync across tabs/components)
@@ -151,15 +170,43 @@ export const useVacationMode = (): UseVacationModeReturn => {
     console.log('💾 setVacationPeriodData called with:', { startDate, endDate, newVacationPeriod });
     
     setVacationPeriod(newVacationPeriod);
-    localStorage.setItem(VACATION_STORAGE_KEY, JSON.stringify(newVacationPeriod));
     
-    // Verify it was saved
-    const saved = localStorage.getItem(VACATION_STORAGE_KEY);
-    console.log('✅ Vacation period saved to localStorage:', saved);
+    // Save to localStorage with error handling
+    try {
+      localStorage.setItem(VACATION_STORAGE_KEY, JSON.stringify(newVacationPeriod));
+      
+      // Verify it was saved immediately
+      const saved = localStorage.getItem(VACATION_STORAGE_KEY);
+      console.log('✅ Vacation period saved to localStorage:', saved);
+      
+      // Also verify after a small delay to ensure it persisted
+      setTimeout(() => {
+        const savedAgain = localStorage.getItem(VACATION_STORAGE_KEY);
+        if (savedAgain) {
+          console.log('✅ Vacation period still in localStorage after delay:', savedAgain);
+        } else {
+          console.error('❌ Vacation period was removed from localStorage!');
+        }
+      }, 500);
+    } catch (error) {
+      console.error('❌ Error saving vacation period to localStorage:', error);
+    }
     
     // Dispatch custom event to sync across components in same tab
     console.log('📢 Dispatching vacation-period-updated event');
     window.dispatchEvent(new CustomEvent('vacation-period-updated'));
+    
+    // Also dispatch a storage event manually for same-tab sync
+    // (StorageEvent only fires for other tabs/windows)
+    if (typeof StorageEvent !== 'undefined') {
+      const storageEvent = new StorageEvent('storage', {
+        key: VACATION_STORAGE_KEY,
+        newValue: JSON.stringify(newVacationPeriod),
+        oldValue: null,
+        storageArea: localStorage
+      });
+      window.dispatchEvent(storageEvent);
+    }
   };
 
   const clearVacationPeriod = (): void => {

@@ -34,20 +34,31 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     const currentPeriod = getVacationPeriod();
     console.log('🔄 ClientBookingCalendar mounted - current vacationPeriod from hook:', currentPeriod);
     
-    if (!currentPeriod) {
-      // Try to read directly from localStorage and force update
-      try {
-        const saved = localStorage.getItem('vacationPeriod');
-        if (saved) {
-          console.log('⚠️ Found vacation period in localStorage but not in hook state, forcing reload:', saved);
-          // Force reload by dispatching event
+    // Always check localStorage directly and compare with hook state
+    try {
+      const saved = localStorage.getItem('vacationPeriod');
+      console.log('🔍 Direct localStorage check on mount:', saved);
+      
+      if (saved && !currentPeriod) {
+        console.log('⚠️ Found vacation period in localStorage but not in hook state, forcing reload');
+        // Parse and manually set if hook didn't load it
+        try {
+          const parsed = JSON.parse(saved);
+          console.log('📅 Parsed vacation period from localStorage:', parsed);
+          // Force reload by dispatching event multiple times
           window.dispatchEvent(new CustomEvent('vacation-period-updated'));
-        } else {
-          console.log('⚠️ No vacation period in localStorage');
+          setTimeout(() => window.dispatchEvent(new CustomEvent('vacation-period-updated')), 100);
+          setTimeout(() => window.dispatchEvent(new CustomEvent('vacation-period-updated')), 500);
+        } catch (e) {
+          console.error('Error parsing vacation period from localStorage:', e);
         }
-      } catch (e) {
-        console.error('Error reading localStorage:', e);
+      } else if (!saved && !currentPeriod) {
+        console.log('⚠️ No vacation period in localStorage or hook state');
+      } else if (saved && currentPeriod) {
+        console.log('✅ Vacation period found in both localStorage and hook state');
       }
+    } catch (e) {
+      console.error('Error reading localStorage:', e);
     }
   }, []); // Only run once on mount
   
@@ -113,9 +124,28 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     
     // Force reload vacation period after component mounts
     // This ensures we get the latest vacation period even if it was set before this component mounted
-    setTimeout(() => {
-      window.dispatchEvent(new CustomEvent('vacation-period-updated'));
-    }, 100);
+    // Try multiple times with increasing delays to catch the period if it's being set asynchronously
+    const checkVacationPeriod = () => {
+      try {
+        const saved = localStorage.getItem('vacationPeriod');
+        if (saved) {
+          console.log('✅ Found vacation period in localStorage during mount check:', saved);
+          window.dispatchEvent(new CustomEvent('vacation-period-updated'));
+        } else {
+          console.log('⚠️ No vacation period in localStorage during mount check');
+        }
+      } catch (e) {
+        console.error('Error checking localStorage:', e);
+      }
+    };
+    
+    // Check immediately
+    checkVacationPeriod();
+    
+    // Check again after delays to catch async saves
+    setTimeout(checkVacationPeriod, 100);
+    setTimeout(checkVacationPeriod, 500);
+    setTimeout(checkVacationPeriod, 1000);
   }, []);
 
 
