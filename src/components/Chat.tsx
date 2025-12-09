@@ -179,12 +179,39 @@ export const Chat: React.FC = () => {
 
   const isStaffUser = user?.role === 'barber' || user?.role === 'admin';
 
+  const getChatPartnerInfo = (chat: { client_name: string; client_photo?: string; staff_name: string; staff_photo?: string }) => {
+    if (isStaffUser) {
+      return {
+        name: chat.client_name || 'Cliente',
+        photo: chat.client_photo,
+      };
+    }
+    return {
+      name: chat.staff_name || 'Barbiere',
+      photo: chat.staff_photo,
+    };
+  };
+
+  const getAvatarUrl = (photo?: string) => {
+    if (!photo) return undefined;
+    return photo.includes('/api/placeholder') ? undefined : photo;
+  };
+
   const isMessageFromCurrentUser = (message: ChatMessage) => {
     if (!user || !activeChat) return false;
     if (isStaffUser) {
       return message.sender_type === 'staff' && message.sender_id === activeChat.staff_id;
     }
     return message.sender_type === 'client' && message.sender_id === activeChat.client_id;
+  };
+
+  const isLastMessageFromCurrentUser = (chat: { last_message?: ChatMessage; client_id: string; staff_id: string }) => {
+    const lastMessage = chat.last_message;
+    if (!lastMessage || !user) return false;
+    if (isStaffUser) {
+      return lastMessage.sender_type === 'staff' && lastMessage.sender_id === chat.staff_id;
+    }
+    return lastMessage.sender_type === 'client' && lastMessage.sender_id === chat.client_id;
   };
 
   const getMessageStatus = (message: ChatMessage) => {
@@ -305,16 +332,21 @@ export const Chat: React.FC = () => {
                     }`}
                   >
                     <div className="flex items-start space-x-3">
-                      <Avatar 
-                        name={chat.client_name || 'Cliente'}
-                        size="lg"
-                        imageUrl={chat.client_photo && !chat.client_photo.includes('/api/placeholder') ? chat.client_photo : undefined}
-                      />
+                      {(() => {
+                        const partner = getChatPartnerInfo(chat);
+                        return (
+                          <Avatar 
+                            name={partner.name}
+                            size="lg"
+                            imageUrl={getAvatarUrl(partner.photo)}
+                          />
+                        );
+                      })()}
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <h3 className="text-sm font-semibold text-gray-900 truncate">
-                            {chat.client_name}
+                            {getChatPartnerInfo(chat).name}
                           </h3>
                           {chat.unread_count > 0 && (
                             <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
@@ -326,7 +358,7 @@ export const Chat: React.FC = () => {
                         {chat.last_message && (
                           <div className="mt-1">
                             <p className="text-sm text-gray-600 truncate">
-                              {chat.last_message.sender_type === 'staff' ? 'Tu: ' : ''}
+                              {isLastMessageFromCurrentUser(chat) ? 'Tu: ' : ''}
                               {chat.last_message.content}
                             </p>
                             <div className="flex items-center space-x-1 mt-1">
@@ -352,14 +384,19 @@ export const Chat: React.FC = () => {
             {/* Chat Header */}
             <div className="p-4 border-b border-gray-200 bg-white">
               <div className="flex items-center space-x-3">
-                <Avatar 
-                  name={activeChat.client_name || 'Cliente'}
-                  size="md"
-                  imageUrl={activeChat.client_photo && !activeChat.client_photo.includes('/api/placeholder') ? activeChat.client_photo : undefined}
-                />
+                {(() => {
+                  const partner = getChatPartnerInfo(activeChat);
+                  return (
+                    <Avatar 
+                      name={partner.name}
+                      size="md"
+                      imageUrl={getAvatarUrl(partner.photo)}
+                    />
+                  );
+                })()}
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">
-                    {activeChat.client_name}
+                    {getChatPartnerInfo(activeChat).name}
                   </h2>
                   <p className="text-sm text-gray-500">Online</p>
                 </div>
