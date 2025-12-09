@@ -86,7 +86,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
       {/* Desktop Sidebar */}
       <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
         <div className="flex-1 flex flex-col min-h-0 glass-sidebar-dark">
-          <div className="flex-1 flex flex-col pt-4 pb-4 overflow-y-auto">
+          <div className="flex-1 flex flex-col pt-3 pb-4 overflow-y-auto">
             {/* Logo Section */}
             <div className="flex items-center justify-center flex-shrink-0 px-4 mb-6">
               <img 
@@ -97,9 +97,9 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
             </div>
             
             {/* Separator Line */}
-            <div className="mx-4 mb-4 border-t border-white/20"></div>
+            <div className="mx-4 mb-2 border-t border-white/20"></div>
             
-            <nav className="mt-4 flex-1 px-3 space-y-1.5">
+            <nav className="mt-1 flex-1 px-3 space-y-2">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const showChatBadge = item.id === 'chat' && chatUnreadCount > 0;
@@ -128,7 +128,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
             
             {/* Notification Button - Only for staff/admin */}
             {(user?.role === 'admin' || user?.role === 'barber') && (
-              <div className="px-3 mb-4">
+              <div className="px-3 mt-3 mb-4">
                 <button
                   onClick={() => onTabChange('notifications')}
                   className={cn(
