@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useAppointments } from '../hooks/useAppointments';
 import { useClientRegistration } from '../hooks/useClientRegistration';
 import { apiService } from '../services/api';
+import { API_CONFIG } from '../config/api';
 import { emailNotificationService } from '../services/emailNotificationService';
 import { useDailyShopHours } from '../hooks/useDailyShopHours';
 import { useVacationMode } from '../hooks/useVacationMode';
@@ -224,6 +225,18 @@ export const ClientBookings: React.FC = () => {
         end_at: endDateTime.toISOString(),
         status: 'rescheduled',
       });
+
+      // Trigger webhook Supabase -> n8n per email di modifica appuntamento (non bloccante)
+      apiService
+        .triggerAppointmentModifiedHook({
+          id: appointmentToReschedule.id,
+          staff_id: appointmentToReschedule.staff_id || '',
+          service_id: appointmentToReschedule.service_id || '',
+          start_at: startDateTime.toISOString(),
+          end_at: endDateTime.toISOString(),
+          status: 'rescheduled',
+        })
+        .catch((e) => console.warn('appointment_modified_hook failed:', e));
 
       // Notifica barbiere (recupera user_id certo dal profilo staff)
       let staffUserId: string | null = null;

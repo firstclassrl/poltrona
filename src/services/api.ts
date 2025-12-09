@@ -89,10 +89,11 @@ const fetchWithTokenRefresh = async (
 ): Promise<Response> => {
   let response = await fetch(url, options);
   
-  // Se errore 401 e usaAuth, prova a refreshare il token e riprova
-  if (response.status === 401 && useAuth) {
+  // Se errore 401/403 e usaAuth, prova refresh se token scaduto o bad_jwt
+  if (useAuth && (response.status === 401 || response.status === 403)) {
     const responseText = await response.clone().text();
-    if (responseText.includes('JWT expired') || responseText.includes('jwt expired')) {
+    const isJwtIssue = responseText.toLowerCase().includes('jwt expired') || responseText.toLowerCase().includes('bad jwt');
+    if (isJwtIssue) {
       const refreshed = await tryRefreshToken();
       
       if (refreshed) {
@@ -838,6 +839,27 @@ export const apiService = {
     }
   },
 
+  // Trigger appointment modified webhook (Supabase Edge / n8n)
+  async triggerAppointmentModifiedHook(data: UpdateAppointmentRequest): Promise<void> {
+    if (!isSupabaseConfigured() || !API_CONFIG.SUPABASE_EDGE_URL) throw new Error('Backend non configurato');
+
+    try {
+      const url = `${API_CONFIG.SUPABASE_EDGE_URL}/functions/v1/appointment_modified_hook`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { ...buildHeaders(true) },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to trigger appointment_modified_hook: ${response.status} ${errorText}`);
+      }
+    } catch (error) {
+      console.error('Error triggering appointment_modified_hook:', error);
+      throw error;
+    }
+  },
+
   // Update appointment directly in Supabase (client reschedule)
   async updateAppointmentDirect(data: UpdateAppointmentRequest): Promise<void> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
@@ -896,11 +918,15 @@ export const apiService = {
       if (serviceId) payload.service_id = serviceId;
       if (staffId) payload.staff_id = staffId;
 
-      const response = await fetch(`${API_ENDPOINTS.APPOINTMENTS_FEED}?id=eq.${data.id}`, {
-        method: 'PATCH',
-        headers: { ...buildHeaders(true), Prefer: 'return=minimal' },
-        body: JSON.stringify(payload),
-      });
+      const response = await fetchWithTokenRefresh(
+        `${API_ENDPOINTS.APPOINTMENTS_FEED}?id=eq.${data.id}`,
+        {
+          method: 'PATCH',
+          headers: { ...buildHeaders(true), Prefer: 'return=minimal' },
+          body: JSON.stringify(payload),
+        },
+        true
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -1971,11 +1997,15 @@ export const apiService = {
         data: data.data || {},
       };
       
-      const response = await fetch(API_ENDPOINTS.NOTIFICATIONS, {
-        method: 'POST',
-        headers: { ...buildHeaders(true), Prefer: 'return=representation' },
-        body: JSON.stringify(payload),
-      });
+      const response = await fetchWithTokenRefresh(
+        API_ENDPOINTS.NOTIFICATIONS,
+        {
+          method: 'POST',
+          headers: { ...buildHeaders(true), Prefer: 'return=representation' },
+          body: JSON.stringify(payload),
+        },
+        true
+      );
       
       if (!response.ok) {
         const errorText = await response.text();

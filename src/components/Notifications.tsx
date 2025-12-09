@@ -28,8 +28,6 @@ const getNotificationIcon = (type: NotificationType) => {
       return <X className="w-6 h-6 text-red-500" />;
     case 'appointment_rescheduled':
       return <RotateCcw className="w-6 h-6 text-orange-500" />;
-    case 'appointment_reminder':
-      return <Bell className="w-6 h-6 text-blue-500" />;
     case 'new_client':
       return <UserPlus className="w-6 h-6 text-purple-500" />;
     case 'chat_message':
@@ -48,8 +46,6 @@ const getNotificationBadgeColor = (type: NotificationType) => {
       return 'bg-red-100 text-red-700 border-red-200';
     case 'appointment_rescheduled':
       return 'bg-orange-100 text-orange-700 border-orange-200';
-    case 'appointment_reminder':
-      return 'bg-blue-100 text-blue-700 border-blue-200';
     case 'new_client':
       return 'bg-purple-100 text-purple-700 border-purple-200';
     case 'chat_message':
@@ -68,8 +64,6 @@ const getNotificationTypeLabel = (type: NotificationType) => {
       return 'Annullamento';
     case 'appointment_rescheduled':
       return 'Appuntamento Spostato';
-    case 'appointment_reminder':
-      return 'Promemoria';
     case 'new_client':
       return 'Nuovo Cliente';
     case 'chat_message':
@@ -277,7 +271,6 @@ export const Notifications: React.FC = () => {
     { value: 'new_appointment', label: 'Nuovi Appuntamenti' },
     { value: 'appointment_rescheduled', label: 'Appuntamenti spostati' },
     { value: 'appointment_cancelled', label: 'Annullamenti' },
-    { value: 'appointment_reminder', label: 'Promemoria' },
     { value: 'system', label: 'Sistema' },
   ];
 
