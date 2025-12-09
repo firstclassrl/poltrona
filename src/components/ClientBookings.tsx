@@ -225,9 +225,9 @@ export const ClientBookings: React.FC = () => {
         status: 'rescheduled',
       });
 
-      // Notifica barbiere
-      if (appointmentToReschedule.staff) {
-        const staffUserId = appointmentToReschedule.staff.user_id || appointmentToReschedule.staff.id || appointmentToReschedule.staff_id;
+      // Notifica barbiere (anche se manca la relazione staff, usa staff_id)
+      const staffUserId = appointmentToReschedule.staff?.user_id || appointmentToReschedule.staff?.id || appointmentToReschedule.staff_id;
+      if (staffUserId) {
         const clientName = user?.full_name || 'Cliente';
         const serviceName = appointmentToReschedule.services?.name || 'Servizio';
         const appointmentDate = startDateTime.toLocaleDateString('it-IT', {
