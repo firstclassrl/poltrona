@@ -81,6 +81,8 @@ export const useUserProfile = () => {
             first_name: profileData.full_name.split(' ')[0] || 'Cliente',
             last_name: profileData.full_name.split(' ').slice(1).join(' ') || null,
             phone_e164: normalizePhone(profileData.phone || ''),
+          profile_photo_url: profileData.profile_photo_url || null,
+          profile_photo_path: profileData.profile_photo_path || null,
           });
           console.log('✅ Record client aggiornato nel database');
         } catch (dbError) {

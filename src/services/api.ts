@@ -334,7 +334,10 @@ export const apiService = {
   },
 
   // Update or create client by email (pubblico - non richiede autenticazione)
-  async updateClientByEmail(email: string, data: { first_name?: string; last_name?: string | null; phone_e164?: string }): Promise<void> {
+  async updateClientByEmail(
+    email: string,
+    data: { first_name?: string; last_name?: string | null; phone_e164?: string; profile_photo_url?: string | null; profile_photo_path?: string | null }
+  ): Promise<void> {
     if (!isSupabaseConfigured()) {
       // Se Supabase non è configurato, non fare nulla (silent fail)
       return;
@@ -1085,6 +1088,61 @@ export const apiService = {
     }
     const signJson = await signRes.json();
     return `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1${signJson.signedURL || signJson.signedUrl || ''}`;
+  },
+
+  // Upload foto cliente su bucket pubblico in lettura (client-photos) con path deterministico clients/<userId>/profile.ext
+  async uploadClientPhotoPublic(file: File, userId: string): Promise<{ path: string; publicUrl: string }> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    const accessToken = localStorage.getItem('auth_token');
+    if (!accessToken) throw new Error('Token non trovato. Effettua di nuovo il login.');
+
+    const bucket = 'client-photos';
+    const mimeToExt: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/jpg': 'jpg',
+      'image/png': 'png',
+      'image/gif': 'gif',
+      'image/webp': 'webp',
+    };
+    const ext = mimeToExt[file.type] || 'jpg';
+    const objectPath = `clients/${userId}/profile.${ext}`;
+
+    // best-effort cleanup di estensioni precedenti
+    const candidateExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    await Promise.allSettled(
+      candidateExts.map((e) =>
+        fetch(`${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/${bucket}/clients/${userId}/profile.${e}`, {
+          method: 'DELETE',
+          headers: {
+            apikey: API_CONFIG.SUPABASE_ANON_KEY || '',
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }).catch(() => undefined)
+      )
+    );
+
+    const uploadUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/${bucket}/${objectPath}`;
+    const uploadRes = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: {
+        apikey: API_CONFIG.SUPABASE_ANON_KEY || '',
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': file.type,
+        'x-upsert': 'true',
+      },
+      body: file,
+    });
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      throw new Error(`Upload foto cliente fallito: ${uploadRes.status} ${errText}`);
+    }
+
+    const publicUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/${bucket}/${objectPath}`;
+    return { path: objectPath, publicUrl };
+  },
+
+  getPublicClientPhotoUrl(path: string): string {
+    return `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/client-photos/${path}`;
   },
 
   // Upload foto staff in bucket pubblico in lettura (staff-photos) con path deterministico staff/<staffId>/profile.ext

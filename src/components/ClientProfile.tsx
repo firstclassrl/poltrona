@@ -40,13 +40,11 @@ export const ClientProfile: React.FC = () => {
   useEffect(() => {
     if (user) {
       const profileData = getUserProfile(user);
-      setFormData(profileData);
-      if (profileData.profile_photo_path) {
-        apiService
-          .getSignedProfilePhotoUrl(profileData.profile_photo_path)
-          .then((signed) => setFormData(prev => ({ ...prev, profile_photo_url: signed })))
-          .catch(() => {});
-      }
+      // Se c'è un path, costruisci la public URL dal bucket client-photos
+      const publicUrl = profileData.profile_photo_path
+        ? apiService.getPublicClientPhotoUrl(profileData.profile_photo_path)
+        : profileData.profile_photo_url;
+      setFormData({ ...profileData, profile_photo_url: publicUrl || '' });
       
       // Carica anche i dati del cliente registrato (con consensi privacy)
       if (user.email) {
@@ -129,10 +127,10 @@ export const ClientProfile: React.FC = () => {
     }
     try {
       setPhotoMessage('Caricamento in corso...');
-      const { path, signedUrl } = await apiService.uploadProfilePhotoSecure(file, user.id);
+      const { path, publicUrl } = await apiService.uploadClientPhotoPublic(file, user.id);
       setFormData(prev => ({
         ...prev,
-        profile_photo_url: signedUrl,
+        profile_photo_url: publicUrl,
         profile_photo_path: path,
       }));
       setPhotoMessage('Foto caricata con successo');
