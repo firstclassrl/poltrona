@@ -349,11 +349,22 @@ export const ClientProfile: React.FC = () => {
     >
       <div className="flex items-center justify-between glass-panel pb-2">
         <h1 className="text-3xl font-bold text-gray-900">Il Mio Profilo</h1>
-        {!isEditing && (
+        {!isEditing ? (
           <Button onClick={() => setIsEditing(true)}>
             <Edit className="w-4 h-4 mr-2" />
             Modifica Profilo
           </Button>
+        ) : (
+          <div className="flex space-x-2">
+            <Button variant="secondary" onClick={handleCancel}>
+              <X className="w-4 h-4 mr-2" />
+              Annulla
+            </Button>
+            <Button onClick={handleSave} loading={isLoading}>
+              <Save className="w-4 h-4 mr-2" />
+              Salva
+            </Button>
+          </div>
         )}
       </div>
 
