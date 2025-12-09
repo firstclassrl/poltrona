@@ -76,9 +76,16 @@ export const ClientProducts: React.FC<ClientProductsProps> = ({ onNavigateToBook
   };
 
   return (
-    <div className="space-y-8">
+    <div
+      className="space-y-8 rounded-3xl p-6 md:p-10"
+      style={{
+        backgroundImage:
+          'linear-gradient(135deg, rgba(16,185,129,0.22), rgba(34,197,94,0.28) 40%, rgba(22,163,74,0.25) 70%, rgba(5,150,105,0.28))',
+        backgroundColor: 'rgba(236,253,245,0.6)',
+      }}
+    >
       {/* Header */}
-      <div className="text-center">
+      <div className="text-center glass-panel pb-2">
         <h1 className="text-3xl font-bold text-gray-900">Catalogo Prodotti</h1>
         <p className="text-gray-900 font-bold mt-2">Se prenoti un prodotto da ritirare durante la tua seduta, ricevi uno SCONTO EXTRA!</p>
       </div>
@@ -106,7 +113,7 @@ export const ClientProducts: React.FC<ClientProductsProps> = ({ onNavigateToBook
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProducts.map((product) => (
-          <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+          <Card key={product.id} className="overflow-hidden hover:shadow-2xl transition-shadow bg-white/70 backdrop-blur-xl border border-white/30">
             <div className="relative">
               {/* Product Image */}
               <div className="w-full h-48 bg-gray-100 flex items-center justify-center overflow-hidden">

@@ -79,7 +79,14 @@ export const ClientShop = () => {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div
+      className="space-y-6 max-w-4xl mx-auto rounded-3xl p-6 md:p-10"
+      style={{
+        backgroundImage:
+          'linear-gradient(135deg, rgba(16,185,129,0.22), rgba(34,197,94,0.28) 40%, rgba(22,163,74,0.25) 70%, rgba(5,150,105,0.28))',
+        backgroundColor: 'rgba(236,253,245,0.6)',
+      }}
+    >
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold text-gray-900 mb-2">Il tuo Barbiere</h1>
@@ -90,7 +97,7 @@ export const ClientShop = () => {
       </div>
 
       {/* Informazioni Principali */}
-      <Card className="!border-2 !border-green-500">
+      <Card className="!border-2 !border-green-500 bg-white/70 backdrop-blur-xl shadow-2xl">
         <div className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
           <div className="flex items-center justify-center w-full h-full">
             <img
@@ -172,7 +179,7 @@ export const ClientShop = () => {
       </Card>
 
       {/* Orari di Apertura */}
-      <Card className="!border-2 !border-indigo-400">
+      <Card className="!border-2 !border-indigo-400 bg-white/70 backdrop-blur-xl shadow-2xl">
         <div className="p-6">
           <div className="flex items-center mb-6">
             <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mr-4">

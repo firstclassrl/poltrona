@@ -206,8 +206,27 @@ export const Chat: React.FC = () => {
     );
   }
 
+  const isClient = user?.role === 'client';
+  const outerStyle = isClient
+    ? {
+        backgroundImage:
+          'linear-gradient(135deg, rgba(16,185,129,0.22), rgba(34,197,94,0.28) 40%, rgba(22,163,74,0.25) 70%, rgba(5,150,105,0.28))',
+        backgroundColor: 'rgba(236,253,245,0.6)',
+      }
+    : undefined;
+
   return (
-    <div className="h-full flex flex-col">
+    <div
+      className={isClient ? 'min-h-[calc(100vh-100px)] p-4 md:p-6 rounded-3xl' : 'h-full flex flex-col'}
+      style={outerStyle}
+    >
+      <div
+        className={
+          isClient
+            ? 'h-full flex flex-col bg-white/60 backdrop-blur-2xl border border-white/30 shadow-2xl rounded-2xl'
+            : 'h-full flex flex-col'
+        }
+      >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div className="flex items-center space-x-3">

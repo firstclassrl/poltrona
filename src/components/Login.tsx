@@ -146,7 +146,7 @@ export const Login: React.FC = () => {
       <div className="absolute inset-0 bg-gradient-to-t from-green-950/30 via-transparent to-green-950/30"></div>
       
       {/* Card principale - sopra il pattern */}
-      <Card className="w-full max-w-md p-8 bg-green-500 border border-green-600 shadow-2xl relative z-10 login-card-glass">
+      <Card className="w-full max-w-md p-8 bg-white/25 backdrop-blur-2xl border border-white/30 shadow-2xl relative z-10 login-card-glass">
         <div className="text-center mb-8">
           <div className="w-20 h-20 mx-auto mb-4">
             <img 
