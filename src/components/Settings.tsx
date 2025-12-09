@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Settings as SettingsIcon, CalendarPlus, Sun, Flag, Package, Calendar, Bell, Mail, Clock, Edit, Save, X } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
@@ -37,6 +37,72 @@ const parseDisplayDate = (displayDate: string): string | null => {
 };
 
 const LOCAL_SHOP_STORAGE_KEY = 'localShopData';
+const LOCAL_NOTIFICATION_PREFS_KEY = 'notificationPreferences';
+
+type NotificationPrefs = {
+  email: {
+    newClient: boolean;
+    newAppointment: boolean;
+    cancelAppointment: boolean;
+    clientWelcome: boolean;
+    clientConfirmation: boolean;
+  };
+  reminder: {
+    enabled: boolean;
+    offset: '24h' | '2h' | '1h';
+    channel: 'email' | 'in-app' | 'both';
+  };
+  inApp: {
+    chat: boolean;
+    system: boolean;
+    waitlist: boolean;
+  };
+};
+
+const defaultNotificationPrefs: NotificationPrefs = {
+  email: {
+    newClient: true,
+    newAppointment: true,
+    cancelAppointment: true,
+    clientWelcome: true,
+    clientConfirmation: true,
+  },
+  reminder: {
+    enabled: true,
+    offset: '24h',
+    channel: 'both',
+  },
+  inApp: {
+    chat: true,
+    system: true,
+    waitlist: true,
+  },
+};
+
+const loadNotificationPrefs = (): NotificationPrefs => {
+  if (typeof window === 'undefined') return defaultNotificationPrefs;
+  const raw = localStorage.getItem(LOCAL_NOTIFICATION_PREFS_KEY);
+  if (!raw) return defaultNotificationPrefs;
+  try {
+    const parsed = JSON.parse(raw) as NotificationPrefs;
+    return {
+      email: { ...defaultNotificationPrefs.email, ...(parsed.email || {}) },
+      reminder: { ...defaultNotificationPrefs.reminder, ...(parsed.reminder || {}) },
+      inApp: { ...defaultNotificationPrefs.inApp, ...(parsed.inApp || {}) },
+    };
+  } catch {
+    return defaultNotificationPrefs;
+  }
+};
+
+const persistNotificationPrefs = (prefs: NotificationPrefs) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(LOCAL_NOTIFICATION_PREFS_KEY, JSON.stringify(prefs));
+  } catch (error) {
+    console.error('Errore nel salvataggio delle notifiche:', error);
+  }
+};
 
 const loadShopFromLocal = (): Shop | null => {
   if (typeof window === 'undefined') return null;
@@ -62,6 +128,7 @@ const persistShopLocally = (shopData: Shop) => {
 export const Settings = () => {
   const { user } = useAuth();
   const [shop, setShop] = useState<Shop | null>(null);
+  const initialNotificationPrefsRef = useRef<NotificationPrefs>(defaultNotificationPrefs);
   
   // Products
   const [productsEnabled, setProductsEnabled] = useState(true);
@@ -100,6 +167,11 @@ export const Settings = () => {
   const [isEditingCalendarView, setIsEditingCalendarView] = useState(false);
   const [isSavingCalendarView, setIsSavingCalendarView] = useState(false);
   const [calendarViewMessage, setCalendarViewMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  // Notifications
+  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPrefs>(defaultNotificationPrefs);
+  const [isEditingNotifications, setIsEditingNotifications] = useState(false);
+  const [isSavingNotifications, setIsSavingNotifications] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
   const { vacationPeriod, setVacationPeriod, clearVacationPeriod } = useVacationMode();
 
@@ -148,6 +220,9 @@ export const Settings = () => {
 
   useEffect(() => {
     loadShopData();
+    const loadedPrefs = loadNotificationPrefs();
+    initialNotificationPrefsRef.current = loadedPrefs;
+    setNotificationPrefs(loadedPrefs);
   }, []);
 
   const loadShopData = async () => {
@@ -449,6 +524,27 @@ export const Settings = () => {
       showMessage(setCalendarViewMessage, 'error', 'Errore durante il salvataggio. Riprova.', 5000);
     } finally {
       setIsSavingCalendarView(false);
+    }
+  };
+
+  // Notification handlers (client-side only)
+  const handleCancelNotifications = () => {
+    setNotificationPrefs(initialNotificationPrefsRef.current);
+    setIsEditingNotifications(false);
+  };
+
+  const handleSaveNotifications = () => {
+    setIsSavingNotifications(true);
+    try {
+      persistNotificationPrefs(notificationPrefs);
+      initialNotificationPrefsRef.current = notificationPrefs;
+      setIsEditingNotifications(false);
+      showMessage(setNotificationMessage, 'success', 'Notifiche aggiornate!');
+    } catch (error) {
+      console.error('Error saving notifications prefs:', error);
+      showMessage(setNotificationMessage, 'error', 'Errore durante il salvataggio delle notifiche.', 5000);
+    } finally {
+      setIsSavingNotifications(false);
     }
   };
 
@@ -1100,7 +1196,7 @@ export const Settings = () => {
           </div>
         </Card>
 
-        {/* Notifiche - Placeholder per futuro sviluppo */}
+        {/* Notifiche */}
         <Card className="border border-gray-200 shadow-sm">
           <div className="p-6 space-y-4">
             <div className="flex items-center justify-between">
@@ -1110,14 +1206,221 @@ export const Settings = () => {
                 </div>
                 <div>
                   <h3 className="text-base font-semibold text-gray-900">Notifiche</h3>
-                  <p className="text-sm text-gray-600">Gestisci le impostazioni delle notifiche email e in-app.</p>
+                  <p className="text-sm text-gray-600">Gestisci le notifiche email e in-app.</p>
                 </div>
               </div>
+              {!isEditingNotifications ? (
+                <Button
+                  onClick={() => setIsEditingNotifications(true)}
+                  size="sm"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600"
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Modifica
+                </Button>
+              ) : (
+                <div className="flex space-x-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleCancelNotifications}
+                    disabled={isSavingNotifications}
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Annulla
+                  </Button>
+                  <Button
+                    onClick={handleSaveNotifications}
+                    size="sm"
+                    loading={isSavingNotifications}
+                    disabled={isSavingNotifications}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Salva
+                  </Button>
+                </div>
+              )}
             </div>
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600">
-                Le impostazioni delle notifiche saranno disponibili a breve.
-              </p>
+
+            {notificationMessage && (
+              <div
+                className={`p-3 rounded-lg ${
+                  notificationMessage.type === 'success'
+                    ? 'bg-indigo-50 border border-indigo-200 text-indigo-800'
+                    : 'bg-red-50 border border-red-200 text-red-800'
+                }`}
+              >
+                <p className="text-sm font-medium">{notificationMessage.text}</p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Email */}
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Mail className="w-4 h-4 text-indigo-600" />
+                  <h4 className="text-sm font-semibold text-gray-900">Notifiche Email</h4>
+                </div>
+                <div className="space-y-2 text-sm text-gray-700">
+                  {[
+                    { key: 'newClient', label: 'Nuovo cliente' },
+                    { key: 'newAppointment', label: 'Nuovo appuntamento' },
+                    { key: 'cancelAppointment', label: 'Annullamento appuntamento' },
+                    { key: 'clientWelcome', label: 'Benvenuto cliente' },
+                    { key: 'clientConfirmation', label: 'Conferma appuntamento (cliente)' },
+                  ].map((item) => (
+                    <label
+                      key={item.key}
+                      className={`flex items-center justify-between p-2 rounded hover:bg-white ${
+                        !isEditingNotifications ? 'opacity-60 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      <span>{item.label}</span>
+                      <input
+                        type="checkbox"
+                        checked={notificationPrefs.email[item.key as keyof NotificationPrefs['email']]}
+                        onChange={(e) =>
+                          isEditingNotifications &&
+                          setNotificationPrefs((prev) => ({
+                            ...prev,
+                            email: { ...prev.email, [item.key]: e.target.checked },
+                          }))
+                        }
+                        disabled={!isEditingNotifications}
+                        className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Reminder */}
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Clock className="w-4 h-4 text-indigo-600" />
+                  <h4 className="text-sm font-semibold text-gray-900">Reminder Automatici</h4>
+                </div>
+                <div className={`flex items-center justify-between p-2 rounded mb-3 ${!isEditingNotifications ? 'opacity-60 cursor-not-allowed' : ''}`}>
+                  <span className="text-sm text-gray-700">Abilita reminder</span>
+                  <input
+                    type="checkbox"
+                    checked={notificationPrefs.reminder.enabled}
+                    onChange={(e) =>
+                      isEditingNotifications &&
+                      setNotificationPrefs((prev) => ({
+                        ...prev,
+                        reminder: { ...prev.reminder, enabled: e.target.checked },
+                      }))
+                    }
+                    disabled={!isEditingNotifications}
+                    className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div className="space-y-3 text-sm text-gray-700">
+                  <div>
+                    <p className="font-medium mb-1">Anticipo invio</p>
+                    <div className="space-y-1">
+                      {['24h', '2h', '1h'].map((offset) => (
+                        <label
+                          key={offset}
+                          className={`flex items-center space-x-2 p-2 rounded hover:bg-white ${
+                            !isEditingNotifications ? 'opacity-60 cursor-not-allowed' : ''
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="reminder-offset"
+                            value={offset}
+                            checked={notificationPrefs.reminder.offset === offset}
+                            onChange={(e) =>
+                              isEditingNotifications &&
+                              setNotificationPrefs((prev) => ({
+                                ...prev,
+                                reminder: { ...prev.reminder, offset: e.target.value as NotificationPrefs['reminder']['offset'] },
+                              }))
+                            }
+                            disabled={!isEditingNotifications}
+                          />
+                          <span>{offset === '24h' ? '24 ore prima' : offset === '2h' ? '2 ore prima' : '1 ora prima'}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="font-medium mb-1">Canale</p>
+                    <div className="space-y-1">
+                      {[
+                        { value: 'both', label: 'Email + In-app' },
+                        { value: 'email', label: 'Solo Email' },
+                        { value: 'in-app', label: 'Solo In-app' },
+                      ].map((channel) => (
+                        <label
+                          key={channel.value}
+                          className={`flex items-center space-x-2 p-2 rounded hover:bg-white ${
+                            !isEditingNotifications ? 'opacity-60 cursor-not-allowed' : ''
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="reminder-channel"
+                            value={channel.value}
+                            checked={notificationPrefs.reminder.channel === channel.value}
+                            onChange={(e) =>
+                              isEditingNotifications &&
+                              setNotificationPrefs((prev) => ({
+                                ...prev,
+                                reminder: { ...prev.reminder, channel: e.target.value as NotificationPrefs['reminder']['channel'] },
+                              }))
+                            }
+                            disabled={!isEditingNotifications}
+                          />
+                          <span>{channel.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* In-App */}
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Bell className="w-4 h-4 text-indigo-600" />
+                  <h4 className="text-sm font-semibold text-gray-900">Notifiche In-App</h4>
+                </div>
+                <div className="space-y-2 text-sm text-gray-700">
+                  {[
+                    { key: 'chat', label: 'Chat' },
+                    { key: 'system', label: 'Sistema' },
+                    { key: 'waitlist', label: 'Lista d’attesa' },
+                  ].map((item) => (
+                    <label
+                      key={item.key}
+                      className={`flex items-center justify-between p-2 rounded hover:bg-white ${
+                        !isEditingNotifications ? 'opacity-60 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      <span>{item.label}</span>
+                      <input
+                        type="checkbox"
+                        checked={notificationPrefs.inApp[item.key as keyof NotificationPrefs['inApp']]}
+                        onChange={(e) =>
+                          isEditingNotifications &&
+                          setNotificationPrefs((prev) => ({
+                            ...prev,
+                            inApp: { ...prev.inApp, [item.key]: e.target.checked },
+                          }))
+                        }
+                        disabled={!isEditingNotifications}
+                        className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </Card>

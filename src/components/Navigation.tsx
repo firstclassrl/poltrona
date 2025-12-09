@@ -86,20 +86,20 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
       {/* Desktop Sidebar */}
       <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
         <div className="flex-1 flex flex-col min-h-0 glass-sidebar-dark">
-          <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
+          <div className="flex-1 flex flex-col pt-4 pb-4 overflow-y-auto">
             {/* Logo Section */}
-            <div className="flex items-center justify-center flex-shrink-0 px-4 mb-8">
+            <div className="flex items-center justify-center flex-shrink-0 px-4 mb-6">
               <img 
                 src="/Logo retro barbershop glass copy copy.png" 
                 alt="Retro Barbershop Logo" 
-                className="w-40 h-40 object-contain filter brightness-110"
+                className="w-32 h-32 object-contain filter brightness-110"
               />
             </div>
             
             {/* Separator Line */}
-            <div className="mx-4 mb-6 border-t border-white/20"></div>
+            <div className="mx-4 mb-4 border-t border-white/20"></div>
             
-            <nav className="mt-5 flex-1 px-2 space-y-1">
+            <nav className="mt-4 flex-1 px-3 space-y-1.5">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const showChatBadge = item.id === 'chat' && chatUnreadCount > 0;
@@ -108,7 +108,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                     key={item.id}
                     onClick={() => onTabChange(item.id)}
                     className={cn(
-                      'group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full text-left transition-all duration-200 relative',
+                      'group flex items-center h-11 px-3 text-sm font-medium rounded-lg w-full text-left transition-all duration-150 relative',
                       activeTab === item.id
                         ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-400/40 shadow-lg glass-nav-item'
                         : 'text-yellow-300 hover:bg-yellow-500/10 hover:text-yellow-400 hover:glass-nav-item'
@@ -128,11 +128,11 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
             
             {/* Notification Button - Only for staff/admin */}
             {(user?.role === 'admin' || user?.role === 'barber') && (
-              <div className="px-4 mb-4">
+              <div className="px-3 mb-4">
                 <button
                   onClick={() => onTabChange('notifications')}
                   className={cn(
-                    'w-full flex items-center justify-between px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 border',
+                    'w-full flex items-center justify-between h-11 px-3 text-sm font-medium rounded-lg transition-all duration-150 border',
                     activeTab === 'notifications'
                       ? 'bg-yellow-500/20 text-yellow-400 border-yellow-400/60 shadow-lg'
                       : 'text-yellow-300 hover:bg-yellow-500/10 hover:text-yellow-400 border-yellow-400/30 hover:border-yellow-400/50'
