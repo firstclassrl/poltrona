@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Calendar, Clock, User, AlertTriangle, CheckCircle2, Ban, CalendarPlus } from 'lucide-react';
+import { Calendar, Clock, User, AlertTriangle, CheckCircle2, Ban, CalendarPlus, Pencil } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
@@ -8,8 +8,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { useAppointments } from '../hooks/useAppointments';
 import { useClientRegistration } from '../hooks/useClientRegistration';
 import { apiService } from '../services/api';
+import { emailNotificationService } from '../services/emailNotificationService';
+import { useDailyShopHours } from '../hooks/useDailyShopHours';
+import { useVacationMode } from '../hooks/useVacationMode';
 import type { Appointment, Shop } from '../types';
 import { generateICSFile, downloadICSFile } from '../utils/calendar';
+import { findAvailableSlotsForDuration } from '../utils/availability';
+import { addMinutes, getSlotDateTime } from '../utils/date';
 
 const normalizeEmail = (email?: string | null) => email?.trim().toLowerCase() || '';
 
@@ -27,6 +32,8 @@ export const ClientBookings: React.FC = () => {
   const { user } = useAuth();
   const { appointments, loadAppointments } = useAppointments();
   const { getClientByEmail } = useClientRegistration();
+  const { isDateOpen, getAvailableTimeSlots, shopHoursLoaded } = useDailyShopHours();
+  const { isDateInVacation } = useVacationMode();
 
   const [registeredClientId, setRegisteredClientId] = useState<string | null>(null);
   const [registeredEmail, setRegisteredEmail] = useState('');
@@ -35,6 +42,11 @@ export const ClientBookings: React.FC = () => {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const [shop, setShop] = useState<Shop | null>(null);
+  const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
+  const [rescheduleSlots, setRescheduleSlots] = useState<{ date: Date; time: string }[]>([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  const [appointmentToReschedule, setAppointmentToReschedule] = useState<Appointment | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     if (user?.email) {
@@ -136,6 +148,162 @@ export const ClientBookings: React.FC = () => {
     // Download the file
     const filename = `appuntamento-${service.name.toLowerCase().replace(/\s+/g, '-')}-${startDateTime.toISOString().split('T')[0]}.ics`;
     downloadICSFile(icsContent, filename);
+  };
+
+  const openRescheduleModal = async (appointment: Appointment) => {
+    setMessage(null);
+    setAppointmentToReschedule(appointment);
+    setIsRescheduleModalOpen(true);
+
+    // Calcola slot disponibili partendo da ora (o dallo start attuale se futuro)
+    if (!appointment.staff_id || !appointment.services?.duration_min || !shopHoursLoaded) {
+      setRescheduleSlots([]);
+      return;
+    }
+
+    const duration = appointment.services.duration_min;
+    const staffId = appointment.staff_id;
+    const startDate = new Date();
+    const appointmentStart = new Date(appointment.start_at);
+    // Non proporre slot nel passato
+    if (appointmentStart > startDate) startDate.setTime(appointmentStart.getTime());
+    startDate.setHours(0, 0, 0, 0);
+
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + 3);
+    endDate.setHours(23, 59, 59, 999);
+
+    setIsLoadingSlots(true);
+    try {
+      const slots = findAvailableSlotsForDuration({
+        startDate,
+        endDate,
+        durationMin: duration,
+        appointments,
+        isDateOpen,
+        isDateInVacation,
+        getAvailableTimeSlots,
+        staffId,
+      })
+        .filter((slot) => {
+          // escludi lo slot attuale
+          const slotStart = getSlotDateTime(slot.date, slot.time);
+          const slotEnd = addMinutes(slotStart, duration);
+          const currentStart = new Date(appointment.start_at);
+          const currentEnd = new Date(appointment.end_at || appointment.start_at);
+          return !(slotStart.getTime() === currentStart.getTime() && slotEnd.getTime() === currentEnd.getTime());
+        })
+        .slice(0, 50); // limita elenco
+
+      setRescheduleSlots(slots);
+    } catch (err) {
+      console.error('Errore calcolo slot disponibili per riprogrammazione:', err);
+      setRescheduleSlots([]);
+    } finally {
+      setIsLoadingSlots(false);
+    }
+  };
+
+  const handleConfirmReschedule = async (slot: { date: Date; time: string }) => {
+    if (!appointmentToReschedule || !appointmentToReschedule.staff_id || !appointmentToReschedule.service_id || !appointmentToReschedule.services?.duration_min) {
+      return;
+    }
+    setIsUpdating(true);
+    setMessage(null);
+    try {
+      const [hours, minutes] = slot.time.split(':').map(Number);
+      const startDateTime = new Date(slot.date);
+      startDateTime.setHours(hours, minutes, 0, 0);
+      const endDateTime = addMinutes(startDateTime, appointmentToReschedule.services.duration_min);
+
+      await apiService.updateAppointmentDirect({
+        id: appointmentToReschedule.id,
+        staff_id: appointmentToReschedule.staff_id,
+        service_id: appointmentToReschedule.service_id,
+        start_at: startDateTime.toISOString(),
+        end_at: endDateTime.toISOString(),
+        status: 'rescheduled',
+      });
+
+      // Notifica barbiere
+      if (appointmentToReschedule.staff) {
+        const staffUserId = appointmentToReschedule.staff.user_id || appointmentToReschedule.staff.id || appointmentToReschedule.staff_id;
+        const clientName = user?.full_name || 'Cliente';
+        const serviceName = appointmentToReschedule.services?.name || 'Servizio';
+        const appointmentDate = startDateTime.toLocaleDateString('it-IT', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        });
+        const appointmentTime = startDateTime.toLocaleTimeString('it-IT', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        });
+
+        try {
+          await apiService.createNotification({
+            user_id: staffUserId,
+            user_type: 'staff',
+            type: 'new_appointment',
+            title: '🔄 Prenotazione aggiornata',
+            message: `${clientName} ha spostato ${serviceName} a ${appointmentDate} alle ${appointmentTime}`,
+            data: {
+              appointment_id: appointmentToReschedule.id,
+              client_name: clientName,
+              service_name: serviceName,
+              appointment_date: appointmentDate,
+              appointment_time: appointmentTime,
+              staff_id: appointmentToReschedule.staff_id,
+            },
+          });
+        } catch (notifErr) {
+          console.warn('Errore creazione notifica riprogrammazione:', notifErr);
+        }
+      }
+
+      // Email negozio (non bloccante)
+      try {
+        const serviceName = appointmentToReschedule.services?.name || 'Servizio';
+        const barberName = appointmentToReschedule.staff?.full_name || 'Barbiere';
+        const appointmentDateStr = startDateTime.toLocaleDateString('it-IT');
+        const appointmentTimeStr = startDateTime.toLocaleTimeString('it-IT', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        });
+        if (shop?.notification_email) {
+          emailNotificationService
+            .sendRescheduleNotification(
+              {
+                clientName: user?.full_name || 'Cliente',
+                clientEmail: user?.email || '',
+                clientPhone: user?.phone || '',
+                serviceName,
+                appointmentDate: appointmentDateStr,
+                appointmentTime: appointmentTimeStr,
+                barberName,
+                shopName: shop.name || 'Barbershop',
+              },
+              shop.notification_email
+            )
+            .catch((err) => console.warn('Errore invio email riprogrammazione:', err));
+        }
+      } catch (emailErr) {
+        console.warn('Errore gestione email riprogrammazione:', emailErr);
+      }
+
+      await loadAppointments();
+      setMessage({ type: 'success', text: 'Prenotazione aggiornata con successo.' });
+      setIsRescheduleModalOpen(false);
+      setAppointmentToReschedule(null);
+    } catch (err) {
+      console.error('Errore riprogrammazione:', err);
+      setMessage({ type: 'error', text: 'Impossibile modificare la prenotazione. Riprova.' });
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const handleConfirmCancel = async () => {
@@ -249,10 +417,18 @@ export const ClientBookings: React.FC = () => {
             <Button
               variant="secondary"
               onClick={() => handleAddToCalendar(appointment)}
-              className="text-green-700 hover:text-green-800"
+              className="bg-green-600 hover:bg-green-700 text-white"
             >
               <CalendarPlus className="w-4 h-4 mr-2" />
               Aggiungi al calendario
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => openRescheduleModal(appointment)}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              <Pencil className="w-4 h-4 mr-2" />
+              Modifica
             </Button>
             <Button
               variant="danger"
@@ -372,6 +548,47 @@ export const ClientBookings: React.FC = () => {
               {isCancelling ? 'Annullamento...' : 'Conferma annullamento'}
             </Button>
           </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isRescheduleModalOpen}
+        onClose={() => {
+          setIsRescheduleModalOpen(false);
+          setAppointmentToReschedule(null);
+          setRescheduleSlots([]);
+        }}
+        title="Modifica prenotazione"
+        size="medium"
+      >
+        <div className="space-y-4 text-sm text-gray-700">
+          {isLoadingSlots ? (
+            <p>Caricamento disponibilità...</p>
+          ) : rescheduleSlots.length === 0 ? (
+            <p>Nessuno slot disponibile per il servizio selezionato nei prossimi 3 mesi.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+              {rescheduleSlots.map((slot) => {
+                const dateLabel = slot.date.toLocaleDateString('it-IT', {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
+                });
+                return (
+                  <button
+                    key={`${slot.date.toISOString()}-${slot.time}`}
+                    onClick={() => handleConfirmReschedule(slot)}
+                    disabled={isUpdating}
+                    className="border rounded-lg p-3 text-left hover:border-orange-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-300 transition"
+                  >
+                    <div className="text-sm font-semibold capitalize">{dateLabel}</div>
+                    <div className="text-base text-gray-900">{slot.time}</div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {isUpdating && <p>Salvataggio modifica...</p>}
         </div>
       </Modal>
     </div>

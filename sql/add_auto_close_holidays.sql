@@ -19,3 +19,5 @@ WHERE table_schema = 'public'
   AND table_name = 'shops' 
   AND column_name = 'auto_close_holidays';
 
+
+

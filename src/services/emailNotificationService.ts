@@ -722,6 +722,27 @@ Il team ${data.shopName}
     });
   }
 
+  async sendRescheduleNotification(
+    appointmentData: NewAppointmentNotificationData,
+    shopEmail: string
+  ): Promise<EmailResponse> {
+    try {
+      this.ensureConfigured();
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Servizio email non configurato' 
+      };
+    }
+
+    return this.sendEmailViaResend({
+      to: shopEmail,
+      subject: `🔄 Prenotazione aggiornata - ${appointmentData.clientName} - ${appointmentData.appointmentDate} ${appointmentData.appointmentTime}`,
+      html: this.generateNewAppointmentNotificationHTML(appointmentData),
+      text: this.generateNewAppointmentNotificationText(appointmentData),
+    });
+  }
+
   // Genera HTML per notifica nuovo appuntamento
   private generateNewAppointmentNotificationHTML(data: NewAppointmentNotificationData): string {
     return this.cleanHtml(`

@@ -26,3 +26,5 @@ END $$;
 CREATE INDEX IF NOT EXISTS idx_shops_vacation_period
   ON public.shops USING GIN (vacation_period);
 
+
+

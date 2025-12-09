@@ -838,6 +838,81 @@ export const apiService = {
     }
   },
 
+  // Update appointment directly in Supabase (client reschedule)
+  async updateAppointmentDirect(data: UpdateAppointmentRequest): Promise<void> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    if (!data.id) throw new Error('ID appuntamento mancante');
+
+    try {
+      // Recupera l'appuntamento corrente per staff e durata fallback
+      const currentRes = await fetch(`${API_ENDPOINTS.APPOINTMENTS_FEED}?id=eq.${data.id}&select=*`, {
+        headers: buildHeaders(true),
+      });
+      const currentJson = currentRes.ok ? await currentRes.json() : [];
+      const current = (currentJson as Appointment[])[0];
+
+      const staffId = data.staff_id || current?.staff_id;
+      const serviceId = data.service_id || current?.service_id;
+      const startAt = data.start_at || current?.start_at;
+      const endAt = data.end_at || current?.end_at;
+
+      if (!staffId || !serviceId || !startAt || !endAt) {
+        throw new Error('Dati incompleti per aggiornare la prenotazione');
+      }
+
+      // Controllo overlap nello stesso giorno
+      const startDate = new Date(startAt);
+      const dayStart = new Date(startDate);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(startDate);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      const sameDayAppointments = await this.getAppointments(dayStart.toISOString(), dayEnd.toISOString());
+
+      const newStart = new Date(startAt).getTime();
+      const newEnd = new Date(endAt).getTime();
+
+      const overlaps = sameDayAppointments.some((apt) => {
+        if (apt.id === data.id) return false;
+        if (apt.status === 'cancelled') return false;
+        if (apt.staff_id !== staffId) return false;
+        const aptStart = new Date(apt.start_at).getTime();
+        const aptEnd = apt.end_at
+          ? new Date(apt.end_at).getTime()
+          : aptStart + ((apt.services?.duration_min || current?.services?.duration_min || 30) * 60 * 1000);
+        return newStart < aptEnd && newEnd > aptStart;
+      });
+
+      if (overlaps) {
+        throw new Error('Slot non disponibile: conflitto con un altro appuntamento');
+      }
+
+      const payload: Record<string, unknown> = {
+        start_at: startAt,
+        end_at: endAt,
+      };
+      if (data.status) payload.status = data.status;
+      if (data.notes !== undefined) payload.notes = data.notes;
+      if (serviceId) payload.service_id = serviceId;
+      if (staffId) payload.staff_id = staffId;
+
+      const response = await fetch(`${API_ENDPOINTS.APPOINTMENTS_FEED}?id=eq.${data.id}`, {
+        method: 'PATCH',
+        headers: { ...buildHeaders(true), Prefer: 'return=minimal' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Errore updateAppointmentDirect:', response.status, errorText);
+        throw new Error(`Failed to update appointment: ${response.status} ${errorText}`);
+      }
+    } catch (error) {
+      console.error('❌ Errore critico updateAppointmentDirect:', error);
+      throw error;
+    }
+  },
+
   // Cancel appointment
   async cancelAppointment(id: string): Promise<void> {
     if (!isSupabaseConfigured() || !API_CONFIG.N8N_BASE_URL) throw new Error('Backend non configurato');

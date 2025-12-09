@@ -159,14 +159,14 @@ export const useBarberProfile = () => {
       return savedProfile;
     }
 
-    // Fallback ai dati di base del barbiere (leggi dal database)
+    // Fallback ai dati di base del barbiere
     return {
       full_name: staff.full_name || '',
       role: staff.role || '',
-      phone: staff.phone || '',
+      phone: '',
       email: staff.email || '',
-      specialties: staff.specialties || '',
-      bio: staff.bio || '',
+      specialties: '',
+      bio: '',
       chair_id: staff.chair_id || '',
       profile_photo_url: staff.profile_photo_url || ''
     };
