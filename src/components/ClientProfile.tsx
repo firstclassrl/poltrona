@@ -296,8 +296,15 @@ export const ClientProfile: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+    <div
+      className="space-y-8 rounded-3xl p-6 md:p-10"
+      style={{
+        backgroundImage:
+          'linear-gradient(135deg, rgba(16,185,129,0.22), rgba(34,197,94,0.28) 40%, rgba(22,163,74,0.25) 70%, rgba(5,150,105,0.28))',
+        backgroundColor: 'rgba(236,253,245,0.6)',
+      }}
+    >
+      <div className="flex items-center justify-between glass-panel pb-2">
         <h1 className="text-3xl font-bold text-gray-900">Il Mio Profilo</h1>
         {!isEditing && (
           <Button onClick={() => setIsEditing(true)}>

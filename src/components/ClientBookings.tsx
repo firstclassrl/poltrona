@@ -467,19 +467,26 @@ export const ClientBookings: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-gray-900">Le mie prenotazioni</h1>
-        <p className="text-gray-600 mt-2">Gestisci e controlla i tuoi appuntamenti</p>
+    <div
+      className="space-y-8 rounded-3xl p-6 md:p-10"
+      style={{
+        backgroundImage:
+          'linear-gradient(135deg, rgba(16,185,129,0.22), rgba(34,197,94,0.28) 40%, rgba(22,163,74,0.25) 70%, rgba(5,150,105,0.28))',
+        backgroundColor: 'rgba(236,253,245,0.6)',
+      }}
+    >
+      <div className="text-center glass-panel pb-2">
+        <h1 className="text-3xl font-bold text-gray-900">Le Mie Prenotazioni</h1>
+        <p className="text-gray-700 mt-2">Gestisci e controlla i tuoi appuntamenti</p>
       </div>
 
       {message && (
         <div
           className={`border rounded-lg p-4 ${
             message.type === 'success'
-              ? 'bg-green-50 border-green-200 text-green-700'
-              : 'bg-red-50 border-red-200 text-red-700'
-          }`}
+              ? 'bg-green-50/80 border-green-200/80 text-green-800'
+              : 'bg-red-50/80 border-red-200/80 text-red-800'
+          } backdrop-blur shadow-lg`}
         >
           {message.text}
         </div>
