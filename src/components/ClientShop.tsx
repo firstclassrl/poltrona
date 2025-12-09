@@ -83,7 +83,7 @@ export const ClientShop = () => {
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold text-gray-900 mb-2">Il tuo Barbiere</h1>
-        <p className="text-lg text-gray-600">{shop.name}</p>
+        <p className="text-3xl font-extrabold text-green-700">{shop.name}</p>
         {shop.description && (
           <p className="text-gray-500 mt-3 max-w-2xl mx-auto">{shop.description}</p>
         )}
@@ -91,15 +91,22 @@ export const ClientShop = () => {
 
       {/* Informazioni Principali */}
       <Card className="!border-2 !border-green-500">
-        <div className="p-6">
-          <div className="flex items-center mb-6">
-            <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mr-4">
-              <Building2 className="w-6 h-6 text-white" />
-            </div>
-            <h2 className="text-2xl font-semibold text-gray-900">Informazioni</h2>
+        <div className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+          <div className="flex items-center justify-center w-full h-full">
+            <img
+              src="/Logo retro barbershop glass copy copy.png"
+              alt={shop.name || 'Logo negozio'}
+              className="max-h-52 w-auto object-contain drop-shadow-lg"
+            />
           </div>
+          <div className="md:col-span-2 space-y-4">
+            <div className="flex items-center mb-2">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mr-4">
+                <Building2 className="w-6 h-6 text-white" />
+              </div>
+              <h2 className="text-2xl font-semibold text-gray-900">Informazioni</h2>
+            </div>
 
-          <div className="space-y-4">
             {/* Indirizzo */}
             {shop.address && (
               <div className="flex items-start">

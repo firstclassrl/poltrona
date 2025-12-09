@@ -159,7 +159,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     [services, selectedService]
   );
 
-  const bookingDuration = selectedServiceObj?.duration_min || 0;
+  const bookingDuration = selectedServiceObj?.duration_min ?? null;
 
   // Pre-calculated available slots for the next 6 months based on selected service duration
   const availableSlots = useMemo(() => {
@@ -668,24 +668,31 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   const userName = userProfile?.full_name || user?.full_name || 'Cliente';
 
   return (
-    <div className="space-y-8">
+    <div
+      className="space-y-8 rounded-3xl p-6 md:p-10"
+      style={{
+        backgroundImage:
+          'radial-gradient(circle at 20% 20%, rgba(34,197,94,0.06), transparent 35%), radial-gradient(circle at 80% 0%, rgba(16,185,129,0.08), transparent 40%), radial-gradient(circle at 0% 80%, rgba(59,130,246,0.05), transparent 35%)',
+        backgroundColor: '#f4f7fb',
+      }}
+    >
       {/* Welcome Section */}
-      <div className="text-center mb-8">
-        <div className="mb-4">
+      <div className="text-center mb-6 md:mb-10">
+        <div className="mb-3">
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
             Benvenuto, {userName}! 👋
           </h2>
         </div>
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Prenota Appuntamento</h1>
-        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Prenota Appuntamento</h1>
+        <p className="text-lg text-gray-700 max-w-2xl mx-auto">
           Seleziona il servizio e il barbiere per visualizzare gli orari disponibili!
         </p>
       </div>
 
       {/* Step 1: scelta servizio e barbiere */}
-      <div className="max-w-2xl mx-auto bg-gradient-to-br from-white to-gray-50 rounded-2xl border-2 border-gray-200 shadow-lg p-6 md:p-8 space-y-6">
-        <div>
-          <label className="block text-base font-semibold text-gray-800 mb-3 flex items-center">
+      <div className="max-w-3xl mx-auto bg-white rounded-3xl border border-gray-100 shadow-2xl p-6 md:p-8 space-y-6 ring-1 ring-gray-100">
+        <div className="space-y-2">
+          <label className="block text-base font-semibold text-gray-800 flex items-center">
             <Scissors className="w-5 h-5 mr-2 text-green-600" />
             Servizio
           </label>
@@ -698,7 +705,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
               setSelectedTime('');
               setCurrentView('monthly');
             }}
-            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base bg-white transition-all hover:border-gray-400"
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base bg-white transition-all hover:border-gray-300 shadow-sm"
             disabled={isLoading}
           >
             <option value="">{isLoading ? 'Caricamento servizi...' : 'Seleziona un servizio'}</option>
@@ -712,8 +719,8 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
           </select>
         </div>
 
-        <div>
-          <label className="block text-base font-semibold text-gray-800 mb-3 flex items-center">
+        <div className="space-y-2">
+          <label className="block text-base font-semibold text-gray-800 flex items-center">
             <User className="w-5 h-5 mr-2 text-green-600" />
             Barbiere
           </label>
@@ -725,7 +732,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
               setSelectedTime('');
               setCurrentView('monthly');
             }}
-            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base bg-white transition-all hover:border-gray-400"
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base bg-white transition-all hover:border-gray-300 shadow-sm"
             disabled={!selectedService || isLoading}
           >
             <option value="">{isLoading ? 'Caricamento barbieri...' : 'Seleziona un barbiere'}</option>
@@ -738,7 +745,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
         </div>
 
         {bookingDuration && selectedBarber && (
-          <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <div className="mt-2 p-4 bg-green-50 border border-green-200 rounded-xl shadow-inner">
             <p className="text-sm text-green-800">
               <span className="font-semibold">Durata appuntamento:</span> {bookingDuration} minuti.
               Mostriamo solo slot con almeno questo tempo libero entro 6 mesi.
