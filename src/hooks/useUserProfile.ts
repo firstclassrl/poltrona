@@ -8,6 +8,8 @@ export interface UserProfileData {
   email: string;
   address?: string;
   notes?: string;
+  profile_photo_url?: string;
+  profile_photo_path?: string;
 }
 
 export const useUserProfile = () => {
@@ -66,7 +68,9 @@ export const useUserProfile = () => {
             ...user,
             full_name: profileData.full_name,
             email: profileData.email,
-            phone: profileData.phone
+            phone: profileData.phone,
+            profile_photo_url: profileData.profile_photo_url,
+            profile_photo_path: profileData.profile_photo_path,
           };
           localStorage.setItem('auth_user', JSON.stringify(updatedUser));
         }
@@ -102,7 +106,9 @@ export const useUserProfile = () => {
         email: '',
         phone: '',
         address: '',
-        notes: ''
+        notes: '',
+        profile_photo_url: '',
+        profile_photo_path: '',
       };
     }
 
@@ -119,7 +125,9 @@ export const useUserProfile = () => {
       email: user.email || '',
       phone: user.phone || '',
       address: '',
-      notes: ''
+      notes: '',
+      profile_photo_url: (user as any).profile_photo_url || '',
+      profile_photo_path: (user as any).profile_photo_path || '',
     };
   };
 

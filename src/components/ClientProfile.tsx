@@ -18,6 +18,7 @@ export const ClientProfile: React.FC = () => {
   const { updateUserProfile, getUserProfile, isLoading } = useUserProfile();
   const { deleteRegisteredClient, getClientByEmail } = useClientRegistration();
   const { appointments, loadAppointments } = useAppointments();
+  const [photoMessage, setPhotoMessage] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<UserProfileData>({
     full_name: '',
@@ -25,6 +26,8 @@ export const ClientProfile: React.FC = () => {
     email: '',
     address: '',
     notes: '',
+    profile_photo_url: '',
+    profile_photo_path: '',
   });
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
@@ -38,6 +41,12 @@ export const ClientProfile: React.FC = () => {
     if (user) {
       const profileData = getUserProfile(user);
       setFormData(profileData);
+      if (profileData.profile_photo_path) {
+        apiService
+          .getSignedProfilePhotoUrl(profileData.profile_photo_path)
+          .then((signed) => setFormData(prev => ({ ...prev, profile_photo_url: signed })))
+          .catch(() => {});
+      }
       
       // Carica anche i dati del cliente registrato (con consensi privacy)
       if (user.email) {
@@ -96,9 +105,43 @@ export const ClientProfile: React.FC = () => {
     if (user) {
       const profileData = getUserProfile(user);
       setFormData(profileData);
+      if (profileData.profile_photo_path) {
+        apiService
+          .getSignedProfilePhotoUrl(profileData.profile_photo_path)
+          .then((signed) => setFormData(prev => ({ ...prev, profile_photo_url: signed })))
+          .catch(() => {});
+      }
     }
     setIsEditing(false);
     setMessage(null);
+  };
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setMessage({ type: 'error', text: 'Carica solo file immagine' });
+      return;
+    }
+    if (!user) {
+      setMessage({ type: 'error', text: 'Utente non autenticato' });
+      return;
+    }
+    try {
+      setPhotoMessage('Caricamento in corso...');
+      const { path, signedUrl } = await apiService.uploadProfilePhotoSecure(file, user.id);
+      setFormData(prev => ({
+        ...prev,
+        profile_photo_url: signedUrl,
+        profile_photo_path: path,
+      }));
+      setPhotoMessage('Foto caricata con successo');
+      setTimeout(() => setPhotoMessage(null), 2000);
+    } catch (err) {
+      console.error(err);
+      setMessage({ type: 'error', text: 'Errore durante il caricamento della foto' });
+      setPhotoMessage(null);
+    }
   };
 
   const handleDeleteAccount = async () => {
@@ -328,14 +371,45 @@ export const ClientProfile: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Profilo */}
         <Card className="lg:col-span-1">
-          <div className="text-center">
-            <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <User className="w-12 h-12 text-white" />
+          <div className="text-center space-y-4">
+            <div className="flex justify-center">
+              {formData.profile_photo_url ? (
+                <img
+                  src={formData.profile_photo_url}
+                  alt={formData.full_name || 'Foto profilo'}
+                  className="w-28 h-28 rounded-full object-cover border-4 border-white shadow-lg"
+                />
+              ) : (
+                <div className="w-28 h-28 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto shadow-lg">
+                  <User className="w-12 h-12 text-white" />
+                </div>
+              )}
             </div>
-            <h2 className="text-xl font-semibold text-gray-900">
-              {formData.full_name}
-            </h2>
-            <p className="text-gray-600">Cliente</p>
+
+            {photoMessage && (
+              <p className="text-xs text-gray-600">{photoMessage}</p>
+            )}
+
+            {isEditing && (
+              <div className="flex justify-center">
+                <label className="cursor-pointer text-sm font-semibold text-green-700 hover:text-green-800">
+                  Carica foto
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoChange}
+                  />
+                </label>
+              </div>
+            )}
+
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">
+                {formData.full_name}
+              </h2>
+              <p className="text-gray-600">Cliente</p>
+            </div>
           </div>
         </Card>
 

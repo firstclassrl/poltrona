@@ -995,6 +995,76 @@ export const apiService = {
     }
   },
 
+  // Upload profilo cliente su bucket privato e restituisce path + signed URL
+  async uploadProfilePhotoSecure(file: File, userId: string): Promise<{ path: string; signedUrl: string }> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    const accessToken = localStorage.getItem('auth_token');
+    if (!accessToken) throw new Error('Token non trovato. Effettua di nuovo il login.');
+
+    const bucket = 'profile-photos-private';
+    const ext = file.name.split('.').pop() || 'jpg';
+    const objectPath = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+    const uploadUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/${bucket}/${objectPath}`;
+    const uploadRes = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: {
+        apikey: API_CONFIG.SUPABASE_ANON_KEY || '',
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': file.type,
+        'x-upsert': 'true',
+      },
+      body: file,
+    });
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      throw new Error(`Upload foto profilo fallito: ${uploadRes.status} ${errText}`);
+    }
+
+    // Genera signed URL (es. 7 giorni)
+    const signUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/sign/${bucket}/${objectPath}`;
+    const signRes = await fetch(signUrl, {
+      method: 'POST',
+      headers: {
+        apikey: API_CONFIG.SUPABASE_ANON_KEY || '',
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ expiresIn: 60 * 60 * 24 * 7 }),
+    });
+    if (!signRes.ok) {
+      const errText = await signRes.text();
+      throw new Error(`Signed URL fallita: ${signRes.status} ${errText}`);
+    }
+    const signJson = await signRes.json();
+    const signedUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1${signJson.signedURL || signJson.signedUrl || ''}`;
+
+    return { path: objectPath, signedUrl };
+  },
+
+  async getSignedProfilePhotoUrl(path: string): Promise<string> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    const accessToken = localStorage.getItem('auth_token');
+    if (!accessToken) throw new Error('Token non trovato. Effettua di nuovo il login.');
+    const bucket = 'profile-photos-private';
+    const signUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/sign/${bucket}/${path}`;
+    const signRes = await fetch(signUrl, {
+      method: 'POST',
+      headers: {
+        apikey: API_CONFIG.SUPABASE_ANON_KEY || '',
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ expiresIn: 60 * 60 * 24 * 7 }),
+    });
+    if (!signRes.ok) {
+      const errText = await signRes.text();
+      throw new Error(`Signed URL fallita: ${signRes.status} ${errText}`);
+    }
+    const signJson = await signRes.json();
+    return `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1${signJson.signedURL || signJson.signedUrl || ''}`;
+  },
+
   // Get staff profile
   async getStaffProfile(): Promise<Staff> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
