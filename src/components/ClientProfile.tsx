@@ -133,6 +133,17 @@ export const ClientProfile: React.FC = () => {
         profile_photo_url: publicUrl,
         profile_photo_path: path,
       }));
+      // Salva subito la foto nel record cliente per riflesso immediato sulla chat
+      const targetEmail = formData.email || user.email;
+      if (targetEmail) {
+        apiService.updateClientByEmail(targetEmail, {
+          first_name: formData.full_name.split(' ')[0] || 'Cliente',
+          last_name: formData.full_name.split(' ').slice(1).join(' ') || null,
+          phone_e164: formData.phone || '',
+          photo_url: publicUrl,
+          profile_photo_path: path,
+        }).catch((err) => console.warn('Non sono riuscito ad aggiornare la foto cliente:', err));
+      }
       setPhotoMessage('Foto caricata con successo');
       setTimeout(() => setPhotoMessage(null), 2000);
     } catch (err) {
