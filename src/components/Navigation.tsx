@@ -73,8 +73,8 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
   if (user?.role === 'client') {
     // Build client order dynamically based on products enabled status
     const clientOrder = areProductsEnabled 
-      ? ['client_booking', 'client_bookings', 'products', 'chat', 'client_profile']
-      : ['client_booking', 'client_bookings', 'chat', 'client_profile'];
+      ? ['client_booking', 'client_bookings', 'products', 'chat', 'shop', 'client_profile']
+      : ['client_booking', 'client_bookings', 'chat', 'shop', 'client_profile'];
     
     navItems = clientOrder
       .map(id => navItems.find(item => item.id === id))
