@@ -502,7 +502,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       case 'profile':
         return role === 'admin' || role === 'barber';
       case 'shop':
-        return role === 'admin';
+        return role === 'admin' || role === 'client'; // Clienti possono vedere in sola lettura
       case 'client_profile':
         return role === 'client';
       case 'client_bookings':

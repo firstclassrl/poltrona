@@ -199,10 +199,15 @@ export const ShopManagement = () => {
   };
 
 
+  const isClient = user?.role === 'client';
+  const isAdmin = user?.role === 'admin';
+
   return (
     <div className="space-y-4 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-gray-900">Gestione Negozio</h1>
+        <h1 className="text-2xl font-bold text-gray-900">
+          {isClient ? 'Informazioni Negozio' : 'Gestione Negozio'}
+        </h1>
       </div>
 
       {/* Card Unica: Informazioni Negozio e Contatti */}
@@ -215,37 +220,39 @@ export const ShopManagement = () => {
               </div>
               <h2 className="text-lg font-semibold text-gray-900">Informazioni Negozio e Contatti</h2>
             </div>
-            {!isEditingBasic ? (
-              <Button 
-                onClick={() => setIsEditingBasic(true)} 
-                size="sm"
-                className="bg-green-600 hover:bg-green-700 text-white border-green-600"
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Modifica
-              </Button>
-            ) : (
-              <div className="flex space-x-2">
-                <Button
-                  variant="secondary"
-                  onClick={handleCancelBasic}
+            {!isClient && (
+              !isEditingBasic ? (
+                <Button 
+                  onClick={() => setIsEditingBasic(true)} 
                   size="sm"
-                  disabled={isSavingBasic}
-                >
-                  <X className="w-4 h-4 mr-2" />
-                  Annulla
-                </Button>
-                <Button
-                  onClick={handleSaveBasic}
-                  size="sm"
-                  loading={isSavingBasic}
-                  disabled={isSavingBasic}
                   className="bg-green-600 hover:bg-green-700 text-white border-green-600"
                 >
-                  <Save className="w-4 h-4 mr-2" />
-                  Salva
+                  <Edit className="w-4 h-4 mr-2" />
+                  Modifica
                 </Button>
-              </div>
+              ) : (
+                <div className="flex space-x-2">
+                  <Button
+                    variant="secondary"
+                    onClick={handleCancelBasic}
+                    size="sm"
+                    disabled={isSavingBasic}
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Annulla
+                  </Button>
+                  <Button
+                    onClick={handleSaveBasic}
+                    size="sm"
+                    loading={isSavingBasic}
+                    disabled={isSavingBasic}
+                    className="bg-green-600 hover:bg-green-700 text-white border-green-600"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Salva
+                  </Button>
+                </div>
+              )
             )}
           </div>
           {basicMessage && (
@@ -268,7 +275,7 @@ export const ShopManagement = () => {
                 label="Nome Negozio"
                 value={basicFormData.name}
                 onChange={(e) => setBasicFormData(prev => ({ ...prev, name: e.target.value }))}
-                disabled={!isEditingBasic}
+                disabled={!isEditingBasic || isClient}
                 required
               />
               
@@ -279,7 +286,7 @@ export const ShopManagement = () => {
                 <textarea
                   value={basicFormData.description}
                   onChange={(e) => setBasicFormData(prev => ({ ...prev, description: e.target.value }))}
-                  disabled={!isEditingBasic}
+                  disabled={!isEditingBasic || isClient}
                   placeholder="Descrizione del negozio..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 text-sm"
                   rows={2}
@@ -297,20 +304,20 @@ export const ShopManagement = () => {
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="md:col-span-3">
-                <Input
-                  label="Indirizzo"
-                  value={basicFormData.address}
-                  onChange={(e) => setBasicFormData(prev => ({ ...prev, address: e.target.value }))}
-                  disabled={!isEditingBasic}
-                  placeholder="Via Roma 123"
-                />
+              <Input
+                label="Indirizzo"
+                value={basicFormData.address}
+                onChange={(e) => setBasicFormData(prev => ({ ...prev, address: e.target.value }))}
+                disabled={!isEditingBasic || isClient}
+                placeholder="Via Roma 123"
+              />
               </div>
               
               <Input
                 label="CAP"
                 value={basicFormData.postal_code}
                 onChange={(e) => setBasicFormData(prev => ({ ...prev, postal_code: e.target.value }))}
-                disabled={!isEditingBasic}
+                disabled={!isEditingBasic || isClient}
                 placeholder="00100"
                 maxLength={5}
               />
@@ -319,7 +326,7 @@ export const ShopManagement = () => {
                 label="Città"
                 value={basicFormData.city}
                 onChange={(e) => setBasicFormData(prev => ({ ...prev, city: e.target.value }))}
-                disabled={!isEditingBasic}
+                disabled={!isEditingBasic || isClient}
                 placeholder="Roma"
               />
               
@@ -327,7 +334,7 @@ export const ShopManagement = () => {
                 label="Provincia"
                 value={basicFormData.province}
                 onChange={(e) => setBasicFormData(prev => ({ ...prev, province: e.target.value }))}
-                disabled={!isEditingBasic}
+                disabled={!isEditingBasic || isClient}
                 placeholder="RM"
                 maxLength={2}
               />
@@ -336,7 +343,7 @@ export const ShopManagement = () => {
                 label="Telefono"
                 value={basicFormData.phone}
                 onChange={(e) => setBasicFormData(prev => ({ ...prev, phone: e.target.value }))}
-                disabled={!isEditingBasic}
+                disabled={!isEditingBasic || isClient}
                 placeholder="+39 06 1234567"
               />
               
@@ -344,7 +351,7 @@ export const ShopManagement = () => {
                 label="WhatsApp"
                 value={basicFormData.whatsapp}
                 onChange={(e) => setBasicFormData(prev => ({ ...prev, whatsapp: e.target.value }))}
-                disabled={!isEditingBasic}
+                disabled={!isEditingBasic || isClient}
                 placeholder="+39 06 1234567"
               />
               
@@ -353,42 +360,45 @@ export const ShopManagement = () => {
                 type="email"
                 value={basicFormData.email}
                 onChange={(e) => setBasicFormData(prev => ({ ...prev, email: e.target.value }))}
-                disabled={!isEditingBasic}
+                disabled={!isEditingBasic || isClient}
                 placeholder="info@retrobarbershop.it"
               />
               
-              <div className="md:col-span-3">
-                <Input
-                  label="Email Notifiche"
-                  type="email"
-                  value={basicFormData.notification_email}
-                  onChange={(e) => setBasicFormData(prev => ({ ...prev, notification_email: e.target.value }))}
-                  disabled={!isEditingBasic}
-                  placeholder="admin@negozio.it"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Email dove ricevere notifiche per nuove registrazioni clienti
-                </p>
-              </div>
+              {/* Email Notifiche - Solo per admin */}
+              {isAdmin && (
+                <div className="md:col-span-3">
+                  <Input
+                    label="Email Notifiche"
+                    type="email"
+                    value={basicFormData.notification_email}
+                    onChange={(e) => setBasicFormData(prev => ({ ...prev, notification_email: e.target.value }))}
+                    disabled={!isEditingBasic}
+                    placeholder="admin@negozio.it"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Email dove ricevere notifiche per nuove registrazioni clienti
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </Card>
 
       {/* Card Orari di Apertura - Visibile a tutti, editabile solo admin */}
-      <Card className="!border-2 !border-indigo-400">
-        <div className="p-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                <Clock className="w-5 h-5 text-indigo-600" />
-              </div>
-              <div>
-                <h3 className="text-base font-semibold text-gray-900">Orari di Apertura</h3>
+          <Card className="!border-2 !border-indigo-400">
+            <div className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900">Orari di Apertura</h3>
                 <p className="text-sm text-gray-600">Gestisci l'apertura giornaliera del negozio.</p>
-              </div>
-            </div>
-            {user?.role === 'admin' && (
+                  </div>
+                </div>
+            {isAdmin && (
               !isEditingHours ? (
                 <Button
                   onClick={() => setIsEditingHours(true)}
@@ -409,27 +419,23 @@ export const ShopManagement = () => {
                 </Button>
               )
             )}
-          </div>
+              </div>
 
-          <DailyHoursManager disabled={!isEditingHours || user?.role !== 'admin'} />
+          <DailyHoursManager disabled={!isEditingHours || !isAdmin} />
 
-          {!isEditingHours && user?.role === 'admin' && (
+          {!isEditingHours && isAdmin && (
             <p className="text-xs text-gray-500">
               Clicca su Modifica per aggiornare i giorni e le fasce orarie.
             </p>
           )}
+          
+          {isClient && (
+            <p className="text-xs text-gray-500">
+              Visualizzazione in sola lettura. Contatta il negozio per informazioni o modifiche.
+            </p>
+          )}
         </div>
       </Card>
-
-      {user?.role !== 'admin' && (
-        <Card>
-          <div className="p-4 text-center">
-            <p className="text-sm text-gray-600">
-              Solo l'amministratore può modificare gli orari di apertura.
-            </p>
-          </div>
-        </Card>
-      )}
     </div>
   );
 };
