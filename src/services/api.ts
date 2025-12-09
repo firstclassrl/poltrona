@@ -336,7 +336,7 @@ export const apiService = {
   // Update or create client by email (pubblico - non richiede autenticazione)
   async updateClientByEmail(
     email: string,
-    data: { first_name?: string; last_name?: string | null; phone_e164?: string; profile_photo_url?: string | null; profile_photo_path?: string | null }
+    data: { first_name?: string; last_name?: string | null; phone_e164?: string; photo_url?: string | null; profile_photo_path?: string | null }
   ): Promise<void> {
     if (!isSupabaseConfigured()) {
       // Se Supabase non è configurato, non fare nulla (silent fail)
@@ -1536,15 +1536,35 @@ export const apiService = {
       
       // Carica tutti i clienti in una sola query
       let clientsMap = new Map();
+      let clientProfilesMap = new Map();
       if (clientIds.length > 0) {
         try {
-          const clientsUrl = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=id,first_name,last_name,photo_url,email&id=in.(${clientIds.join(',')})`;
+          const clientsUrl = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=id,first_name,last_name,photo_url,email,user_id&id=in.(${clientIds.join(',')})`;
           const clientsResponse = await fetch(clientsUrl, { headers: buildHeaders(true) });
           if (clientsResponse.ok) {
             const clients = await clientsResponse.json();
             clients.forEach((client: any) => {
               clientsMap.set(client.id, client);
             });
+            
+            // Se alcuni clienti hanno user_id, recupera le foto profilo dalla tabella profiles
+            const clientUserIds = [...new Set(clients.map((c: any) => c.user_id).filter(Boolean))];
+            if (clientUserIds.length > 0) {
+              try {
+                const profilesUrl = `${API_ENDPOINTS.PROFILES}?select=user_id,profile_photo_url&user_id=in.(${clientUserIds.join(',')})`;
+                const profilesResponse = await fetch(profilesUrl, { headers: buildHeaders(true) });
+                if (profilesResponse.ok) {
+                  const profiles = await profilesResponse.json();
+                  profiles.forEach((profile: any) => {
+                    if (profile.user_id) {
+                      clientProfilesMap.set(profile.user_id, profile.profile_photo_url || null);
+                    }
+                  });
+                }
+              } catch (profileError) {
+                console.error('Error loading client profile photos:', profileError);
+              }
+            }
           }
         } catch (error) {
           console.error('Error loading clients:', error);
@@ -1576,6 +1596,7 @@ export const apiService = {
           const clientName = clientData 
             ? `${clientData.first_name || ''} ${clientData.last_name || ''}`.trim() || clientData.email || 'Cliente'
             : 'Cliente';
+          const clientProfilePhoto = clientData?.user_id ? clientProfilesMap.get(clientData.user_id) : null;
           
           // Ottieni dati staff
           const staffData = staffMap.get(chat.staff_id);
@@ -1613,7 +1634,7 @@ export const apiService = {
             created_at: chat.created_at,
             updated_at: chat.updated_at,
             client_name: clientName,
-            client_photo: clientData?.photo_url || undefined,
+            client_photo: clientData?.photo_url || clientProfilePhoto || undefined,
             staff_name: staffName,
             staff_photo: staffData?.profile_photo_url || undefined,
             unread_count: unreadCount,

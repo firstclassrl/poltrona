@@ -156,8 +156,9 @@ const AppContent: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-purple-950/20 to-pink-950/20 flex items-center justify-center">
-        <div className="text-center">
+      <div className="min-h-screen app-shell login-liquid flex items-center justify-center">
+        <div className="login-grain"></div>
+        <div className="relative z-10 text-center">
           <div className="w-16 h-16 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-yellow-300">Caricamento...</p>
         </div>
@@ -170,56 +171,63 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-purple-950/20 to-pink-950/20">
-      <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
-
-      {/* Banner aggiornamento versione */}
-      {isUpdateAvailable && (
-        <div className="md:pl-64">
-          <div className="bg-yellow-500 text-black px-4 py-2 text-sm flex items-center justify-between shadow-md">
-            <span>
-              È disponibile una nuova versione di Poltrona
-              {latestVersion ? ` (v${latestVersion})` : ''}. Clicca per aggiornare.
-            </span>
-            <button
-              type="button"
-              className="ml-4 px-3 py-1 rounded bg-black text-yellow-300 text-xs font-semibold hover:bg-gray-900"
-              onClick={() => {
-                // Forza un reload completo per caricare la nuova index.html e i nuovi bundle
-                window.location.reload();
-              }}
-            >
-              Aggiorna ora
-            </button>
-          </div>
+    <div className="app-shell login-liquid">
+      <div className="login-grain"></div>
+      <div className="app-content relative z-10">
+        <div className="relative z-20">
+          <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
         </div>
-      )}
 
-      {/* Main Content */}
-      <div className="md:pl-64 pb-20 md:pb-0 bg-white">
-        <main className="p-6 max-w-7xl mx-auto bg-white min-h-screen">
-          {renderActiveTab()}
-        </main>
+        {/* Banner aggiornamento versione */}
+        {isUpdateAvailable && (
+          <div className="md:pl-64 px-4 sm:px-6">
+            <div className="bg-yellow-500 text-black px-4 py-2 text-sm flex items-center justify-between shadow-md rounded-lg">
+              <span>
+                È disponibile una nuova versione di Poltrona
+                {latestVersion ? ` (v${latestVersion})` : ''}. Clicca per aggiornare.
+              </span>
+              <button
+                type="button"
+                className="ml-4 px-3 py-1 rounded bg-black text-yellow-300 text-xs font-semibold hover:bg-gray-900"
+                onClick={() => {
+                  // Forza un reload completo per caricare la nuova index.html e i nuovi bundle
+                  window.location.reload();
+                }}
+              >
+                Aggiorna ora
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Main Content */}
+        <div className="md:pl-64 pb-20 md:pb-0 relative">
+          <main className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto min-h-screen">
+            <div className="app-surface p-4 sm:p-6 md:p-10 shadow-2xl border border-white/20">
+              {renderActiveTab()}
+            </div>
+          </main>
+        </div>
+
+        {/* Appointment Form Modal */}
+        <AppointmentForm
+          isOpen={isAppointmentFormOpen}
+          onClose={() => {
+            setIsAppointmentFormOpen(false);
+            setEditingAppointment(null);
+          }}
+          onSave={handleSaveAppointment}
+          appointment={editingAppointment}
+        />
+
+        {/* Toast Notifications */}
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          isVisible={toast.isVisible}
+          onClose={hideToast}
+        />
       </div>
-
-      {/* Appointment Form Modal */}
-      <AppointmentForm
-        isOpen={isAppointmentFormOpen}
-        onClose={() => {
-          setIsAppointmentFormOpen(false);
-          setEditingAppointment(null);
-        }}
-        onSave={handleSaveAppointment}
-        appointment={editingAppointment}
-      />
-
-      {/* Toast Notifications */}
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        onClose={hideToast}
-      />
     </div>
   );
 };
