@@ -1002,8 +1002,30 @@ export const apiService = {
     if (!accessToken) throw new Error('Token non trovato. Effettua di nuovo il login.');
 
     const bucket = 'profile-photos-private';
-    const ext = file.name.split('.').pop() || 'jpg';
-    const objectPath = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const mimeToExt: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/jpg': 'jpg',
+      'image/png': 'png',
+      'image/gif': 'gif',
+      'image/webp': 'webp',
+    };
+    const ext = mimeToExt[file.type] || 'jpg';
+    const objectPath = `${userId}/profile.${ext}`;
+
+    // Best-effort cleanup: rimuove versioni precedenti con estensioni diverse
+    const candidateExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    const deletePromises = candidateExts.map((e) => {
+      const delPath = `${userId}/profile.${e}`;
+      const delUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/${bucket}/${delPath}`;
+      return fetch(delUrl, {
+        method: 'DELETE',
+        headers: {
+          apikey: API_CONFIG.SUPABASE_ANON_KEY || '',
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }).catch(() => undefined);
+    });
+    await Promise.allSettled(deletePromises);
 
     const uploadUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/${bucket}/${objectPath}`;
     const uploadRes = await fetch(uploadUrl, {
@@ -1063,6 +1085,57 @@ export const apiService = {
     }
     const signJson = await signRes.json();
     return `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1${signJson.signedURL || signJson.signedUrl || ''}`;
+  },
+
+  // Upload foto staff in bucket pubblico in lettura (staff-photos) con path deterministico staff/<staffId>/profile.ext
+  async uploadStaffPhotoPublic(file: File, staffId: string): Promise<{ path: string; publicUrl: string }> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    const accessToken = localStorage.getItem('auth_token');
+    if (!accessToken) throw new Error('Token non trovato. Effettua di nuovo il login.');
+
+    const bucket = 'staff-photos';
+    const mimeToExt: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/jpg': 'jpg',
+      'image/png': 'png',
+      'image/gif': 'gif',
+      'image/webp': 'webp',
+    };
+    const ext = mimeToExt[file.type] || 'jpg';
+    const objectPath = `staff/${staffId}/profile.${ext}`;
+
+    // best-effort cleanup di estensioni precedenti
+    const candidateExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    await Promise.allSettled(
+      candidateExts.map((e) =>
+        fetch(`${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/${bucket}/staff/${staffId}/profile.${e}`, {
+          method: 'DELETE',
+          headers: {
+            apikey: API_CONFIG.SUPABASE_ANON_KEY || '',
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }).catch(() => undefined)
+      )
+    );
+
+    const uploadUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/${bucket}/${objectPath}`;
+    const uploadRes = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: {
+        apikey: API_CONFIG.SUPABASE_ANON_KEY || '',
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': file.type,
+        'x-upsert': 'true',
+      },
+      body: file,
+    });
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      throw new Error(`Upload foto staff fallito: ${uploadRes.status} ${errText}`);
+    }
+
+    const publicUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/${bucket}/${objectPath}`;
+    return { path: objectPath, publicUrl };
   },
 
   // Get staff profile

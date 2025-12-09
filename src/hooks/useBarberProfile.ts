@@ -11,6 +11,7 @@ export interface BarberProfileData {
   bio?: string;
   chair_id?: string;
   profile_photo_url?: string;
+  profile_photo_path?: string;
 }
 
 export const useBarberProfile = () => {

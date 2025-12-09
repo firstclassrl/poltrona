@@ -160,16 +160,11 @@ export const BarberProfile = () => {
   };
 
   const handleProfileImageUpload = async (file: File): Promise<string> => {
-    // Mock upload - in produzione useresti Supabase Storage
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setProfileImageUrl(result);
-        resolve(result);
-      };
-      reader.readAsDataURL(file);
-    });
+    if (!staffData?.id) throw new Error('Staff non selezionato');
+    const { publicUrl, path } = await apiService.uploadStaffPhotoPublic(file, staffData.id);
+    setProfileImageUrl(publicUrl);
+    setFormData(prev => ({ ...prev, profile_photo_url: publicUrl, profile_photo_path: path }));
+    return publicUrl;
   };
 
   const handleRemoveProfileImage = () => {
