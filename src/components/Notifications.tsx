@@ -11,7 +11,8 @@ import {
   RefreshCw,
   Filter,
   Clock,
-  MessageCircle
+  MessageCircle,
+  RotateCcw
 } from 'lucide-react';
 import { useNotifications } from '../contexts/NotificationContext';
 import type { Notification, NotificationType } from '../types';
@@ -25,6 +26,8 @@ const getNotificationIcon = (type: NotificationType) => {
       return <Calendar className="w-6 h-6 text-green-500" />;
     case 'appointment_cancelled':
       return <X className="w-6 h-6 text-red-500" />;
+    case 'appointment_rescheduled':
+      return <RotateCcw className="w-6 h-6 text-orange-500" />;
     case 'appointment_reminder':
       return <Bell className="w-6 h-6 text-blue-500" />;
     case 'new_client':
@@ -43,6 +46,8 @@ const getNotificationBadgeColor = (type: NotificationType) => {
       return 'bg-green-100 text-green-700 border-green-200';
     case 'appointment_cancelled':
       return 'bg-red-100 text-red-700 border-red-200';
+    case 'appointment_rescheduled':
+      return 'bg-orange-100 text-orange-700 border-orange-200';
     case 'appointment_reminder':
       return 'bg-blue-100 text-blue-700 border-blue-200';
     case 'new_client':
@@ -61,6 +66,8 @@ const getNotificationTypeLabel = (type: NotificationType) => {
       return 'Nuovo Appuntamento';
     case 'appointment_cancelled':
       return 'Annullamento';
+    case 'appointment_rescheduled':
+      return 'Appuntamento Spostato';
     case 'appointment_reminder':
       return 'Promemoria';
     case 'new_client':
@@ -268,6 +275,7 @@ export const Notifications: React.FC = () => {
     { value: 'all', label: 'Tutte' },
     { value: 'unread', label: 'Non lette' },
     { value: 'new_appointment', label: 'Nuovi Appuntamenti' },
+    { value: 'appointment_rescheduled', label: 'Appuntamenti spostati' },
     { value: 'appointment_cancelled', label: 'Annullamenti' },
     { value: 'appointment_reminder', label: 'Promemoria' },
     { value: 'system', label: 'Sistema' },

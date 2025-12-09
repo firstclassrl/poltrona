@@ -225,8 +225,17 @@ export const ClientBookings: React.FC = () => {
         status: 'rescheduled',
       });
 
-      // Notifica barbiere (anche se manca la relazione staff, usa staff_id)
-      const staffUserId = appointmentToReschedule.staff?.user_id || appointmentToReschedule.staff?.id || appointmentToReschedule.staff_id;
+      // Notifica barbiere (recupera user_id certo dal profilo staff)
+      let staffUserId: string | null = null;
+      try {
+        if (appointmentToReschedule.staff_id) {
+          const staffDetails = await apiService.getStaffById(appointmentToReschedule.staff_id);
+          staffUserId = staffDetails?.user_id || staffDetails?.id || appointmentToReschedule.staff_id;
+        }
+      } catch (e) {
+        console.warn('Errore recupero staff per notifica riprogrammazione:', e);
+      }
+
       if (staffUserId) {
         const clientName = user?.full_name || 'Cliente';
         const serviceName = appointmentToReschedule.services?.name || 'Servizio';
@@ -246,7 +255,7 @@ export const ClientBookings: React.FC = () => {
           await apiService.createNotification({
             user_id: staffUserId,
             user_type: 'staff',
-            type: 'new_appointment',
+            type: 'appointment_rescheduled',
             title: '🔄 Prenotazione aggiornata',
             message: `${clientName} ha spostato ${serviceName} a ${appointmentDate} alle ${appointmentTime}`,
             data: {
@@ -259,7 +268,26 @@ export const ClientBookings: React.FC = () => {
             },
           });
         } catch (notifErr) {
-          console.warn('Errore creazione notifica riprogrammazione:', notifErr);
+          console.warn('Errore creazione notifica riprogrammazione (tentativo rescheduled), riprovo come new_appointment:', notifErr);
+          try {
+            await apiService.createNotification({
+              user_id: staffUserId,
+              user_type: 'staff',
+              type: 'new_appointment',
+              title: '🔄 Prenotazione aggiornata',
+              message: `${clientName} ha spostato ${serviceName} a ${appointmentDate} alle ${appointmentTime}`,
+              data: {
+                appointment_id: appointmentToReschedule.id,
+                client_name: clientName,
+                service_name: serviceName,
+                appointment_date: appointmentDate,
+                appointment_time: appointmentTime,
+                staff_id: appointmentToReschedule.staff_id,
+              },
+            });
+          } catch (fallbackErr) {
+            console.warn('Errore creazione notifica riprogrammazione (fallback new_appointment):', fallbackErr);
+          }
         }
       }
 
