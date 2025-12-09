@@ -1948,7 +1948,7 @@ export const apiService = {
   async createNotification(data: {
     user_id: string;
     user_type: 'staff' | 'client';
-    type: 'new_appointment' | 'appointment_cancelled' | 'appointment_reminder' | 'system' | 'new_client';
+    type: 'new_appointment' | 'appointment_cancelled' | 'appointment_rescheduled' | 'appointment_reminder' | 'system' | 'waitlist_available' | 'new_client' | 'chat_message';
     title: string;
     message: string;
     data?: Record<string, unknown>;
