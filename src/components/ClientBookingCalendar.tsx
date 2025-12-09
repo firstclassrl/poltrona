@@ -672,12 +672,12 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       className="space-y-8 rounded-3xl p-6 md:p-10"
       style={{
         backgroundImage:
-          'radial-gradient(circle at 20% 20%, rgba(34,197,94,0.06), transparent 35%), radial-gradient(circle at 80% 0%, rgba(16,185,129,0.08), transparent 40%), radial-gradient(circle at 0% 80%, rgba(59,130,246,0.05), transparent 35%)',
-        backgroundColor: '#f4f7fb',
+          'linear-gradient(135deg, rgba(16,185,129,0.25), rgba(34,197,94,0.3) 40%, rgba(22,163,74,0.28) 70%, rgba(5,150,105,0.32))',
+        backgroundColor: 'rgba(236,253,245,0.65)',
       }}
     >
       {/* Welcome Section */}
-      <div className="text-center mb-6 md:mb-10">
+      <div className="text-center mb-6 md:mb-10 glass-panel">
         <div className="mb-3">
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
             Benvenuto, {userName}! 👋
@@ -690,7 +690,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       </div>
 
       {/* Step 1: scelta servizio e barbiere */}
-      <div className="max-w-3xl mx-auto bg-white rounded-3xl border border-gray-100 shadow-2xl p-6 md:p-8 space-y-6 ring-1 ring-gray-100">
+      <div className="max-w-3xl mx-auto rounded-3xl border border-white/30 shadow-2xl p-6 md:p-8 space-y-6 ring-1 ring-white/30 bg-white/50 backdrop-blur-2xl">
         <div className="space-y-2">
           <label className="block text-base font-semibold text-gray-800 flex items-center">
             <Scissors className="w-5 h-5 mr-2 text-green-600" />
@@ -705,7 +705,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
               setSelectedTime('');
               setCurrentView('monthly');
             }}
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base bg-white transition-all hover:border-gray-300 shadow-sm"
+            className="w-full px-4 py-3 border-2 border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base bg-white/70 transition-all hover:border-white shadow-lg backdrop-blur"
             disabled={isLoading}
           >
             <option value="">{isLoading ? 'Caricamento servizi...' : 'Seleziona un servizio'}</option>
@@ -732,7 +732,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
               setSelectedTime('');
               setCurrentView('monthly');
             }}
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base bg-white transition-all hover:border-gray-300 shadow-sm"
+            className="w-full px-4 py-3 border-2 border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base bg-white/70 transition-all hover:border-white shadow-lg backdrop-blur"
             disabled={!selectedService || isLoading}
           >
             <option value="">{isLoading ? 'Caricamento barbieri...' : 'Seleziona un barbiere'}</option>
@@ -745,7 +745,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
         </div>
 
         {bookingDuration && selectedBarber && (
-          <div className="mt-2 p-4 bg-green-50 border border-green-200 rounded-xl shadow-inner">
+          <div className="mt-2 p-4 bg-green-50/70 border border-green-200/70 rounded-xl shadow-inner backdrop-blur">
             <p className="text-sm text-green-800">
               <span className="font-semibold">Durata appuntamento:</span> {bookingDuration} minuti.
               Mostriamo solo slot con almeno questo tempo libero entro 6 mesi.
@@ -756,11 +756,11 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
 
       {/* Calendar View */}
       {!shopHoursLoaded ? (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center text-gray-600">
+        <div className="bg-white/40 border border-white/30 rounded-2xl p-6 text-center text-gray-700 shadow-lg backdrop-blur-xl">
           Caricamento orari del negozio...
         </div>
       ) : !bookingDuration || !selectedBarber ? (
-        <div className="text-center py-12 text-gray-500 bg-gray-50 border border-gray-200 rounded-lg">
+        <div className="text-center py-12 text-gray-700 bg-white/40 border border-white/30 rounded-2xl shadow-lg backdrop-blur-xl">
           <p className="text-lg font-semibold">Seleziona servizio e barbiere</p>
           <p className="text-sm mt-1">Poi vedrai il calendario mensile con gli orari disponibili.</p>
         </div>

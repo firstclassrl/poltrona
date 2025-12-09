@@ -46,7 +46,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
     { id: 'settings', label: 'Opzioni', icon: Settings, permission: 'shop' },
     // { id: 'analytics', label: 'Analisi', icon: BarChart3, permission: 'analytics' }, // Temporaneamente nascosto
     { id: 'client_profile', label: 'Il Mio Profilo', icon: UserCheck, permission: 'client_profile' },
-    { id: 'client_bookings', label: 'Le mie prenotazioni', icon: ListChecks, permission: 'client_bookings' },
+    { id: 'client_bookings', label: 'Le Mie Prenotazioni', icon: ListChecks, permission: 'client_bookings' },
     { id: 'client_booking', label: 'Prenota', icon: Calendar, permission: 'client_booking' },
   ];
 
@@ -103,9 +103,9 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const showChatBadge = item.id === 'chat' && chatUnreadCount > 0;
-                // Mostra "Il tuo Barbiere" per i clienti, altrimenti la label originale
+                // Mostra "Il Mio Barbiere" per i clienti, altrimenti la label originale
                 const displayLabel = item.id === 'shop' && user?.role === 'client' 
-                  ? 'Il tuo Barbiere' 
+                  ? 'Il Mio Barbiere' 
                   : item.label;
                 return (
                   <button
@@ -201,9 +201,9 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
           {navItems.map((item) => {
             const Icon = item.icon;
             const showChatBadge = item.id === 'chat' && chatUnreadCount > 0;
-            // Mostra "Il tuo Barbiere" per i clienti, altrimenti la label originale
+            // Mostra "Il Mio Barbiere" per i clienti, altrimenti la label originale
             const displayLabel = item.id === 'shop' && user?.role === 'client' 
-              ? 'Il tuo Barbiere' 
+              ? 'Il Mio Barbiere' 
               : item.label;
             return (
               <button

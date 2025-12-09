@@ -122,7 +122,8 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-green-900 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-green-900 flex items-center justify-center p-4 relative overflow-hidden login-liquid">
+      <div className="login-grain"></div>
       {/* Pattern di sfondo */}
       <div className="absolute inset-0 opacity-10">
         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
@@ -145,7 +146,7 @@ export const Login: React.FC = () => {
       <div className="absolute inset-0 bg-gradient-to-t from-green-950/30 via-transparent to-green-950/30"></div>
       
       {/* Card principale - sopra il pattern */}
-      <Card className="w-full max-w-md p-8 bg-green-500 border border-green-600 shadow-2xl relative z-10">
+      <Card className="w-full max-w-md p-8 bg-green-500 border border-green-600 shadow-2xl relative z-10 login-card-glass">
         <div className="text-center mb-8">
           <div className="w-20 h-20 mx-auto mb-4">
             <img 
