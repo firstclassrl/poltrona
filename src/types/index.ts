@@ -106,6 +106,7 @@ export interface Shop {
   description?: string;
   products_enabled?: boolean; // Controlla se il sistema prodotti è abilitato
   auto_close_holidays?: boolean; // Se true, chiude automaticamente nei giorni festivi nazionali italiani
+  calendar_view_mode?: 'split' | 'full'; // 'split' = diviso tra mattina e pomeriggio, 'full' = giornata intera
   vacation_period?: VacationPeriod | null;
   extra_opening_date?: string | null;
   extra_morning_start?: string | null;

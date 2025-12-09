@@ -12,12 +12,14 @@ import { useAppointments } from '../hooks/useAppointments';
 import { useVacationMode } from '../hooks/useVacationMode';
 import { AppointmentForm } from './AppointmentForm';
 import { DeleteConfirmation } from './DeleteConfirmation';
-import type { Appointment } from '../types';
+import { apiService } from '../services/api';
+import type { Appointment, Shop } from '../types';
 
 export const Calendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedChair, setSelectedChair] = useState('all');
   const [timePeriod, setTimePeriod] = useState<'morning' | 'afternoon'>('morning');
+  const [calendarViewMode, setCalendarViewMode] = useState<'split' | 'full'>('split');
   const { shopHours, getAvailableTimeSlots, isDateOpen, getShopHoursSummary, shopHoursLoaded } = useDailyShopHours();
   const { getAssignedChairs } = useChairAssignment();
   const { appointments, createAppointment, deleteAppointment, loadAppointments } = useAppointments();
@@ -49,7 +51,7 @@ export const Calendar = () => {
 
   const handleEmptySlotClick = (day: Date, time: string) => {
     // Check if slot is available
-    const dayTimeSlots = getTimeSlotsForDate(day, timePeriod);
+    const dayTimeSlots = getTimeSlotsForDate(day, calendarViewMode === 'split' ? timePeriod : undefined);
     if (!dayTimeSlots.includes(time)) return;
     
     // Check if slot is already occupied
@@ -88,6 +90,42 @@ export const Calendar = () => {
 
   const weekDays = getWeekDays();
   
+  // Load calendar view mode from shop
+  useEffect(() => {
+    const loadCalendarViewMode = async () => {
+      try {
+        const shop = await apiService.getShop();
+        setCalendarViewMode(shop.calendar_view_mode ?? 'split');
+      } catch (error) {
+        console.error('Error loading calendar view mode:', error);
+        // Fallback to local storage or default
+        const localShop = localStorage.getItem('localShopData');
+        if (localShop) {
+          try {
+            const parsed: Shop = JSON.parse(localShop);
+            setCalendarViewMode(parsed.calendar_view_mode ?? 'split');
+          } catch (e) {
+            // Use default
+            setCalendarViewMode('split');
+          }
+        }
+      }
+    };
+
+    loadCalendarViewMode();
+
+    // Listen for calendar view mode updates
+    const handleCalendarViewModeUpdate = (event: CustomEvent) => {
+      setCalendarViewMode(event.detail);
+    };
+
+    window.addEventListener('calendar-view-mode-updated', handleCalendarViewModeUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('calendar-view-mode-updated', handleCalendarViewModeUpdate as EventListener);
+    };
+  }, []);
+
   // Mobile detection
   useEffect(() => {
     const checkMobile = () => {
@@ -141,7 +179,7 @@ export const Calendar = () => {
   };
   
   // Usa gli orari del negozio per generare i time slots filtrati per periodo
-  const getTimeSlotsForDate = (date: Date, period: 'morning' | 'afternoon') => {
+  const getTimeSlotsForDate = (date: Date, period?: 'morning' | 'afternoon') => {
     if (!shopHoursLoaded) return [];
     const dayOfWeek = date.getDay();
     const dayHours = shopHours[dayOfWeek];
@@ -150,20 +188,15 @@ export const Calendar = () => {
     
     const filteredSlots: string[] = [];
     
-    dayHours.timeSlots.forEach((slot, index) => {
-      const [startHours, startMinutes] = slot.start.split(':').map(Number);
-      const [endHours, endMinutes] = slot.end.split(':').map(Number);
-      const startTime = startHours * 60 + startMinutes;
-      const endTime = endHours * 60 + endMinutes;
-      
-      // Determina se questo slot appartiene al periodo mattina o pomeriggio
-      // Mattina: primo slot (index 0) o slot che inizia prima delle 13:00
-      // Pomeriggio: secondo slot (index 1) o slot che inizia dalle 13:00 in poi
-      const isMorningSlot = index === 0 && startTime < 13 * 60;
-      const isAfternoonSlot = index > 0 || startTime >= 13 * 60;
-      
-      if ((period === 'morning' && isMorningSlot) || (period === 'afternoon' && isAfternoonSlot)) {
-        // Genera gli slot per questo timeSlot
+    // Se calendar_view_mode è 'full', mostra tutti gli slot senza filtrare per periodo
+    if (calendarViewMode === 'full') {
+      dayHours.timeSlots.forEach((slot) => {
+        const [startHours, startMinutes] = slot.start.split(':').map(Number);
+        const [endHours, endMinutes] = slot.end.split(':').map(Number);
+        const startTime = startHours * 60 + startMinutes;
+        const endTime = endHours * 60 + endMinutes;
+        
+        // Genera tutti gli slot per questo timeSlot
         let currentTime = startTime;
         const slotDurationMinutes = 15;
         
@@ -174,15 +207,43 @@ export const Calendar = () => {
           filteredSlots.push(timeString);
           currentTime += slotDurationMinutes;
         }
-      }
-    });
+      });
+    } else {
+      // Modalità 'split': filtra per periodo mattina/pomeriggio
+      dayHours.timeSlots.forEach((slot, index) => {
+        const [startHours, startMinutes] = slot.start.split(':').map(Number);
+        const [endHours, endMinutes] = slot.end.split(':').map(Number);
+        const startTime = startHours * 60 + startMinutes;
+        const endTime = endHours * 60 + endMinutes;
+        
+        // Determina se questo slot appartiene al periodo mattina o pomeriggio
+        // Mattina: primo slot (index 0) o slot che inizia prima delle 13:00
+        // Pomeriggio: secondo slot (index 1) o slot che inizia dalle 13:00 in poi
+        const isMorningSlot = index === 0 && startTime < 13 * 60;
+        const isAfternoonSlot = index > 0 || startTime >= 13 * 60;
+        
+        if ((period === 'morning' && isMorningSlot) || (period === 'afternoon' && isAfternoonSlot)) {
+          // Genera gli slot per questo timeSlot
+          let currentTime = startTime;
+          const slotDurationMinutes = 15;
+          
+          while (currentTime + slotDurationMinutes <= endTime) {
+            const hours = Math.floor(currentTime / 60);
+            const minutes = currentTime % 60;
+            const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            filteredSlots.push(timeString);
+            currentTime += slotDurationMinutes;
+          }
+        }
+      });
+    }
     
     return filteredSlots.sort();
   };
 
   // Calcola l'insieme degli slot per l'intera settimana in base al turno selezionato
   // Evita che la griglia si limiti agli slot del primo giorno (che potrebbe non avere orario continuato)
-  const getWeekTimeSlots = (period: 'morning' | 'afternoon') => {
+  const getWeekTimeSlots = (period?: 'morning' | 'afternoon') => {
     const all = weekDays
       .flatMap((d) => getTimeSlotsForDate(d, period))
       .filter(Boolean);
@@ -260,27 +321,29 @@ export const Calendar = () => {
             ]}
           />
           
-          {/* Controlli Mattina/Pomeriggio */}
-          <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
-            <Button
-              variant={timePeriod === 'morning' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setTimePeriod('morning')}
-              className="flex items-center space-x-1"
-            >
-              <Sun className="w-4 h-4" />
-              <span>Mattina</span>
-            </Button>
-            <Button
-              variant={timePeriod === 'afternoon' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setTimePeriod('afternoon')}
-              className="flex items-center space-x-1"
-            >
-              <Moon className="w-4 h-4" />
-              <span>Pomeriggio</span>
-            </Button>
-          </div>
+          {/* Controlli Mattina/Pomeriggio - Solo se modalità split */}
+          {calendarViewMode === 'split' && (
+            <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+              <Button
+                variant={timePeriod === 'morning' ? 'primary' : 'ghost'}
+                size="sm"
+                onClick={() => setTimePeriod('morning')}
+                className="flex items-center space-x-1"
+              >
+                <Sun className="w-4 h-4" />
+                <span>Mattina</span>
+              </Button>
+              <Button
+                variant={timePeriod === 'afternoon' ? 'primary' : 'ghost'}
+                size="sm"
+                onClick={() => setTimePeriod('afternoon')}
+                className="flex items-center space-x-1"
+              >
+                <Moon className="w-4 h-4" />
+                <span>Pomeriggio</span>
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -352,14 +415,14 @@ export const Calendar = () => {
             <div className="grid gap-1 overflow-hidden" style={{ gridTemplateColumns: `60px repeat(${weekDays.length}, minmax(0, 1fr))` }}>
               {/* Usa l'unione degli slot della settimana per costruire la griglia */}
               {(() => {
-                const gridTimeSlots = getWeekTimeSlots(timePeriod);
+                const gridTimeSlots = getWeekTimeSlots(calendarViewMode === 'split' ? timePeriod : undefined);
                 return gridTimeSlots.map((time) => (
                   <React.Fragment key={time}>
                     <div className="p-2 text-right text-sm text-gray-600 border-r border-gray-200">
                       {time}
                     </div>
                     {weekDays.map((day, dayIndex) => {
-                      const dayTimeSlots = getTimeSlotsForDate(day, timePeriod);
+                      const dayTimeSlots = getTimeSlotsForDate(day, calendarViewMode === 'split' ? timePeriod : undefined);
                       const isTimeSlotAvailable = dayTimeSlots.includes(time);
                       const appointmentAtSlot = getAppointmentAtSlot(day, time);
                       const slotCount = appointmentAtSlot ? getAppointmentSlotCount(appointmentAtSlot) : 0;
@@ -473,27 +536,29 @@ export const Calendar = () => {
 
           {/* Mobile Filters */}
           <div className="space-y-4">
-            {/* Morning/Afternoon Toggle */}
-            <div className="flex items-center justify-center space-x-2 bg-gray-100 rounded-lg p-1">
-              <Button
-                variant={timePeriod === 'morning' ? 'primary' : 'ghost'}
-                size="lg"
-                onClick={() => setTimePeriod('morning')}
-                className="flex items-center space-x-2 flex-1"
-              >
-                <Sun className="w-5 h-5" />
-                <span>Mattina</span>
-              </Button>
-              <Button
-                variant={timePeriod === 'afternoon' ? 'primary' : 'ghost'}
-                size="lg"
-                onClick={() => setTimePeriod('afternoon')}
-                className="flex items-center space-x-2 flex-1"
-              >
-                <Moon className="w-5 h-5" />
-                <span>Pomeriggio</span>
-              </Button>
-            </div>
+            {/* Morning/Afternoon Toggle - Solo se modalità split */}
+            {calendarViewMode === 'split' && (
+              <div className="flex items-center justify-center space-x-2 bg-gray-100 rounded-lg p-1">
+                <Button
+                  variant={timePeriod === 'morning' ? 'primary' : 'ghost'}
+                  size="lg"
+                  onClick={() => setTimePeriod('morning')}
+                  className="flex items-center space-x-2 flex-1"
+                >
+                  <Sun className="w-5 h-5" />
+                  <span>Mattina</span>
+                </Button>
+                <Button
+                  variant={timePeriod === 'afternoon' ? 'primary' : 'ghost'}
+                  size="lg"
+                  onClick={() => setTimePeriod('afternoon')}
+                  className="flex items-center space-x-2 flex-1"
+                >
+                  <Moon className="w-5 h-5" />
+                  <span>Pomeriggio</span>
+                </Button>
+              </div>
+            )}
 
             {/* Chair Filter */}
             <div className="flex items-center justify-between">
@@ -559,8 +624,14 @@ export const Calendar = () => {
                 </div>
               </Card>
             ) : isDateOpen(currentDay) ? (
-              getFilteredAppointmentsForDay(currentDay, timePeriod).length > 0 ? (
-                getFilteredAppointmentsForDay(currentDay, timePeriod).map((appointment) => (
+              (calendarViewMode === 'full' 
+                ? getAppointmentsForDay(currentDay)
+                : getFilteredAppointmentsForDay(currentDay, timePeriod)
+              ).length > 0 ? (
+                (calendarViewMode === 'full' 
+                  ? getAppointmentsForDay(currentDay)
+                  : getFilteredAppointmentsForDay(currentDay, timePeriod)
+                ).map((appointment) => (
                   <Card 
                     key={appointment.id} 
                     className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
@@ -629,7 +700,7 @@ export const Calendar = () => {
                   <div className="text-gray-500">
                     <Clock className="w-12 h-12 mx-auto mb-3" />
                     <p className="text-lg font-medium">Nessun appuntamento</p>
-                    <p className="text-sm">in questo periodo per {currentDay.toLocaleDateString('it-IT')}</p>
+                    <p className="text-sm">per {currentDay.toLocaleDateString('it-IT')}</p>
                   </div>
                 </Card>
               )

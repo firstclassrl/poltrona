@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Building2, MapPin, Edit, Save, X, Lock, CalendarPlus, Package, Clock, Sun, Flag } from 'lucide-react';
+import { Building2, MapPin, Edit, Save, X, Lock, CalendarPlus, Package, Clock, Sun, Flag, Calendar } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -108,6 +108,10 @@ export const ShopManagement = () => {
   const [isEditingAutoCloseHolidays, setIsEditingAutoCloseHolidays] = useState(false);
   const [isSavingAutoCloseHolidays, setIsSavingAutoCloseHolidays] = useState(false);
   const [autoCloseHolidaysMessage, setAutoCloseHolidaysMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [calendarViewMode, setCalendarViewMode] = useState<'split' | 'full'>('split');
+  const [isEditingCalendarView, setIsEditingCalendarView] = useState(false);
+  const [isSavingCalendarView, setIsSavingCalendarView] = useState(false);
+  const [calendarViewMessage, setCalendarViewMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
   const { vacationPeriod, setVacationPeriod, clearVacationPeriod } = useVacationMode();
 
@@ -180,6 +184,8 @@ export const ShopManagement = () => {
       const enabled = syncedShop.products_enabled ?? true;
  
       setProductsEnabled(enabled);
+      setAutoCloseHolidays(syncedShop.auto_close_holidays ?? true);
+      setCalendarViewMode(syncedShop.calendar_view_mode ?? 'split');
       setExtraOpeningForm({
         date: formatDateForDisplay(syncedShop.extra_opening_date),
         morningStart: syncedShop.extra_morning_start ?? '',
@@ -206,6 +212,7 @@ export const ShopManagement = () => {
         });
         setProductsEnabled(syncedShop.products_enabled ?? true);
         setAutoCloseHolidays(syncedShop.auto_close_holidays ?? true);
+        setCalendarViewMode(syncedShop.calendar_view_mode ?? 'split');
         setExtraOpeningForm({
           date: formatDateForDisplay(syncedShop.extra_opening_date),
           morningStart: syncedShop.extra_morning_start ?? '',
@@ -507,6 +514,40 @@ export const ShopManagement = () => {
       showMessage(setAutoCloseHolidaysMessage, 'error', 'Errore durante il salvataggio. Riprova.', 5000);
     } finally {
       setIsSavingAutoCloseHolidays(false);
+    }
+  };
+
+  const handleCancelCalendarView = () => {
+    if (shop) {
+      setCalendarViewMode(shop.calendar_view_mode ?? 'split');
+    }
+    setIsEditingCalendarView(false);
+  };
+
+  const handleSaveCalendarView = async () => {
+    if (!shop) {
+      showMessage(setCalendarViewMessage, 'error', 'Impossibile salvare: dati negozio non disponibili.', 5000);
+      return;
+    }
+
+    setIsSavingCalendarView(true);
+    try {
+      const updatedShop: Shop = {
+        ...shop,
+        calendar_view_mode: calendarViewMode,
+      };
+      await apiService.updateShop(updatedShop);
+      persistShopLocally(updatedShop);
+      setShop(updatedShop);
+      setIsEditingCalendarView(false);
+      showMessage(setCalendarViewMessage, 'success', 'Impostazione visualizzazione calendario aggiornata!');
+      // Notifica il componente Calendar del cambiamento
+      window.dispatchEvent(new CustomEvent('calendar-view-mode-updated', { detail: calendarViewMode }));
+    } catch (error) {
+      console.error('Error saving calendar view mode setting:', error);
+      showMessage(setCalendarViewMessage, 'error', 'Errore durante il salvataggio. Riprova.', 5000);
+    } finally {
+      setIsSavingCalendarView(false);
     }
   };
 
@@ -1218,6 +1259,120 @@ export const ShopManagement = () => {
               {!isEditingAutoCloseHolidays && (
                 <p className="text-xs text-gray-500">
                   Clicca su Modifica per cambiare l'impostazione.
+                </p>
+              )}
+            </div>
+          </Card>
+
+          <Card className="!border-2 !border-blue-400">
+            <div className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Calendar className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900">Visualizzazione Calendario</h3>
+                    <p className="text-sm text-gray-600">Scegli come visualizzare il calendario: diviso tra mattina e pomeriggio o giornata intera.</p>
+                  </div>
+                </div>
+                {!isEditingCalendarView ? (
+                  <Button
+                    onClick={() => setIsEditingCalendarView(true)}
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Modifica
+                  </Button>
+                ) : (
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleCancelCalendarView}
+                      disabled={isSavingCalendarView}
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Annulla
+                    </Button>
+                    <Button
+                      onClick={handleSaveCalendarView}
+                      size="sm"
+                      loading={isSavingCalendarView}
+                      disabled={isSavingCalendarView}
+                      className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      Salva
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {calendarViewMessage && (
+                <div
+                  className={`p-3 rounded-lg ${
+                    calendarViewMessage.type === 'success'
+                      ? 'bg-blue-50 border border-blue-200 text-blue-800'
+                      : 'bg-red-50 border border-red-200 text-red-800'
+                  }`}
+                >
+                  <p className="text-sm font-medium">{calendarViewMessage.text}</p>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Modalità di visualizzazione
+                  </label>
+                  <div className="space-y-2">
+                    <label className={`flex items-center p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                      calendarViewMode === 'split'
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    } ${!isEditingCalendarView ? 'opacity-60 cursor-not-allowed' : ''}`}>
+                      <input
+                        type="radio"
+                        name="calendarViewMode"
+                        value="split"
+                        checked={calendarViewMode === 'split'}
+                        onChange={(e) => isEditingCalendarView && setCalendarViewMode(e.target.value as 'split' | 'full')}
+                        disabled={!isEditingCalendarView}
+                        className="mr-3"
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">Diviso (Mattina / Pomeriggio)</div>
+                        <div className="text-sm text-gray-600">Il calendario mostra separatamente la mattina e il pomeriggio con toggle per passare tra le due viste.</div>
+                      </div>
+                    </label>
+                    <label className={`flex items-center p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                      calendarViewMode === 'full'
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    } ${!isEditingCalendarView ? 'opacity-60 cursor-not-allowed' : ''}`}>
+                      <input
+                        type="radio"
+                        name="calendarViewMode"
+                        value="full"
+                        checked={calendarViewMode === 'full'}
+                        onChange={(e) => isEditingCalendarView && setCalendarViewMode(e.target.value as 'split' | 'full')}
+                        disabled={!isEditingCalendarView}
+                        className="mr-3"
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">Giornata Intera</div>
+                        <div className="text-sm text-gray-600">Il calendario mostra l'intera giornata in un'unica vista senza divisione tra mattina e pomeriggio.</div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {!isEditingCalendarView && (
+                <p className="text-xs text-gray-500">
+                  Clicca su Modifica per cambiare la modalità di visualizzazione del calendario.
                 </p>
               )}
             </div>
