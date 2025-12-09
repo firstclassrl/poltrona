@@ -7,6 +7,7 @@ import { Products } from './components/Products';
 import { Services } from './components/Services';
 import { BarberProfile } from './components/BarberProfile';
 import { ShopManagement } from './components/Shop';
+import { Settings } from './components/Settings';
 import { AppointmentForm } from './components/AppointmentForm';
 import { Login } from './components/Login';
 import { ClientProfile } from './components/ClientProfile';
@@ -130,6 +131,8 @@ const AppContent: React.FC = () => {
         return <BarberProfile />;
       case 'shop':
         return <ShopManagement />;
+      case 'settings':
+        return <Settings />;
       case 'client_profile':
         return <ClientProfile />;
       case 'client_bookings':

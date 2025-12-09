@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Home, ShoppingBag, User, Building2, LogOut, UserCheck, MessageCircle, Scissors, Bell, ListChecks } from 'lucide-react';
+import { Calendar, Users, Home, ShoppingBag, User, Building2, LogOut, UserCheck, MessageCircle, Scissors, Bell, ListChecks, Settings } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../contexts/NotificationContext';
@@ -43,6 +43,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
     { id: 'chat', label: 'Chat', icon: MessageCircle, permission: 'chat' },
     { id: 'profile', label: 'Profilo', icon: User, permission: 'profile' },
     { id: 'shop', label: 'Negozio', icon: Building2, permission: 'shop' },
+    { id: 'settings', label: 'Opzioni', icon: Settings, permission: 'shop' },
     // { id: 'analytics', label: 'Analisi', icon: BarChart3, permission: 'analytics' }, // Temporaneamente nascosto
     { id: 'client_profile', label: 'Il Mio Profilo', icon: UserCheck, permission: 'client_profile' },
     { id: 'client_bookings', label: 'Le mie prenotazioni', icon: ListChecks, permission: 'client_bookings' },
@@ -60,6 +61,10 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
       if (!areProductsEnabled) {
         return false;
       }
+    }
+    // Settings (Opzioni) only visible to admin
+    if (item.id === 'settings') {
+      return user?.role === 'admin';
     }
     return hasPermission(item.permission);
   });
