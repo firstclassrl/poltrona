@@ -11,7 +11,7 @@ DROP CONSTRAINT IF EXISTS notifications_type_check;
 
 ALTER TABLE public.notifications 
 ADD CONSTRAINT notifications_type_check 
-CHECK (type IN ('new_appointment', 'appointment_cancelled', 'appointment_reminder', 'system', 'waitlist_available', 'new_client'));
+CHECK (type IN ('new_appointment', 'appointment_cancelled', 'appointment_rescheduled', 'appointment_reminder', 'system', 'waitlist_available', 'new_client'));
 
 -- 2. Aggiungi una policy che permetta l'inserimento da funzioni SECURITY DEFINER
 -- Questa policy permette l'inserimento anche quando non c'è un utente autenticato

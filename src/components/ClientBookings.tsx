@@ -268,26 +268,7 @@ export const ClientBookings: React.FC = () => {
             },
           });
         } catch (notifErr) {
-          console.warn('Errore creazione notifica riprogrammazione (tentativo rescheduled), riprovo come new_appointment:', notifErr);
-          try {
-            await apiService.createNotification({
-              user_id: staffUserId,
-              user_type: 'staff',
-              type: 'new_appointment',
-              title: '🔄 Prenotazione aggiornata',
-              message: `${clientName} ha spostato ${serviceName} a ${appointmentDate} alle ${appointmentTime}`,
-              data: {
-                appointment_id: appointmentToReschedule.id,
-                client_name: clientName,
-                service_name: serviceName,
-                appointment_date: appointmentDate,
-                appointment_time: appointmentTime,
-                staff_id: appointmentToReschedule.staff_id,
-              },
-            });
-          } catch (fallbackErr) {
-            console.warn('Errore creazione notifica riprogrammazione (fallback new_appointment):', fallbackErr);
-          }
+          console.warn('Errore creazione notifica riprogrammazione (appointment_rescheduled):', notifErr);
         }
       }
 

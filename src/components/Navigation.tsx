@@ -167,7 +167,15 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                     Poltrona v{APP_VERSION}
                   </p>
                   <p className="text-xs text-yellow-300/70">
-                    © 2025 abruzzo.ai
+                    © 2025{' '}
+                    <a
+                      href="https://www.abruzzo.ai"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hover:text-yellow-200 underline"
+                    >
+                      abruzzo.ai
+                    </a>
                   </p>
                 </div>
               </div>
@@ -215,7 +223,15 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
         {/* Mobile Version Info */}
         <div className="text-center py-1 border-t border-yellow-400/20">
           <p className="text-xs text-yellow-300/70">
-            v{APP_VERSION} | © 2025 abruzzo.ai
+            v{APP_VERSION} | © 2025{' '}
+            <a
+              href="https://www.abruzzo.ai"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-yellow-200 underline"
+            >
+              abruzzo.ai
+            </a>
           </p>
         </div>
       </div>
