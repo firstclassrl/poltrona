@@ -417,7 +417,7 @@ export const ClientBookings: React.FC = () => {
             <Button
               variant="secondary"
               onClick={() => handleAddToCalendar(appointment)}
-              className="bg-green-600 hover:bg-green-700 text-white"
+              className="bg-green-600 hover:bg-green-700 text-white border-none focus:ring-green-600"
             >
               <CalendarPlus className="w-4 h-4 mr-2" />
               Aggiungi al calendario
@@ -425,7 +425,7 @@ export const ClientBookings: React.FC = () => {
             <Button
               variant="secondary"
               onClick={() => openRescheduleModal(appointment)}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
+              className="bg-orange-500 hover:bg-orange-600 text-white border-none focus:ring-orange-500"
             >
               <Pencil className="w-4 h-4 mr-2" />
               Modifica
