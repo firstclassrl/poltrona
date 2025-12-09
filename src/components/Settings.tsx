@@ -276,12 +276,12 @@ export const Settings = () => {
       };
 
       if (!isRangeValid(extraOpeningForm.morningStart, extraOpeningForm.morningEnd)) {
-        showMessage(setExtraOpeningMessage, 'error', 'La fascia mattina deve avere orario di chiusura successivo all'apertura.', 5000);
+        showMessage(setExtraOpeningMessage, 'error', 'La fascia mattina deve avere orario di chiusura successivo all\'apertura.', 5000);
         return;
       }
 
       if (!isRangeValid(extraOpeningForm.afternoonStart, extraOpeningForm.afternoonEnd)) {
-        showMessage(setExtraOpeningMessage, 'error', 'La fascia pomeriggio deve avere orario di chiusura successivo all'apertura.', 5000);
+        showMessage(setExtraOpeningMessage, 'error', 'La fascia pomeriggio deve avere orario di chiusura successivo all\'apertura.', 5000);
         return;
       }
 
@@ -318,7 +318,7 @@ export const Settings = () => {
       showMessage(setExtraOpeningMessage, 'success', successMessage);
     } catch (error) {
       console.error('Error saving extra opening:', error);
-      showMessage(setExtraOpeningMessage, 'error', 'Errore durante il salvataggio dell'apertura straordinaria.', 5000);
+      showMessage(setExtraOpeningMessage, 'error', 'Errore durante il salvataggio dell\'apertura straordinaria.', 5000);
     } finally {
       setIsSavingExtraOpening(false);
     }
