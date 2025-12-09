@@ -413,19 +413,19 @@ export const ClientBookings: React.FC = () => {
         </div>
 
         {canCancel && (
-          <div className="flex justify-end space-x-2">
+          <div className="flex flex-col sm:flex-row sm:justify-end gap-2 sm:space-x-2">
             <Button
-              variant="secondary"
+              variant="ghost"
               onClick={() => handleAddToCalendar(appointment)}
-              className="bg-green-600 hover:bg-green-700 text-white border-none focus:ring-green-600"
+              className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white border-none focus:ring-green-600"
             >
               <CalendarPlus className="w-4 h-4 mr-2" />
               Aggiungi al calendario
             </Button>
             <Button
-              variant="secondary"
+              variant="ghost"
               onClick={() => openRescheduleModal(appointment)}
-              className="bg-orange-500 hover:bg-orange-600 text-white border-none focus:ring-orange-500"
+              className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white border-none focus:ring-orange-500"
             >
               <Pencil className="w-4 h-4 mr-2" />
               Modifica

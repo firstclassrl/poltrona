@@ -26,8 +26,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
   
   const { appointments } = useAppointments();
   const upcomingAppointments = appointments.slice(0, 6);
+
+  const today = new Date();
+  const isToday = (dateString: string) => new Date(dateString).toDateString() === today.toDateString();
+  const activeStatuses = new Set(['scheduled', 'confirmed', 'in_progress', 'rescheduled', 'completed']);
+
+  const todayActiveAppointments = appointments.filter((appointment) => {
+    const status = appointment.status ? appointment.status.toLowerCase() : '';
+    return isToday(appointment.start_at) && activeStatuses.has(status);
+  });
+
+  const todayCompletedAppointments = todayActiveAppointments.filter(
+    (appointment) => (appointment.status ? appointment.status.toLowerCase() : '') === 'completed'
+  );
+
   const kpi = {
-    total_appointments: appointments.length,
+    total_appointments: todayActiveAppointments.length,
     no_shows: appointments.filter(a => a.status === 'no_show').length,
     estimated_revenue: appointments.reduce((sum, a) => sum + (a.services?.price_cents || 0), 0) / 100,
     completed_appointments: appointments.filter(a => a.status === 'completed').length,
@@ -175,17 +189,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-gray-600">Appuntamenti:</span>
-                <span className="font-semibold">{appointments.filter(a => {
-                  const today = new Date().toDateString();
-                  return new Date(a.start_at).toDateString() === today;
-                }).length}</span>
+                  <span className="font-semibold">{todayActiveAppointments.length}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Completati:</span>
-                <span className="font-semibold text-green-600">{appointments.filter(a => {
-                  const today = new Date().toDateString();
-                  return new Date(a.start_at).toDateString() === today && a.status === 'completed';
-                }).length}</span>
+                  <span className="font-semibold text-green-600">{todayCompletedAppointments.length}</span>
               </div>
             </div>
           </Card>
