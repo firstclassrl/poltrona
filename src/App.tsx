@@ -7,6 +7,7 @@ import { Products } from './components/Products';
 import { Services } from './components/Services';
 import { BarberProfile } from './components/BarberProfile';
 import { ShopManagement } from './components/Shop';
+import { ClientShop } from './components/ClientShop';
 import { Settings } from './components/Settings';
 import { AppointmentForm } from './components/AppointmentForm';
 import { Login } from './components/Login';
@@ -130,7 +131,10 @@ const AppContent: React.FC = () => {
       case 'profile':
         return <BarberProfile />;
       case 'shop':
-        return <ShopManagement />;
+        // Mostra ClientShop per i clienti, ShopManagement per admin/barbieri
+        return user?.role === 'client' ? (
+          <ClientShop />
+        ) : <ShopManagement />;
       case 'settings':
         return <Settings />;
       case 'client_profile':

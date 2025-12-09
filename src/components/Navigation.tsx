@@ -103,6 +103,10 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const showChatBadge = item.id === 'chat' && chatUnreadCount > 0;
+                // Mostra "Il tuo Barbiere" per i clienti, altrimenti la label originale
+                const displayLabel = item.id === 'shop' && user?.role === 'client' 
+                  ? 'Il tuo Barbiere' 
+                  : item.label;
                 return (
                   <button
                     key={item.id}
@@ -117,7 +121,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                     )}
                   >
                     <Icon className="mr-3 h-5 w-5" />
-                    {item.label}
+                    {displayLabel}
                     {showChatBadge && (
                       <span className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center min-w-[20px] h-[20px] px-1.5 text-xs font-bold text-white bg-red-500 rounded-full animate-pulse">
                         {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
@@ -197,6 +201,10 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
           {navItems.map((item) => {
             const Icon = item.icon;
             const showChatBadge = item.id === 'chat' && chatUnreadCount > 0;
+            // Mostra "Il tuo Barbiere" per i clienti, altrimenti la label originale
+            const displayLabel = item.id === 'shop' && user?.role === 'client' 
+              ? 'Il tuo Barbiere' 
+              : item.label;
             return (
               <button
                 key={item.id}
@@ -218,7 +226,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                     </span>
                   )}
                 </div>
-                <span className="text-xs font-medium">{item.label}</span>
+                <span className="text-xs font-medium">{displayLabel}</span>
               </button>
             );
           })}
