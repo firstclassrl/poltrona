@@ -44,14 +44,19 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
   const staffIdRef = useRef<string | null>(null);
 
-  const loadChats = async (): Promise<Chat[]> => {
+  const initialLoadDone = useRef(false);
+
+  const loadChats = async (options?: { silent?: boolean }): Promise<Chat[]> => {
+    const silent = options?.silent;
     // Non caricare chat se l'utente non è autenticato
     if (!isAuthenticated || !user) {
       setChats([]);
       return [];
     }
 
-    setIsLoading(true);
+    if (!silent && !initialLoadDone.current) {
+      setIsLoading(true);
+    }
     try {
       let chatsData = await apiService.getChats();
       
@@ -60,7 +65,14 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         // Ottieni il client_id dell'utente corrente
         const clientId = await getClientIdForUser();
         if (clientId) {
-          chatsData = chatsData.filter(chat => chat.client_id === clientId);
+          chatsData = chatsData
+            .filter(chat => chat.client_id === clientId)
+            .map(chat => {
+              const lastMsg = chat.last_message;
+              const unreadFromStaff = lastMsg && lastMsg.sender_type === 'staff' && !lastMsg.read_at;
+              const computedUnread = chat.unread_count ?? 0;
+              return { ...chat, unread_count: Math.max(computedUnread, unreadFromStaff ? 1 : 0) };
+            });
         } else {
           // Se non riesci a trovare il client_id, non mostrare nessuna chat
           chatsData = [];
@@ -74,7 +86,10 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       setChats([]);
       return [];
     } finally {
-      setIsLoading(false);
+      if (!silent) {
+        setIsLoading(false);
+      }
+      initialLoadDone.current = true;
     }
   };
 
@@ -285,15 +300,26 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     }
 
     loadChats();
-    
-    // Polling per aggiornare le chat ogni 5 secondi (solo se autenticato)
+
+    // Polling leggero ogni 12s senza toccare lo stato di loading
     const interval = setInterval(() => {
       if (isAuthenticated && user) {
-        loadChats();
+        loadChats({ silent: true });
       }
-    }, 5000);
+    }, 12000);
+
+    // Aggiorna quando la finestra torna in focus (senza flicker)
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        loadChats({ silent: true });
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
     
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [user, isAuthenticated]);
 
   useEffect(() => {

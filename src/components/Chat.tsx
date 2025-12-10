@@ -380,6 +380,7 @@ export const Chat: React.FC = () => {
                               setShowChatList(true);
                             } catch (err) {
                               console.error('Errore eliminazione chat:', err);
+                              alert('Impossibile eliminare la chat. Riprova o verifica la connessione.');
                             } finally {
                               setChatBeingDeleted(null);
                             }
