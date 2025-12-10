@@ -142,7 +142,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return 'bg-yellow-500 text-black';
   };
   return (
-    <div className="min-h-screen p-4 md:p-6">
+    <div className="min-h-screen p-2 md:p-3">
       <div
         className="w-full space-y-8 rounded-3xl p-4 md:p-6"
         style={{
