@@ -18,6 +18,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
   const { unreadCount: notificationUnreadCount } = useNotifications();
   const { unreadCount: chatUnreadCount } = useChat();
   const [shop, setShop] = useState<Shop | null>(null);
+  const [shopLogoUrl, setShopLogoUrl] = useState<string | null>(null);
 
   // Load shop data to check products_enabled (only when authenticated)
   useEffect(() => {
@@ -33,6 +34,24 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
     };
     loadShopData();
   }, [user]);
+
+  // Load signed logo when shop changes
+  useEffect(() => {
+    const fetchLogo = async () => {
+      if (shop?.logo_path) {
+        try {
+          const signed = await apiService.getSignedShopLogoUrl(shop.logo_path);
+          setShopLogoUrl(signed);
+        } catch (e) {
+          console.error('Error loading shop logo:', e);
+          setShopLogoUrl(null);
+        }
+      } else {
+        setShopLogoUrl(null);
+      }
+    };
+    fetchLogo();
+  }, [shop?.logo_path]);
 
   const allNavItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, permission: 'dashboard' },
@@ -90,8 +109,8 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
             {/* Logo Section */}
             <div className="flex items-center justify-center flex-shrink-0 px-4 mb-6">
               <img 
-                src="/Logo retro barbershop glass copy copy.png" 
-                alt="Retro Barbershop Logo" 
+                src={shopLogoUrl || '/poltrona-placeholder-logo.png'} 
+                alt="Logo negozio" 
                 className="w-32 h-32 object-contain filter brightness-110"
               />
             </div>
