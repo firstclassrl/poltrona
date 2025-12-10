@@ -9,6 +9,10 @@ interface PhotoUploadProps {
   accept?: string;
   maxSize?: number; // in MB
   className?: string;
+  allowPdf?: boolean;
+  title?: string;
+  subtitle?: string;
+  helper?: string;
 }
 
 export const PhotoUpload = ({
@@ -18,6 +22,10 @@ export const PhotoUpload = ({
   accept = 'image/*',
   maxSize = 5,
   className = '',
+  allowPdf = false,
+  title = 'Trascina un file qui',
+  subtitle = 'o seleziona un file',
+  helper = 'PNG, JPG, GIF fino a 5MB',
 }: PhotoUploadProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -33,9 +41,11 @@ export const PhotoUpload = ({
       return;
     }
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      setError('Solo file immagine sono permessi.');
+    // Validate file type (immagini) e opzionale PDF
+    const isImage = file.type.startsWith('image/');
+    const isPdf = file.type === 'application/pdf';
+    if (!isImage && !(allowPdf && isPdf)) {
+      setError(allowPdf ? 'Sono permessi solo immagini o PDF.' : 'Solo file immagine sono permessi.');
       return;
     }
 
@@ -131,19 +141,24 @@ export const PhotoUpload = ({
             
             <div>
               <p className="text-sm font-medium text-gray-900">
-                {isUploading ? 'Caricamento...' : 'Trascina un\'immagine qui'}
+                {isUploading ? 'Caricamento...' : title}
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                o <button
-                  type="button"
-                  onClick={openFileDialog}
-                  className="text-blue-600 hover:text-blue-500 underline"
-                >
-                  seleziona un file
-                </button>
+                {isUploading ? null : (
+                  <>
+                    {subtitle}{' '}
+                    <button
+                      type="button"
+                      onClick={openFileDialog}
+                      className="text-blue-600 hover:text-blue-500 underline"
+                    >
+                      seleziona
+                    </button>
+                  </>
+                )}
               </p>
               <p className="text-xs text-gray-400 mt-2">
-                PNG, JPG, GIF fino a {maxSize}MB
+                {helper || `PNG, JPG${allowPdf ? ', PDF' : ''} fino a ${maxSize}MB`}
               </p>
             </div>
           </div>

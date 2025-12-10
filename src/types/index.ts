@@ -104,6 +104,8 @@ export interface Shop {
   opening_hours?: string;
   opening_date?: string;
   description?: string;
+  logo_url?: string | null;
+  logo_path?: string | null;
   products_enabled?: boolean; // Controlla se il sistema prodotti è abilitato
   auto_close_holidays?: boolean; // Se true, chiude automaticamente nei giorni festivi nazionali italiani
   calendar_view_mode?: 'split' | 'full'; // 'split' = diviso tra mattina e pomeriggio, 'full' = giornata intera

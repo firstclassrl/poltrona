@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Building2, MapPin, Edit, Save, X, Clock } from 'lucide-react';
+import { Building2, MapPin, Edit, Save, X, Clock, Image as ImageIcon, FileText } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { DailyHoursManager } from './DailyHoursManager';
 import { apiService } from '../services/api';
 import type { Shop } from '../types';
+import { PhotoUpload } from './PhotoUpload';
 
 const formatDateForDisplay = (isoDate?: string | null): string => {
   if (!isoDate) return '';
@@ -79,6 +80,9 @@ export const ShopManagement = () => {
     notification_email: '',
     description: '',
   });
+  const [logoUrl, setLogoUrl] = useState<string>('');
+  const [logoPath, setLogoPath] = useState<string>('');
+  const [logoMessage, setLogoMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isEditingHours, setIsEditingHours] = useState(false);
 
   const showMessage = (
@@ -125,6 +129,18 @@ export const ShopManagement = () => {
         notification_email: (syncedShop as any).notification_email || '',
         description: syncedShop.description || '',
       });
+      setLogoPath((syncedShop as any).logo_path || '');
+      if ((syncedShop as any).logo_path) {
+        try {
+          const signed = await apiService.getSignedShopLogoUrl((syncedShop as any).logo_path);
+          setLogoUrl(signed);
+        } catch (e) {
+          console.error('Error signing logo URL', e);
+          setLogoUrl('');
+        }
+      } else {
+        setLogoUrl('');
+      }
     } catch (error) {
       console.error('Error loading shop data:', error);
       const localShop = loadShopFromLocal();
@@ -142,6 +158,18 @@ export const ShopManagement = () => {
           notification_email: (syncedShop as any).notification_email || '',
           description: syncedShop.description || '',
         });
+        setLogoPath((syncedShop as any).logo_path || '');
+        if ((syncedShop as any).logo_path) {
+          try {
+            const signed = await apiService.getSignedShopLogoUrl((syncedShop as any).logo_path);
+            setLogoUrl(signed);
+          } catch (e) {
+            console.error('Error signing logo URL', e);
+            setLogoUrl('');
+          }
+        } else {
+          setLogoUrl('');
+        }
       }
     }
   };
@@ -178,6 +206,46 @@ export const ShopManagement = () => {
        setIsSavingBasic(false);
      }
    };
+
+  const handleUploadLogo = async (file: File) => {
+    if (!shop) {
+      showMessage(setLogoMessage, 'error', 'Dati negozio non disponibili.', 4000);
+      throw new Error('Shop not loaded');
+    }
+    if (!isAdmin) {
+      showMessage(setLogoMessage, 'error', 'Solo l\'admin può aggiornare il logo.', 4000);
+      throw new Error('Not allowed');
+    }
+    try {
+      const { path, signedUrl } = await apiService.uploadShopLogo(file, shop.id);
+      setLogoPath(path);
+      setLogoUrl(signedUrl);
+      const updatedShop: Shop = { ...shop, logo_path: path };
+      await apiService.updateShop(updatedShop);
+      persistShopState(updatedShop);
+      showMessage(setLogoMessage, 'success', 'Logo aggiornato!');
+      return signedUrl;
+    } catch (error) {
+      console.error('Error uploading shop logo:', error);
+      showMessage(setLogoMessage, 'error', 'Errore durante il caricamento del logo.', 5000);
+      throw error;
+    }
+  };
+
+  const handleRemoveLogo = async () => {
+    if (!shop || !isAdmin) return;
+    const updatedShop: Shop = { ...shop, logo_path: null, logo_url: null };
+    try {
+      await apiService.updateShop(updatedShop);
+      persistShopState(updatedShop);
+      setLogoPath('');
+      setLogoUrl('');
+      showMessage(setLogoMessage, 'success', 'Logo rimosso.');
+    } catch (error) {
+      console.error('Error removing logo:', error);
+      showMessage(setLogoMessage, 'error', 'Errore durante la rimozione del logo.', 5000);
+    }
+  };
 
   const handleCancelBasic = () => {
     // Ripristina i dati originali
@@ -266,6 +334,65 @@ export const ShopManagement = () => {
               <p className="text-sm font-medium">{basicMessage.text}</p>
             </div>
           )}
+
+          {/* Logo negozio (solo admin modifica) */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                  <ImageIcon className="w-4 h-4 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="text-md font-medium text-gray-900">Logo negozio</h3>
+                  <p className="text-xs text-gray-500">PNG / JPG / PDF, max 5MB</p>
+                </div>
+              </div>
+            </div>
+
+            {logoMessage && (
+              <div
+                className={`mb-3 p-3 rounded-lg ${
+                  logoMessage.type === 'success'
+                    ? 'bg-green-50 border border-green-200 text-green-800'
+                    : 'bg-red-50 border border-red-200 text-red-800'
+                }`}
+              >
+                <p className="text-sm font-medium">{logoMessage.text}</p>
+              </div>
+            )}
+
+            {isAdmin ? (
+              <PhotoUpload
+                onUpload={handleUploadLogo}
+                currentImageUrl={!logoPath?.toLowerCase().endsWith('.pdf') ? logoUrl : undefined}
+                onRemove={logoPath ? handleRemoveLogo : undefined}
+                accept=".png,.jpg,.jpeg,.pdf"
+                allowPdf
+                maxSize={5}
+                title="Trascina il logo qui"
+                subtitle="oppure"
+                helper="PNG, JPG o PDF fino a 5MB"
+                className="max-w-md"
+              />
+            ) : (
+              <div className="flex items-center space-x-3">
+                {logoUrl && !logoPath?.toLowerCase().endsWith('.pdf') ? (
+                  <img
+                    src={logoUrl}
+                    alt="Logo negozio"
+                    className="w-20 h-20 object-contain rounded-lg border border-gray-200"
+                  />
+                ) : logoPath ? (
+                  <div className="flex items-center space-x-2 text-sm text-gray-700">
+                    <FileText className="w-4 h-4" />
+                    <span>Logo (PDF)</span>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">Nessun logo caricato.</p>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Informazioni Principali */}
           <div className="mb-6">

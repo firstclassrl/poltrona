@@ -1214,6 +1214,98 @@ export const apiService = {
     return { path: objectPath, publicUrl };
   },
 
+  // Upload logo negozio (bucket protetto, accesso autenticato)
+  async uploadShopLogo(file: File, shopId: string): Promise<{ path: string; signedUrl: string }> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    const accessToken = localStorage.getItem('auth_token');
+    if (!accessToken) throw new Error('Token non trovato. Effettua di nuovo il login.');
+
+    const bucket = 'shop-logos';
+    const mimeToExt: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/jpg': 'jpg',
+      'image/png': 'png',
+      'image/gif': 'gif',
+      'image/webp': 'webp',
+      'application/pdf': 'pdf',
+    };
+    const ext = mimeToExt[file.type] || 'jpg';
+    const objectPath = `shops/${shopId}/logo.${ext}`;
+
+    const candidateExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
+    await Promise.allSettled(
+      candidateExts.map((e) =>
+        fetch(`${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/${bucket}/shops/${shopId}/logo.${e}`, {
+          method: 'DELETE',
+          headers: {
+            apikey: API_CONFIG.SUPABASE_ANON_KEY || '',
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }).catch(() => undefined)
+      )
+    );
+
+    const uploadUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/${bucket}/${objectPath}`;
+    const uploadRes = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: {
+        apikey: API_CONFIG.SUPABASE_ANON_KEY || '',
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': file.type,
+        'x-upsert': 'true',
+      },
+      body: file,
+    });
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      throw new Error(`Upload logo negozio fallito: ${uploadRes.status} ${errText}`);
+    }
+
+    // Signed URL (7 giorni)
+    const signUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/sign/${bucket}/${objectPath}`;
+    const signRes = await fetch(signUrl, {
+      method: 'POST',
+      headers: {
+        apikey: API_CONFIG.SUPABASE_ANON_KEY || '',
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ expiresIn: 60 * 60 * 24 * 7 }),
+    });
+    if (!signRes.ok) {
+      const errText = await signRes.text();
+      throw new Error(`Signed URL logo fallita: ${signRes.status} ${errText}`);
+    }
+    const signJson = await signRes.json();
+    const signedUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1${signJson.signedURL || signJson.signedUrl || ''}`;
+
+    return { path: objectPath, signedUrl };
+  },
+
+  async getSignedShopLogoUrl(path: string): Promise<string> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    const accessToken = localStorage.getItem('auth_token');
+    if (!accessToken) throw new Error('Token non trovato. Effettua di nuovo il login.');
+
+    const bucket = 'shop-logos';
+    const signUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/sign/${bucket}/${path}`;
+    const signRes = await fetch(signUrl, {
+      method: 'POST',
+      headers: {
+        apikey: API_CONFIG.SUPABASE_ANON_KEY || '',
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ expiresIn: 60 * 60 * 24 * 7 }),
+    });
+    if (!signRes.ok) {
+      const errText = await signRes.text();
+      throw new Error(`Signed URL logo fallita: ${signRes.status} ${errText}`);
+    }
+    const signJson = await signRes.json();
+    return `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1${signJson.signedURL || signJson.signedUrl || ''}`;
+  },
+
   // Get staff profile
   async getStaffProfile(): Promise<Staff> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
