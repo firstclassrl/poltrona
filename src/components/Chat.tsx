@@ -517,7 +517,7 @@ export const Chat: React.FC = () => {
       {/* Nuovo Messaggio Modal */}
       {showNewMessageModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 px-4 overflow-y-auto">
-          <div className="bg-white rounded-lg p-6 w-full max-w-3xl mt-10 mb-10 shadow-xl">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl mt-10 mb-10 shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-2">
                 <UserPlus className="w-6 h-6 text-green-600" />

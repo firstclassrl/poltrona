@@ -19,3 +19,4 @@ CHECK (type IN (
 -- Mantiene RLS e policy già previste
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
+

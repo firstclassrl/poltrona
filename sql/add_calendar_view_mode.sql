@@ -8,3 +8,4 @@ ADD COLUMN IF NOT EXISTS calendar_view_mode TEXT DEFAULT 'split' CHECK (calendar
 -- Commento sulla colonna
 COMMENT ON COLUMN public.shops.calendar_view_mode IS 'Modalità di visualizzazione del calendario: split (diviso tra mattina e pomeriggio) o full (giornata intera)';
 
+
