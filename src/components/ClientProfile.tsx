@@ -5,7 +5,6 @@ import { Input } from './ui/Input';
 import { Card } from './ui/Card';
 import { PrivacyPolicy } from './PrivacyPolicy';
 import { useAuth } from '../contexts/AuthContext';
-import { useUserProfile, type UserProfileData } from '../hooks/useUserProfile';
 import { useClientRegistration } from '../hooks/useClientRegistration';
 import { useAppointments } from '../hooks/useAppointments';
 import { apiService } from '../services/api';
@@ -15,12 +14,12 @@ import type { Appointment } from '../types';
 
 export const ClientProfile: React.FC = () => {
   const { user, logout } = useAuth();
-  const { updateUserProfile, getUserProfile, isLoading } = useUserProfile();
   const { deleteRegisteredClient, getClientByEmail } = useClientRegistration();
   const { appointments, loadAppointments } = useAppointments();
   const [photoMessage, setPhotoMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState<UserProfileData>({
+  const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
     email: '',
@@ -38,21 +37,38 @@ export const ClientProfile: React.FC = () => {
 
   // Carica i dati del profilo all'inizializzazione
   useEffect(() => {
-    if (user) {
-      const profileData = getUserProfile(user);
-      // Se c'è un path, costruisci la public URL dal bucket client-photos
-      const publicUrl = profileData.profile_photo_path
-        ? apiService.getPublicClientPhotoUrl(profileData.profile_photo_path)
-        : profileData.profile_photo_url;
-      setFormData({ ...profileData, profile_photo_url: publicUrl || '' });
-      
-      // Carica anche i dati del cliente registrato (con consensi privacy)
-      if (user.email) {
-        const registeredClient = getClientByEmail(user.email);
-        setClientData(registeredClient);
-      }
+    if (!user) return;
+
+    // Base: dati da auth
+    setFormData(prev => ({
+      ...prev,
+      full_name: user.full_name || '',
+      email: user.email || '',
+      phone: user.phone || '',
+    }));
+
+    // Carica anche i dati del cliente registrato (con consensi privacy)
+    if (user.email) {
+      const registeredClient = getClientByEmail(user.email);
+      setClientData(registeredClient);
     }
-  }, [user]);
+
+    // Carica sempre i dati dal bucket tramite record cliente
+    if (user.email) {
+      apiService.getClientByEmailExact(user.email).then((client) => {
+        if (client) {
+          setFormData(prev => ({
+            ...prev,
+            full_name: client.first_name && client.last_name
+              ? `${client.first_name} ${client.last_name}`.trim()
+              : (client.first_name || prev.full_name),
+            phone: client.phone_e164 || prev.phone,
+            profile_photo_url: client.photo_url || prev.profile_photo_url,
+          }));
+        }
+      }).catch(() => {});
+    }
+  }, [user, getClientByEmail]);
 
   // Helper per confrontare email normalizzate
   const normalizeEmail = (email?: string | null) => email?.trim().toLowerCase() || '';
@@ -78,37 +94,90 @@ export const ClientProfile: React.FC = () => {
     return matchesClientId || matchesEmail;
   });
 
+  const normalizePhone = (phone: string): string => {
+    if (!phone) return '+39000000000';
+    let cleaned = phone.replace(/\s/g, '').replace(/[^0-9+]/g, '');
+    if (cleaned.startsWith('0039')) cleaned = cleaned.substring(4);
+    else if (cleaned.startsWith('+39')) cleaned = cleaned.substring(3);
+    else if (cleaned.startsWith('39') && cleaned.length > 10) cleaned = cleaned.substring(2);
+    return `+39${cleaned}`;
+  };
+
+  const compressImage = async (file: File, maxDimension = 512, quality = 0.75): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
+          const width = Math.round(img.width * scale);
+          const height = Math.round(img.height * scale);
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Canvas context not available'));
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                reject(new Error('Compression failed'));
+                return;
+              }
+              const compressedFile = new File([blob], file.name.replace(/\.(\w+)$/, '.jpg'), {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            },
+            'image/jpeg',
+            quality
+          );
+        };
+        img.onerror = () => reject(new Error('Image load error'));
+        img.src = event.target?.result as string;
+      };
+      reader.onerror = () => reject(new Error('File read error'));
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleSave = async () => {
     if (!user) return;
-    
+    setIsLoading(true);
     try {
-      const success = await updateUserProfile(user.id, formData);
-      
-      if (success) {
-        setMessage({ type: 'success', text: 'Profilo aggiornato con successo!' });
-        setIsEditing(false);
-        
-        // Rimuovi il messaggio dopo 3 secondi
-        setTimeout(() => setMessage(null), 3000);
-      } else {
-        setMessage({ type: 'error', text: 'Errore nel salvataggio del profilo' });
-      }
+      const email = formData.email || user.email;
+      if (!email) throw new Error('Email mancante');
+
+      await apiService.updateClientByEmail(email, {
+        first_name: formData.full_name.split(' ')[0] || 'Cliente',
+        last_name: formData.full_name.split(' ').slice(1).join(' ') || null,
+        phone_e164: normalizePhone(formData.phone || ''),
+        photo_url: formData.profile_photo_url || null,
+      });
+
+      setMessage({ type: 'success', text: 'Profilo aggiornato con successo!' });
+      setIsEditing(false);
+      setTimeout(() => setMessage(null), 3000);
     } catch (error) {
       console.error('Error saving profile:', error);
       setMessage({ type: 'error', text: 'Errore nel salvataggio del profilo' });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleCancel = () => {
     if (user) {
-      const profileData = getUserProfile(user);
-      setFormData(profileData);
-      if (profileData.profile_photo_path) {
-        apiService
-          .getSignedProfilePhotoUrl(profileData.profile_photo_path)
-          .then((signed) => setFormData(prev => ({ ...prev, profile_photo_url: signed })))
-          .catch(() => {});
-      }
+      setFormData(prev => ({
+        ...prev,
+        full_name: user.full_name || prev.full_name,
+        email: user.email || prev.email,
+        phone: user.phone || prev.phone,
+      }));
     }
     setIsEditing(false);
     setMessage(null);
@@ -127,7 +196,8 @@ export const ClientProfile: React.FC = () => {
     }
     try {
       setPhotoMessage('Caricamento in corso...');
-      const { path, publicUrl } = await apiService.uploadClientPhotoPublic(file, user.id);
+      const compressed = await compressImage(file, 512, 0.75);
+      const { path, publicUrl } = await apiService.uploadClientPhotoPublic(compressed, user.id);
       setFormData(prev => ({
         ...prev,
         profile_photo_url: publicUrl,

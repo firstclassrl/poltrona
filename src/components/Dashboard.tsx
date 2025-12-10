@@ -7,6 +7,7 @@ import { Modal } from './ui/Modal';
 import { formatTime, formatDate } from '../utils/date';
 import { useAppointments } from '../hooks/useAppointments';
 import { useAuth } from '../contexts/AuthContext';
+import { GlassPage } from './layouts/GlassPage';
 import type { Appointment } from '../types';
 
 interface DashboardProps {
@@ -142,7 +143,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return 'bg-yellow-500 text-black';
   };
   return (
-    <div className="space-y-8">
+    <GlassPage>
+      <div className="space-y-8">
       {/* Header - Responsive */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
         <div>
@@ -712,6 +714,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
       </Modal>
-    </div>
+      </div>
+    </GlassPage>
   );
 };

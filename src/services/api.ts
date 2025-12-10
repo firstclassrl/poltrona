@@ -400,6 +400,24 @@ export const apiService = {
     }
   },
 
+  // Recupera un cliente per email (match esatto) includendo la foto
+  async getClientByEmailExact(email: string): Promise<Client | null> {
+    if (!isSupabaseConfigured()) return null;
+    try {
+      const url = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=*&email=eq.${encodeURIComponent(email)}&limit=1`;
+      const response = await fetch(url, { headers: buildHeaders(true) });
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) return null;
+        throw new Error(`Failed to fetch client by email: ${response.status}`);
+      }
+      const clients = await response.json();
+      return clients?.[0] || null;
+    } catch (error) {
+      console.error('Error fetching client by email:', error);
+      return null;
+    }
+  },
+
   // Get or create client from authenticated user (pubblico - non richiede autenticazione)
   async getOrCreateClientFromUser(
     user: { id: string; email?: string; full_name?: string; phone?: string },
