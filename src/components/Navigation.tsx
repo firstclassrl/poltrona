@@ -8,6 +8,8 @@ import { apiService } from '../services/api';
 import { APP_VERSION } from '../config/version';
 import type { Shop } from '../types';
 
+const DEFAULT_LOGO = '/logo Poltrona 2025.png';
+
 interface NavigationProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
@@ -51,7 +53,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
       if (shop?.logo_url) {
         setShopLogoUrl(shop.logo_url);
       } else {
-        setShopLogoUrl(null);
+        setShopLogoUrl(DEFAULT_LOGO);
       }
     };
     fetchLogo();
@@ -113,7 +115,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
             {/* Logo Section */}
             <div className="flex items-center justify-center flex-shrink-0 px-4 mb-6">
               <img 
-                src={shopLogoUrl || '/poltrona-placeholder-logo.png'} 
+                src={shopLogoUrl || DEFAULT_LOGO} 
                 alt="Logo negozio" 
                 className="w-32 h-32 object-contain filter brightness-110"
               />

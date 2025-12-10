@@ -9,6 +9,8 @@ import { apiService } from '../services/api';
 import type { Shop } from '../types';
 import { PhotoUpload } from './PhotoUpload';
 
+const DEFAULT_LOGO = '/logo Poltrona 2025.png';
+
 const formatDateForDisplay = (isoDate?: string | null): string => {
   if (!isoDate) return '';
   const [year, month, day] = isoDate.split('-');
@@ -80,7 +82,7 @@ export const ShopManagement = () => {
     notification_email: '',
     description: '',
   });
-  const [logoUrl, setLogoUrl] = useState<string>('');
+  const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO);
   const [logoPath, setLogoPath] = useState<string>('');
   const [logoMessage, setLogoMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isEditingHours, setIsEditingHours] = useState(false);
@@ -138,10 +140,10 @@ export const ShopManagement = () => {
           setLogoUrl(signed);
         } catch (e) {
           console.error('Error signing logo URL', e);
-          setLogoUrl(incomingLogoUrl || '');
+          setLogoUrl(incomingLogoUrl || DEFAULT_LOGO);
         }
       } else {
-        setLogoUrl(incomingLogoUrl || '');
+        setLogoUrl(incomingLogoUrl || DEFAULT_LOGO);
       }
     } catch (error) {
       console.error('Error loading shop data:', error);
@@ -169,10 +171,10 @@ export const ShopManagement = () => {
             setLogoUrl(signed);
           } catch (e) {
             console.error('Error signing logo URL', e);
-            setLogoUrl(incomingLogoUrl || '');
+            setLogoUrl(incomingLogoUrl || DEFAULT_LOGO);
           }
         } else {
-          setLogoUrl(incomingLogoUrl || '');
+          setLogoUrl(incomingLogoUrl || DEFAULT_LOGO);
         }
       }
     }
@@ -243,7 +245,7 @@ export const ShopManagement = () => {
       await apiService.updateShop(updatedShop);
       persistShopState(updatedShop);
       setLogoPath('');
-      setLogoUrl('');
+      setLogoUrl(DEFAULT_LOGO);
       showMessage(setLogoMessage, 'success', 'Logo rimosso.');
     } catch (error) {
       console.error('Error removing logo:', error);
@@ -368,7 +370,9 @@ export const ShopManagement = () => {
             {isAdmin ? (
               <PhotoUpload
                 onUpload={handleUploadLogo}
-                currentImageUrl={!logoPath?.toLowerCase().endsWith('.pdf') ? logoUrl : undefined}
+                currentImageUrl={
+                  logoPath && logoPath.toLowerCase().endsWith('.pdf') ? undefined : logoUrl || DEFAULT_LOGO
+                }
                 onRemove={logoPath ? handleRemoveLogo : undefined}
                 accept=".png,.jpg,.jpeg,.pdf"
                 allowPdf
@@ -392,7 +396,11 @@ export const ShopManagement = () => {
                     <span>Logo (PDF)</span>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500">Nessun logo caricato.</p>
+                  <img
+                    src={DEFAULT_LOGO}
+                    alt="Logo generico Poltrona"
+                    className="w-20 h-20 object-contain rounded-lg border border-gray-200"
+                  />
                 )}
               </div>
             )}
