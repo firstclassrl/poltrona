@@ -59,55 +59,68 @@ export const Services: React.FC = () => {
     }
   };
 
+  const glassCard = 'bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl';
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Servizi</h1>
-        {isAdmin && (
-          <Button onClick={() => setShowServiceForm(true)} variant="secondary">
-            <Plus className="w-4 h-4 mr-2" />
-            Aggiungi Servizio
-          </Button>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {services.map(service => (
-          <Card key={service.id} className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-gray-900">{service.name}</h3>
-              {isAdmin && (
-                <div className="flex space-x-2">
-                  <Button size="sm" variant="secondary" onClick={() => handleEditService(service)}>
-                    <Edit className="w-3 h-3" />
-                  </Button>
-                  <Button size="sm" variant="secondary" onClick={() => handleDeleteService(service.id)}>
-                    <X className="w-3 h-3" />
-                  </Button>
-                </div>
-              )}
-            </div>
-            <div className="text-sm text-gray-600 space-y-1">
-              <p>Durata: {service.duration_min} min</p>
-              <p>Prezzo: €{(service.price_cents || 0) / 100}</p>
-              <Badge className={service.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
-                {service.active ? 'Attivo' : 'Inattivo'}
-              </Badge>
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      <ServiceForm
-        isOpen={showServiceForm}
-        onClose={() => {
-          setShowServiceForm(false);
-          setEditingService(null);
+    <div className="min-h-screen p-0">
+      <div
+        className="w-full space-y-6 rounded-3xl p-4 md:p-6"
+        style={{
+          backgroundImage:
+            'linear-gradient(135deg, rgba(16,185,129,0.22), rgba(34,197,94,0.28) 40%, rgba(22,163,74,0.25) 70%, rgba(5,150,105,0.28))',
+          backgroundColor: 'rgba(236,253,245,0.9)',
         }}
-        onSave={handleSaveService}
-        service={editingService as any}
-        mode={editingService ? 'edit' : 'add'}
-      />
+      >
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-gray-900">Servizi</h1>
+          {isAdmin && (
+            <Button onClick={() => setShowServiceForm(true)} variant="secondary">
+              <Plus className="w-4 h-4 mr-2" />
+              Aggiungi Servizio
+            </Button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {services.map(service => (
+            <Card key={service.id} className={`p-4 ${glassCard}`}>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold text-gray-900">{service.name}</h3>
+                {isAdmin && (
+                  <div className="flex space-x-2">
+                    <Button size="sm" variant="secondary" onClick={() => handleEditService(service)}>
+                      <Edit className="w-3 h-3" />
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => handleDeleteService(service.id)}>
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <div className="text-sm text-gray-600 space-y-1">
+                <p>Durata: {service.duration_min} min</p>
+                <p>Prezzo: €{(service.price_cents || 0) / 100}</p>
+                <Badge className={service.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                  {service.active ? 'Attivo' : 'Inattivo'}
+                </Badge>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        <ServiceForm
+          isOpen={showServiceForm}
+          onClose={() => {
+            setShowServiceForm(false);
+            setEditingService(null);
+          }}
+          onSave={handleSaveService}
+          service={editingService as any}
+          mode={editingService ? 'edit' : 'add'}
+        />
+      </div>
+      </div>
     </div>
   );
 };

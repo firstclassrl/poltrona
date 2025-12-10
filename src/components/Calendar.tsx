@@ -292,8 +292,19 @@ export const Calendar = () => {
     return chairMatch;
   });
 
+  const glassCard = 'bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl';
+
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen p-0">
+      <div
+        className="w-full space-y-6 rounded-3xl p-4 md:p-6"
+        style={{
+          backgroundImage:
+            'linear-gradient(135deg, rgba(16,185,129,0.22), rgba(34,197,94,0.28) 40%, rgba(22,163,74,0.25) 70%, rgba(5,150,105,0.28))',
+          backgroundColor: 'rgba(236,253,245,0.9)',
+        }}
+      >
+      <div className="space-y-6">
       {/* Header - Both Mobile and Desktop */}
       <div className="flex items-center justify-between">
         <div>
@@ -350,7 +361,7 @@ export const Calendar = () => {
       {/* Desktop Calendar Grid */}
       <div className="hidden md:block">
 
-      <Card>
+      <Card className={glassCard}>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
             <Button
@@ -581,7 +592,7 @@ export const Calendar = () => {
 
             {/* Expanded Filters */}
             {showMobileFilters && (
-              <Card className="p-4">
+              <Card className={`p-4 ${glassCard}`}>
                 <div className="space-y-3">
                   <label className="block text-sm font-medium text-gray-700">
                     Poltrona
@@ -617,7 +628,7 @@ export const Calendar = () => {
           {/* Appointments List */}
           <div className="space-y-3">
             {isDateInVacation(currentDay) ? (
-              <Card className="p-8 text-center bg-red-50 border-red-300">
+              <Card className={`p-8 text-center bg-red-50 border-red-300 ${glassCard}`}>
                 <div className="text-red-600">
                   <Clock className="w-12 h-12 mx-auto mb-3" />
                   <p className="text-lg font-bold">CHIUSO PER FERIE</p>
@@ -634,7 +645,7 @@ export const Calendar = () => {
                 ).map((appointment) => (
                   <Card 
                     key={appointment.id} 
-                    className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                    className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${glassCard}`}
                     onClick={() => handleAppointmentClick(appointment)}
                   >
                     <div className="space-y-3">
@@ -696,7 +707,7 @@ export const Calendar = () => {
                   </Card>
                 ))
               ) : (
-                <Card className="p-8 text-center">
+                <Card className={`p-8 text-center ${glassCard}`}>
                   <div className="text-gray-500">
                     <Clock className="w-12 h-12 mx-auto mb-3" />
                     <p className="text-lg font-medium">Nessun appuntamento</p>
@@ -705,7 +716,7 @@ export const Calendar = () => {
                 </Card>
               )
             ) : (
-              <Card className="p-8 text-center">
+              <Card className={`p-8 text-center ${glassCard}`}>
                 <div className="text-gray-500">
                   <Clock className="w-12 h-12 mx-auto mb-3" />
                   <p className="text-lg font-medium">Negozio chiuso</p>
@@ -890,6 +901,8 @@ export const Calendar = () => {
         )}
       </Modal>
 
+      </div>
+      </div>
     </div>
   );
 };

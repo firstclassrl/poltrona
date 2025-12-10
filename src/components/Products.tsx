@@ -327,8 +327,19 @@ export const Products: React.FC = () => {
     setIsProductModalOpen(true);
   };
 
+  const glassCard = 'bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl';
+
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen p-0">
+      <div
+        className="w-full space-y-6 rounded-3xl p-4 md:p-6"
+        style={{
+          backgroundImage:
+            'linear-gradient(135deg, rgba(16,185,129,0.22), rgba(34,197,94,0.28) 40%, rgba(22,163,74,0.25) 70%, rgba(5,150,105,0.28))',
+          backgroundColor: 'rgba(236,253,245,0.9)',
+        }}
+      >
+      <div className="space-y-6">
       <Toast message={toast.message} type={toast.type} isVisible={toast.isVisible} onClose={hideToast} />
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">Prodotti</h1>
@@ -374,7 +385,7 @@ export const Products: React.FC = () => {
       {/* Navigazione tab rimossa: pagina solo Prodotti */}
 
       {/* Filters and Search */}
-      <Card>
+      <Card className={glassCard}>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
@@ -413,7 +424,7 @@ export const Products: React.FC = () => {
       {/* Products Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredProducts.map((product) => (
-          <Card key={product.id} className="group hover:scale-105 transition-transform">
+          <Card key={product.id} className={`group hover:scale-105 transition-transform ${glassCard}`}>
             <div className="relative">
               <img
                 src={product.imageUrl}
@@ -702,7 +713,7 @@ export const Products: React.FC = () => {
 
         {/* Empty State */}
         {filteredProducts.length === 0 && (
-          <Card className="text-center py-12">
+          <Card className={`text-center py-12 ${glassCard}`}>
             <Package className="w-16 h-16 text-gray-500 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">Nessun prodotto trovato</h3>
             <p className="text-gray-600 mb-4">
@@ -978,6 +989,8 @@ export const Products: React.FC = () => {
           </div>
         </div>
       </Modal>
+      </div>
+      </div>
     </div>
   );
 };

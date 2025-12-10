@@ -112,185 +112,198 @@ export const Clients = ({ onNavigateToBooking }: ClientsProps) => {
     onNavigateToBooking?.(); // Navigate to booking calendar
   };
 
+  const glassCard = 'bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl';
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Clienti</h1>
-        <Button size="lg" onClick={handleNewCustomer}>
-          <Plus className="w-5 h-5 mr-2" />
-          Nuovo Cliente
-        </Button>
-      </div>
-
-      {/* Search Bar */}
-      <Card>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
-          <Input
-            type="text"
-            placeholder="Cerca per nome o telefono..."
-            value={searchQuery}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-      </Card>
-
-      {/* Clients List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredClients.map((client) => (
-          <Card
-            key={client.id}
-            className="cursor-pointer hover:scale-105 transition-transform"
-            onClick={() => openClientModal(client)}
-          >
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-green-600 to-green-800 rounded-full flex items-center justify-center">
-                <span className="text-yellow-300 font-bold text-lg">
-                  {client.first_name[0]}{client.last_name?.[0] || ''}
-                </span>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-gray-900 font-semibold text-lg">
-                  {client.first_name} {client.last_name || ''}
-                </h3>
-                <div className="space-y-1 text-sm text-gray-600">
-                  <div className="flex items-center">
-                    <Phone className="w-4 h-4 mr-2" />
-                    {client.phone_e164}
-                  </div>
-                  {client.email && (
-                    <div className="flex items-center">
-                      <Mail className="w-4 h-4 mr-2" />
-                      {client.email}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      {/* Client Detail Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Dettagli Cliente"
+    <div className="min-h-screen p-0">
+      <div
+        className="w-full space-y-6 rounded-3xl p-4 md:p-6"
+        style={{
+          backgroundImage:
+            'linear-gradient(135deg, rgba(16,185,129,0.22), rgba(34,197,94,0.28) 40%, rgba(22,163,74,0.25) 70%, rgba(5,150,105,0.28))',
+          backgroundColor: 'rgba(236,253,245,0.9)',
+        }}
       >
-        {selectedClient && (
-          <div className="space-y-6">
-            <div className="flex items-center space-x-4">
-              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-2xl">
-                  {selectedClient.first_name[0]}{selectedClient.last_name?.[0] || ''}
-                </span>
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">
-                  {selectedClient.first_name} {selectedClient.last_name || ''}
-                </h2>
-                {selectedClient.email && (
-                  <p className="text-gray-600 flex items-center">
-                    <Mail className="w-4 h-4 mr-1" />
-                    {selectedClient.email}
-                  </p>
-                )}
-              </div>
-            </div>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-gray-900">Clienti</h1>
+          <Button size="lg" onClick={handleNewCustomer}>
+            <Plus className="w-5 h-5 mr-2" />
+            Nuovo Cliente
+          </Button>
+        </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-gray-900">Contatti</h3>
-                <div className="space-y-2 text-sm text-gray-600">
-                  <div className="flex items-center">
-                    <Phone className="w-4 h-4 mr-2" />
-                    {selectedClient.phone_e164}
-                  </div>
-                  {selectedClient.email && (
+        {/* Search Bar */}
+        <Card className={glassCard}>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+            <Input
+              type="text"
+              placeholder="Cerca per nome o telefono..."
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </Card>
+
+        {/* Clients List */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredClients.map((client) => (
+            <Card
+              key={client.id}
+              className={`cursor-pointer hover:scale-105 transition-transform ${glassCard}`}
+              onClick={() => openClientModal(client)}
+            >
+              <div className="flex items-center space-x-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-green-600 to-green-800 rounded-full flex items-center justify-center">
+                  <span className="text-yellow-300 font-bold text-lg">
+                    {client.first_name[0]}{client.last_name?.[0] || ''}
+                  </span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-gray-900 font-semibold text-lg">
+                    {client.first_name} {client.last_name || ''}
+                  </h3>
+                  <div className="space-y-1 text-sm text-gray-600">
                     <div className="flex items-center">
-                      <Mail className="w-4 h-4 mr-2" />
-                      {selectedClient.email}
+                      <Phone className="w-4 h-4 mr-2" />
+                      {client.phone_e164}
                     </div>
+                    {client.email && (
+                      <div className="flex items-center">
+                        <Mail className="w-4 h-4 mr-2" />
+                        {client.email}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Client Detail Modal */}
+        <Modal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          title="Dettagli Cliente"
+        >
+          {selectedClient && (
+            <div className="space-y-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                  <span className="text-white font-bold text-2xl">
+                    {selectedClient.first_name[0]}{selectedClient.last_name?.[0] || ''}
+                  </span>
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    {selectedClient.first_name} {selectedClient.last_name || ''}
+                  </h2>
+                  {selectedClient.email && (
+                    <p className="text-gray-600 flex items-center">
+                      <Mail className="w-4 h-4 mr-1" />
+                      {selectedClient.email}
+                    </p>
                   )}
                 </div>
               </div>
-              
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-gray-900">Statistiche</h3>
-                <div className="space-y-2 text-sm text-gray-600">
-                  <div className="flex items-center justify-between">
-                    <span>Visite totali:</span>
-                    <span className="font-semibold">12</span>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold text-gray-900">Contatti</h3>
+                  <div className="space-y-2 text-sm text-gray-600">
+                    <div className="flex items-center">
+                      <Phone className="w-4 h-4 mr-2" />
+                      {selectedClient.phone_e164}
+                    </div>
+                    {selectedClient.email && (
+                      <div className="flex items-center">
+                        <Mail className="w-4 h-4 mr-2" />
+                        {selectedClient.email}
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span>Ultimo appuntamento:</span>
-                    <span className="font-semibold">15/12/2024</span>
+                </div>
+                
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold text-gray-900">Statistiche</h3>
+                  <div className="space-y-2 text-sm text-gray-600">
+                    <div className="flex items-center justify-between">
+                      <span>Visite totali:</span>
+                      <span className="font-semibold">12</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Ultimo appuntamento:</span>
+                      <span className="font-semibold">15/12/2024</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-3">
-              <h3 className="text-lg font-semibold text-gray-900">Storico Visite</h3>
-              <div className="space-y-2 max-h-40 overflow-y-auto">
-                {/* Mock history data */}
-                {[
-                  { date: '2024-12-15', service: 'Taglio + Barba', staff: 'Giovanni' },
-                  { date: '2024-11-20', service: 'Taglio Capelli', staff: 'Alessandro' },
-                  { date: '2024-10-25', service: 'Taglio + Barba', staff: 'Giovanni' },
-                ].map((visit, index) => (
-                  <div key={index} className="flex items-center p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <div className="font-medium text-gray-900">{visit.service}</div>
-                      <div className="text-sm text-gray-600">{visit.date} - {visit.staff}</div>
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold text-gray-900">Storico Visite</h3>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {/* Mock history data */}
+                  {[
+                    { date: '2024-12-15', service: 'Taglio + Barba', staff: 'Giovanni' },
+                    { date: '2024-11-20', service: 'Taglio Capelli', staff: 'Alessandro' },
+                    { date: '2024-10-25', service: 'Taglio + Barba', staff: 'Giovanni' },
+                  ].map((visit, index) => (
+                    <div key={index} className="flex items-center p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <div className="font-medium text-gray-900">{visit.service}</div>
+                        <div className="text-sm text-gray-600">{visit.date} - {visit.staff}</div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex space-x-3">
+                <Button variant="primary" className="flex-1" onClick={handleNewAppointment}>
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Nuovo Appuntamento
+                </Button>
+                <Button 
+                  variant="secondary" 
+                  className="flex-1"
+                  onClick={() => handleEditCustomer(selectedClient)}
+                >
+                  <User className="w-4 h-4 mr-2" />
+                  Modifica Cliente
+                </Button>
               </div>
             </div>
+          )}
+        </Modal>
+        
+        {/* Customer Form Modal */}
+        <CustomerForm
+          isOpen={isCustomerFormOpen}
+          onClose={() => setIsCustomerFormOpen(false)}
+          onSave={handleSaveCustomer}
+          customer={editingCustomer}
+          mode={customerFormMode}
+        />
 
-            <div className="flex space-x-3">
-              <Button variant="primary" className="flex-1" onClick={handleNewAppointment}>
-                <Calendar className="w-4 h-4 mr-2" />
-                Nuovo Appuntamento
-              </Button>
-              <Button 
-                variant="secondary" 
-                className="flex-1"
-                onClick={() => handleEditCustomer(selectedClient)}
-              >
-                <User className="w-4 h-4 mr-2" />
-                Modifica Cliente
-              </Button>
-            </div>
-          </div>
+        {/* Empty State */}
+        {filteredClients.length === 0 && searchQuery && (
+          <Card className={`text-center py-12 ${glassCard}`}>
+            <User className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Nessun cliente trovato</h3>
+            <p className="text-gray-600 mb-4">
+              Non abbiamo trovato clienti con "{searchQuery}"
+            </p>
+            <Button onClick={handleNewCustomer}>
+              <Plus className="w-4 h-4 mr-2" />
+              Crea nuovo cliente
+            </Button>
+          </Card>
         )}
-      </Modal>
-
-      {/* Customer Form Modal */}
-      <CustomerForm
-        isOpen={isCustomerFormOpen}
-        onClose={() => setIsCustomerFormOpen(false)}
-        onSave={handleSaveCustomer}
-        customer={editingCustomer}
-        mode={customerFormMode}
-      />
-
-      {/* Empty State */}
-      {filteredClients.length === 0 && searchQuery && (
-        <Card className="text-center py-12">
-          <User className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">Nessun cliente trovato</h3>
-          <p className="text-gray-600 mb-4">
-            Non abbiamo trovato clienti con "{searchQuery}"
-          </p>
-          <Button onClick={handleNewCustomer}>
-            <Plus className="w-4 h-4 mr-2" />
-            Crea nuovo cliente
-          </Button>
-        </Card>
-      )}
+      </div>
+      </div>
     </div>
   );
 };

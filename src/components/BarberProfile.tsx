@@ -171,8 +171,19 @@ export const BarberProfile = () => {
     setProfileImageUrl('');
   };
 
+  const glassCard = 'bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl';
+
   return (
-    <div className="space-y-8">
+    <div className="min-h-screen p-0">
+      <div
+        className="w-full space-y-8 rounded-3xl p-4 md:p-6"
+        style={{
+          backgroundImage:
+            'linear-gradient(135deg, rgba(16,185,129,0.22), rgba(34,197,94,0.28) 40%, rgba(22,163,74,0.25) 70%, rgba(5,150,105,0.28))',
+          backgroundColor: 'rgba(236,253,245,0.9)',
+        }}
+      >
+      <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">Gestione Barbieri</h1>
         {activeTab === 'profile' && !isEditing && (
@@ -231,7 +242,7 @@ export const BarberProfile = () => {
         <div className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Foto Profilo */}
-        <Card className="lg:col-span-1">
+        <Card className={`lg:col-span-1 ${glassCard}`}>
           <div className="text-center">
             {isEditing ? (
               <div className="mb-4">
@@ -261,7 +272,7 @@ export const BarberProfile = () => {
         </Card>
 
         {/* Informazioni */}
-        <Card className="lg:col-span-2">
+        <Card className={`lg:col-span-2 ${glassCard}`}>
           <h3 className="text-lg font-semibold text-gray-900 mb-6">Informazioni Personali</h3>
           
           <div className="space-y-6">
@@ -382,6 +393,8 @@ export const BarberProfile = () => {
       ) : (
         <ChairAssignment />
       )}
+      </div>
+      </div>
     </div>
   );
 };
