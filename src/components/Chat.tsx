@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useChat } from '../contexts/ChatContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/Button';
@@ -514,137 +515,138 @@ export const Chat: React.FC = () => {
         )}
       </div>
 
-      {/* Nuovo Messaggio Modal */}
-      {showNewMessageModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 px-4 overflow-y-auto">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl mt-10 mb-10 shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-2">
-                <UserPlus className="w-6 h-6 text-green-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Nuovo Messaggio</h3>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={resetNewMessageModal}
-                className="p-1"
-              >
-                <X className="w-5 h-5" />
-              </Button>
-            </div>
-
-            <div className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Seleziona cliente
-                </label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    value={clientSearch}
-                    onChange={(e) => handleClientSearch(e.target.value)}
-                    placeholder="Cerca per nome o telefono..."
-                    className="pl-9"
-                  />
+      {showNewMessageModal &&
+        createPortal(
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 px-4 py-8 overflow-y-auto">
+            <div className="bg-white rounded-lg p-6 w-full max-w-4xl shadow-2xl">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-2">
+                  <UserPlus className="w-6 h-6 text-green-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Nuovo Messaggio</h3>
                 </div>
-                <div className="mt-3 max-h-56 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
-                  {isLoadingClients ? (
-                    <div className="flex items-center justify-center py-6 text-gray-500">
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Caricamento clienti...
-                    </div>
-                  ) : clientResults.length === 0 ? (
-                    <div className="py-6 text-center text-gray-500">
-                      Nessun cliente trovato
-                    </div>
-                  ) : (
-                    clientResults.map((client) => (
-                      <button
-                        key={client.id}
-                        type="button"
-                        onClick={() => setSelectedClient(client)}
-                        className={`w-full px-4 py-3 text-left transition-colors ${
-                          selectedClient?.id === client.id
-                            ? 'bg-green-50 border-l-4 border-green-500'
-                            : 'hover:bg-gray-50'
-                        }`}
-                      >
-                        <div className="font-semibold text-gray-900">
-                          {client.first_name} {client.last_name || ''}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {client.phone_e164}
-                          {client.email ? ` • ${client.email}` : ''}
-                        </div>
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {selectedClient && (
-                <div className="p-3 rounded-lg bg-green-50 border border-green-100 text-sm text-green-800">
-                  Destinatario:{' '}
-                  <span className="font-semibold">
-                    {selectedClient.first_name} {selectedClient.last_name || ''}
-                  </span>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Messaggio
-                </label>
-                <textarea
-                  value={newMessageContent}
-                  onChange={(e) => setNewMessageContent(e.target.value)}
-                  placeholder={
-                    selectedClient
-                      ? `Scrivi un messaggio per ${selectedClient.first_name}...`
-                      : 'Seleziona prima un cliente'
-                  }
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
-                  rows={4}
-                  disabled={!selectedClient || isSendingNewMessage}
-                />
-              </div>
-
-              {newMessageError && (
-                <p className="text-sm text-red-600">{newMessageError}</p>
-              )}
-
-              <div className="flex justify-end space-x-3">
                 <Button
                   variant="ghost"
+                  size="sm"
                   onClick={resetNewMessageModal}
-                  disabled={isSendingNewMessage}
+                  className="p-1"
                 >
-                  Annulla
-                </Button>
-                <Button
-                  onClick={handleSendNewMessage}
-                  disabled={
-                    !selectedClient || !newMessageContent.trim() || isSendingNewMessage
-                  }
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                >
-                  {isSendingNewMessage ? (
-                    <div className="flex items-center space-x-2">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Invio...</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-2">
-                      <Send className="w-4 h-4" />
-                      <span>Invia</span>
-                    </div>
-                  )}
+                  <X className="w-5 h-5" />
                 </Button>
               </div>
+
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Seleziona cliente
+                  </label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Input
+                      value={clientSearch}
+                      onChange={(e) => handleClientSearch(e.target.value)}
+                      placeholder="Cerca per nome o telefono..."
+                      className="pl-9"
+                    />
+                  </div>
+                  <div className="mt-3 max-h-56 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
+                    {isLoadingClients ? (
+                      <div className="flex items-center justify-center py-6 text-gray-500">
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Caricamento clienti...
+                      </div>
+                    ) : clientResults.length === 0 ? (
+                      <div className="py-6 text-center text-gray-500">
+                        Nessun cliente trovato
+                      </div>
+                    ) : (
+                      clientResults.map((client) => (
+                        <button
+                          key={client.id}
+                          type="button"
+                          onClick={() => setSelectedClient(client)}
+                          className={`w-full px-4 py-3 text-left transition-colors ${
+                            selectedClient?.id === client.id
+                              ? 'bg-green-50 border-l-4 border-green-500'
+                              : 'hover:bg-gray-50'
+                          }`}
+                        >
+                          <div className="font-semibold text-gray-900">
+                            {client.first_name} {client.last_name || ''}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {client.phone_e164}
+                            {client.email ? ` • ${client.email}` : ''}
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {selectedClient && (
+                  <div className="p-3 rounded-lg bg-green-50 border border-green-100 text-sm text-green-800">
+                    Destinatario:{' '}
+                    <span className="font-semibold">
+                      {selectedClient.first_name} {selectedClient.last_name || ''}
+                    </span>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Messaggio
+                  </label>
+                  <textarea
+                    value={newMessageContent}
+                    onChange={(e) => setNewMessageContent(e.target.value)}
+                    placeholder={
+                      selectedClient
+                        ? `Scrivi un messaggio per ${selectedClient.first_name}...`
+                        : 'Seleziona prima un cliente'
+                    }
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
+                    rows={4}
+                    disabled={!selectedClient || isSendingNewMessage}
+                  />
+                </div>
+
+                {newMessageError && (
+                  <p className="text-sm text-red-600">{newMessageError}</p>
+                )}
+
+                <div className="flex justify-end space-x-3">
+                  <Button
+                    variant="ghost"
+                    onClick={resetNewMessageModal}
+                    disabled={isSendingNewMessage}
+                  >
+                    Annulla
+                  </Button>
+                  <Button
+                    onClick={handleSendNewMessage}
+                    disabled={
+                      !selectedClient || !newMessageContent.trim() || isSendingNewMessage
+                    }
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    {isSendingNewMessage ? (
+                      <div className="flex items-center space-x-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Invio...</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-2">
+                        <Send className="w-4 h-4" />
+                        <span>Invia</span>
+                      </div>
+                    )}
+                  </Button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
 
       {/* Broadcast Modal */}
       {showBroadcastModal && (
