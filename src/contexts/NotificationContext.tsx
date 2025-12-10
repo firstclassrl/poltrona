@@ -20,6 +20,19 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 // Polling interval in milliseconds (15 seconds for faster notifications)
 const POLLING_INTERVAL = 15000;
 
+const isOwnChatNotification = (notification: Notification, role?: string) => {
+  if (notification.type !== 'chat_message') return false;
+  const senderType = (notification.data as any)?.sender_type;
+  if (!senderType) return false;
+  if (role === 'client' && senderType === 'client') return true;
+  if ((role === 'barber' || role === 'admin') && senderType === 'staff') return true;
+  return false;
+};
+
+const filterNotificationsForUser = (notifications: Notification[], role?: string) => {
+  return notifications.filter((n) => !isOwnChatNotification(n, role));
+};
+
 // Play notification sound using Web Audio API
 const playNotificationSound = () => {
   try {
@@ -66,9 +79,10 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     setIsLoading(true);
     try {
       const data = await apiService.getNotifications(user.id);
-      setNotifications(data);
+      const filtered = filterNotificationsForUser(data, user.role);
+      setNotifications(filtered);
       // Update unread count from loaded data
-      const unread = data.filter(n => !n.read_at).length;
+      const unread = filtered.filter(n => !n.read_at).length;
       
       // Play sound if new notifications arrived (not on initial load)
       if (!isInitialLoad.current && unread > previousUnreadCount.current) {
@@ -91,15 +105,18 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     if (!user?.id) return;
     
     try {
-      const count = await apiService.getUnreadNotificationsCount(user.id);
+      // Ricarica le notifiche per applicare il filtro lato client (evita falsi positivi quando il mittente è l'utente stesso)
+      const data = await apiService.getNotifications(user.id);
+      const filtered = filterNotificationsForUser(data, user.role);
+      const count = filtered.filter(n => !n.read_at).length;
       
       // Play sound if new notifications arrived
       if (count > previousUnreadCount.current) {
         playNotificationSound();
         console.log('🔔 Nuova notifica ricevuta! Totale non lette:', count);
-        // Also reload full notifications to get the new one
-        const data = await apiService.getNotifications(user.id);
-        setNotifications(data);
+        setNotifications(filtered);
+      } else {
+        setNotifications(filtered);
       }
       
       previousUnreadCount.current = count;

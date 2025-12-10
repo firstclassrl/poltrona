@@ -15,7 +15,8 @@ import {
   X,
   UserPlus,
   Loader2,
-  Search
+  Search,
+  Trash2
 } from 'lucide-react';
 import { formatTime, formatDate } from '../utils/date';
 import type { Client, ChatMessage } from '../types';
@@ -32,7 +33,8 @@ export const Chat: React.FC = () => {
     setActiveChat, 
     sendMessage,
     sendBroadcast,
-    startChatWithClient
+    startChatWithClient,
+    deleteChat
   } = useChat();
   
   const [messageInput, setMessageInput] = useState('');
@@ -48,6 +50,7 @@ export const Chat: React.FC = () => {
   const [isSendingNewMessage, setIsSendingNewMessage] = useState(false);
   const [isLoadingClients, setIsLoadingClients] = useState(false);
   const [newMessageError, setNewMessageError] = useState<string | null>(null);
+  const [chatBeingDeleted, setChatBeingDeleted] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -360,6 +363,33 @@ export const Chat: React.FC = () => {
                           </div>
                         )}
                       </div>
+                      {(user?.role === 'barber' || user?.role === 'admin') && (
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (chatBeingDeleted === chat.id) return;
+                            const confirmed = window.confirm('Eliminare questa chat?');
+                            if (!confirmed) return;
+                            setChatBeingDeleted(chat.id);
+                            try {
+                              await deleteChat(chat.id);
+                              if (activeChat?.id === chat.id) {
+                                setActiveChat(null);
+                              }
+                              setShowChatList(true);
+                            } catch (err) {
+                              console.error('Errore eliminazione chat:', err);
+                            } finally {
+                              setChatBeingDeleted(null);
+                            }
+                          }}
+                          className="p-2 text-gray-400 hover:text-red-600"
+                          title="Elimina chat"
+                          aria-label="Elimina chat"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))
@@ -486,8 +516,8 @@ export const Chat: React.FC = () => {
 
       {/* Nuovo Messaggio Modal */}
       {showNewMessageModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-2">
                 <UserPlus className="w-6 h-6 text-green-600" />

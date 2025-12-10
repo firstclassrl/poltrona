@@ -1841,6 +1841,23 @@ export const apiService = {
     }
   },
 
+  async deleteChat(chatId: string): Promise<void> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    try {
+      const response = await fetch(`${API_ENDPOINTS.CHATS}?id=eq.${chatId}`, {
+        method: 'DELETE',
+        headers: { ...buildHeaders(true) },
+      });
+      if (!response.ok) {
+        const err = await response.text();
+        throw new Error(`Failed to delete chat: ${response.status} ${err}`);
+      }
+    } catch (error) {
+      console.error('Error deleting chat:', error);
+      throw error;
+    }
+  },
+
   async markMessagesAsRead(chatId: string): Promise<void> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
     

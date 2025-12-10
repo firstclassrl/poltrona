@@ -16,6 +16,7 @@ interface ChatContextType {
   markAsRead: (chatId: string) => Promise<void>;
   loadChats: () => Promise<Chat[]>;
   loadMessages: (chatId: string) => Promise<void>;
+  deleteChat: (chatId: string) => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -224,6 +225,20 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     }
   };
 
+  const deleteChat = async (chatId: string) => {
+    try {
+      await apiService.deleteChat(chatId);
+      setChats(prev => prev.filter(chat => chat.id !== chatId));
+      if (activeChat?.id === chatId) {
+        setActiveChat(null);
+        setMessages([]);
+      }
+    } catch (error) {
+      console.error('Error deleting chat:', error);
+      throw error;
+    }
+  };
+
   const unreadCount = chats.reduce((total, chat) => total + chat.unread_count, 0);
   const prevUnreadCountRef = useRef<number>(0);
 
@@ -310,6 +325,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     markAsRead,
     loadChats,
     loadMessages,
+    deleteChat,
   };
 
   return (
