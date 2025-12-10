@@ -150,8 +150,8 @@ export const Login: React.FC = () => {
         <div className="text-center mb-8">
           <div className="w-20 h-20 mx-auto mb-4">
             <img 
-              src="/Logo retro barbershop glass copy copy.png" 
-              alt="Poltrona Logo" 
+              src="/poltrona-placeholder-logo.png" 
+              alt="Logo generico Poltrona" 
               className="w-full h-full object-contain filter brightness-110"
             />
           </div>

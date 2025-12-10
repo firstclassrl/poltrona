@@ -7,7 +7,6 @@ import { Modal } from './ui/Modal';
 import { formatTime, formatDate } from '../utils/date';
 import { useAppointments } from '../hooks/useAppointments';
 import { useAuth } from '../contexts/AuthContext';
-import { GlassPage } from './layouts/GlassPage';
 import type { Appointment } from '../types';
 
 interface DashboardProps {
@@ -143,8 +142,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return 'bg-yellow-500 text-black';
   };
   return (
-    <GlassPage>
-      <div className="space-y-8">
+    <div
+      className="min-h-screen p-4 md:p-6"
+      style={{
+        backgroundImage:
+          'linear-gradient(135deg, rgba(16,185,129,0.22), rgba(34,197,94,0.28) 40%, rgba(22,163,74,0.25) 70%, rgba(5,150,105,0.28))',
+        backgroundColor: 'rgba(236,253,245,0.6)',
+      }}
+    >
+      <div className="max-w-7xl mx-auto space-y-8">
       {/* Header - Responsive */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
         <div>
@@ -183,7 +189,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           {/* Today's Summary */}
-          <Card className="p-4">
+          <Card className="p-4 bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-semibold text-gray-900">Oggi</h3>
               <Clock className="w-5 h-5 text-gray-500" />
@@ -218,7 +224,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               {upcomingAppointments.slice(0, 3).map((appointment) => (
                 <Card 
                   key={appointment.id} 
-                  className="p-3 cursor-pointer hover:bg-gray-50 transition-colors"
+                  className="p-3 cursor-pointer transition-colors bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl hover:border-green-100"
                   onClick={() => handleAppointmentClick(appointment)}
                 >
                   <div className="flex items-center justify-between">
@@ -255,7 +261,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card 
-          className="cursor-pointer hover:scale-105 transition-transform"
+          className="cursor-pointer hover:scale-105 transition-transform bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl"
           onClick={onNavigateToCalendar}
         >
           <div className="flex items-center justify-between">
@@ -275,7 +281,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </Card>
 
         <Card 
-          className="cursor-pointer hover:scale-105 transition-transform"
+          className="cursor-pointer hover:scale-105 transition-transform bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl"
           onClick={onNavigateToCalendar}
         >
           <div className="flex items-center justify-between">
@@ -288,7 +294,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </Card>
 
         <Card 
-          className="cursor-pointer hover:scale-105 transition-transform"
+          className="cursor-pointer hover:scale-105 transition-transform bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl"
           onClick={() => setShowNoShowModal(true)}
         >
           <div className="flex items-center justify-between">
@@ -302,7 +308,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </div>
 
       {/* Upcoming Appointments */}
-      <Card>
+      <Card className="bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-gray-900">Prossimi Appuntamenti</h2>
           <Clock className="w-6 h-6 text-green-600" />
@@ -312,7 +318,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           {upcomingAppointments.map((appointment) => (
             <div
               key={appointment.id}
-              className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
+              className="flex items-center justify-between p-4 bg-white/60 backdrop-blur-xl rounded-lg border border-white/30 cursor-pointer hover:border-green-200 transition-colors shadow"
               onClick={() => handleAppointmentClick(appointment)}
             >
               <div className="flex items-center space-x-4">
@@ -385,7 +391,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {noShowRecords.map((record) => (
               <div
                 key={record.id}
-                className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                className="p-4 border border-white/40 bg-white/70 backdrop-blur-xl rounded-lg hover:border-green-200 transition-colors shadow"
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center space-x-3">
@@ -715,6 +721,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </Modal>
       </div>
-    </GlassPage>
+    </div>
   );
 };
