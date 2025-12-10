@@ -129,17 +129,19 @@ export const ShopManagement = () => {
         notification_email: (syncedShop as any).notification_email || '',
         description: syncedShop.description || '',
       });
-      setLogoPath((syncedShop as any).logo_path || '');
-      if ((syncedShop as any).logo_path) {
+      const incomingLogoPath = (syncedShop as any).logo_path || '';
+      const incomingLogoUrl = (syncedShop as any).logo_url || '';
+      setLogoPath(incomingLogoPath);
+      if (incomingLogoPath) {
         try {
-          const signed = await apiService.getSignedShopLogoUrl((syncedShop as any).logo_path);
+          const signed = await apiService.getSignedShopLogoUrl(incomingLogoPath);
           setLogoUrl(signed);
         } catch (e) {
           console.error('Error signing logo URL', e);
-          setLogoUrl('');
+          setLogoUrl(incomingLogoUrl || '');
         }
       } else {
-        setLogoUrl('');
+        setLogoUrl(incomingLogoUrl || '');
       }
     } catch (error) {
       console.error('Error loading shop data:', error);
@@ -158,17 +160,19 @@ export const ShopManagement = () => {
           notification_email: (syncedShop as any).notification_email || '',
           description: syncedShop.description || '',
         });
-        setLogoPath((syncedShop as any).logo_path || '');
-        if ((syncedShop as any).logo_path) {
+        const incomingLogoPath = (syncedShop as any).logo_path || '';
+        const incomingLogoUrl = (syncedShop as any).logo_url || '';
+        setLogoPath(incomingLogoPath);
+        if (incomingLogoPath) {
           try {
-            const signed = await apiService.getSignedShopLogoUrl((syncedShop as any).logo_path);
+            const signed = await apiService.getSignedShopLogoUrl(incomingLogoPath);
             setLogoUrl(signed);
           } catch (e) {
             console.error('Error signing logo URL', e);
-            setLogoUrl('');
+            setLogoUrl(incomingLogoUrl || '');
           }
         } else {
-          setLogoUrl('');
+          setLogoUrl(incomingLogoUrl || '');
         }
       }
     }
@@ -220,7 +224,7 @@ export const ShopManagement = () => {
       const { path, signedUrl } = await apiService.uploadShopLogo(file, shop.id);
       setLogoPath(path);
       setLogoUrl(signedUrl);
-      const updatedShop: Shop = { ...shop, logo_path: path };
+      const updatedShop: Shop = { ...shop, logo_path: path, logo_url: signedUrl };
       await apiService.updateShop(updatedShop);
       persistShopState(updatedShop);
       showMessage(setLogoMessage, 'success', 'Logo aggiornato!');

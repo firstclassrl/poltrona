@@ -142,13 +142,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return 'bg-yellow-500 text-black';
   };
   return (
-    <div className="min-h-screen p-4 md:p-6" style={{ backgroundColor: '#f8fafc' }}>
+    <div className="min-h-screen p-4 md:p-6">
       <div
-        className="w-full space-y-8 rounded-3xl p-4 md:p-6 shadow-2xl"
+        className="w-full space-y-8 rounded-3xl p-4 md:p-6"
         style={{
           backgroundImage:
             'linear-gradient(135deg, rgba(16,185,129,0.22), rgba(34,197,94,0.28) 40%, rgba(22,163,74,0.25) 70%, rgba(5,150,105,0.28))',
-          backgroundColor: 'rgba(236,253,245,0.75)',
+          backgroundColor: 'rgba(236,253,245,0.9)',
         }}
       >
       {/* Header - Responsive */}

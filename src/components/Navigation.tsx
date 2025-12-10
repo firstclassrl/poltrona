@@ -42,16 +42,20 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
         try {
           const signed = await apiService.getSignedShopLogoUrl(shop.logo_path);
           setShopLogoUrl(signed);
+          return;
         } catch (e) {
           console.error('Error loading shop logo:', e);
-          setShopLogoUrl(null);
+          // fallback
         }
+      }
+      if (shop?.logo_url) {
+        setShopLogoUrl(shop.logo_url);
       } else {
         setShopLogoUrl(null);
       }
     };
     fetchLogo();
-  }, [shop?.logo_path]);
+  }, [shop?.logo_path, shop?.logo_url]);
 
   const allNavItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, permission: 'dashboard' },
