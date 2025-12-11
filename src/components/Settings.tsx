@@ -624,7 +624,7 @@ export const Settings = () => {
       </div>
 
       {/* Sezione Operativa */}
-      <div className="space-y-4">
+      <Card className="space-y-4 bg-sky-50 border border-sky-100 p-4 md:p-5 shadow-sm">
         <div className="flex items-center space-x-2 mb-4">
           <CalendarPlus className="w-5 h-5 text-gray-600" />
           <h2 className="text-xl font-semibold text-gray-900">Operativa</h2>
@@ -1041,10 +1041,10 @@ export const Settings = () => {
             )}
           </div>
         </Card>
-      </div>
+      </Card>
 
       {/* Sezione Sistema */}
-      <div className="space-y-4 mt-8">
+      <Card className="space-y-4 mt-6 bg-amber-50 border border-amber-100 p-4 md:p-5 shadow-sm">
         <div className="flex items-center space-x-2 mb-4">
           <SettingsIcon className="w-5 h-5 text-gray-600" />
           <h2 className="text-xl font-semibold text-gray-900">Sistema</h2>
@@ -1470,10 +1470,10 @@ export const Settings = () => {
             </div>
           </div>
         </Card>
-      </div>
+      </Card>
 
       {/* Tema & Palette (spostato in fondo) */}
-      <div className="space-y-4">
+      <Card className="space-y-4 bg-emerald-50 border border-emerald-100 p-4 md:p-5 shadow-sm">
         <div className="flex items-center space-x-2 mb-2">
           <Palette className="w-5 h-5 text-green-700" />
           <h2 className="text-xl font-semibold text-black">Tema & Palette</h2>
@@ -1544,7 +1544,7 @@ export const Settings = () => {
             </p>
           </div>
         </Card>
-      </div>
+      </Card>
 
       {/* Modal Conferma Attivazione Ferie */}
       <Modal

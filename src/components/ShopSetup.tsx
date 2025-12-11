@@ -535,7 +535,6 @@ export const ShopSetup: React.FC = () => {
         {/* Slide container - flex-1 per occupare lo spazio disponibile */}
         <div className="relative overflow-hidden rounded-lg flex-1 min-h-0 mb-6">
           <div
-            key={currentSlide}
             ref={slideContainerRef}
             className={`h-full transition-all duration-300 ease-in-out ${
               isTransitioning
@@ -547,6 +546,7 @@ export const ShopSetup: React.FC = () => {
           >
             <div className="h-full overflow-y-auto">
               <div 
+                key={currentSlide}
                 className="p-8 md:p-10 rounded-2xl shadow-2xl backdrop-blur-xl border border-white/20"
                 style={{
                   background: 'linear-gradient(135deg, rgba(96, 165, 250, 0.15) 0%, rgba(59, 130, 246, 0.1) 100%)',
@@ -561,15 +561,16 @@ export const ShopSetup: React.FC = () => {
 
         {/* Navigation buttons - sempre visibili in fondo */}
         <div className="flex justify-between items-center gap-4 mt-auto">
-          <Button
+          <button
             type="button"
             onClick={prevSlide}
             disabled={currentSlide === 1}
-            className="flex items-center gap-2 bg-[#1e40af] hover:bg-[#1e3a8a] text-white disabled:bg-gray-300 disabled:text-gray-500 px-6 py-3 font-semibold"
+            className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed px-6 py-3 font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:ring-offset-2"
+            style={{ backgroundColor: currentSlide === 1 ? undefined : '#1e3a8a' }}
           >
             <ChevronLeft className="w-4 h-4" />
             Indietro
-          </Button>
+          </button>
 
           <div className="flex gap-2">
             {[1, 2, 3, 4, 5].map((slide) => (
@@ -579,7 +580,7 @@ export const ShopSetup: React.FC = () => {
                 onClick={() => goToSlide(slide as Slide)}
                 className={`h-2 rounded-full transition-all ${
                   currentSlide === slide
-                    ? 'bg-[#1e40af] w-8'
+                    ? 'bg-[#1e3a8a] w-8'
                     : 'bg-gray-300 hover:bg-gray-400 w-2'
                 }`}
                 aria-label={`Vai alla slide ${slide}`}
@@ -588,21 +589,23 @@ export const ShopSetup: React.FC = () => {
           </div>
 
           {currentSlide < 5 ? (
-            <Button
+            <button
               type="button"
               onClick={nextSlide}
               disabled={!validateSlide(currentSlide)}
-              className="flex items-center gap-2 bg-[#1e40af] hover:bg-[#1e3a8a] text-white disabled:bg-gray-300 disabled:text-gray-500 px-6 py-3 font-semibold"
+              className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed px-6 py-3 font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:ring-offset-2"
+              style={{ backgroundColor: !validateSlide(currentSlide) ? undefined : '#1e3a8a' }}
             >
               Avanti
               <ChevronRight className="w-4 h-4" />
-            </Button>
+            </button>
           ) : (
-            <Button
+            <button
               type="button"
               onClick={handleSubmit}
               disabled={!privacyAccepted || isSubmitting || isUploadingLogo}
-              className="flex items-center gap-2 bg-[#1e40af] hover:bg-[#1e3a8a] text-white disabled:bg-gray-300 disabled:text-gray-500 px-6 py-3 font-semibold"
+              className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed px-6 py-3 font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:ring-offset-2"
+              style={{ backgroundColor: (!privacyAccepted || isSubmitting || isUploadingLogo) ? undefined : '#1e3a8a' }}
             >
               {isSubmitting || isUploadingLogo ? (
                 <>
@@ -615,7 +618,7 @@ export const ShopSetup: React.FC = () => {
                   Crea il tuo negozio
                 </>
               )}
-            </Button>
+            </button>
           )}
         </div>
 
