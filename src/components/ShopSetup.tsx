@@ -7,7 +7,9 @@ import type { Shop } from '../types';
 import { ThemeSelector } from './ThemeSelector';
 import { useTheme } from '../contexts/ThemeContext';
 import { DEFAULT_THEME_ID, type ThemePaletteId } from '../theme/palettes';
-import { ChevronLeft, ChevronRight, Upload, X, CheckCircle2, Shield, Palette, Building2, Mail, Phone } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Upload, X, CheckCircle2, Shield, Palette, Building2, Mail, Phone, Download, UserPlus } from 'lucide-react';
+import { ShopQRCode } from './ShopQRCode';
+import { API_CONFIG } from '../config/api';
 
 const getTokenFromUrl = (): string | null => {
   if (typeof window === 'undefined') return null;
@@ -32,7 +34,7 @@ const slugify = (value: string) =>
     .replace(/-+/g, '-')
     .replace(/^-+|-+$/g, '');
 
-type Slide = 1 | 2 | 3 | 4 | 5;
+type Slide = 1 | 2 | 3 | 4 | 5 | 6;
 
 export const ShopSetup: React.FC = () => {
   const { setTheme, themeId } = useTheme();
@@ -50,6 +52,9 @@ export const ShopSetup: React.FC = () => {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminConfirmPassword, setAdminConfirmPassword] = useState('');
 
   const [form, setForm] = useState({
     name: '',
@@ -126,6 +131,30 @@ export const ShopSetup: React.FC = () => {
     setLogoPreview(null);
   };
 
+  const downloadQRCode = async (link: string, shopName: string) => {
+    try {
+      const encoded = encodeURIComponent(link);
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encoded}&size=500x500`;
+      
+      // Fetch the QR code image
+      const response = await fetch(qrUrl);
+      const blob = await response.blob();
+      
+      // Create a download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `QR-Code-${shopName.replace(/\s+/g, '-')}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Errore durante il download del QR code:', error);
+      setError('Errore durante il download del QR code. Riprova.');
+    }
+  };
+
   const goToSlide = (targetSlide: Slide) => {
     if (targetSlide === currentSlide || isTransitioning) return;
     
@@ -145,7 +174,7 @@ export const ShopSetup: React.FC = () => {
   };
 
   const nextSlide = () => {
-    if (currentSlide < 5) {
+    if (currentSlide < 6) {
       goToSlide((currentSlide + 1) as Slide);
     }
   };
@@ -161,12 +190,27 @@ export const ShopSetup: React.FC = () => {
       case 1:
         return true; // Benvenuto, sempre valido
       case 2:
-        return !!form.name.trim();
+        return !!(
+          form.name.trim() &&
+          form.description.trim() &&
+          form.address.trim() &&
+          form.postal_code.trim() &&
+          form.city.trim() &&
+          form.province.trim()
+        );
       case 3:
-        return !!form.phone.trim() || !!form.notification_email.trim();
+        return !!form.phone.trim() && !!form.notification_email.trim();
       case 4:
-        return true; // Palette, sempre valido
+        return !!(
+          adminEmail.trim() &&
+          adminPassword.trim() &&
+          adminConfirmPassword.trim() &&
+          adminPassword === adminConfirmPassword &&
+          adminPassword.length >= 6
+        );
       case 5:
+        return true; // Palette, sempre valido
+      case 6:
         return privacyAccepted;
       default:
         return false;
@@ -208,6 +252,69 @@ export const ShopSetup: React.FC = () => {
         description: form.description || undefined,
         theme_palette: form.theme_palette || DEFAULT_THEME_ID,
       });
+
+      // Crea l'account admin per il negozio
+      if (adminEmail && adminPassword) {
+        try {
+          // Crea l'utente in Supabase Auth
+          const signupUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/signup`;
+          const signupRes = await fetch(signupUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${API_CONFIG.SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({
+              email: adminEmail.trim().toLowerCase(),
+              password: adminPassword,
+              data: {
+                full_name: form.name || 'Admin',
+                role: 'admin'
+              }
+            })
+          });
+
+          if (!signupRes.ok) {
+            const errorData = await signupRes.json().catch(() => ({ message: 'Errore durante la creazione dell\'account admin' }));
+            throw new Error(errorData.error_description || errorData.message || 'Errore durante la creazione dell\'account admin');
+          }
+
+          const signupJson = await signupRes.json();
+          const adminUserId = signupJson.user?.id;
+          const adminAccessToken = signupJson.session?.access_token;
+
+          if (adminUserId) {
+            // Se abbiamo il token di accesso, usalo per aggiornare il profilo
+            const tokenToUse = adminAccessToken || API_CONFIG.SUPABASE_ANON_KEY;
+            
+            // Aggiorna il profilo con ruolo admin e shop_id
+            const profileUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/profiles?user_id=eq.${adminUserId}`;
+            const profileRes = await fetch(profileUrl, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${tokenToUse}`,
+                'Prefer': 'return=minimal'
+              },
+              body: JSON.stringify({
+                role: 'admin',
+                shop_id: shop.id,
+                full_name: form.name || 'Admin'
+              })
+            });
+
+            if (!profileRes.ok) {
+              console.warn('Errore aggiornamento profilo admin:', await profileRes.text());
+            }
+          }
+        } catch (adminError) {
+          console.error('Errore creazione account admin:', adminError);
+          // Non bloccare la creazione del negozio se l'admin fallisce
+          setError(`Negozio creato, ma errore nella creazione dell'account admin: ${adminError instanceof Error ? adminError.message : 'Errore sconosciuto'}`);
+        }
+      }
 
       // Carica il logo se presente
       if (logoFile && shop.id) {
@@ -428,46 +535,51 @@ export const ShopSetup: React.FC = () => {
             placeholder="Es: Barberia Roma"
           />
           
-          <div>
-            <label className="block text-sm font-medium text-[#1e40af] mb-2">Descrizione</label>
-            <textarea
-              className="w-full border-2 border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e40af] focus:border-[#1e40af] bg-white text-gray-900 transition-all"
-              rows={4}
-              value={form.description}
-              onChange={(e) => handleChange('description', e.target.value)}
-              placeholder="Descrivi il tuo negozio..."
-            />
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-[#1e40af] mb-2">Descrizione *</label>
+          <textarea
+            className="w-full border-2 border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e40af] focus:border-[#1e40af] bg-white text-gray-900 transition-all"
+            rows={4}
+            value={form.description}
+            onChange={(e) => handleChange('description', e.target.value)}
+            placeholder="Descrivi il tuo negozio..."
+            required
+          />
+        </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              label="Indirizzo"
-              labelClassName="text-[#1e40af] font-medium"
-              value={form.address}
-              onChange={(e) => handleChange('address', e.target.value)}
-              placeholder="Via, numero civico"
-            />
-            <Input
-              label="CAP"
-              labelClassName="text-[#1e40af] font-medium"
-              value={form.postal_code}
-              onChange={(e) => handleChange('postal_code', e.target.value)}
-              placeholder="00100"
-            />
-            <Input
-              label="Città"
-              labelClassName="text-[#1e40af] font-medium"
-              value={form.city}
-              onChange={(e) => handleChange('city', e.target.value)}
-              placeholder="Roma"
-            />
-            <Input
-              label="Provincia"
-              labelClassName="text-[#1e40af] font-medium"
-              value={form.province}
-              onChange={(e) => handleChange('province', e.target.value)}
-              placeholder="RM"
-            />
+          <Input
+            label="Indirizzo *"
+            labelClassName="text-[#1e40af] font-medium"
+            value={form.address}
+            onChange={(e) => handleChange('address', e.target.value)}
+            placeholder="Via, numero civico"
+            required
+          />
+          <Input
+            label="CAP *"
+            labelClassName="text-[#1e40af] font-medium"
+            value={form.postal_code}
+            onChange={(e) => handleChange('postal_code', e.target.value)}
+            placeholder="00100"
+            required
+          />
+          <Input
+            label="Città *"
+            labelClassName="text-[#1e40af] font-medium"
+            value={form.city}
+            onChange={(e) => handleChange('city', e.target.value)}
+            placeholder="Roma"
+            required
+          />
+          <Input
+            label="Provincia *"
+            labelClassName="text-[#1e40af] font-medium"
+            value={form.province}
+            onChange={(e) => handleChange('province', e.target.value)}
+            placeholder="RM"
+            required
+          />
           </div>
 
           <div>
@@ -560,6 +672,54 @@ export const ShopSetup: React.FC = () => {
     slideContent = (
       <div className="space-y-6">
         <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-[#1e40af] rounded-full mb-4">
+            <UserPlus className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Account Admin</h2>
+          <p className="text-gray-600">Crea l'account amministratore per gestire il tuo negozio</p>
+        </div>
+        
+        <div className="space-y-6">
+          <Input
+            label="Email admin *"
+            labelClassName="text-[#1e40af] font-medium"
+            type="email"
+            value={adminEmail}
+            onChange={(e) => setAdminEmail(e.target.value)}
+            placeholder="admin@negozio.com"
+            required
+          />
+          <Input
+            label="Password *"
+            labelClassName="text-[#1e40af] font-medium"
+            type="password"
+            value={adminPassword}
+            onChange={(e) => setAdminPassword(e.target.value)}
+            placeholder="Minimo 6 caratteri"
+            required
+          />
+          <Input
+            label="Conferma Password *"
+            labelClassName="text-[#1e40af] font-medium"
+            type="password"
+            value={adminConfirmPassword}
+            onChange={(e) => setAdminConfirmPassword(e.target.value)}
+            placeholder="Ripeti la password"
+            required
+          />
+          {adminPassword && adminConfirmPassword && adminPassword !== adminConfirmPassword && (
+            <p className="text-sm text-red-600">Le password non coincidono</p>
+          )}
+          {adminPassword && adminPassword.length > 0 && adminPassword.length < 6 && (
+            <p className="text-sm text-red-600">La password deve contenere almeno 6 caratteri</p>
+          )}
+        </div>
+      </div>
+    );
+  } else if (currentSlide === 5) {
+    slideContent = (
+      <div className="space-y-6">
+        <div className="text-center mb-6">
           <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Personalizza il Tema</h2>
           <p className="text-gray-600">Scegli i colori del tuo negozio</p>
         </div>
@@ -573,7 +733,7 @@ export const ShopSetup: React.FC = () => {
         </div>
       </div>
     );
-  } else if (currentSlide === 5) {
+  } else if (currentSlide === 6) {
     slideContent = (
       <div className="space-y-6">
         <div className="text-center mb-6">
@@ -678,12 +838,27 @@ export const ShopSetup: React.FC = () => {
                 <p className="text-sm font-medium text-[#1e40af] mb-2">
                   Link registrazione clienti:
                 </p>
-                <p className="text-base font-mono text-gray-900 break-all bg-white p-3 rounded border border-[#1e40af]/30">
+                <p className="text-base font-mono text-gray-900 break-all bg-white p-3 rounded border border-[#1e40af]/30 mb-4">
                   {success.link}
                 </p>
               </div>
+              
+              <div className="border-2 border-[#1e40af]/30 rounded-lg p-6 bg-white/60 backdrop-blur-sm">
+                <div className="flex flex-col items-center space-y-4">
+                  <ShopQRCode link={success.link} size={200} />
+                  <button
+                    type="button"
+                    onClick={() => downloadQRCode(success.link, success.shop.name)}
+                    className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white px-6 py-3 font-semibold rounded-lg transition-all duration-200"
+                  >
+                    <Download className="w-4 h-4" />
+                    Scarica QR Code
+                  </button>
+                </div>
+              </div>
+              
               <p className="text-sm text-gray-600">
-                Condividi il link o genera un QR code per i tuoi clienti.
+                Condividi il link o il QR code con i tuoi clienti per permettere loro di registrarsi.
               </p>
             </div>
           </div>
@@ -712,7 +887,7 @@ export const ShopSetup: React.FC = () => {
         <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
           <div
             className="bg-[#1e40af] h-2 rounded-full transition-all duration-300"
-            style={{ width: `${(currentSlide / 5) * 100}%` }}
+            style={{ width: `${(currentSlide / 6) * 100}%` }}
           />
         </div>
 
@@ -753,7 +928,7 @@ export const ShopSetup: React.FC = () => {
           </button>
 
           <div className="flex gap-2">
-            {[1, 2, 3, 4, 5].map((slide) => (
+            {[1, 2, 3, 4, 5, 6].map((slide) => (
               <button
                 key={slide}
                 type="button"
@@ -768,7 +943,7 @@ export const ShopSetup: React.FC = () => {
             ))}
           </div>
 
-          {currentSlide < 5 ? (
+          {currentSlide < 6 ? (
             <button
               type="button"
               onClick={nextSlide}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Building2, MapPin, Edit, Save, X, Clock, Image as ImageIcon, FileText } from 'lucide-react';
+import { Building2, MapPin, Edit, Save, X, Clock, Image as ImageIcon, FileText, Download } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -8,6 +8,7 @@ import { DailyHoursManager } from './DailyHoursManager';
 import { apiService } from '../services/api';
 import type { Shop } from '../types';
 import { PhotoUpload } from './PhotoUpload';
+import { ShopQRCode } from './ShopQRCode';
 
 const DEFAULT_LOGO = '/logo Poltrona 2025.png';
 
@@ -107,6 +108,31 @@ export const ShopManagement = () => {
     persistShopLocally(shopWithTimestamp);
     setShop(shopWithTimestamp);
     return shopWithTimestamp;
+  };
+
+  const downloadQRCode = async (shop: Shop) => {
+    try {
+      const link = `${window.location.origin}?shop=${shop.slug || 'default'}`;
+      const encoded = encodeURIComponent(link);
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encoded}&size=500x500`;
+      
+      // Fetch the QR code image
+      const response = await fetch(qrUrl);
+      const blob = await response.blob();
+      
+      // Create a download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `QR-Code-${shop.name.replace(/\s+/g, '-')}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Errore durante il download del QR code:', error);
+      showMessage(setBasicMessage, 'error', 'Errore durante il download del QR code. Riprova.');
+    }
   };
 
   useEffect(() => {
@@ -575,6 +601,35 @@ export const ShopManagement = () => {
           )}
         </div>
       </Card>
+
+      {/* QR Code per Registrazione Clienti */}
+      {shop && shop.slug && (
+        <Card className="!border-2 !border-blue-400">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-semibold text-gray-900">QR Code Registrazione Clienti</h3>
+            </div>
+            
+            <div className="flex flex-col items-center space-y-4 p-4 bg-gray-50 rounded-lg">
+              <ShopQRCode 
+                link={`${window.location.origin}?shop=${shop.slug}`} 
+                size={200} 
+              />
+              <button
+                type="button"
+                onClick={() => downloadQRCode(shop)}
+                className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white px-6 py-3 font-semibold rounded-lg transition-all duration-200"
+              >
+                <Download className="w-4 h-4" />
+                Scarica QR Code
+              </button>
+              <p className="text-xs text-gray-600 text-center max-w-md">
+                Condividi questo QR code con i tuoi clienti per permettere loro di registrarsi facilmente al tuo negozio.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
     </div>
   );
 };

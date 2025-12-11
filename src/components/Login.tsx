@@ -8,6 +8,9 @@ import { PrivacyPolicy } from './PrivacyPolicy';
 import { Modal } from './ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
 import { APP_VERSION } from '../config/version';
+import { apiService } from '../services/api';
+import { API_CONFIG } from '../config/api';
+import type { Shop } from '../types';
 
 export const Login: React.FC = () => {
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -32,8 +35,73 @@ export const Login: React.FC = () => {
   const [showRegistrationSuccess, setShowRegistrationSuccess] = useState(false);
   const [hasJustRegistered, setHasJustRegistered] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
+  const [shop, setShop] = useState<Shop | null>(null);
+  const [shopLogoUrl, setShopLogoUrl] = useState<string | null>(null);
+  const [isLoadingShop, setIsLoadingShop] = useState(true);
   
   const { login, register } = useAuth();
+
+  // Carica i dati dello shop dallo slug nell'URL
+  useEffect(() => {
+    const loadShopFromUrl = async () => {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const shopSlug = params.get('shop');
+        
+        if (shopSlug) {
+          try {
+            const shopData = await apiService.getShopBySlug(shopSlug);
+            setShop(shopData);
+            
+            // Carica il logo dello shop se disponibile
+            // Usa logo_url se disponibile (URL pubblico), altrimenti prova a costruire l'URL pubblico dal path
+            if (shopData.logo_url) {
+              setShopLogoUrl(shopData.logo_url);
+            } else if (shopData.logo_path) {
+              // Prova a costruire l'URL pubblico del bucket (se il bucket è pubblico)
+              const publicUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/shop-logos/${shopData.logo_path}`;
+              setShopLogoUrl(publicUrl);
+            }
+          } catch (error) {
+            console.warn('Shop non trovato per slug:', shopSlug, error);
+            // Fallback: prova a caricare il negozio di default
+            try {
+              const defaultShop = await apiService.getShop();
+              setShop(defaultShop);
+              if (defaultShop?.logo_url) {
+                setShopLogoUrl(defaultShop.logo_url);
+              } else if (defaultShop?.logo_path) {
+                const publicUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/shop-logos/${defaultShop.logo_path}`;
+                setShopLogoUrl(publicUrl);
+              }
+            } catch (e) {
+              console.warn('Errore caricamento shop di default:', e);
+            }
+          }
+        } else {
+          // Nessuno slug, prova a caricare il negozio di default
+          try {
+            const defaultShop = await apiService.getShop();
+            setShop(defaultShop);
+            if (defaultShop?.logo_url) {
+              setShopLogoUrl(defaultShop.logo_url);
+            } else if (defaultShop?.logo_path) {
+              const publicUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/shop-logos/${defaultShop.logo_path}`;
+              setShopLogoUrl(publicUrl);
+            }
+          } catch (e) {
+            console.warn('Errore caricamento shop di default:', e);
+          }
+        }
+      } catch (error) {
+        console.error('Errore caricamento shop:', error);
+      } finally {
+        setIsLoadingShop(false);
+      }
+    };
+
+    void loadShopFromUrl();
+  }, []);
 
   // Previeni lo scroll quando il modal è aperto
   useEffect(() => {
@@ -148,14 +216,30 @@ export const Login: React.FC = () => {
       {/* Card principale - sopra il pattern */}
       <Card className="w-full max-w-md p-8 bg-white/25 backdrop-blur-2xl border border-white/30 shadow-2xl relative z-10 login-card-glass">
         <div className="text-center mb-8">
-          <div className="w-20 h-20 mx-auto mb-4">
-            <img 
-              src="/logo Poltrona 2025.png" 
-              alt="Logo ufficiale Poltrona" 
-              className="w-full h-full object-contain filter brightness-110"
-            />
-          </div>
-          <h1 className="text-2xl font-bold text-green-900">Poltrona</h1>
+          {isLoadingShop ? (
+            <div className="w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+              <div className="w-8 h-8 border-4 border-green-300 border-t-green-900 rounded-full animate-spin"></div>
+            </div>
+          ) : (
+            <div className="w-20 h-20 mx-auto mb-4">
+              {shopLogoUrl ? (
+                <img 
+                  src={shopLogoUrl} 
+                  alt={`Logo ${shop?.name || 'negozio'}`} 
+                  className="w-full h-full object-contain filter brightness-110 rounded-lg"
+                />
+              ) : (
+                <img 
+                  src="/logo Poltrona 2025.png" 
+                  alt="Logo ufficiale Poltrona" 
+                  className="w-full h-full object-contain filter brightness-110"
+                />
+              )}
+            </div>
+          )}
+          <h1 className="text-2xl font-bold text-green-900">
+            {shop?.name || 'Poltrona'}
+          </h1>
           <p className="text-green-800 mt-2">
             {mode === 'login' ? 'Accedi al tuo account' : 'Crea il tuo account'}
           </p>
