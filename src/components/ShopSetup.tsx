@@ -246,7 +246,14 @@ export const ShopSetup: React.FC = () => {
         try {
           // Step 1: Crea l'utente in Supabase Auth
           // Il trigger creerà automaticamente un profilo con ruolo 'client'
+          // Verifica configurazione Supabase
+          if (!API_CONFIG.SUPABASE_EDGE_URL || !API_CONFIG.SUPABASE_ANON_KEY) {
+            throw new Error("Configurazione Supabase mancante. Verifica le variabili d'ambiente VITE_SUPABASE_EDGE_URL e VITE_SUPABASE_ANON_KEY.");
+          }
+
           const signupUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/signup`;
+          console.log('🔐 Tentativo signup admin:', { url: signupUrl, email: adminEmail.trim().toLowerCase() });
+          
           const signupRes = await fetch(signupUrl, {
             method: 'POST',
             headers: {
@@ -263,22 +270,31 @@ export const ShopSetup: React.FC = () => {
             })
           });
 
+          console.log('📡 Risposta signup:', { 
+            status: signupRes.status, 
+            statusText: signupRes.statusText,
+            ok: signupRes.ok,
+            headers: Object.fromEntries(signupRes.headers.entries())
+          });
+
           if (!signupRes.ok) {
             // Prova a leggere come JSON, altrimenti come testo
-            let errorMessage = "Errore durante la creazione dell'account admin";
+            let errorMessage = `Errore durante la creazione dell'account admin (status: ${signupRes.status})`;
             try {
               const errorText = await signupRes.text();
+              console.error('❌ Errore signup (testo):', errorText);
               if (errorText && errorText.trim().length > 0) {
                 try {
                   const errorData = JSON.parse(errorText);
+                  console.error('❌ Errore signup (JSON):', errorData);
                   errorMessage = errorData.error_description || errorData.message || errorData.error || errorMessage;
                 } catch {
                   // Non è JSON, usa il testo direttamente
-                  errorMessage = errorText.substring(0, 200); // Limita la lunghezza
+                  errorMessage = `${errorMessage}: ${errorText.substring(0, 200)}`;
                 }
               }
-            } catch {
-              // Se anche questo fallisce, usa il messaggio di default
+            } catch (readError) {
+              console.error('❌ Errore lettura risposta:', readError);
             }
             throw new Error(errorMessage);
           }
@@ -287,13 +303,19 @@ export const ShopSetup: React.FC = () => {
           let signupJson: any = null;
           try {
             const responseText = await signupRes.text();
+            console.log('✅ Risposta signup (testo):', responseText.substring(0, 500));
             if (!responseText || responseText.trim().length === 0) {
               throw new Error('Risposta vuota dal server');
             }
             signupJson = JSON.parse(responseText);
+            console.log('✅ Risposta signup (JSON):', { 
+              hasUser: !!signupJson?.user, 
+              hasSession: !!signupJson?.session,
+              userId: signupJson?.user?.id 
+            });
           } catch (parseError) {
-            console.error('Errore parsing risposta signup:', parseError);
-            throw new Error("Risposta non valida dal server durante la creazione dell'account. Verifica la configurazione di Supabase.");
+            console.error('❌ Errore parsing risposta signup:', parseError);
+            throw new Error(`Risposta non valida dal server durante la creazione dell'account (status: ${signupRes.status}). Verifica la configurazione di Supabase.`);
           }
 
           adminUserId = signupJson?.user?.id || null;
