@@ -18,14 +18,13 @@ export const Input: React.FC<InputProps> = ({
   return (
     <div className={cn('space-y-1', containerClassName)}>
       {label && (
-        <label className="block text-sm font-medium text-on-surface">
+        <label className="block text-sm font-medium text-gray-200">
           {label}
         </label>
       )}
       <input
         className={cn(
-          'w-full px-3 py-2 rounded-lg text-[var(--theme-text)] placeholder:text-[var(--theme-text-muted)] transition-all duration-200',
-          'bg-[var(--theme-surface-alt)] border border-[color-mix(in_srgb,var(--theme-border)_30%,transparent)] focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent',
+          'w-full px-3 py-2 bg-white border border-green-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200',
           error && 'border-red-500/50 focus:ring-red-500/50',
           props.type === 'time' && 'time-24h', // Add class for time inputs
           className
@@ -36,7 +35,7 @@ export const Input: React.FC<InputProps> = ({
         {...props}
       />
       {error && (
-        <p className="text-sm text-[var(--theme-danger)]">{error}</p>
+        <p className="text-sm text-red-600">{error}</p>
       )}
     </div>
   );

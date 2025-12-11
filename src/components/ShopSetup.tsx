@@ -125,7 +125,7 @@ export const ShopSetup: React.FC = () => {
 
   if (isValidating) {
     return (
-      <div className="min-h-screen flex items-center justify-center app-gradient">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <p className="text-on-surface">Verifica del link in corso...</p>
       </div>
     );
@@ -133,7 +133,7 @@ export const ShopSetup: React.FC = () => {
 
   if (!tokenValid) {
     return (
-      <div className="min-h-screen flex items-center justify-center app-gradient">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Card className="p-8 max-w-lg w-full">
           <h1 className="text-2xl font-bold mb-4 text-on-surface">Link non valido</h1>
           <p className="text-muted">Il link di invito non è valido o è scaduto.</p>
@@ -144,7 +144,7 @@ export const ShopSetup: React.FC = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center app-gradient">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Card className="p-8 max-w-lg w-full space-y-4">
           <h1 className="text-2xl font-bold text-on-surface">Negozio creato!</h1>
           <p className="text-on-surface">
@@ -165,7 +165,7 @@ export const ShopSetup: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center app-gradient">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <Card className="p-8 max-w-2xl w-full space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-on-surface">Setup negozio</h1>
@@ -237,16 +237,16 @@ export const ShopSetup: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-on-surface mb-1">Descrizione</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Descrizione</label>
             <textarea
-              className="w-full border border-[color-mix(in_srgb,var(--theme-border)_30%,transparent)] rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] bg-[var(--theme-surface-alt)] text-[var(--theme-text)]"
+              className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
               rows={3}
               value={form.description}
               onChange={(e) => handleChange('description', e.target.value)}
             />
           </div>
 
-          <div className="surface-card rounded-lg p-4">
+          <div className="border border-gray-200 rounded-lg p-4 bg-white">
             <ThemeSelector
               value={form.theme_palette as ThemePaletteId}
               onChange={handleThemeChange}

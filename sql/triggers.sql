@@ -357,3 +357,139 @@ CREATE TRIGGER trigger_notify_barber_on_cancellation
 -- Commento per documentazione
 COMMENT ON FUNCTION public.notify_barber_on_appointment_cancellation() IS 'Funzione trigger per notificare il barbiere (in-app e email) quando un appuntamento viene cancellato';
 
+-- ============================================
+-- Trigger per notificare il barbiere quando un nuovo appuntamento viene creato
+-- ============================================
+
+CREATE OR REPLACE FUNCTION public.notify_barber_on_appointment_created()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_staff_record RECORD;
+    v_client_record RECORD;
+    v_service_record RECORD;
+    v_shop_record RECORD;
+    v_appointment_date TEXT;
+    v_appointment_time TEXT;
+    v_client_name TEXT;
+    v_client_email TEXT;
+    v_client_phone TEXT;
+    v_service_name TEXT;
+    v_barber_name TEXT;
+    v_barber_email TEXT;
+    v_shop_email TEXT;
+    v_shop_name TEXT;
+BEGIN
+    -- Solo su INSERT
+    -- Recupera i dati del barbiere (staff)
+    SELECT 
+        s.id,
+        s.user_id,
+        s.full_name,
+        s.email,
+        s.shop_id
+    INTO v_staff_record
+    FROM public.staff s
+    WHERE s.id = NEW.staff_id;
+    
+    IF NOT FOUND OR v_staff_record.id IS NULL THEN
+        RETURN NEW;
+    END IF;
+    
+    -- Recupera i dati del cliente
+    SELECT 
+        c.id,
+        COALESCE(c.first_name || ' ' || COALESCE(c.last_name, ''), 'Cliente') as full_name,
+        c.email,
+        c.phone_e164
+    INTO v_client_record
+    FROM public.clients c
+    WHERE c.id = NEW.client_id;
+    
+    -- Recupera i dati del servizio
+    SELECT 
+        s.name
+    INTO v_service_record
+    FROM public.services s
+    WHERE s.id = NEW.service_id;
+    
+    -- Recupera i dati dello shop
+    SELECT 
+        sh.id,
+        sh.name,
+        sh.notification_email
+    INTO v_shop_record
+    FROM public.shops sh
+    WHERE sh.id = NEW.shop_id;
+    
+    -- Prepara i dati per la notifica
+    v_client_name := COALESCE(v_client_record.full_name, 'Cliente');
+    v_client_email := v_client_record.email;
+    v_client_phone := v_client_record.phone_e164;
+    v_service_name := COALESCE(v_service_record.name, 'Servizio');
+    v_barber_name := COALESCE(v_staff_record.full_name, 'Barbiere');
+    v_barber_email := v_staff_record.email;
+    v_shop_name := COALESCE(v_shop_record.name, 'Negozio');
+    v_shop_email := v_shop_record.notification_email;
+    
+    -- Formatta data e ora
+    v_appointment_date := TO_CHAR(NEW.start_at, 'DD/MM/YYYY');
+    v_appointment_time := TO_CHAR(NEW.start_at, 'HH24:MI');
+    
+    -- Crea notifica in-app per il barbiere (solo se ha user_id)
+    IF v_staff_record.user_id IS NOT NULL THEN
+        INSERT INTO public.notifications (
+            shop_id,
+            user_id,
+            user_type,
+            type,
+            title,
+            message,
+            data,
+            created_at
+        )
+        VALUES (
+            NEW.shop_id,
+            v_staff_record.user_id,
+            'staff',
+            'new_appointment',
+            '📅 Nuovo Appuntamento',
+            v_client_name || ' ha prenotato ' || v_service_name || ' per il ' || v_appointment_date || ' alle ' || v_appointment_time,
+            jsonb_build_object(
+                'appointment_id', NEW.id,
+                'client_id', NEW.client_id,
+                'client_name', v_client_name,
+                'client_email', v_client_email,
+                'client_phone', v_client_phone,
+                'service_name', v_service_name,
+                'appointment_date', v_appointment_date,
+                'appointment_time', v_appointment_time,
+                'staff_id', NEW.staff_id,
+                'created_at', NOW()
+            ),
+            NOW()
+        );
+    END IF;
+    
+    -- NOTA: per inviare email automatiche, aggiungi un webhook Supabase su INSERT di appointments
+    -- verso N8N / funzione esterna, oppure usa pg_net se disponibile.
+    -- Il payload in notifica contiene tutti i campi utili.
+    
+    RETURN NEW;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE LOG 'Errore nella notifica creazione appuntamento %: %', NEW.id, SQLERRM;
+        RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trigger_notify_barber_on_created ON public.appointments;
+CREATE TRIGGER trigger_notify_barber_on_created
+    AFTER INSERT ON public.appointments
+    FOR EACH ROW
+    EXECUTE FUNCTION public.notify_barber_on_appointment_created();
+
+COMMENT ON FUNCTION public.notify_barber_on_appointment_created() IS 'Funzione trigger per notificare il barbiere (in-app; email via webhook) quando viene creato un nuovo appuntamento';
+

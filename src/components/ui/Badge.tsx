@@ -9,11 +9,11 @@ interface BadgeProps {
 
 export const Badge: React.FC<BadgeProps> = ({ children, variant = 'default', className }) => {
   const variantClasses = {
-    default: 'bg-[var(--theme-accent-soft)] text-[var(--theme-primary-strong)] border-[color-mix(in_srgb,var(--theme-primary)_35%,transparent)]',
-    success: 'bg-[color-mix(in_srgb,var(--theme-success)_15%,var(--theme-surface))] text-[var(--theme-primary-strong)] border-[color-mix(in_srgb,var(--theme-success)_40%,transparent)]',
-    warning: 'bg-[color-mix(in_srgb,var(--theme-warning)_16%,var(--theme-surface))] text-[var(--theme-primary-strong)] border-[color-mix(in_srgb,var(--theme-warning)_40%,transparent)]',
-    danger: 'bg-[color-mix(in_srgb,var(--theme-danger)_14%,var(--theme-surface))] text-[var(--theme-primary-strong)] border-[color-mix(in_srgb,var(--theme-danger)_40%,transparent)]',
-    info: 'bg-[color-mix(in_srgb,var(--theme-accent)_18%,var(--theme-surface))] text-[var(--theme-primary-strong)] border-[color-mix(in_srgb,var(--theme-accent)_40%,transparent)]',
+    default: 'bg-yellow-100 text-green-800 border-yellow-300',
+    success: 'bg-green-100 text-yellow-800 border-green-300',
+    warning: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+    danger: 'bg-red-100 text-red-800 border-red-300',
+    info: 'bg-green-100 text-yellow-800 border-green-300',
   };
 
   return (

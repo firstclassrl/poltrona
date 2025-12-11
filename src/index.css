@@ -3,24 +3,24 @@
 @tailwind utilities;
 
 :root {
-  --theme-background: #0c100a;
-  --theme-surface: #10180f;
-  --theme-surface-alt: #0f120f;
+  --theme-background: #ffffff;
+  --theme-surface: #ffffff;
+  --theme-surface-alt: #f9fafb;
   --theme-primary: #25401c;
-  --theme-primary-strong: #1b3015;
+  --theme-primary-strong: #1a2f15;
   --theme-accent: #eecf54;
   --theme-accent-soft: #f5e59a;
   --theme-accent-contrast: #0f0f0c;
-  --theme-text: #f8f7f2;
-  --theme-text-muted: #d8d4c3;
-  --theme-border: #eecf54;
+  --theme-text: #111827;
+  --theme-text-muted: #6b7280;
+  --theme-border: #e5e7eb;
   --theme-success: #22c55e;
   --theme-warning: #f59e0b;
   --theme-danger: #ef4444;
   --theme-overlay: rgba(15, 15, 15, 0.35);
-  --theme-page-gradient: linear-gradient(135deg, #0c100a 0%, #10180f 45%, #25401c 80%);
-  --theme-sidebar-bg: rgba(37, 64, 28, 0.92);
-  --theme-sidebar-border: rgba(238, 207, 84, 0.4);
+  --theme-page-gradient: linear-gradient(to bottom right, #030712, rgba(88, 28, 135, 0.2), rgba(236, 72, 153, 0.2));
+  --theme-sidebar-bg: rgba(37, 64, 28, 0.95);
+  --theme-sidebar-border: rgba(238, 207, 84, 0.3);
   --theme-sidebar-shadow: 0 8px 32px rgba(37, 64, 28, 0.6);
   --theme-nav-active: rgba(238, 207, 84, 0.15);
   --theme-nav-hover: rgba(238, 207, 84, 0.1);
@@ -63,120 +63,6 @@ body {
 
 .bg-primary {
   background-color: var(--theme-primary);
-}
-
-.bg-white {
-  background-color: var(--theme-surface) !important;
-}
-
-.bg-gray-50 {
-  background-color: var(--theme-surface-alt) !important;
-}
-
-.border-gray-200 {
-  border-color: color-mix(in srgb, var(--theme-border) 25%, transparent) !important;
-}
-
-.border-gray-300 {
-  border-color: color-mix(in srgb, var(--theme-border) 40%, transparent) !important;
-}
-
-.text-gray-900,
-.text-gray-800 {
-  color: var(--theme-text) !important;
-}
-
-.text-gray-700,
-.text-gray-600 {
-  color: var(--theme-text-muted) !important;
-}
-
-/* Theming overrides for legacy green/yellow classes */
-.text-green-800,
-.text-green-700 {
-  color: var(--theme-primary) !important;
-}
-
-.bg-green-900 {
-  background-color: color-mix(in srgb, var(--theme-primary-strong) 95%, var(--theme-primary)) !important;
-}
-.bg-green-800 {
-  background-color: color-mix(in srgb, var(--theme-primary-strong) 80%, var(--theme-primary)) !important;
-}
-.bg-green-700 {
-  background-color: var(--theme-primary-strong) !important;
-}
-.bg-green-600 {
-  background-color: color-mix(in srgb, var(--theme-primary) 85%, transparent) !important;
-}
-.bg-green-500 {
-  background-color: color-mix(in srgb, var(--theme-primary) 75%, transparent) !important;
-}
-.bg-green-400 {
-  background-color: color-mix(in srgb, var(--theme-primary) 65%, transparent) !important;
-}
-.bg-green-300 {
-  background-color: color-mix(in srgb, var(--theme-primary) 50%, var(--theme-surface)) !important;
-}
-.bg-green-200 {
-  background-color: color-mix(in srgb, var(--theme-primary) 35%, var(--theme-surface)) !important;
-}
-.bg-green-100 {
-  background-color: color-mix(in srgb, var(--theme-primary) 20%, var(--theme-surface)) !important;
-}
-.bg-green-50 {
-  background-color: color-mix(in srgb, var(--theme-primary) 12%, var(--theme-surface)) !important;
-}
-
-.border-green-600 {
-  border-color: color-mix(in srgb, var(--theme-primary) 70%, transparent) !important;
-}
-.border-green-300 {
-  border-color: color-mix(in srgb, var(--theme-primary) 45%, transparent) !important;
-}
-
-.focus\:ring-green-500:focus,
-.focus\:ring-green-500:focus-visible {
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--theme-primary) 70%, transparent) !important;
-}
-
-.text-yellow-300,
-.text-yellow-400 {
-  color: var(--theme-accent) !important;
-}
-.bg-yellow-500 {
-  background-color: var(--theme-accent) !important;
-}
-.bg-yellow-500\/10 {
-  background-color: color-mix(in srgb, var(--theme-accent) 10%, transparent) !important;
-}
-.bg-yellow-500\/15 {
-  background-color: color-mix(in srgb, var(--theme-accent) 15%, transparent) !important;
-}
-.bg-yellow-500\/5 {
-  background-color: color-mix(in srgb, var(--theme-accent) 5%, transparent) !important;
-}
-.bg-yellow-200 {
-  background-color: color-mix(in srgb, var(--theme-accent) 35%, var(--theme-surface)) !important;
-}
-.bg-yellow-100 {
-  background-color: color-mix(in srgb, var(--theme-accent) 22%, var(--theme-surface)) !important;
-}
-.bg-yellow-50 {
-  background-color: color-mix(in srgb, var(--theme-accent) 12%, var(--theme-surface)) !important;
-}
-.border-yellow-400 {
-  border-color: color-mix(in srgb, var(--theme-accent) 65%, transparent) !important;
-}
-.border-yellow-400\/30 {
-  border-color: color-mix(in srgb, var(--theme-accent) 30%, transparent) !important;
-}
-.border-yellow-400\/40 {
-  border-color: color-mix(in srgb, var(--theme-accent) 40%, transparent) !important;
-}
-.focus\:ring-yellow-500:focus,
-.focus\:ring-yellow-500:focus-visible {
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--theme-accent) 70%, transparent) !important;
 }
 
 /* Force 24-hour format for time inputs */
@@ -288,17 +174,21 @@ body {
 /* Custom Glass Effect for Sidebar */
 @layer components {
   .glass-sidebar-dark {
-    background: var(--theme-sidebar-bg);
-    backdrop-filter: blur(25px) saturate(180%);
-    -webkit-backdrop-filter: blur(25px) saturate(180%);
-    
-    border: 1px solid var(--theme-sidebar-border);
-    
-    box-shadow: 
-      var(--theme-sidebar-shadow),
-      0 0 0 1px color-mix(in srgb, var(--theme-border) 15%, transparent),
-      inset 0 1px 0 color-mix(in srgb, var(--theme-border) 25%, transparent);
-    color: var(--theme-text);
+  /* Darker black glass background with more opacity */
+  background: rgba(37, 64, 28, 0.95); /* #25401c with opacity */
+  
+  /* Enhanced frosted glass effect */
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
+  
+  /* More defined border for better contrast */
+  border: 1px solid rgba(238, 207, 84, 0.3); /* Yellow border */
+  
+  /* Deeper shadows for more dramatic effect */
+  box-shadow: 
+    0 8px 32px rgba(37, 64, 28, 0.6),
+    0 0 0 1px rgba(238, 207, 84, 0.1),
+    inset 0 1px 0 rgba(238, 207, 84, 0.15);
   }
   
   .glass-nav-item {

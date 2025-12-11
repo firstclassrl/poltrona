@@ -122,7 +122,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
             </div>
             
             {/* Separator Line */}
-            <div className="mx-4 mb-2 border-t border-[color-mix(in_srgb,var(--theme-border)_25%,transparent)]"></div>
+            <div className="mx-4 mb-2 border-t border-white/20"></div>
             
             <nav className="mt-1 flex-1 px-3 space-y-2">
               {navItems.map((item) => {
@@ -139,8 +139,10 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                     className={cn(
                       'group flex items-center h-11 px-3 text-sm font-medium rounded-lg w-full text-left transition-all duration-150 relative',
                       activeTab === item.id
-                        ? 'text-[var(--theme-accent)] border-l-4 border-[color-mix(in_srgb,var(--theme-accent)_60%,transparent)] bg-[var(--theme-nav-active)] shadow-md glass-nav-item'
-                        : 'text-[var(--theme-text)] hover:bg-[var(--theme-nav-hover)] hover:text-[var(--theme-accent)] hover:border-l-2 hover:border-[color-mix(in_srgb,var(--theme-accent)_30%,transparent)] hover:glass-nav-item border-l-2 border-transparent'
+                        ? item.id === 'settings'
+                          ? 'text-yellow-400 border-l-2 border-yellow-400/60 bg-yellow-500/5'
+                          : 'bg-yellow-500/15 text-yellow-400 border-l-4 border-yellow-400/50 shadow-md glass-nav-item'
+                        : 'text-yellow-300 hover:bg-yellow-500/10 hover:text-yellow-400 hover:border-l-2 hover:border-yellow-400/30 hover:glass-nav-item border-l-2 border-transparent'
                     )}
                   >
                     <Icon className="mr-3 h-5 w-5" />
@@ -161,10 +163,10 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                 <button
                   onClick={() => onTabChange('notifications')}
                   className={cn(
-                    'w-full flex items-center justify-between h-11 px-3 text-sm font-medium rounded-lg transition-all duration-150 border border-[color-mix(in_srgb,var(--theme-border)_40%,transparent)]',
+                    'w-full flex items-center justify-between h-11 px-3 text-sm font-medium rounded-lg transition-all duration-150 border border-yellow-400/40',
                     activeTab === 'notifications'
-                      ? 'bg-[var(--theme-nav-active)] text-[var(--theme-accent)] border-l-4 border-[color-mix(in_srgb,var(--theme-accent)_50%,transparent)] shadow-md'
-                      : 'text-[var(--theme-text)] hover:bg-[var(--theme-nav-hover)] hover:text-[var(--theme-accent)] border-l-2 border-transparent hover:border-[color-mix(in_srgb,var(--theme-accent)_30%,transparent)]'
+                      ? 'bg-yellow-500/15 text-yellow-400 border-l-4 border-yellow-400/50 shadow-md'
+                      : 'text-yellow-300 hover:bg-yellow-500/10 hover:text-yellow-400 border-l-2 border-transparent hover:border-yellow-400/30'
                   )}
                 >
                   <div className="flex items-center">
@@ -182,31 +184,31 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
             
             {/* User Info and Logout */}
             <div className="mt-auto px-4 pb-4">
-              <div className="border-t border-[color-mix(in_srgb,var(--theme-border)_30%,transparent)] pt-4">
+              <div className="border-t border-yellow-400/30 pt-4">
                 <div className="mb-4">
                   <div className="text-center">
-                    <p className="text-sm text-[var(--theme-text)] font-medium">{user?.full_name}</p>
-                    <p className="text-xs text-[color-mix(in_srgb,var(--theme-text)_70%,transparent)] capitalize">{user?.role}</p>
+                    <p className="text-sm text-yellow-300 font-medium">{user?.full_name}</p>
+                    <p className="text-xs text-yellow-400/70 capitalize">{user?.role}</p>
                   </div>
                 </div>
                 <button
                   onClick={logout}
-                  className="w-full flex items-center justify-center px-3 py-2 text-sm font-medium text-[var(--theme-text)] hover:text-[var(--theme-accent)] hover:bg-[var(--theme-nav-hover)] rounded-md transition-all duration-200"
+                  className="w-full flex items-center justify-center px-3 py-2 text-sm font-medium text-yellow-300 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-md transition-all duration-200"
                 >
                   <LogOut className="w-4 h-4 mr-2" />
                   Logout
                 </button>
                 <div className="text-center mt-3">
-                  <p className="text-xs text-[var(--theme-text)] font-medium">
+                  <p className="text-xs text-yellow-300 font-medium">
                     Poltrona v{APP_VERSION}
                   </p>
-                  <p className="text-xs text-[color-mix(in_srgb,var(--theme-text)_70%,transparent)]">
+                  <p className="text-xs text-yellow-300/70">
                     © 2025{' '}
                     <a
                       href="https://www.abruzzo.ai"
                       target="_blank"
                       rel="noreferrer"
-                      className="hover:text-[var(--theme-accent)] underline"
+                      className="hover:text-yellow-200 underline"
                     >
                       abruzzo.ai
                     </a>
@@ -219,7 +221,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 glass-sidebar-dark border-t border-[color-mix(in_srgb,var(--theme-border)_30%,transparent)] z-50 shadow-2xl">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 glass-sidebar-dark border-t border-yellow-400/30 z-50 shadow-2xl">
         <div className="grid grid-cols-6 py-2">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -235,8 +237,10 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                 className={cn(
                   'flex flex-col items-center py-2 px-1 transition-all duration-200 relative',
                   activeTab === item.id 
-                    ? 'text-[var(--theme-accent)] border-b-2 border-[color-mix(in_srgb,var(--theme-accent)_70%,transparent)]'
-                    : 'text-[var(--theme-text)] hover:text-[var(--theme-accent)]'
+                    ? item.id === 'settings'
+                      ? 'text-yellow-400 border-b-2 border-yellow-400/50'
+                      : 'text-yellow-400 border-b-2 border-yellow-400/70'
+                    : 'text-yellow-300 hover:text-yellow-400'
                 )}
               >
                 <div className="relative">
@@ -262,13 +266,13 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
         </div>
         {/* Mobile Version Info */}
         <div className="text-center py-1 border-t border-yellow-400/20">
-          <p className="text-xs text-[color-mix(in_srgb,var(--theme-text)_70%,transparent)]">
+          <p className="text-xs text-yellow-300/70">
             v{APP_VERSION} | © 2025{' '}
             <a
               href="https://www.abruzzo.ai"
               target="_blank"
               rel="noreferrer"
-              className="hover:text-[var(--theme-accent)] underline"
+              className="hover:text-yellow-200 underline"
             >
               abruzzo.ai
             </a>
