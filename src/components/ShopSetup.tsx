@@ -280,14 +280,21 @@ export const ShopSetup: React.FC = () => {
           if (!signupRes.ok) {
             // Prova a leggere come JSON, altrimenti come testo
             let errorMessage = `Errore durante la creazione dell'account admin (status: ${signupRes.status})`;
+            let errorData: any = null;
+            let userExists = false;
+            
             try {
               const errorText = await signupRes.text();
               console.error('❌ Errore signup (testo):', errorText);
               if (errorText && errorText.trim().length > 0) {
                 try {
-                  const errorData = JSON.parse(errorText);
+                  errorData = JSON.parse(errorText);
                   console.error('❌ Errore signup (JSON):', errorData);
-                  errorMessage = errorData.error_description || errorData.message || errorData.error || errorMessage;
+                  // Supabase restituisce msg, error_code, error_description, message, error
+                  errorMessage = errorData.msg || errorData.error_description || errorData.message || errorData.error || errorMessage;
+                  
+                  // Verifica se l'utente esiste già
+                  userExists = errorData.error_code === 'user_already_exists' || errorData.msg?.includes('already registered');
                 } catch {
                   // Non è JSON, usa il testo direttamente
                   errorMessage = `${errorMessage}: ${errorText.substring(0, 200)}`;
@@ -296,30 +303,85 @@ export const ShopSetup: React.FC = () => {
             } catch (readError) {
               console.error('❌ Errore lettura risposta:', readError);
             }
-            throw new Error(errorMessage);
-          }
-
-          // Leggi la risposta JSON con gestione errori migliorata
-          let signupJson: any = null;
-          try {
-            const responseText = await signupRes.text();
-            console.log('✅ Risposta signup (testo):', responseText.substring(0, 500));
-            if (!responseText || responseText.trim().length === 0) {
-              throw new Error('Risposta vuota dal server');
+            
+            // Se l'utente esiste già, prova a fare login invece di signup
+            if (userExists) {
+              console.log('🔄 Utente già esistente, provo login...');
+              try {
+                const tokenUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/token?grant_type=password`;
+                const tokenRes = await fetch(tokenUrl, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${API_CONFIG.SUPABASE_ANON_KEY}`,
+                  },
+                  body: JSON.stringify({ 
+                    email: adminEmail.trim().toLowerCase(), 
+                    password: adminPassword 
+                  })
+                });
+                
+                if (tokenRes.ok) {
+                  try {
+                    const responseText = await tokenRes.text();
+                    if (responseText && responseText.trim().length > 0) {
+                      const tokenJson = JSON.parse(responseText);
+                      adminAccessToken = tokenJson.access_token;
+                      // Recupera l'user_id dal token JWT o dalla risposta
+                      if (tokenJson.user?.id) {
+                        adminUserId = tokenJson.user.id;
+                      } else if (tokenJson.access_token) {
+                        // Decodifica il JWT per ottenere l'user_id
+                        try {
+                          const payload = JSON.parse(atob(tokenJson.access_token.split('.')[1]));
+                          adminUserId = payload.sub;
+                        } catch {
+                          console.warn('⚠️ Impossibile decodificare JWT per user_id');
+                        }
+                      }
+                      console.log('✅ Login riuscito per utente esistente, user_id:', adminUserId);
+                    } else {
+                      throw new Error('Risposta login vuota');
+                    }
+                  } catch (parseError) {
+                    console.warn('⚠️ Errore parsing risposta login:', parseError);
+                    throw new Error('Errore durante il login per utente esistente');
+                  }
+                } else {
+                  const loginErrorText = await tokenRes.text().catch(() => '');
+                  throw new Error(`Email già registrata ma password non corretta. ${loginErrorText ? 'Usa la password corretta o un'email diversa.' : ''}`);
+                }
+              } catch (loginError) {
+                throw new Error(`Email già registrata. ${loginError instanceof Error ? loginError.message : 'Usa un'email diversa.'}`);
+              }
+            } else {
+              // Altro tipo di errore, lancia l'eccezione
+              throw new Error(errorMessage);
             }
-            signupJson = JSON.parse(responseText);
-            console.log('✅ Risposta signup (JSON):', { 
-              hasUser: !!signupJson?.user, 
-              hasSession: !!signupJson?.session,
-              userId: signupJson?.user?.id 
-            });
-          } catch (parseError) {
-            console.error('❌ Errore parsing risposta signup:', parseError);
-            throw new Error(`Risposta non valida dal server durante la creazione dell'account (status: ${signupRes.status}). Verifica la configurazione di Supabase.`);
+          } else {
+            // Signup riuscito, leggi la risposta normalmente
+            let signupJson: any = null;
+            try {
+              const responseText = await signupRes.text();
+              console.log('✅ Risposta signup (testo):', responseText.substring(0, 500));
+              if (!responseText || responseText.trim().length === 0) {
+                throw new Error('Risposta vuota dal server');
+              }
+              signupJson = JSON.parse(responseText);
+              console.log('✅ Risposta signup (JSON):', { 
+                hasUser: !!signupJson?.user, 
+                hasSession: !!signupJson?.session,
+                userId: signupJson?.user?.id 
+              });
+              
+              adminUserId = signupJson?.user?.id || null;
+              adminAccessToken = signupJson?.session?.access_token || null;
+            } catch (parseError) {
+              console.error('❌ Errore parsing risposta signup:', parseError);
+              throw new Error(`Risposta non valida dal server durante la creazione dell'account (status: ${signupRes.status}). Verifica la configurazione di Supabase.`);
+            }
           }
-
-          adminUserId = signupJson?.user?.id || null;
-          adminAccessToken = signupJson?.session?.access_token || null;
 
           // Step 2: Se non abbiamo il token dalla signup, facciamo login per ottenerlo
           // Questo è necessario perché il token potrebbe non essere incluso nella risposta signup
