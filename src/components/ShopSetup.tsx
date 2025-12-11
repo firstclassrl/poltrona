@@ -404,119 +404,226 @@ export const ShopSetup: React.FC = () => {
     </div>
   );
 
-  // Renderizza direttamente senza memoizzazione per evitare problemi di focus
-  const renderSlideContent = () => {
-    switch (currentSlide) {
-      case 1:
-        return <SlideWelcome />;
-      case 2:
-        return (
-          <div className="space-y-6">
-            <div className="text-center mb-6">
-              <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Informazioni Negozio</h2>
-              <p className="text-gray-600">Inserisci i dati principali del tuo negozio</p>
-            </div>
-            
-            <div className="space-y-6">
-              <Input
-                label="Nome negozio *"
-                labelClassName="text-[#1e40af] font-medium"
-                value={form.name}
-                onChange={(e) => handleChange('name', e.target.value)}
-                required
-                placeholder="Es: Barberia Roma"
-              />
-              
-              <div>
-                <label className="block text-sm font-medium text-[#1e40af] mb-2">Descrizione</label>
-                <textarea
-                  className="w-full border-2 border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e40af] focus:border-[#1e40af] bg-white text-gray-900 transition-all"
-                  rows={4}
-                  value={form.description}
-                  onChange={(e) => handleChange('description', e.target.value)}
-                  placeholder="Descrivi il tuo negozio..."
-                />
-              </div>
+  // Renderizza direttamente il contenuto basato sulla slide corrente
+  // Non usare funzioni che vengono ricreate ad ogni render per evitare perdita di focus
+  let slideContent: React.ReactNode = null;
+  
+  if (currentSlide === 1) {
+    slideContent = <SlideWelcome />;
+  } else if (currentSlide === 2) {
+    slideContent = (
+      <div className="space-y-6">
+        <div className="text-center mb-6">
+          <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Informazioni Negozio</h2>
+          <p className="text-gray-600">Inserisci i dati principali del tuo negozio</p>
+        </div>
+        
+        <div className="space-y-6">
+          <Input
+            label="Nome negozio *"
+            labelClassName="text-[#1e40af] font-medium"
+            value={form.name}
+            onChange={(e) => handleChange('name', e.target.value)}
+            required
+            placeholder="Es: Barberia Roma"
+          />
+          
+          <div>
+            <label className="block text-sm font-medium text-[#1e40af] mb-2">Descrizione</label>
+            <textarea
+              className="w-full border-2 border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e40af] focus:border-[#1e40af] bg-white text-gray-900 transition-all"
+              rows={4}
+              value={form.description}
+              onChange={(e) => handleChange('description', e.target.value)}
+              placeholder="Descrivi il tuo negozio..."
+            />
+          </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Indirizzo"
-                  labelClassName="text-[#1e40af] font-medium"
-                  value={form.address}
-                  onChange={(e) => handleChange('address', e.target.value)}
-                  placeholder="Via, numero civico"
-                />
-                <Input
-                  label="CAP"
-                  labelClassName="text-[#1e40af] font-medium"
-                  value={form.postal_code}
-                  onChange={(e) => handleChange('postal_code', e.target.value)}
-                  placeholder="00100"
-                />
-                <Input
-                  label="Città"
-                  labelClassName="text-[#1e40af] font-medium"
-                  value={form.city}
-                  onChange={(e) => handleChange('city', e.target.value)}
-                  placeholder="Roma"
-                />
-                <Input
-                  label="Provincia"
-                  labelClassName="text-[#1e40af] font-medium"
-                  value={form.province}
-                  onChange={(e) => handleChange('province', e.target.value)}
-                  placeholder="RM"
-                />
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="Indirizzo"
+              labelClassName="text-[#1e40af] font-medium"
+              value={form.address}
+              onChange={(e) => handleChange('address', e.target.value)}
+              placeholder="Via, numero civico"
+            />
+            <Input
+              label="CAP"
+              labelClassName="text-[#1e40af] font-medium"
+              value={form.postal_code}
+              onChange={(e) => handleChange('postal_code', e.target.value)}
+              placeholder="00100"
+            />
+            <Input
+              label="Città"
+              labelClassName="text-[#1e40af] font-medium"
+              value={form.city}
+              onChange={(e) => handleChange('city', e.target.value)}
+              placeholder="Roma"
+            />
+            <Input
+              label="Provincia"
+              labelClassName="text-[#1e40af] font-medium"
+              value={form.province}
+              onChange={(e) => handleChange('province', e.target.value)}
+              placeholder="RM"
+            />
+          </div>
 
-              <div>
-                <label className="block text-sm font-medium text-[#1e40af] mb-3">Logo del negozio</label>
-                {logoPreview ? (
-                  <div className="relative inline-block">
-                    <img
-                      src={logoPreview}
-                      alt="Logo preview"
-                      className="h-32 w-auto object-contain border-2 border-[#1e40af] rounded-lg p-4 bg-white"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleRemoveLogo}
-                      className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-[#1e40af] rounded-lg cursor-pointer bg-white/60 hover:bg-white/80 transition-colors">
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <Upload className="w-10 h-10 text-[#10b981] mb-3" />
-                      <p className="mb-2 text-sm text-gray-700">
-                        <span className="font-semibold text-[#1e40af]">Clicca per caricare</span> o trascina qui
-                      </p>
-                      <p className="text-xs text-gray-500">PNG, JPG, GIF fino a 5MB</p>
-                    </div>
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={handleLogoSelect}
-                    />
-                  </label>
-                )}
+          <div>
+            <label className="block text-sm font-medium text-[#1e40af] mb-3">Logo del negozio</label>
+            {logoPreview ? (
+              <div className="relative inline-block">
+                <img
+                  src={logoPreview}
+                  alt="Logo preview"
+                  className="h-32 w-auto object-contain border-2 border-[#1e40af] rounded-lg p-4 bg-white"
+                />
+                <button
+                  type="button"
+                  onClick={handleRemoveLogo}
+                  className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-[#1e40af] rounded-lg cursor-pointer bg-white/60 hover:bg-white/80 transition-colors">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <Upload className="w-10 h-10 text-[#10b981] mb-3" />
+                  <p className="mb-2 text-sm text-gray-700">
+                    <span className="font-semibold text-[#1e40af]">Clicca per caricare</span> o trascina qui
+                  </p>
+                  <p className="text-xs text-gray-500">PNG, JPG, GIF fino a 5MB</p>
+                </div>
+                <input
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleLogoSelect}
+                />
+              </label>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  } else if (currentSlide === 3) {
+    slideContent = (
+      <div className="space-y-6">
+        <div className="text-center mb-6">
+          <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Contatti</h2>
+          <p className="text-gray-600">Inserisci i tuoi contatti per le comunicazioni</p>
+        </div>
+        
+        <div className="space-y-6">
+          <Input
+            label="Telefono *"
+            labelClassName="text-[#1e40af] font-medium"
+            type="tel"
+            value={form.phone}
+            onChange={(e) => handleChange('phone', e.target.value)}
+            placeholder="+39 123 456 7890"
+          />
+          <Input
+            label="WhatsApp"
+            labelClassName="text-[#1e40af] font-medium"
+            type="tel"
+            value={form.whatsapp}
+            onChange={(e) => handleChange('whatsapp', e.target.value)}
+            placeholder="+39 123 456 7890"
+          />
+          <Input
+            label="Email negozio"
+            labelClassName="text-[#1e40af] font-medium"
+            type="email"
+            value={form.email}
+            onChange={(e) => handleChange('email', e.target.value)}
+            placeholder="negozio@example.com"
+          />
+          <div>
+            <Input
+              label="Email notifiche *"
+              labelClassName="text-[#1e40af] font-medium"
+              type="email"
+              value={form.notification_email}
+              onChange={(e) => handleChange('notification_email', e.target.value)}
+              placeholder="notifiche@example.com"
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1">Email dove ricevere le notifiche per nuovi appuntamenti</p>
+          </div>
+        </div>
+      </div>
+    );
+  } else if (currentSlide === 4) {
+    slideContent = (
+      <div className="space-y-6">
+        <div className="text-center mb-6">
+          <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Personalizza il Tema</h2>
+          <p className="text-gray-600">Scegli i colori del tuo negozio</p>
+        </div>
+        
+        <div className="border-2 border-[#1e40af]/30 rounded-lg p-6 bg-white/60 backdrop-blur-sm">
+          <ThemeSelector
+            value={form.theme_palette as ThemePaletteId}
+            onChange={handleThemeChange}
+            title="Palette colori"
+          />
+        </div>
+      </div>
+    );
+  } else if (currentSlide === 5) {
+    slideContent = (
+      <div className="space-y-6">
+        <div className="text-center mb-6">
+          <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Conferma e Crea</h2>
+          <p className="text-gray-600">Rivedi le informazioni e accetta i termini</p>
+        </div>
+
+        <div className="space-y-6">
+          <div className="p-6 bg-white/60 backdrop-blur-sm rounded-xl border border-white/30">
+            <h3 className="font-semibold text-[#1e40af] mb-4">Riepilogo</h3>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Nome:</span>
+                <span className="font-medium text-[#1e40af]">{form.name || 'Non specificato'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Città:</span>
+                <span className="font-medium text-[#1e40af]">{form.city || 'Non specificato'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Telefono:</span>
+                <span className="font-medium text-[#1e40af]">{form.phone || 'Non specificato'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Email notifiche:</span>
+                <span className="font-medium text-[#1e40af]">{form.notification_email || 'Non specificato'}</span>
               </div>
             </div>
           </div>
-        );
-      case 3:
-        return <SlideContacts />;
-      case 4:
-        return <SlideTheme />;
-      case 5:
-        return <SlideConfirm />;
-      default:
-        return null;
-    }
-  };
+
+          <div className="border-2 border-[#1e40af]/30 rounded-lg p-6 bg-white/60 backdrop-blur-sm">
+            <div className="flex items-start space-x-4">
+              <input
+                type="checkbox"
+                id="privacy"
+                checked={privacyAccepted}
+                onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                className="mt-1 w-5 h-5 text-[#1e40af] border-gray-300 rounded focus:ring-[#1e40af]"
+              />
+              <label htmlFor="privacy" className="flex-1 text-sm text-gray-700 cursor-pointer">
+                Accetto i <a href="#" className="text-[#1e40af] underline font-medium">Termini di Servizio</a> e la{' '}
+                <a href="#" className="text-[#1e40af] underline font-medium">Privacy Policy</a> di Poltrona.
+                <span className="text-red-500 ml-1">*</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Rimuovo il Wrapper e renderizzo direttamente per evitare re-render
   if (isValidating) {
@@ -627,7 +734,7 @@ export const ShopSetup: React.FC = () => {
                   </div>
                 </div>
               )}
-              {renderSlideContent()}
+              {slideContent}
             </div>
           </div>
         </div>
