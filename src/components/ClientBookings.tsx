@@ -9,7 +9,6 @@ import { useAppointments } from '../hooks/useAppointments';
 import { useClientRegistration } from '../hooks/useClientRegistration';
 import { apiService } from '../services/api';
 import { API_CONFIG } from '../config/api';
-import { emailNotificationService } from '../services/emailNotificationService';
 import { useDailyShopHours } from '../hooks/useDailyShopHours';
 import { useVacationMode } from '../hooks/useVacationMode';
 import type { Appointment, Shop } from '../types';
@@ -285,36 +284,7 @@ export const ClientBookings: React.FC = () => {
         }
       }
 
-      // Email negozio (non bloccante)
-      try {
-        const serviceName = appointmentToReschedule.services?.name || 'Servizio';
-        const barberName = appointmentToReschedule.staff?.full_name || 'Barbiere';
-        const appointmentDateStr = startDateTime.toLocaleDateString('it-IT');
-        const appointmentTimeStr = startDateTime.toLocaleTimeString('it-IT', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false,
-        });
-        if (shop?.notification_email) {
-          emailNotificationService
-            .sendRescheduleNotification(
-              {
-                clientName: user?.full_name || 'Cliente',
-                clientEmail: user?.email || '',
-                clientPhone: user?.phone || '',
-                serviceName,
-                appointmentDate: appointmentDateStr,
-                appointmentTime: appointmentTimeStr,
-                barberName,
-                shopName: shop.name || 'Barbershop',
-              },
-              shop.notification_email
-            )
-            .catch((err) => console.warn('Errore invio email riprogrammazione:', err));
-        }
-      } catch (emailErr) {
-        console.warn('Errore gestione email riprogrammazione:', emailErr);
-      }
+      // Email disabilitate lato app: invio gestito da webhooks Supabase
 
       await loadAppointments();
       setMessage({ type: 'success', text: 'Prenotazione aggiornata con successo.' });

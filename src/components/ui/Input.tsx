@@ -5,6 +5,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   containerClassName?: string;
+  labelClassName?: string;
   'data-format'?: string;
 }
 
@@ -13,12 +14,13 @@ export const Input: React.FC<InputProps> = ({
   error,
   className,
   containerClassName,
+  labelClassName,
   ...props
 }) => {
   return (
     <div className={cn('space-y-1', containerClassName)}>
       {label && (
-        <label className="block text-sm font-medium text-gray-200">
+        <label className={cn('block text-sm font-medium text-gray-200', labelClassName)}>
           {label}
         </label>
       )}

@@ -8,7 +8,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useClientRegistration } from '../hooks/useClientRegistration';
 import { useAppointments } from '../hooks/useAppointments';
 import { apiService } from '../services/api';
-import { emailNotificationService } from '../services/emailNotificationService';
 import type { RegisteredClient } from '../types/auth';
 import type { Appointment } from '../types';
 
@@ -347,58 +346,7 @@ export const ClientProfile: React.FC = () => {
         shopName: shop?.name || 'Barbershop',
       };
       
-      // 5. INVIA EMAIL AL NEGOZIO - SEMPRE, anche se notification_email non è configurato
-      console.log('📧 [EMAIL] Inizio invio email annullamento...');
-      console.log('📧 [EMAIL] Shop notification_email:', shop?.notification_email || 'NON CONFIGURATO');
-      console.log('📧 [EMAIL] Client email:', clientEmail || 'NON DISPONIBILE');
-      
-      if (shop?.notification_email) {
-        try {
-          console.log('📧 [EMAIL NEGOZIO] Invio email a:', shop.notification_email);
-          console.log('📧 [EMAIL NEGOZIO] Dati:', cancellationData);
-          
-          const emailResult = await emailNotificationService.sendCancellationNotification(
-            cancellationData,
-            shop.notification_email
-          );
-          
-          if (emailResult.success) {
-            console.log('✅ [EMAIL NEGOZIO] Email inviata con successo! Message ID:', emailResult.messageId);
-          } else {
-            console.error('❌ [EMAIL NEGOZIO] Errore:', emailResult.error);
-          }
-        } catch (emailError) {
-          console.error('❌ [EMAIL NEGOZIO] Eccezione durante invio:', emailError);
-        }
-      } else {
-        console.error('❌ [EMAIL NEGOZIO] IMPOSSIBILE INVIARE: shop.notification_email non configurato!');
-        console.error('❌ [EMAIL NEGOZIO] Shop object:', shop);
-      }
-
-      // 6. INVIA EMAIL AL CLIENTE - SEMPRE se email disponibile
-      if (clientEmail) {
-        try {
-          console.log('📧 [EMAIL CLIENTE] Invio email a:', clientEmail);
-          console.log('📧 [EMAIL CLIENTE] Dati:', cancellationData);
-          
-          const clientEmailResult = await emailNotificationService.sendClientCancellationEmail(
-            cancellationData
-          );
-          
-          if (clientEmailResult.success) {
-            console.log('✅ [EMAIL CLIENTE] Email inviata con successo! Message ID:', clientEmailResult.messageId);
-          } else {
-            console.error('❌ [EMAIL CLIENTE] Errore:', clientEmailResult.error);
-          }
-        } catch (emailError) {
-          console.error('❌ [EMAIL CLIENTE] Eccezione durante invio:', emailError);
-        }
-      } else {
-        console.error('❌ [EMAIL CLIENTE] IMPOSSIBILE INVIARE: clientEmail non disponibile!');
-        console.error('❌ [EMAIL CLIENTE] Client info:', { clientInfo, userEmail: user?.email });
-      }
-      
-      console.log('📧 [EMAIL] Fine processo invio email annullamento');
+      // Email disabilitate lato app: invio gestito da webhooks Supabase
       
       // Ricarica gli appuntamenti per mostrare lo stato aggiornato
       await loadAppointments();

@@ -10,7 +10,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useAppointments } from '../hooks/useAppointments';
 import { useVacationMode } from '../hooks/useVacationMode';
 import { useUserProfile } from '../hooks/useUserProfile';
-import { emailNotificationService } from '../services/emailNotificationService';
 import { apiService } from '../services/api';
 import type { Service, Staff, Shop, Appointment } from '../types';
 import { findAvailableSlotsForDuration } from '../utils/availability';

@@ -1275,6 +1275,57 @@ export const apiService = {
     return { path: objectPath, publicUrl };
   },
 
+  // Upload logo negozio pubblico (bucket pubblico, accesso autenticato)
+  async uploadShopLogoPublic(file: File, shopId: string): Promise<{ path: string; publicUrl: string }> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    const accessToken = localStorage.getItem('auth_token');
+    if (!accessToken) throw new Error('Token non trovato. Effettua di nuovo il login.');
+
+    const bucket = 'shop-logos';
+    const mimeToExt: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/jpg': 'jpg',
+      'image/png': 'png',
+      'image/gif': 'gif',
+      'image/webp': 'webp',
+    };
+    const ext = mimeToExt[file.type] || 'jpg';
+    const objectPath = `shops/${shopId}/logo.${ext}`;
+
+    // best-effort cleanup di estensioni precedenti
+    const candidateExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    await Promise.allSettled(
+      candidateExts.map((e) =>
+        fetch(`${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/${bucket}/shops/${shopId}/logo.${e}`, {
+          method: 'DELETE',
+          headers: {
+            apikey: API_CONFIG.SUPABASE_ANON_KEY || '',
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }).catch(() => undefined)
+      )
+    );
+
+    const uploadUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/${bucket}/${objectPath}`;
+    const uploadRes = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: {
+        apikey: API_CONFIG.SUPABASE_ANON_KEY || '',
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': file.type,
+        'x-upsert': 'true',
+      },
+      body: file,
+    });
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      throw new Error(`Upload logo negozio fallito: ${uploadRes.status} ${errText}`);
+    }
+
+    const publicUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/${bucket}/${objectPath}`;
+    return { path: objectPath, publicUrl };
+  },
+
   // Upload logo negozio (bucket protetto, accesso autenticato)
   async uploadShopLogo(file: File, shopId: string): Promise<{ path: string; signedUrl: string }> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
