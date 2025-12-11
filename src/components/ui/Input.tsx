@@ -20,7 +20,7 @@ export const Input: React.FC<InputProps> = ({
   return (
     <div className={cn('space-y-1', containerClassName)}>
       {label && (
-        <label className={cn('block text-sm font-medium text-gray-200', labelClassName)}>
+        <label className={cn('block text-sm font-medium', labelClassName || 'text-gray-200')}>
           {label}
         </label>
       )}

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { Card } from './ui/Card';
 import { Input } from './ui/Input';
 import { Button } from './ui/Button';
@@ -84,12 +84,12 @@ export const ShopSetup: React.FC = () => {
     void validate();
   }, [inviteToken]);
 
-  const handleChange = (field: string, value: string) => {
+  const handleChange = useCallback((field: string, value: string) => {
     setForm((prev) => ({
       ...prev,
       [field]: value,
     }));
-  };
+  }, []);
 
   const handleThemeChange = (paletteId: ThemePaletteId) => {
     setForm((prev) => ({
@@ -285,104 +285,6 @@ export const ShopSetup: React.FC = () => {
     </div>
   );
 
-  // Slide 2: Informazioni negozio
-  const SlideShopInfo = () => (
-    <div className="space-y-6">
-      <div className="text-center mb-6">
-        <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Informazioni Negozio</h2>
-        <p className="text-gray-600">Inserisci i dati principali del tuo negozio</p>
-      </div>
-      
-      <div className="space-y-6">
-        <Input
-          label="Nome negozio *"
-          labelClassName="text-[#1e40af] font-medium"
-          value={form.name}
-          onChange={(e) => handleChange('name', e.target.value)}
-          required
-          placeholder="Es: Barberia Roma"
-        />
-        
-        <div>
-          <label className="block text-sm font-medium text-[#1e40af] mb-2">Descrizione</label>
-          <textarea
-            className="w-full border-2 border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e40af] focus:border-[#1e40af] bg-white text-gray-900 transition-all"
-            rows={4}
-            value={form.description}
-            onChange={(e) => handleChange('description', e.target.value)}
-            placeholder="Descrivi il tuo negozio..."
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input
-            label="Indirizzo"
-            labelClassName="text-[#1e40af] font-medium"
-            value={form.address}
-            onChange={(e) => handleChange('address', e.target.value)}
-            placeholder="Via, numero civico"
-          />
-          <Input
-            label="CAP"
-            labelClassName="text-[#1e40af] font-medium"
-            value={form.postal_code}
-            onChange={(e) => handleChange('postal_code', e.target.value)}
-            placeholder="00100"
-          />
-          <Input
-            label="Città"
-            labelClassName="text-[#1e40af] font-medium"
-            value={form.city}
-            onChange={(e) => handleChange('city', e.target.value)}
-            placeholder="Roma"
-          />
-          <Input
-            label="Provincia"
-            labelClassName="text-[#1e40af] font-medium"
-            value={form.province}
-            onChange={(e) => handleChange('province', e.target.value)}
-            placeholder="RM"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-[#1e40af] mb-3">Logo del negozio</label>
-          {logoPreview ? (
-            <div className="relative inline-block">
-              <img
-                src={logoPreview}
-                alt="Logo preview"
-                className="h-32 w-auto object-contain border-2 border-[#1e40af] rounded-lg p-4 bg-white"
-              />
-              <button
-                type="button"
-                onClick={handleRemoveLogo}
-                className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
-            <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-[#1e40af] rounded-lg cursor-pointer bg-white/60 hover:bg-white/80 transition-colors">
-              <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <Upload className="w-10 h-10 text-[#10b981] mb-3" />
-                <p className="mb-2 text-sm text-gray-700">
-                  <span className="font-semibold text-[#1e40af]">Clicca per caricare</span> o trascina qui
-                </p>
-                <p className="text-xs text-gray-500">PNG, JPG, GIF fino a 5MB</p>
-              </div>
-              <input
-                type="file"
-                className="hidden"
-                accept="image/*"
-                onChange={handleLogoSelect}
-              />
-            </label>
-          )}
-        </div>
-      </div>
-    </div>
-  );
 
   // Slide 3: Contatti
   const SlideContacts = () => (
@@ -502,12 +404,109 @@ export const ShopSetup: React.FC = () => {
     </div>
   );
 
-  const renderSlide = () => {
+  // Renderizza direttamente senza memoizzazione per evitare problemi di focus
+  const renderSlideContent = () => {
     switch (currentSlide) {
       case 1:
         return <SlideWelcome />;
       case 2:
-        return <SlideShopInfo />;
+        return (
+          <div className="space-y-6">
+            <div className="text-center mb-6">
+              <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Informazioni Negozio</h2>
+              <p className="text-gray-600">Inserisci i dati principali del tuo negozio</p>
+            </div>
+            
+            <div className="space-y-6">
+              <Input
+                label="Nome negozio *"
+                labelClassName="text-[#1e40af] font-medium"
+                value={form.name}
+                onChange={(e) => handleChange('name', e.target.value)}
+                required
+                placeholder="Es: Barberia Roma"
+              />
+              
+              <div>
+                <label className="block text-sm font-medium text-[#1e40af] mb-2">Descrizione</label>
+                <textarea
+                  className="w-full border-2 border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e40af] focus:border-[#1e40af] bg-white text-gray-900 transition-all"
+                  rows={4}
+                  value={form.description}
+                  onChange={(e) => handleChange('description', e.target.value)}
+                  placeholder="Descrivi il tuo negozio..."
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Indirizzo"
+                  labelClassName="text-[#1e40af] font-medium"
+                  value={form.address}
+                  onChange={(e) => handleChange('address', e.target.value)}
+                  placeholder="Via, numero civico"
+                />
+                <Input
+                  label="CAP"
+                  labelClassName="text-[#1e40af] font-medium"
+                  value={form.postal_code}
+                  onChange={(e) => handleChange('postal_code', e.target.value)}
+                  placeholder="00100"
+                />
+                <Input
+                  label="Città"
+                  labelClassName="text-[#1e40af] font-medium"
+                  value={form.city}
+                  onChange={(e) => handleChange('city', e.target.value)}
+                  placeholder="Roma"
+                />
+                <Input
+                  label="Provincia"
+                  labelClassName="text-[#1e40af] font-medium"
+                  value={form.province}
+                  onChange={(e) => handleChange('province', e.target.value)}
+                  placeholder="RM"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#1e40af] mb-3">Logo del negozio</label>
+                {logoPreview ? (
+                  <div className="relative inline-block">
+                    <img
+                      src={logoPreview}
+                      alt="Logo preview"
+                      className="h-32 w-auto object-contain border-2 border-[#1e40af] rounded-lg p-4 bg-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveLogo}
+                      className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-[#1e40af] rounded-lg cursor-pointer bg-white/60 hover:bg-white/80 transition-colors">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <Upload className="w-10 h-10 text-[#10b981] mb-3" />
+                      <p className="mb-2 text-sm text-gray-700">
+                        <span className="font-semibold text-[#1e40af]">Clicca per caricare</span> o trascina qui
+                      </p>
+                      <p className="text-xs text-gray-500">PNG, JPG, GIF fino a 5MB</p>
+                    </div>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleLogoSelect}
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+          </div>
+        );
       case 3:
         return <SlideContacts />;
       case 4:
@@ -519,7 +518,87 @@ export const ShopSetup: React.FC = () => {
     }
   };
 
-  const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  // Rimuovo il Wrapper e renderizzo direttamente per evitare re-render
+  if (isValidating) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white py-12 px-4">
+        <div className="max-w-2xl w-full">
+          <div className="text-center py-8">
+            <div className="inline-block w-8 h-8 border-4 border-gray-300 border-t-gray-900 rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-700 text-lg">Verifica del link in corso...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!tokenValid) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white py-12 px-4">
+        <div className="max-w-2xl w-full">
+          <div className="text-center py-8 space-y-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
+              <X className="w-8 h-8 text-red-600" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900">Link non valido</h1>
+            <p className="text-gray-600">Il link di invito non è valido o è scaduto.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white py-12 px-4">
+        <div className="max-w-2xl w-full">
+          <div 
+            className="p-8 md:p-10 rounded-2xl shadow-2xl backdrop-blur-xl border border-white/20"
+            style={{
+              background: 'linear-gradient(135deg, rgba(96, 165, 250, 0.15) 0%, rgba(59, 130, 246, 0.1) 100%)',
+              boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.15)',
+            }}
+          >
+            <div className="text-center py-8 space-y-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                <CheckCircle2 className="w-8 h-8 text-green-600" />
+              </div>
+              <h1 className="text-3xl font-bold text-[#1e40af]">Negozio creato con successo!</h1>
+              <p className="text-lg text-gray-700">
+                <strong className="text-[#1e40af]">{success.shop.name}</strong> è stato creato correttamente.
+              </p>
+              <div className="border-2 border-[#1e40af]/30 rounded-lg p-6 bg-white/60 backdrop-blur-sm text-left">
+                <p className="text-sm font-medium text-[#1e40af] mb-2">
+                  Link registrazione clienti:
+                </p>
+                <p className="text-base font-mono text-gray-900 break-all bg-white p-3 rounded border border-[#1e40af]/30">
+                  {success.link}
+                </p>
+              </div>
+              <p className="text-sm text-gray-600">
+                Condividi il link o genera un QR code per i tuoi clienti.
+              </p>
+            </div>
+          </div>
+          <div className="text-center text-sm text-gray-500 mt-6">
+            <p>
+              Powered by{' '}
+              <a
+                href="https://www.abruzzo.ai"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#1e40af] hover:text-[#1e3a8a] font-medium underline"
+              >
+                www.abruzzo.ai
+              </a>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
     <div className="min-h-screen flex flex-col bg-white py-6 px-4">
       <div className="max-w-4xl w-full mx-auto flex flex-col h-[calc(100vh-3rem)] max-h-[900px]">
         {/* Progress bar */}
@@ -540,7 +619,15 @@ export const ShopSetup: React.FC = () => {
                 boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.15)',
               }}
             >
-              {children}
+              {error && (
+                <div className="bg-red-50 border-2 border-red-200 text-red-800 p-4 rounded-lg mb-6">
+                  <div className="flex items-start gap-3">
+                    <X className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                    <p className="font-medium">{error}</p>
+                  </div>
+                </div>
+              )}
+              {renderSlideContent()}
             </div>
           </div>
         </div>
@@ -626,92 +713,3 @@ export const ShopSetup: React.FC = () => {
     </div>
   );
 
-  if (isValidating) {
-    return (
-      <Wrapper>
-        <div className="text-center py-8">
-          <div className="inline-block w-8 h-8 border-4 border-gray-300 border-t-gray-900 rounded-full animate-spin mb-4"></div>
-          <p className="text-gray-700 text-lg">Verifica del link in corso...</p>
-        </div>
-      </Wrapper>
-    );
-  }
-
-  if (!tokenValid) {
-    return (
-      <Wrapper>
-        <div className="text-center py-8 space-y-4">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
-            <X className="w-8 h-8 text-red-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">Link non valido</h1>
-          <p className="text-gray-600">Il link di invito non è valido o è scaduto.</p>
-        </div>
-      </Wrapper>
-    );
-  }
-
-  if (success) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white py-12 px-4">
-        <div className="max-w-2xl w-full">
-          <div 
-            className="p-8 md:p-10 rounded-2xl shadow-2xl backdrop-blur-xl border border-white/20"
-            style={{
-              background: 'linear-gradient(135deg, rgba(96, 165, 250, 0.15) 0%, rgba(59, 130, 246, 0.1) 100%)',
-              boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.15)',
-            }}
-          >
-            <div className="text-center py-8 space-y-6">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-                <CheckCircle2 className="w-8 h-8 text-green-600" />
-              </div>
-              <h1 className="text-3xl font-bold text-[#1e40af]">Negozio creato con successo!</h1>
-              <p className="text-lg text-gray-700">
-                <strong className="text-[#1e40af]">{success.shop.name}</strong> è stato creato correttamente.
-              </p>
-              <div className="border-2 border-[#1e40af]/30 rounded-lg p-6 bg-white/60 backdrop-blur-sm text-left">
-                <p className="text-sm font-medium text-[#1e40af] mb-2">
-                  Link registrazione clienti:
-                </p>
-                <p className="text-base font-mono text-gray-900 break-all bg-white p-3 rounded border border-[#1e40af]/30">
-                  {success.link}
-                </p>
-              </div>
-              <p className="text-sm text-gray-600">
-                Condividi il link o genera un QR code per i tuoi clienti.
-              </p>
-            </div>
-          </div>
-          <div className="text-center text-sm text-gray-500 mt-6">
-            <p>
-              Powered by{' '}
-              <a
-                href="https://www.abruzzo.ai"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-700 hover:text-gray-900 font-medium underline"
-              >
-                www.abruzzo.ai
-              </a>
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <Wrapper>
-      {error && (
-        <div className="bg-red-50 border-2 border-red-200 text-red-800 p-4 rounded-lg mb-6">
-          <div className="flex items-start gap-3">
-            <X className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-            <p className="font-medium">{error}</p>
-          </div>
-        </div>
-      )}
-      {renderSlide()}
-    </Wrapper>
-  );
-};
