@@ -712,4 +712,4 @@ export const ShopSetup: React.FC = () => {
       </div>
     </div>
   );
-
+};
