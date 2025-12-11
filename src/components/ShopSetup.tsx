@@ -7,7 +7,7 @@ import type { Shop } from '../types';
 import { ThemeSelector } from './ThemeSelector';
 import { useTheme } from '../contexts/ThemeContext';
 import { DEFAULT_THEME_ID, type ThemePaletteId } from '../theme/palettes';
-import { ChevronLeft, ChevronRight, Upload, X, CheckCircle2, Shield, Palette, Building2, Mail, Phone, Download, UserPlus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Upload, X, CheckCircle2, Shield, Palette, Building2, Mail, Phone, Download, UserPlus, Eye, EyeOff } from 'lucide-react';
 import { ShopQRCode } from './ShopQRCode';
 import { API_CONFIG } from '../config/api';
 
@@ -55,6 +55,8 @@ export const ShopSetup: React.FC = () => {
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [adminConfirmPassword, setAdminConfirmPassword] = useState('');
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [showAdminConfirmPassword, setShowAdminConfirmPassword] = useState(false);
 
   const [form, setForm] = useState({
     name: '',
@@ -190,6 +192,16 @@ export const ShopSetup: React.FC = () => {
       case 1:
         return true; // Benvenuto, sempre valido
       case 2:
+        // Account Admin (ora slide 2)
+        return !!(
+          adminEmail.trim() &&
+          adminPassword.trim() &&
+          adminConfirmPassword.trim() &&
+          adminPassword === adminConfirmPassword &&
+          adminPassword.length >= 6
+        );
+      case 3:
+        // Shop Info (era slide 2)
         return !!(
           form.name.trim() &&
           form.description.trim() &&
@@ -198,16 +210,9 @@ export const ShopSetup: React.FC = () => {
           form.city.trim() &&
           form.province.trim()
         );
-      case 3:
-        return !!form.phone.trim() && !!form.notification_email.trim();
       case 4:
-        return !!(
-          adminEmail.trim() &&
-          adminPassword.trim() &&
-          adminConfirmPassword.trim() &&
-          adminPassword === adminConfirmPassword &&
-          adminPassword.length >= 6
-        );
+        // Contacts (era slide 3)
+        return !!form.phone.trim() && !!form.notification_email.trim();
       case 5:
         return true; // Palette, sempre valido
       case 6:
@@ -232,12 +237,128 @@ export const ShopSetup: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // Genera slug automaticamente dal nome
+      let adminAccessToken: string | null = null;
+      let adminUserId: string | null = null;
+
+      // STEP 1: Crea PRIMA l'account admin e fai login
+      // Questo permette di avere il token per creare il negozio e caricare il logo
+      if (adminEmail && adminPassword) {
+        try {
+          // Step 1: Crea l'utente in Supabase Auth
+          // Il trigger creerà automaticamente un profilo con ruolo 'client'
+          const signupUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/signup`;
+          const signupRes = await fetch(signupUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${API_CONFIG.SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({
+              email: adminEmail.trim().toLowerCase(),
+              password: adminPassword,
+              data: {
+                full_name: form.name || 'Admin',
+              }
+            })
+          });
+
+          if (!signupRes.ok) {
+            const errorData = await signupRes.json().catch(() => ({ message: 'Errore durante la creazione dell\'account admin' }));
+            throw new Error(errorData.error_description || errorData.message || 'Errore durante la creazione dell\'account admin');
+          }
+
+          const signupJson = await signupRes.json();
+          adminUserId = signupJson.user?.id || null;
+          adminAccessToken = signupJson.session?.access_token || null;
+
+          // Step 2: Se non abbiamo il token dalla signup, facciamo login per ottenerlo
+          // Questo è necessario perché il token potrebbe non essere incluso nella risposta signup
+          if (!adminAccessToken && adminUserId) {
+            try {
+              // Aspetta un attimo per assicurarsi che il trigger abbia creato il profilo
+              await new Promise(resolve => setTimeout(resolve, 500));
+              
+              const tokenUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/token?grant_type=password`;
+              const tokenRes = await fetch(tokenUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+                  'Authorization': `Bearer ${API_CONFIG.SUPABASE_ANON_KEY}`,
+                },
+                body: JSON.stringify({ 
+                  email: adminEmail.trim().toLowerCase(), 
+                  password: adminPassword 
+                })
+              });
+              
+              if (tokenRes.ok) {
+                const tokenJson = await tokenRes.json();
+                adminAccessToken = tokenJson.access_token;
+              } else {
+                const errorText = await tokenRes.text();
+                console.warn('Errore login admin:', errorText);
+              }
+            } catch (loginError) {
+              console.warn('Errore login admin per token:', loginError);
+            }
+          }
+
+          // Step 3: Aggiorna il profilo con ruolo ADMIN e shop_id
+          // IMPORTANTE: Il trigger ha creato il profilo con ruolo 'client', dobbiamo cambiarlo a 'admin'
+          if (adminUserId && adminAccessToken) {
+            // Aspetta un po' per assicurarsi che il trigger abbia completato
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            const profileUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/profiles?user_id=eq.${adminUserId}`;
+            const profileRes = await fetch(profileUrl, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${adminAccessToken}`,
+                'Prefer': 'return=representation'
+              },
+              body: JSON.stringify({
+                role: 'admin',
+                shop_id: shop.id,
+                full_name: form.name || 'Admin'
+              })
+            });
+
+            if (!profileRes.ok) {
+              const errorText = await profileRes.text();
+              console.error('Errore aggiornamento profilo admin:', errorText);
+              throw new Error(`Impossibile impostare il ruolo admin: ${errorText}`);
+            } else {
+              // Verifica che l'update sia andato a buon fine
+              const updatedProfile = await profileRes.json();
+              if (updatedProfile && updatedProfile[0] && updatedProfile[0].role !== 'admin') {
+                console.warn('Attenzione: il ruolo del profilo potrebbe non essere stato aggiornato correttamente');
+              }
+            }
+          } else if (adminUserId && !adminAccessToken) {
+            throw new Error('Impossibile ottenere il token di autenticazione per l\'account admin');
+          }
+        } catch (adminError) {
+          console.error('Errore creazione account admin:', adminError);
+          throw new Error(`Errore nella creazione dell'account admin: ${adminError instanceof Error ? adminError.message : 'Errore sconosciuto'}`);
+        }
+      } else {
+        throw new Error('Email e password admin sono obbligatorie');
+      }
+
+      if (!adminAccessToken || !adminUserId) {
+        throw new Error('Impossibile creare l\'account admin. Riprova.');
+      }
+
+      // STEP 2: Genera slug automaticamente dal nome
       const autoSlug = form.name.trim() 
         ? slugify(form.name.trim()) 
         : `shop-${Date.now()}`;
 
-      // Crea il negozio
+      // STEP 3: Crea il negozio usando il token admin
       const shop = await apiService.createShop({
         slug: autoSlug,
         name: form.name || 'Nuovo negozio',
@@ -253,85 +374,113 @@ export const ShopSetup: React.FC = () => {
         theme_palette: form.theme_palette || DEFAULT_THEME_ID,
       });
 
-      // Crea l'account admin per il negozio
-      if (adminEmail && adminPassword) {
-        try {
-          // Crea l'utente in Supabase Auth
-          const signupUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/signup`;
-          const signupRes = await fetch(signupUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': API_CONFIG.SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${API_CONFIG.SUPABASE_ANON_KEY}`,
-            },
-            body: JSON.stringify({
-              email: adminEmail.trim().toLowerCase(),
-              password: adminPassword,
-              data: {
-                full_name: form.name || 'Admin',
-                role: 'admin'
-              }
-            })
-          });
+      // STEP 4: Aggiorna il profilo admin con shop_id e ruolo admin
+      // Il trigger ha creato il profilo con ruolo 'client', dobbiamo cambiarlo a 'admin'
+      if (shop.id) {
+        await new Promise(resolve => setTimeout(resolve, 500)); // Attendi che il trigger completi
+        
+        const profileUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/profiles?user_id=eq.${adminUserId}`;
+        const profileRes = await fetch(profileUrl, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${adminAccessToken}`,
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify({
+            role: 'admin',
+            shop_id: shop.id,
+            full_name: form.name || 'Admin'
+          })
+        });
 
-          if (!signupRes.ok) {
-            const errorData = await signupRes.json().catch(() => ({ message: 'Errore durante la creazione dell\'account admin' }));
-            throw new Error(errorData.error_description || errorData.message || 'Errore durante la creazione dell\'account admin');
-          }
-
-          const signupJson = await signupRes.json();
-          const adminUserId = signupJson.user?.id;
-          const adminAccessToken = signupJson.session?.access_token;
-
-          if (adminUserId) {
-            // Se abbiamo il token di accesso, usalo per aggiornare il profilo
-            const tokenToUse = adminAccessToken || API_CONFIG.SUPABASE_ANON_KEY;
-            
-            // Aggiorna il profilo con ruolo admin e shop_id
-            const profileUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/profiles?user_id=eq.${adminUserId}`;
-            const profileRes = await fetch(profileUrl, {
-              method: 'PATCH',
-              headers: {
-                'Content-Type': 'application/json',
-                'apikey': API_CONFIG.SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${tokenToUse}`,
-                'Prefer': 'return=minimal'
-              },
-              body: JSON.stringify({
-                role: 'admin',
-                shop_id: shop.id,
-                full_name: form.name || 'Admin'
-              })
-            });
-
-            if (!profileRes.ok) {
-              console.warn('Errore aggiornamento profilo admin:', await profileRes.text());
-            }
-          }
-        } catch (adminError) {
-          console.error('Errore creazione account admin:', adminError);
-          // Non bloccare la creazione del negozio se l'admin fallisce
-          setError(`Negozio creato, ma errore nella creazione dell'account admin: ${adminError instanceof Error ? adminError.message : 'Errore sconosciuto'}`);
+        if (!profileRes.ok) {
+          const errorText = await profileRes.text();
+          console.error('Errore aggiornamento profilo admin:', errorText);
+          throw new Error(`Impossibile impostare il ruolo admin: ${errorText}`);
         }
       }
 
-      // Carica il logo se presente
-      if (logoFile && shop.id) {
+      // Carica il logo se presente (usa il token dell'admin appena creato)
+      // IMPORTANTE: Il logo può essere caricato solo se abbiamo un token valido
+      if (logoFile && shop.id && adminAccessToken) {
         try {
           setIsUploadingLogo(true);
-          const { publicUrl } = await apiService.uploadShopLogoPublic(logoFile, shop.id);
-          // Aggiorna il negozio con il logo
-          await apiService.updateShop({
-            ...shop,
-            logo_url: publicUrl,
+          
+          const bucket = 'shop-logos';
+          const mimeToExt: Record<string, string> = {
+            'image/jpeg': 'jpg',
+            'image/jpg': 'jpg',
+            'image/png': 'png',
+            'image/gif': 'gif',
+            'image/webp': 'webp',
+          };
+          const ext = mimeToExt[logoFile.type] || 'jpg';
+          const objectPath = `shops/${shop.id}/logo.${ext}`;
+
+          // Best-effort cleanup di estensioni precedenti
+          const candidateExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+          await Promise.allSettled(
+            candidateExts.map((e) =>
+              fetch(`${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/${bucket}/shops/${shop.id}/logo.${e}`, {
+                method: 'DELETE',
+                headers: {
+                  apikey: API_CONFIG.SUPABASE_ANON_KEY || '',
+                  Authorization: `Bearer ${adminAccessToken}`,
+                },
+              }).catch(() => undefined)
+            )
+          );
+
+          const uploadUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/${bucket}/${objectPath}`;
+          const uploadRes = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: {
+              'apikey': API_CONFIG.SUPABASE_ANON_KEY || '',
+              'Authorization': `Bearer ${adminAccessToken}`,
+              'Content-Type': logoFile.type,
+              'x-upsert': 'true',
+            },
+            body: logoFile,
           });
+
+          if (!uploadRes.ok) {
+            const errText = await uploadRes.text();
+            throw new Error(`Upload logo fallito: ${uploadRes.status} ${errText}`);
+          }
+
+          const publicUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/${bucket}/${objectPath}`;
+          
+          // Aggiorna il negozio con il logo usando il token admin
+          const updateShopUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/shops?id=eq.${shop.id}`;
+          const updateShopRes = await fetch(updateShopUrl, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': API_CONFIG.SUPABASE_ANON_KEY || '',
+              'Authorization': `Bearer ${adminAccessToken}`,
+              'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({
+              logo_url: publicUrl,
+              logo_path: objectPath,
+            })
+          });
+
+          if (!updateShopRes.ok) {
+            console.warn('Errore aggiornamento logo nel negozio:', await updateShopRes.text());
+          }
         } catch (logoError) {
-          console.warn('Errore caricamento logo:', logoError);
-          // Non bloccare la creazione se il logo fallisce
+          console.error('Errore caricamento logo:', logoError);
+          // Non bloccare la creazione se il logo fallisce, ma avvisa l'utente
+          setError(`Negozio creato con successo, ma errore nel caricamento del logo: ${logoError instanceof Error ? logoError.message : 'Errore sconosciuto'}. Puoi caricare il logo successivamente dalle impostazioni.`);
         } finally {
           setIsUploadingLogo(false);
         }
+      } else if (logoFile && shop.id && !adminAccessToken) {
+        console.warn('Logo non caricato: token admin non disponibile');
+        setError('Negozio creato con successo, ma impossibile caricare il logo (account admin non creato correttamente). Puoi caricare il logo successivamente dalle impostazioni.');
       }
 
       try {
@@ -518,6 +667,74 @@ export const ShopSetup: React.FC = () => {
   if (currentSlide === 1) {
     slideContent = <SlideWelcome />;
   } else if (currentSlide === 2) {
+    // Slide 2: Account Admin (era slide 4)
+    slideContent = (
+      <div className="space-y-6">
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-[#1e40af] rounded-full mb-4">
+            <UserPlus className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Account Admin</h2>
+          <p className="text-gray-600">Crea l'account amministratore per gestire il tuo negozio</p>
+        </div>
+        
+        <div className="space-y-6">
+          <Input
+            label="Email admin *"
+            labelClassName="text-[#1e40af] font-medium"
+            type="email"
+            value={adminEmail}
+            onChange={(e) => setAdminEmail(e.target.value)}
+            placeholder="admin@negozio.com"
+            required
+          />
+          <div className="relative">
+            <Input
+              label="Password *"
+              labelClassName="text-[#1e40af] font-medium"
+              type={showAdminPassword ? 'text' : 'password'}
+              value={adminPassword}
+              onChange={(e) => setAdminPassword(e.target.value)}
+              placeholder="Minimo 6 caratteri"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowAdminPassword(!showAdminPassword)}
+              className="absolute right-3 top-8 text-gray-400 hover:text-gray-600"
+            >
+              {showAdminPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
+          </div>
+          <div className="relative">
+            <Input
+              label="Conferma Password *"
+              labelClassName="text-[#1e40af] font-medium"
+              type={showAdminConfirmPassword ? 'text' : 'password'}
+              value={adminConfirmPassword}
+              onChange={(e) => setAdminConfirmPassword(e.target.value)}
+              placeholder="Ripeti la password"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowAdminConfirmPassword(!showAdminConfirmPassword)}
+              className="absolute right-3 top-8 text-gray-400 hover:text-gray-600"
+            >
+              {showAdminConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
+          </div>
+          {adminPassword && adminConfirmPassword && adminPassword !== adminConfirmPassword && (
+            <p className="text-sm text-red-500">Le password non corrispondono</p>
+          )}
+          {adminPassword && adminPassword.length > 0 && adminPassword.length < 6 && (
+            <p className="text-sm text-red-500">La password deve essere di almeno 6 caratteri</p>
+          )}
+        </div>
+      </div>
+    );
+  } else if (currentSlide === 3) {
+    // Slide 3: Shop Info (era slide 2)
     slideContent = (
       <div className="space-y-6">
         <div className="text-center mb-6">
@@ -620,7 +837,8 @@ export const ShopSetup: React.FC = () => {
         </div>
       </div>
     );
-  } else if (currentSlide === 3) {
+  } else if (currentSlide === 4) {
+    // Slide 4: Contacts (era slide 3)
     slideContent = (
       <div className="space-y-6">
         <div className="text-center mb-6">
@@ -689,24 +907,42 @@ export const ShopSetup: React.FC = () => {
             placeholder="admin@negozio.com"
             required
           />
-          <Input
-            label="Password *"
-            labelClassName="text-[#1e40af] font-medium"
-            type="password"
-            value={adminPassword}
-            onChange={(e) => setAdminPassword(e.target.value)}
-            placeholder="Minimo 6 caratteri"
-            required
-          />
-          <Input
-            label="Conferma Password *"
-            labelClassName="text-[#1e40af] font-medium"
-            type="password"
-            value={adminConfirmPassword}
-            onChange={(e) => setAdminConfirmPassword(e.target.value)}
-            placeholder="Ripeti la password"
-            required
-          />
+          <div className="relative">
+            <Input
+              label="Password *"
+              labelClassName="text-[#1e40af] font-medium"
+              type={showAdminPassword ? 'text' : 'password'}
+              value={adminPassword}
+              onChange={(e) => setAdminPassword(e.target.value)}
+              placeholder="Minimo 6 caratteri"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowAdminPassword(!showAdminPassword)}
+              className="absolute right-3 top-8 text-gray-400 hover:text-gray-600"
+            >
+              {showAdminPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
+          </div>
+          <div className="relative">
+            <Input
+              label="Conferma Password *"
+              labelClassName="text-[#1e40af] font-medium"
+              type={showAdminConfirmPassword ? 'text' : 'password'}
+              value={adminConfirmPassword}
+              onChange={(e) => setAdminConfirmPassword(e.target.value)}
+              placeholder="Ripeti la password"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowAdminConfirmPassword(!showAdminConfirmPassword)}
+              className="absolute right-3 top-8 text-gray-400 hover:text-gray-600"
+            >
+              {showAdminConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
+          </div>
           {adminPassword && adminConfirmPassword && adminPassword !== adminConfirmPassword && (
             <p className="text-sm text-red-600">Le password non coincidono</p>
           )}
@@ -841,6 +1077,15 @@ export const ShopSetup: React.FC = () => {
                 <p className="text-base font-mono text-gray-900 break-all bg-white p-3 rounded border border-[#1e40af]/30 mb-4">
                   {success.link}
                 </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.location.href = success.link;
+                  }}
+                  className="w-full flex items-center justify-center gap-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white px-6 py-3 font-semibold rounded-lg transition-all duration-200"
+                >
+                  Vai al Login!
+                </button>
               </div>
               
               <div className="border-2 border-[#1e40af]/30 rounded-lg p-6 bg-white/60 backdrop-blur-sm">
