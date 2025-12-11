@@ -129,21 +129,19 @@ export const ShopSetup: React.FC = () => {
   const goToSlide = (targetSlide: Slide) => {
     if (targetSlide === currentSlide || isTransitioning) return;
     
-    setIsTransitioning(true);
     if (targetSlide > currentSlide) {
       setSlideDirection('forward');
     } else {
       setSlideDirection('backward');
     }
     
-    // Animazione di uscita
+    setIsTransitioning(true);
+    
+    // Cambia slide immediatamente, animazione solo visiva
     setTimeout(() => {
       setCurrentSlide(targetSlide);
-      // Animazione di entrata
-      setTimeout(() => {
-        setIsTransitioning(false);
-      }, 10);
-    }, 250);
+      setIsTransitioning(false);
+    }, 50);
   };
 
   const nextSlide = () => {
@@ -534,27 +532,15 @@ export const ShopSetup: React.FC = () => {
 
         {/* Slide container - flex-1 per occupare lo spazio disponibile */}
         <div className="relative overflow-hidden rounded-lg flex-1 min-h-0 mb-6">
-          <div
-            ref={slideContainerRef}
-            className={`h-full transition-all duration-300 ease-in-out ${
-              isTransitioning
-                ? slideDirection === 'forward'
-                  ? 'opacity-0 translate-x-12 scale-95'
-                  : 'opacity-0 -translate-x-12 scale-95'
-                : 'opacity-100 translate-x-0 scale-100'
-            }`}
-          >
-            <div className="h-full overflow-y-auto">
-              <div 
-                key={currentSlide}
-                className="p-8 md:p-10 rounded-2xl shadow-2xl backdrop-blur-xl border border-white/20"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(96, 165, 250, 0.15) 0%, rgba(59, 130, 246, 0.1) 100%)',
-                  boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.15)',
-                }}
-              >
-                {children}
-              </div>
+          <div className="h-full overflow-y-auto">
+            <div 
+              className="p-8 md:p-10 rounded-2xl shadow-2xl backdrop-blur-xl border border-white/20"
+              style={{
+                background: 'linear-gradient(135deg, rgba(96, 165, 250, 0.15) 0%, rgba(59, 130, 246, 0.1) 100%)',
+                boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.15)',
+              }}
+            >
+              {children}
             </div>
           </div>
         </div>
