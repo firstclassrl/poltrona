@@ -265,7 +265,7 @@ export const ShopSetup: React.FC = () => {
 
           if (!signupRes.ok) {
             // Prova a leggere come JSON, altrimenti come testo
-            let errorMessage = 'Errore durante la creazione dell'account admin';
+            let errorMessage = "Errore durante la creazione dell'account admin";
             try {
               const errorText = await signupRes.text();
               if (errorText && errorText.trim().length > 0) {
@@ -293,7 +293,7 @@ export const ShopSetup: React.FC = () => {
             signupJson = JSON.parse(responseText);
           } catch (parseError) {
             console.error('Errore parsing risposta signup:', parseError);
-            throw new Error('Risposta non valida dal server durante la creazione dell'account. Verifica la configurazione di Supabase.');
+            throw new Error("Risposta non valida dal server durante la creazione dell'account. Verifica la configurazione di Supabase.");
           }
 
           adminUserId = signupJson?.user?.id || null;
