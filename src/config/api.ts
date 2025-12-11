@@ -17,6 +17,7 @@ export const API_ENDPOINTS = {
   SERVICES: `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/services`,
   PRODUCTS: `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/products`,
   SHOPS: `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/shops`,
+  SHOP_INVITES: `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/shop_invites`,
   SHOP_DAILY_HOURS: `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/shop_daily_hours`,
   SHOP_DAILY_TIME_SLOTS: `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/shop_daily_time_slots`,
   CHATS: `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/chats`,

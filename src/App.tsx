@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Navigation } from './components/Navigation';
 import { Dashboard } from './components/Dashboard';
 import { Calendar } from './components/Calendar';
@@ -11,6 +11,7 @@ import { ClientShop } from './components/ClientShop';
 import { Settings } from './components/Settings';
 import { AppointmentForm } from './components/AppointmentForm';
 import { Login } from './components/Login';
+import { ShopSetup } from './components/ShopSetup';
 import { ClientProfile } from './components/ClientProfile';
 import { ClientBookings } from './components/ClientBookings';
 import { ClientBookingCalendar } from './components/ClientBookingCalendar';
@@ -21,6 +22,7 @@ import { Toast } from './components/ui/Toast';
 import { useToast } from './hooks/useToast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { ShopProvider } from './contexts/ShopContext';
 import { ChatProvider } from './contexts/ChatContext';
 import { APP_VERSION, VERSION_ENDPOINT } from './config/version';
 import { apiService } from './services/api';
@@ -34,6 +36,12 @@ const AppContent: React.FC = () => {
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const { toast, showToast, hideToast } = useToast();
   const { isAuthenticated, isLoading, user } = useAuth();
+  const setupToken = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    return token && token.trim().length > 0 ? token : null;
+  }, []);
 
   // Set initial tab based on user role
   useEffect(() => {
@@ -166,6 +174,9 @@ const AppContent: React.FC = () => {
   }
 
   if (!isAuthenticated) {
+    if (setupToken) {
+      return <ShopSetup />;
+    }
     return <Login />;
   }
 
@@ -227,11 +238,13 @@ const AppContent: React.FC = () => {
 function App() {
   return (
     <AuthProvider>
-      <NotificationProvider>
-        <ChatProvider>
-          <AppContent />
-        </ChatProvider>
-      </NotificationProvider>
+      <ShopProvider>
+        <NotificationProvider>
+          <ChatProvider>
+            <AppContent />
+          </ChatProvider>
+        </NotificationProvider>
+      </ShopProvider>
     </AuthProvider>
   );
 }

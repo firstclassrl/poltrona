@@ -129,6 +129,44 @@ const buildHeaders = (authRequired: boolean = false, overrideToken?: string) => 
   } as Record<string, string>;
 };
 
+const DEFAULT_SHOP_SLUG = 'retro-barbershop';
+
+const getSlugFromQueryParam = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  const params = new URLSearchParams(window.location.search);
+  const slug = params.get('shop');
+  if (slug && slug.trim().length > 0) return slug.trim();
+  return null;
+};
+
+const getEffectiveSlug = (): string => {
+  const slugFromUrl = getSlugFromQueryParam();
+  if (slugFromUrl) return slugFromUrl;
+  const storedSlug = getStoredShopSlug();
+  if (storedSlug) return storedSlug;
+  return DEFAULT_SHOP_SLUG;
+};
+
+const getStoredShopId = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('current_shop_id');
+};
+
+const getStoredShopSlug = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('current_shop_slug');
+};
+
+const persistShopLocally = (shop: Shop) => {
+  if (typeof window === 'undefined' || !shop) return;
+  if (shop.id) {
+    localStorage.setItem('current_shop_id', shop.id);
+  }
+  if ((shop as any).slug) {
+    localStorage.setItem('current_shop_slug', (shop as any).slug as string);
+  }
+};
+
 export const apiService = {
   // Client search
   async searchClients(query: string): Promise<Client[]> {
@@ -240,9 +278,13 @@ export const apiService = {
       }
     }
     
-    const shop = await this.getShop();
+    let shopId = getStoredShopId();
+    if (!shopId) {
+      const shop = await this.getShop();
+      shopId = shop?.id ?? null;
+    }
     const payload: Partial<Client> = {
-      shop_id: shop?.id && shop.id !== 'default' ? shop.id : null,
+      shop_id: shopId && shopId !== 'default' ? shopId : null,
       first_name: data.first_name.trim(),
       last_name: data.last_name.trim(),
       phone_e164: data.phone_e164.trim(),
@@ -368,9 +410,13 @@ export const apiService = {
           }
         } else {
           // Cliente non esiste - crealo (usa accesso pubblico)
-          const shop = await this.getShop();
+          let shopId = getStoredShopId();
+          if (!shopId) {
+            const shop = await this.getShop();
+            shopId = shop?.id ?? null;
+          }
           const createData = {
-            shop_id: shop?.id && shop.id !== 'default' ? shop.id : null,
+            shop_id: shopId && shopId !== 'default' ? shopId : null,
             first_name: data.first_name || 'Cliente',
             last_name: data.last_name || null,
             phone_e164: data.phone_e164 || '+39000000000',
@@ -462,14 +508,18 @@ export const apiService = {
       }
 
       // Se non esiste, crea un nuovo cliente (usa accesso pubblico)
-      const shop = await this.getShop();
+      let shopId = getStoredShopId();
+      if (!shopId) {
+        const shop = await this.getShop();
+        shopId = shop?.id ?? null;
+      }
       const fullName = user.full_name || 'Cliente';
       const nameParts = fullName.split(' ');
       const firstName = nameParts[0] || 'Cliente';
       const lastName = nameParts.slice(1).join(' ') || null;
       
       const clientData: Partial<Client> = {
-        shop_id: shop?.id && shop.id !== 'default' ? shop.id : null,
+        shop_id: shopId && shopId !== 'default' ? shopId : null,
         first_name: firstName,
         last_name: lastName,
         phone_e164: user.phone || '+39000000000',
@@ -515,13 +565,17 @@ export const apiService = {
     }
 
     try {
-      const shop = await this.getShop();
-      if (!shop?.id) {
+      let shopId = getStoredShopId();
+      if (!shopId) {
+        const shop = await this.getShop();
+        shopId = shop?.id ?? null;
+      }
+      if (!shopId) {
         return createDefaultShopHoursConfig();
       }
 
       // Usa buildHeaders(false) per permettere lettura pubblica degli orari
-      const url = `${API_ENDPOINTS.SHOP_DAILY_HOURS}?select=*,shop_daily_time_slots(*)&shop_id=eq.${shop.id}&order=day_of_week.asc`;
+      const url = `${API_ENDPOINTS.SHOP_DAILY_HOURS}?select=*,shop_daily_time_slots(*)&shop_id=eq.${shopId}&order=day_of_week.asc`;
       const response = await fetch(url, { headers: buildHeaders(false) });
       if (!response.ok) {
         throw new Error(`Failed to fetch shop daily hours: ${response.status}`);
@@ -564,15 +618,19 @@ export const apiService = {
     }
 
     try {
-      const shop = await this.getShop();
-      if (!shop?.id) {
+      let shopId = getStoredShopId();
+      if (!shopId) {
+        const shop = await this.getShop();
+        shopId = shop?.id ?? null;
+      }
+      if (!shopId) {
         throw new Error('Impossibile determinare l\'ID del negozio');
       }
 
       const headers = buildHeaders(true);
 
       const existingRes = await fetch(
-        `${API_ENDPOINTS.SHOP_DAILY_HOURS}?select=*,shop_daily_time_slots(*)&shop_id=eq.${shop.id}`,
+        `${API_ENDPOINTS.SHOP_DAILY_HOURS}?select=*,shop_daily_time_slots(*)&shop_id=eq.${shopId}`,
         { headers }
       );
       if (!existingRes.ok) {
@@ -601,7 +659,7 @@ export const apiService = {
             method: 'POST',
             headers: { ...headers, Prefer: 'return=representation' },
             body: JSON.stringify([{
-              shop_id: shop.id,
+              shop_id: shopId,
               day_of_week: day,
               is_open: dayConfig.isOpen,
             }]),
@@ -804,11 +862,14 @@ export const apiService = {
         throw new Error('Impossibile creare l\'appuntamento: c\'è un conflitto con un altro appuntamento per lo stesso barbiere');
       }
       
-      // Get shop_id from shop
-      const shop = await this.getShop();
-      
+      let shopId = getStoredShopId();
+      if (!shopId) {
+        const shop = await this.getShop();
+        shopId = shop?.id ?? null;
+      }
+
       const payload = {
-        shop_id: shop?.id && shop.id !== 'default' ? shop.id : null,
+        shop_id: shopId && shopId !== 'default' ? shopId : null,
         client_id: data.client_id,
         staff_id: data.staff_id,
         service_id: data.service_id,
@@ -1403,12 +1464,93 @@ export const apiService = {
     }
   },
 
+  async getShopBySlug(slug: string): Promise<Shop> {
+    if (!isSupabaseConfigured()) {
+      return {
+        id: 'default',
+        slug: slug || DEFAULT_SHOP_SLUG,
+        name: 'Retro Barbershop',
+        address: '',
+        postal_code: '',
+        city: '',
+        province: '',
+        phone: '',
+        whatsapp: '',
+        email: '',
+        description: '',
+        opening_hours: '',
+        extra_opening_date: null,
+        extra_morning_start: null,
+        extra_morning_end: null,
+        extra_afternoon_start: null,
+        extra_afternoon_end: null,
+        vacation_period: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+    }
+
+    const url = `${API_ENDPOINTS.SHOPS}?select=*&slug=eq.${encodeURIComponent(slug)}&limit=1`;
+    const response = await fetch(url, { headers: buildHeaders(false) });
+    if (!response.ok) {
+      throw new Error(`Impossibile caricare shop con slug ${slug}`);
+    }
+    const shops = await response.json();
+    if (!shops || shops.length === 0) {
+      throw new Error(`Nessun shop trovato con slug ${slug}`);
+    }
+    const shop = shops[0];
+    persistShopLocally(shop);
+    return shop;
+  },
+
+  async getShopById(id: string): Promise<Shop> {
+    if (!isSupabaseConfigured()) {
+      return {
+        id: id,
+        slug: DEFAULT_SHOP_SLUG,
+        name: 'Retro Barbershop',
+        address: '',
+        postal_code: '',
+        city: '',
+        province: '',
+        phone: '',
+        whatsapp: '',
+        email: '',
+        description: '',
+        opening_hours: '',
+        extra_opening_date: null,
+        extra_morning_start: null,
+        extra_morning_end: null,
+        extra_afternoon_start: null,
+        extra_afternoon_end: null,
+        vacation_period: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+    }
+
+    const url = `${API_ENDPOINTS.SHOPS}?select=*&id=eq.${id}&limit=1`;
+    const response = await fetch(url, { headers: buildHeaders(false) });
+    if (!response.ok) {
+      throw new Error(`Impossibile caricare shop con id ${id}`);
+    }
+    const shops = await response.json();
+    if (!shops || shops.length === 0) {
+      throw new Error(`Nessun shop trovato con id ${id}`);
+    }
+    const shop = shops[0];
+    persistShopLocally(shop);
+    return shop;
+  },
+
   // Get shop (pubblico - non richiede autenticazione)
-  async getShop(): Promise<Shop> {
+  async getShop(slugOverride?: string): Promise<Shop> {
     if (!isSupabaseConfigured()) {
       // Restituisci shop di default se Supabase non è configurato
       return {
         id: 'default',
+        slug: slugOverride || DEFAULT_SHOP_SLUG,
         name: 'Retro Barbershop',
         address: '',
         postal_code: '',
@@ -1431,13 +1573,15 @@ export const apiService = {
     }
     
     try {
+      const slugToUse = slugOverride || getEffectiveSlug();
       // Usa buildHeaders(false) per permettere accesso pubblico
-      const url = `${API_ENDPOINTS.SHOPS}?select=*&limit=1`;
+      const url = `${API_ENDPOINTS.SHOPS}?select=*&slug=eq.${encodeURIComponent(slugToUse)}&limit=1`;
       const response = await fetch(url, { headers: buildHeaders(false) });
       if (!response.ok) {
         // Se fallisce, restituisci shop di default invece di lanciare errore
         return {
           id: 'default',
+          slug: slugToUse,
           name: 'Retro Barbershop',
           address: '',
           postal_code: '',
@@ -1464,6 +1608,7 @@ export const apiService = {
         // Se non ci sono shop, crea uno di default
         const defaultShop: Shop = {
           id: 'default',
+          slug: slugToUse,
           name: 'Retro Barbershop',
           address: '',
           postal_code: '',
@@ -1487,6 +1632,10 @@ export const apiService = {
       }
       
       const shopData = shops[0];
+      if (!shopData.slug) {
+        shopData.slug = slugToUse;
+      }
+      persistShopLocally(shopData);
       
       // Parse vacation_period if it's a JSONB string
       // Supabase JSONB columns can come as strings or objects depending on how they're queried
@@ -1513,8 +1662,9 @@ export const apiService = {
     } catch (error) {
       // Non loggare errori per getShop - è normale se non autenticato
       // Restituisci shop di default
-      return {
+      const fallback = {
         id: 'default',
+        slug: slugOverride || getEffectiveSlug(),
         name: 'Retro Barbershop',
         address: '',
         postal_code: '',
@@ -1534,6 +1684,76 @@ export const apiService = {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
+      persistShopLocally(fallback);
+      return fallback;
+    }
+  },
+
+  async validateShopInvite(token: string): Promise<{ id: string; token: string } | null> {
+    if (!isSupabaseConfigured()) return null;
+    try {
+      const nowIso = new Date().toISOString();
+      const url = `${API_ENDPOINTS.SHOP_INVITES}?select=*&token=eq.${encodeURIComponent(token)}&limit=1`;
+      const response = await fetch(url, { headers: buildHeaders(false) });
+      if (!response.ok) return null;
+      const invites = await response.json();
+      const invite = invites?.[0];
+      if (!invite) return null;
+      if (invite.used_at) return null;
+      if (invite.expires_at && invite.expires_at <= nowIso) return null;
+      return invite;
+    } catch {
+      return null;
+    }
+  },
+
+  async markShopInviteUsed(token: string, shopId: string): Promise<void> {
+    if (!isSupabaseConfigured()) return;
+    const url = `${API_ENDPOINTS.SHOP_INVITES}?token=eq.${encodeURIComponent(token)}`;
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: { ...buildHeaders(true), Prefer: 'return=minimal' },
+      body: JSON.stringify({ used_at: new Date().toISOString(), used_by_shop_id: shopId }),
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Impossibile marcare token come usato: ${response.status} ${text}`);
+    }
+  },
+
+  async createShop(data: Partial<Shop>): Promise<Shop> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    if (!data.slug || !data.name) throw new Error('Slug e nome sono obbligatori');
+
+    const payload = { ...data };
+    const response = await fetch(API_ENDPOINTS.SHOPS, {
+      method: 'POST',
+      headers: { ...buildHeaders(true), Prefer: 'return=representation' },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Impossibile creare il negozio: ${response.status} ${text}`);
+    }
+    const created = await response.json();
+    const shop = created?.[0];
+    if (shop) persistShopLocally(shop);
+    return shop;
+  },
+
+  async updateProfileShop(userId: string, shopId: string | null): Promise<void> {
+    if (!isSupabaseConfigured()) return;
+    const response = await fetch(`${API_ENDPOINTS.PROFILES}?user_id=eq.${userId}`, {
+      method: 'PATCH',
+      headers: { ...buildHeaders(true), Prefer: 'return=minimal' },
+      body: JSON.stringify({ shop_id: shopId }),
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Impossibile aggiornare il profilo con shop_id: ${response.status} ${text}`);
+    }
+    if (shopId) {
+      localStorage.setItem('current_shop_id', shopId);
     }
   },
 
@@ -1916,7 +2136,7 @@ export const apiService = {
     
     try {
       // Ottieni lo shop_id reale dal database
-      let shopId = staffData.shop_id;
+      let shopId = staffData.shop_id || getStoredShopId();
       if (!shopId || shopId === '1') {
         try {
           const shop = await this.getShop();
@@ -2334,10 +2554,14 @@ export const apiService = {
     }
     
     try {
-      const shop = await this.getShop();
+      let shopId = getStoredShopId();
+      if (!shopId) {
+        const shop = await this.getShop();
+        shopId = shop?.id ?? null;
+      }
       
       const payload = {
-        shop_id: shop?.id && shop.id !== 'default' ? shop.id : null,
+        shop_id: shopId && shopId !== 'default' ? shopId : null,
         user_id: data.user_id,
         user_type: data.user_type,
         type: data.type,
@@ -2445,7 +2669,11 @@ export const apiService = {
     }
     
     try {
-      const shop = await this.getShop();
+      let shopId = getStoredShopId();
+      if (!shopId) {
+        const shop = await this.getShop();
+        shopId = shop?.id ?? null;
+      }
       
       // Calcola la data di scadenza (fine dell'ultima data preferita)
       const sortedDates = [...data.preferred_dates].sort();
@@ -2454,7 +2682,7 @@ export const apiService = {
       expiresAt.setHours(23, 59, 59, 999);
       
       const payload = {
-        shop_id: shop?.id && shop.id !== 'default' ? shop.id : null,
+        shop_id: shopId && shopId !== 'default' ? shopId : null,
         client_id: data.client_id,
         service_id: data.service_id || null,
         staff_id: data.staff_id || null,

@@ -92,6 +92,7 @@ export interface VacationPeriod {
 
 export interface Shop {
   id: string;
+  slug?: string;
   name: string;
   address?: string;
   postal_code?: string;

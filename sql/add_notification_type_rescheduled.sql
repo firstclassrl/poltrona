@@ -20,3 +20,4 @@ CHECK (type IN (
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
 
+

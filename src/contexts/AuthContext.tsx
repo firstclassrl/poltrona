@@ -7,7 +7,7 @@ import { apiService } from '../services/api';
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => void;
-  register: (data: RegisterData) => Promise<void>;
+  register: (data: RegisterData, options?: { shopSlug?: string }) => Promise<void>;
   hasPermission: (permission: string) => boolean;
   refreshSession: () => Promise<boolean>;
 }
@@ -16,6 +16,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const isSupabaseConfigured = (): boolean => {
   return Boolean(API_CONFIG.SUPABASE_EDGE_URL && API_CONFIG.SUPABASE_ANON_KEY);
+};
+
+const getShopSlugFromUrl = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  const params = new URLSearchParams(window.location.search);
+  const slug = params.get('shop');
+  if (slug && slug.trim().length > 0) return slug.trim();
+  return null;
 };
 
 interface AuthProviderProps {
@@ -69,6 +77,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               isAuthenticated: true,
               isLoading: false,
             });
+            if ((user as any).shop_id) {
+              localStorage.setItem('current_shop_id', (user as any).shop_id as string);
+            }
           } else if (storedRefreshToken) {
             // Token scaduto, prova a refresharlo
             console.log('🔄 Token scaduto, tentativo di refresh...');
@@ -96,6 +107,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 isAuthenticated: true,
                 isLoading: false,
               });
+              if ((user as any).shop_id) {
+                localStorage.setItem('current_shop_id', (user as any).shop_id as string);
+              }
             } else {
               // Refresh fallito, forza logout
               console.log('❌ Refresh fallito, sessione terminata');
@@ -235,11 +249,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw new Error('Profilo non trovato');
       }
 
+      const shopId = (profile as any).shop_id ?? null;
       const user: User = {
         id: authUserId,
         email: credentials.email,
         full_name: (profile as any).full_name ?? '',
         role: (profile as any).role ?? 'client',
+        shop_id: shopId,
         created_at: new Date().toISOString(),
       };
 
@@ -249,6 +265,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Salva anche il refresh token per poter rinnovare la sessione
       if (tokenJson.refresh_token) {
         localStorage.setItem('refresh_token', tokenJson.refresh_token);
+      }
+      if (shopId) {
+        localStorage.setItem('current_shop_id', shopId);
+        try {
+          await apiService.getShopById(shopId);
+        } catch (shopErr) {
+          console.warn('Impossibile caricare shop dopo login:', shopErr);
+        }
       }
     } catch (error) {
       setAuthState(prev => ({ ...prev, isLoading: false }));
@@ -315,7 +339,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const register = async (data: RegisterData): Promise<void> => {
+  const register = async (data: RegisterData, options?: { shopSlug?: string }): Promise<void> => {
     setAuthState(prev => ({ ...prev, isLoading: true }));
 
     if (!isSupabaseConfigured()) {
@@ -324,9 +348,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     try {
-      // IMPORTANTE: Tutti i nuovi utenti sono SEMPRE clienti
-      // Il ruolo viene sempre impostato a 'client' indipendentemente da quello passato
+      // IMPORTANTE: Tutti i nuovi utenti sono SEMPRE clienti (in questo flusso)
       const forcedRole: UserRole = 'client';
+
+      // Risolvi shop in base a query param o opzione
+      let resolvedShopId: string | null = null;
+      const slugFromOptions = options?.shopSlug || getShopSlugFromUrl();
+      if (slugFromOptions) {
+        try {
+          const shop = await apiService.getShopBySlug(slugFromOptions);
+          resolvedShopId = shop.id;
+        } catch (e) {
+          console.warn('Shop non trovato per slug durante registrazione:', slugFromOptions, e);
+        }
+      }
+      if (!resolvedShopId) {
+        const stored = localStorage.getItem('current_shop_id');
+        if (stored) resolvedShopId = stored;
+      }
       
       // Crea l'utente in Supabase Auth
       const signupUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/signup`;
@@ -403,6 +442,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } catch (clientError) {
         console.warn('⚠️ Errore nella creazione del record client:', clientError);
         // Non bloccare la registrazione se la creazione client fallisce
+      }
+
+      // Aggiorna il profilo con lo shop_id risolto
+      try {
+        if (signupJson.user?.id && resolvedShopId) {
+          await apiService.updateProfileShop(signupJson.user.id, resolvedShopId);
+        }
+        if (resolvedShopId) {
+          localStorage.setItem('current_shop_id', resolvedShopId);
+        }
+      } catch (profileShopError) {
+        console.warn('⚠️ Errore aggiornamento shop_id nel profilo:', profileShopError);
       }
       
       setAuthState(prev => ({ ...prev, isLoading: false }));
