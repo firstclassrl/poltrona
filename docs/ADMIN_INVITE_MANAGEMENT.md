@@ -18,3 +18,4 @@ values ('SHOP2025-ABC123XYZ', 'admin@abruzzo.ai');
 ## Note di sicurezza
 - Le policy permettono SELECT a tutti (per validare il token) e UPDATE per marcare `used_at` (il token è l’elemento segreto).
 - Usa token lunghi e casuali; imposta `expires_at` se possibile.
+

@@ -479,62 +479,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
         // Refresh notifications count
         refreshUnreadCount();
 
-        // Send email notification to the shop's notification email
-        if (shop?.notification_email) {
-          const emailData = {
-            clientName: user.full_name || 'Cliente',
-            clientEmail: user.email || '',
-            clientPhone: clientPhone || 'Non fornito',
-            barberName: barber.full_name,
-            serviceName: service?.name || 'N/A',
-            appointmentDate: selectedDate?.toLocaleDateString('it-IT') || '',
-            appointmentTime: selectedTime,
-            shopName: shop.name || 'Barbershop',
-          };
-
-          // Send email to shop in background (non-blocking)
-          emailNotificationService.sendNewAppointmentNotification(emailData, shop.notification_email)
-            .then(result => {
-              if (result.success) {
-                console.log('📧 Email inviata con successo al negozio:', shop.notification_email);
-              } else {
-                console.error('❌ Errore nell\'invio email al negozio:', result.error);
-              }
-            });
-        } else {
-          console.log('ℹ️ Email notifiche non configurata per il negozio');
-        }
-
-        // Send confirmation email to the client
-        if (user.email) {
-          const clientEmailData = {
-            clientName: user.full_name || 'Cliente',
-            clientEmail: user.email,
-            clientPhone: clientPhone || 'Non fornito',
-            barberName: barber.full_name,
-            serviceName: service?.name || 'N/A',
-            appointmentDate: selectedDate?.toLocaleDateString('it-IT', {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric'
-            }) || '',
-            appointmentTime: selectedTime,
-            shopName: shop?.name || 'Barbershop',
-          };
-
-          // Send email to client in background (non-blocking)
-          emailNotificationService.sendClientAppointmentConfirmation(clientEmailData)
-            .then(result => {
-              if (result.success) {
-                console.log('📧 Email di conferma inviata con successo al cliente:', user.email);
-              } else {
-                console.error('❌ Errore nell\'invio email di conferma al cliente:', result.error);
-              }
-            });
-        } else {
-          console.log('ℹ️ Email cliente non disponibile per invio conferma');
-        }
+        // Emails disabilitate lato app: invio gestito da webhooks Supabase
       }
       
       // Close all modals

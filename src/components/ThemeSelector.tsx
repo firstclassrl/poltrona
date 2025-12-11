@@ -40,9 +40,9 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
               className={cn(
                 'relative overflow-hidden rounded-xl border transition-all duration-200 text-left focus:outline-none focus:ring-2 focus:ring-offset-2',
                 isActive
-                  ? 'border-[var(--theme-accent)] ring-2 ring-[var(--theme-accent)] ring-offset-2'
-                  : 'border-transparent hover:border-[var(--theme-border)] hover:shadow-lg',
-                'surface-card'
+                  ? 'border-green-600 ring-2 ring-green-600 ring-offset-2'
+                  : 'border-gray-200 hover:border-gray-300 hover:shadow-lg',
+                'bg-white text-black'
               )}
             >
               <div
@@ -52,15 +52,15 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
               <div className="p-3 space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <div>
-                    <p className="text-sm font-semibold text-on-surface">{palette.name}</p>
-                    <p className="text-xs text-muted">{palette.trend}</p>
+                    <p className="text-sm font-semibold text-gray-900">{palette.name}</p>
+                    <p className="text-xs text-gray-600">{palette.trend}</p>
                   </div>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--theme-nav-hover)] text-on-surface">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-800 border border-gray-200">
                     {isActive ? 'Attivo' : 'Scegli'}
                   </span>
                 </div>
                 {showDescription && (
-                  <p className="text-xs text-muted leading-snug">{palette.description}</p>
+                  <p className="text-xs text-gray-600 leading-snug">{palette.description}</p>
                 )}
                 <div className="flex gap-1">
                   {(['primary', 'accent', 'surface', 'background'] as const).map((token) => (
@@ -79,3 +79,4 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
     </div>
   );
 };
+

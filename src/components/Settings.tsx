@@ -616,88 +616,11 @@ export const Settings = () => {
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-[var(--theme-nav-hover)] rounded-xl flex items-center justify-center">
-            <SettingsIcon className="w-6 h-6 text-[var(--theme-accent)]" />
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-green-900">
+            <SettingsIcon className="w-6 h-6 text-yellow-400" />
           </div>
-          <h1 className="text-3xl font-bold text-on-surface">Opzioni</h1>
+          <h1 className="text-3xl font-bold text-black">Opzioni</h1>
         </div>
-      </div>
-
-      {/* Tema & Palette */}
-      <div className="space-y-4">
-        <div className="flex items-center space-x-2 mb-2">
-          <Palette className="w-5 h-5 text-[var(--theme-accent)]" />
-          <h2 className="text-xl font-semibold text-on-surface">Tema & Palette</h2>
-        </div>
-
-        <Card className="surface-card">
-          <div className="p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-[var(--theme-nav-hover)] rounded-full flex items-center justify-center">
-                  <Palette className="w-5 h-5 text-[var(--theme-accent)]" />
-                </div>
-                <div>
-                  <h3 className="text-base font-semibold text-on-surface">Palette colore</h3>
-                  <p className="text-sm text-muted">Applicata a dashboard, navigazione e wizard.</p>
-                </div>
-              </div>
-              {!isEditingTheme ? (
-                <Button
-                  onClick={() => setIsEditingTheme(true)}
-                  size="sm"
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  Modifica
-                </Button>
-              ) : (
-                <div className="flex space-x-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleCancelTheme}
-                    disabled={isSavingTheme}
-                  >
-                    <X className="w-4 h-4 mr-2" />
-                    Annulla
-                  </Button>
-                  <Button
-                    onClick={handleSaveTheme}
-                    size="sm"
-                    loading={isSavingTheme}
-                    disabled={isSavingTheme}
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    Salva
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {themeMessage && (
-              <div
-                className={`p-3 rounded-lg ${
-                  themeMessage.type === 'success'
-                    ? 'bg-[color-mix(in_srgb,var(--theme-success)_15%,var(--theme-surface))] border border-[color-mix(in_srgb,var(--theme-success)_40%,transparent)] text-on-surface'
-                    : 'bg-[color-mix(in_srgb,var(--theme-danger)_15%,var(--theme-surface))] border border-[color-mix(in_srgb,var(--theme-danger)_40%,transparent)] text-on-surface'
-                }`}
-              >
-                <p className="text-sm font-medium">{themeMessage.text}</p>
-              </div>
-            )}
-
-            <ThemeSelector
-              value={themePalette}
-              onChange={(id) => {
-                setThemePalette(id);
-                setTheme(id, { persist: false });
-              }}
-            />
-            <p className="text-xs text-muted">
-              Il tema scelto verrà salvato per il negozio e per i futuri accessi dei collaboratori.
-            </p>
-          </div>
-        </Card>
       </div>
 
       {/* Sezione Operativa */}
@@ -1545,6 +1468,80 @@ export const Settings = () => {
                 </div>
               </div>
             </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Tema & Palette (spostato in fondo) */}
+      <div className="space-y-4">
+        <div className="flex items-center space-x-2 mb-2">
+          <Palette className="w-5 h-5 text-green-700" />
+          <h2 className="text-xl font-semibold text-black">Tema & Palette</h2>
+        </div>
+
+        <Card className="border border-gray-200 shadow-sm bg-white">
+          <div className="p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                  <Palette className="w-5 h-5 text-green-700" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900">Palette colore</h3>
+                  <p className="text-sm text-gray-600">Applicata a dashboard, navigazione e wizard.</p>
+                </div>
+              </div>
+              {!isEditingTheme ? (
+                <Button onClick={() => setIsEditingTheme(true)} size="sm">
+                  <Edit className="w-4 h-4 mr-2" />
+                  Modifica
+                </Button>
+              ) : (
+                <div className="flex space-x-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleCancelTheme}
+                    disabled={isSavingTheme}
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Annulla
+                  </Button>
+                  <Button
+                    onClick={handleSaveTheme}
+                    size="sm"
+                    loading={isSavingTheme}
+                    disabled={isSavingTheme}
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Salva
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {themeMessage && (
+              <div
+                className={`p-3 rounded-lg ${
+                  themeMessage.type === 'success'
+                    ? 'bg-green-50 border border-green-200 text-green-800'
+                    : 'bg-red-50 border border-red-200 text-red-800'
+                }`}
+              >
+                <p className="text-sm font-medium">{themeMessage.text}</p>
+              </div>
+            )}
+
+            <ThemeSelector
+              value={themePalette}
+              onChange={(id) => {
+                setThemePalette(id);
+                setTheme(id, { persist: false });
+              }}
+            />
+            <p className="text-xs text-gray-600">
+              Il tema scelto verrà salvato per il negozio e per i futuri accessi dei collaboratori.
+            </p>
           </div>
         </Card>
       </div>

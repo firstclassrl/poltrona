@@ -22,3 +22,4 @@
 - Mantieni indici su `shop_id` e `slug`.
 - `ShopContext` legge `shop_id` (profilo) o `?shop=` e fornisce `currentShop` a tutta l’app.
 - Il QR componente (`ShopQRCode`) usa un endpoint pubblico per generare l’immagine senza dipendenze extra.
+
