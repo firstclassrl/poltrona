@@ -350,10 +350,10 @@ export const ShopSetup: React.FC = () => {
                   }
                 } else {
                   const loginErrorText = await tokenRes.text().catch(() => '');
-                  throw new Error(`Email già registrata ma password non corretta. ${loginErrorText ? 'Usa la password corretta o un'email diversa.' : ''}`);
+                  throw new Error(`Email già registrata ma password non corretta. ${loginErrorText ? "Usa la password corretta o un'email diversa." : ''}`);
                 }
               } catch (loginError) {
-                throw new Error(`Email già registrata. ${loginError instanceof Error ? loginError.message : 'Usa un'email diversa.'}`);
+                throw new Error(`Email già registrata. ${loginError instanceof Error ? loginError.message : "Usa un'email diversa."}`);
               }
             } else {
               // Altro tipo di errore, lancia l'eccezione
