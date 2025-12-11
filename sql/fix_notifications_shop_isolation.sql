@@ -152,3 +152,4 @@ CREATE TRIGGER trigger_notify_on_shop_assigned
 -- Commenti per documentazione
 COMMENT ON FUNCTION public.handle_new_user() IS 'Funzione trigger per creare automaticamente un profilo quando viene creato un nuovo utente. NON crea notifiche (shop_id è NULL).';
 COMMENT ON FUNCTION public.handle_profile_shop_assigned() IS 'Funzione trigger per creare notifiche quando shop_id viene assegnato a un profilo cliente. Garantisce isolamento tra negozi.';
+

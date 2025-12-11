@@ -37,3 +37,4 @@ BEGIN
   RAISE NOTICE 'Migrazione completata per shop % con slug %', default_shop_id, default_slug;
 END $$;
 
+

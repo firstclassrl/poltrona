@@ -11,3 +11,4 @@ COMMENT ON COLUMN public.shops.calendar_view_mode IS 'Modalità di visualizzazio
 
 
 
+

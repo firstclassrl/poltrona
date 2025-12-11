@@ -305,40 +305,9 @@ export const ShopSetup: React.FC = () => {
             }
           }
 
-          // Step 3: Aggiorna il profilo con ruolo ADMIN e shop_id
-          // IMPORTANTE: Il trigger ha creato il profilo con ruolo 'client', dobbiamo cambiarlo a 'admin'
-          if (adminUserId && adminAccessToken) {
-            // Aspetta un po' per assicurarsi che il trigger abbia completato
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            const profileUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/profiles?user_id=eq.${adminUserId}`;
-            const profileRes = await fetch(profileUrl, {
-              method: 'PATCH',
-              headers: {
-                'Content-Type': 'application/json',
-                'apikey': API_CONFIG.SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${adminAccessToken}`,
-                'Prefer': 'return=representation'
-              },
-              body: JSON.stringify({
-                role: 'admin',
-                shop_id: shop.id,
-                full_name: form.name || 'Admin'
-              })
-            });
-
-            if (!profileRes.ok) {
-              const errorText = await profileRes.text();
-              console.error('Errore aggiornamento profilo admin:', errorText);
-              throw new Error(`Impossibile impostare il ruolo admin: ${errorText}`);
-            } else {
-              // Verifica che l'update sia andato a buon fine
-              const updatedProfile = await profileRes.json();
-              if (updatedProfile && updatedProfile[0] && updatedProfile[0].role !== 'admin') {
-                console.warn('Attenzione: il ruolo del profilo potrebbe non essere stato aggiornato correttamente');
-              }
-            }
-          } else if (adminUserId && !adminAccessToken) {
+          // Step 3: Il profilo verrà aggiornato dopo la creazione del negozio (vedi STEP 4)
+          // Per ora verifichiamo solo che abbiamo i dati necessari
+          if (adminUserId && !adminAccessToken) {
             throw new Error('Impossibile ottenere il token di autenticazione per l\'account admin');
           }
         } catch (adminError) {
@@ -883,72 +852,6 @@ export const ShopSetup: React.FC = () => {
             />
             <p className="text-xs text-gray-500 mt-1">Email dove ricevere le notifiche per nuovi appuntamenti</p>
           </div>
-        </div>
-      </div>
-    );
-  } else if (currentSlide === 4) {
-    slideContent = (
-      <div className="space-y-6">
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-[#1e40af] rounded-full mb-4">
-            <UserPlus className="w-8 h-8 text-white" />
-          </div>
-          <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Account Admin</h2>
-          <p className="text-gray-600">Crea l'account amministratore per gestire il tuo negozio</p>
-        </div>
-        
-        <div className="space-y-6">
-          <Input
-            label="Email admin *"
-            labelClassName="text-[#1e40af] font-medium"
-            type="email"
-            value={adminEmail}
-            onChange={(e) => setAdminEmail(e.target.value)}
-            placeholder="admin@negozio.com"
-            required
-          />
-          <div className="relative">
-            <Input
-              label="Password *"
-              labelClassName="text-[#1e40af] font-medium"
-              type={showAdminPassword ? 'text' : 'password'}
-              value={adminPassword}
-              onChange={(e) => setAdminPassword(e.target.value)}
-              placeholder="Minimo 6 caratteri"
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowAdminPassword(!showAdminPassword)}
-              className="absolute right-3 top-8 text-gray-400 hover:text-gray-600"
-            >
-              {showAdminPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-            </button>
-          </div>
-          <div className="relative">
-            <Input
-              label="Conferma Password *"
-              labelClassName="text-[#1e40af] font-medium"
-              type={showAdminConfirmPassword ? 'text' : 'password'}
-              value={adminConfirmPassword}
-              onChange={(e) => setAdminConfirmPassword(e.target.value)}
-              placeholder="Ripeti la password"
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowAdminConfirmPassword(!showAdminConfirmPassword)}
-              className="absolute right-3 top-8 text-gray-400 hover:text-gray-600"
-            >
-              {showAdminConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-            </button>
-          </div>
-          {adminPassword && adminConfirmPassword && adminPassword !== adminConfirmPassword && (
-            <p className="text-sm text-red-600">Le password non coincidono</p>
-          )}
-          {adminPassword && adminPassword.length > 0 && adminPassword.length < 6 && (
-            <p className="text-sm text-red-600">La password deve contenere almeno 6 caratteri</p>
-          )}
         </div>
       </div>
     );

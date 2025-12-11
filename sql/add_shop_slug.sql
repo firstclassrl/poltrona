@@ -35,3 +35,4 @@ END $$;
 -- Indice dedicato per ricerche per slug
 CREATE INDEX IF NOT EXISTS idx_shops_slug ON public.shops (slug);
 
+

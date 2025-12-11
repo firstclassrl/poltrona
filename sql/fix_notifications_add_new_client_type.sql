@@ -34,3 +34,4 @@ COMMENT ON COLUMN public.notifications.type IS 'Tipo: new_appointment, appointme
 
 
 
+

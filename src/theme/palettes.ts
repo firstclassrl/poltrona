@@ -155,3 +155,4 @@ export const getPaletteById = (id?: ThemePaletteId | null): ThemePalette => {
   return THEME_PALETTES.find((p) => p.id === id) ?? fallback;
 };
 
+
