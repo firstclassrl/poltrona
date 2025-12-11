@@ -247,40 +247,40 @@ export const ShopSetup: React.FC = () => {
 
   // Slide 1: Benvenuto
   const SlideWelcome = () => (
-    <div className="text-center space-y-8 py-8">
+    <div className="text-center space-y-8 py-4">
       <div className="flex justify-center mb-6">
         <img 
           src="/logo Poltrona 2025.png" 
           alt="Logo Poltrona" 
-          className="h-32 w-auto object-contain" 
+          className="h-28 w-auto object-contain" 
         />
       </div>
-      <h1 className="text-5xl md:text-6xl font-bold text-gray-900 tracking-tight">
+      <h1 className="text-4xl md:text-5xl font-bold text-[#1e40af] tracking-tight">
         BENVENUTI IN POLTRONA
       </h1>
-      <p className="text-xl md:text-2xl text-gray-700 max-w-2xl mx-auto leading-relaxed">
+      <p className="text-lg md:text-xl text-gray-700 max-w-2xl mx-auto leading-relaxed">
         Il sistema di gestione appuntamenti più completo per il tuo negozio
       </p>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mt-12">
-        <div className="p-6 bg-gray-50 rounded-xl">
-          <div className="w-12 h-12 bg-gray-900 rounded-lg flex items-center justify-center mx-auto mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mt-8">
+        <div className="p-6 bg-white/60 backdrop-blur-sm rounded-xl border border-white/30">
+          <div className="w-12 h-12 bg-[#10b981] rounded-lg flex items-center justify-center mx-auto mb-4">
             <Building2 className="w-6 h-6 text-white" />
           </div>
-          <h3 className="font-semibold text-gray-900 mb-2">Gestione Completa</h3>
+          <h3 className="font-semibold text-[#1e40af] mb-2">Gestione Completa</h3>
           <p className="text-sm text-gray-600">Appuntamenti, clienti, staff e prodotti in un'unica piattaforma</p>
         </div>
-        <div className="p-6 bg-gray-50 rounded-xl">
-          <div className="w-12 h-12 bg-gray-900 rounded-lg flex items-center justify-center mx-auto mb-4">
+        <div className="p-6 bg-white/60 backdrop-blur-sm rounded-xl border border-white/30">
+          <div className="w-12 h-12 bg-[#10b981] rounded-lg flex items-center justify-center mx-auto mb-4">
             <Phone className="w-6 h-6 text-white" />
           </div>
-          <h3 className="font-semibold text-gray-900 mb-2">Notifiche Automatiche</h3>
+          <h3 className="font-semibold text-[#1e40af] mb-2">Notifiche Automatiche</h3>
           <p className="text-sm text-gray-600">Email e SMS automatici per te e i tuoi clienti</p>
         </div>
-        <div className="p-6 bg-gray-50 rounded-xl">
-          <div className="w-12 h-12 bg-gray-900 rounded-lg flex items-center justify-center mx-auto mb-4">
+        <div className="p-6 bg-white/60 backdrop-blur-sm rounded-xl border border-white/30">
+          <div className="w-12 h-12 bg-[#10b981] rounded-lg flex items-center justify-center mx-auto mb-4">
             <Palette className="w-6 h-6 text-white" />
           </div>
-          <h3 className="font-semibold text-gray-900 mb-2">Personalizzabile</h3>
+          <h3 className="font-semibold text-[#1e40af] mb-2">Personalizzabile</h3>
           <p className="text-sm text-gray-600">Scegli colori e stile in linea con il tuo brand</p>
         </div>
       </div>
@@ -290,15 +290,15 @@ export const ShopSetup: React.FC = () => {
   // Slide 2: Informazioni negozio
   const SlideShopInfo = () => (
     <div className="space-y-6">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Informazioni Negozio</h2>
+      <div className="text-center mb-6">
+        <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Informazioni Negozio</h2>
         <p className="text-gray-600">Inserisci i dati principali del tuo negozio</p>
       </div>
       
       <div className="space-y-6">
         <Input
           label="Nome negozio *"
-          labelClassName="text-gray-900 font-medium"
+          labelClassName="text-[#1e40af] font-medium"
           value={form.name}
           onChange={(e) => handleChange('name', e.target.value)}
           required
@@ -306,9 +306,9 @@ export const ShopSetup: React.FC = () => {
         />
         
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">Descrizione</label>
+          <label className="block text-sm font-medium text-[#1e40af] mb-2">Descrizione</label>
           <textarea
-            className="w-full border-2 border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 bg-white text-gray-900 transition-all"
+            className="w-full border-2 border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e40af] focus:border-[#1e40af] bg-white text-gray-900 transition-all"
             rows={4}
             value={form.description}
             onChange={(e) => handleChange('description', e.target.value)}
@@ -319,28 +319,28 @@ export const ShopSetup: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
             label="Indirizzo"
-            labelClassName="text-gray-900 font-medium"
+            labelClassName="text-[#1e40af] font-medium"
             value={form.address}
             onChange={(e) => handleChange('address', e.target.value)}
             placeholder="Via, numero civico"
           />
           <Input
             label="CAP"
-            labelClassName="text-gray-900 font-medium"
+            labelClassName="text-[#1e40af] font-medium"
             value={form.postal_code}
             onChange={(e) => handleChange('postal_code', e.target.value)}
             placeholder="00100"
           />
           <Input
             label="Città"
-            labelClassName="text-gray-900 font-medium"
+            labelClassName="text-[#1e40af] font-medium"
             value={form.city}
             onChange={(e) => handleChange('city', e.target.value)}
             placeholder="Roma"
           />
           <Input
             label="Provincia"
-            labelClassName="text-gray-900 font-medium"
+            labelClassName="text-[#1e40af] font-medium"
             value={form.province}
             onChange={(e) => handleChange('province', e.target.value)}
             placeholder="RM"
@@ -348,13 +348,13 @@ export const ShopSetup: React.FC = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-3">Logo del negozio</label>
+          <label className="block text-sm font-medium text-[#1e40af] mb-3">Logo del negozio</label>
           {logoPreview ? (
             <div className="relative inline-block">
               <img
                 src={logoPreview}
                 alt="Logo preview"
-                className="h-32 w-auto object-contain border-2 border-gray-300 rounded-lg p-4 bg-white"
+                className="h-32 w-auto object-contain border-2 border-[#1e40af] rounded-lg p-4 bg-white"
               />
               <button
                 type="button"
@@ -365,11 +365,11 @@ export const ShopSetup: React.FC = () => {
               </button>
             </div>
           ) : (
-            <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+            <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-[#1e40af] rounded-lg cursor-pointer bg-white/60 hover:bg-white/80 transition-colors">
               <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <Upload className="w-10 h-10 text-gray-400 mb-3" />
-                <p className="mb-2 text-sm text-gray-500">
-                  <span className="font-semibold">Clicca per caricare</span> o trascina qui
+                <Upload className="w-10 h-10 text-[#10b981] mb-3" />
+                <p className="mb-2 text-sm text-gray-700">
+                  <span className="font-semibold text-[#1e40af]">Clicca per caricare</span> o trascina qui
                 </p>
                 <p className="text-xs text-gray-500">PNG, JPG, GIF fino a 5MB</p>
               </div>
@@ -389,15 +389,15 @@ export const ShopSetup: React.FC = () => {
   // Slide 3: Contatti
   const SlideContacts = () => (
     <div className="space-y-6">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Contatti</h2>
+      <div className="text-center mb-6">
+        <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Contatti</h2>
         <p className="text-gray-600">Inserisci i tuoi contatti per le comunicazioni</p>
       </div>
       
       <div className="space-y-6">
         <Input
           label="Telefono *"
-          labelClassName="text-gray-900 font-medium"
+          labelClassName="text-[#1e40af] font-medium"
           type="tel"
           value={form.phone}
           onChange={(e) => handleChange('phone', e.target.value)}
@@ -405,7 +405,7 @@ export const ShopSetup: React.FC = () => {
         />
         <Input
           label="WhatsApp"
-          labelClassName="text-gray-900 font-medium"
+          labelClassName="text-[#1e40af] font-medium"
           type="tel"
           value={form.whatsapp}
           onChange={(e) => handleChange('whatsapp', e.target.value)}
@@ -413,7 +413,7 @@ export const ShopSetup: React.FC = () => {
         />
         <Input
           label="Email negozio"
-          labelClassName="text-gray-900 font-medium"
+          labelClassName="text-[#1e40af] font-medium"
           type="email"
           value={form.email}
           onChange={(e) => handleChange('email', e.target.value)}
@@ -422,7 +422,7 @@ export const ShopSetup: React.FC = () => {
         <div>
           <Input
             label="Email notifiche *"
-            labelClassName="text-gray-900 font-medium"
+            labelClassName="text-[#1e40af] font-medium"
             type="email"
             value={form.notification_email}
             onChange={(e) => handleChange('notification_email', e.target.value)}
@@ -438,12 +438,12 @@ export const ShopSetup: React.FC = () => {
   // Slide 4: Palette colori
   const SlideTheme = () => (
     <div className="space-y-6">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Personalizza il Tema</h2>
+      <div className="text-center mb-6">
+        <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Personalizza il Tema</h2>
         <p className="text-gray-600">Scegli i colori del tuo negozio</p>
       </div>
       
-      <div className="border-2 border-gray-200 rounded-lg p-6 bg-gray-50">
+      <div className="border-2 border-[#1e40af]/30 rounded-lg p-6 bg-white/60 backdrop-blur-sm">
         <ThemeSelector
           value={form.theme_palette as ThemePaletteId}
           onChange={handleThemeChange}
@@ -456,46 +456,46 @@ export const ShopSetup: React.FC = () => {
   // Slide 5: Conferma e crea
   const SlideConfirm = () => (
     <div className="space-y-6">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Conferma e Crea</h2>
+      <div className="text-center mb-6">
+        <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Conferma e Crea</h2>
         <p className="text-gray-600">Rivedi le informazioni e accetta i termini</p>
       </div>
 
       <div className="space-y-6">
-        <Card className="p-6 bg-gray-50">
-          <h3 className="font-semibold text-gray-900 mb-4">Riepilogo</h3>
+        <div className="p-6 bg-white/60 backdrop-blur-sm rounded-xl border border-white/30">
+          <h3 className="font-semibold text-[#1e40af] mb-4">Riepilogo</h3>
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-600">Nome:</span>
-              <span className="font-medium text-gray-900">{form.name || 'Non specificato'}</span>
+              <span className="font-medium text-[#1e40af]">{form.name || 'Non specificato'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Città:</span>
-              <span className="font-medium text-gray-900">{form.city || 'Non specificato'}</span>
+              <span className="font-medium text-[#1e40af]">{form.city || 'Non specificato'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Telefono:</span>
-              <span className="font-medium text-gray-900">{form.phone || 'Non specificato'}</span>
+              <span className="font-medium text-[#1e40af]">{form.phone || 'Non specificato'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Email notifiche:</span>
-              <span className="font-medium text-gray-900">{form.notification_email || 'Non specificato'}</span>
+              <span className="font-medium text-[#1e40af]">{form.notification_email || 'Non specificato'}</span>
             </div>
           </div>
-        </Card>
+        </div>
 
-        <div className="border-2 border-gray-200 rounded-lg p-6">
+        <div className="border-2 border-[#1e40af]/30 rounded-lg p-6 bg-white/60 backdrop-blur-sm">
           <div className="flex items-start space-x-4">
             <input
               type="checkbox"
               id="privacy"
               checked={privacyAccepted}
               onChange={(e) => setPrivacyAccepted(e.target.checked)}
-              className="mt-1 w-5 h-5 text-gray-900 border-gray-300 rounded focus:ring-gray-900"
+              className="mt-1 w-5 h-5 text-[#1e40af] border-gray-300 rounded focus:ring-[#1e40af]"
             />
             <label htmlFor="privacy" className="flex-1 text-sm text-gray-700 cursor-pointer">
-              Accetto i <a href="#" className="text-gray-900 underline font-medium">Termini di Servizio</a> e la{' '}
-              <a href="#" className="text-gray-900 underline font-medium">Privacy Policy</a> di Poltrona.
+              Accetto i <a href="#" className="text-[#1e40af] underline font-medium">Termini di Servizio</a> e la{' '}
+              <a href="#" className="text-[#1e40af] underline font-medium">Privacy Policy</a> di Poltrona.
               <span className="text-red-500 ml-1">*</span>
             </label>
           </div>
@@ -522,22 +522,22 @@ export const ShopSetup: React.FC = () => {
   };
 
   const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-white py-12 px-4">
-      <div className="max-w-4xl w-full space-y-8">
+    <div className="min-h-screen flex flex-col bg-white py-6 px-4">
+      <div className="max-w-4xl w-full mx-auto flex flex-col h-[calc(100vh-3rem)] max-h-[900px]">
         {/* Progress bar */}
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
           <div
-            className="bg-gray-900 h-2 rounded-full transition-all duration-300"
+            className="bg-[#1e40af] h-2 rounded-full transition-all duration-300"
             style={{ width: `${(currentSlide / 5) * 100}%` }}
           />
         </div>
 
-        {/* Slide container */}
-        <div className="relative overflow-hidden rounded-lg">
+        {/* Slide container - flex-1 per occupare lo spazio disponibile */}
+        <div className="relative overflow-hidden rounded-lg flex-1 min-h-0 mb-6">
           <div
             key={currentSlide}
             ref={slideContainerRef}
-            className={`transition-all duration-300 ease-in-out ${
+            className={`h-full transition-all duration-300 ease-in-out ${
               isTransitioning
                 ? slideDirection === 'forward'
                   ? 'opacity-0 translate-x-12 scale-95'
@@ -545,20 +545,27 @@ export const ShopSetup: React.FC = () => {
                 : 'opacity-100 translate-x-0 scale-100'
             }`}
           >
-            <Card className="p-8 md:p-10 bg-white text-gray-900 border border-gray-200 shadow-lg min-h-[500px]">
-              {children}
-            </Card>
+            <div className="h-full overflow-y-auto">
+              <div 
+                className="p-8 md:p-10 rounded-2xl shadow-2xl backdrop-blur-xl border border-white/20"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(96, 165, 250, 0.15) 0%, rgba(59, 130, 246, 0.1) 100%)',
+                  boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.15)',
+                }}
+              >
+                {children}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Navigation buttons */}
-        <div className="flex justify-between items-center">
+        {/* Navigation buttons - sempre visibili in fondo */}
+        <div className="flex justify-between items-center gap-4 mt-auto">
           <Button
             type="button"
-            variant="secondary"
             onClick={prevSlide}
             disabled={currentSlide === 1}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 bg-[#1e40af] hover:bg-[#1e3a8a] text-white disabled:bg-gray-300 disabled:text-gray-500 px-6 py-3 font-semibold"
           >
             <ChevronLeft className="w-4 h-4" />
             Indietro
@@ -570,10 +577,10 @@ export const ShopSetup: React.FC = () => {
                 key={slide}
                 type="button"
                 onClick={() => goToSlide(slide as Slide)}
-                className={`w-2 h-2 rounded-full transition-all ${
+                className={`h-2 rounded-full transition-all ${
                   currentSlide === slide
-                    ? 'bg-gray-900 w-8'
-                    : 'bg-gray-300 hover:bg-gray-400'
+                    ? 'bg-[#1e40af] w-8'
+                    : 'bg-gray-300 hover:bg-gray-400 w-2'
                 }`}
                 aria-label={`Vai alla slide ${slide}`}
               />
@@ -585,7 +592,7 @@ export const ShopSetup: React.FC = () => {
               type="button"
               onClick={nextSlide}
               disabled={!validateSlide(currentSlide)}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 bg-[#1e40af] hover:bg-[#1e3a8a] text-white disabled:bg-gray-300 disabled:text-gray-500 px-6 py-3 font-semibold"
             >
               Avanti
               <ChevronRight className="w-4 h-4" />
@@ -595,7 +602,7 @@ export const ShopSetup: React.FC = () => {
               type="button"
               onClick={handleSubmit}
               disabled={!privacyAccepted || isSubmitting || isUploadingLogo}
-              className="flex items-center gap-2 bg-gray-900 hover:bg-gray-800"
+              className="flex items-center gap-2 bg-[#1e40af] hover:bg-[#1e3a8a] text-white disabled:bg-gray-300 disabled:text-gray-500 px-6 py-3 font-semibold"
             >
               {isSubmitting || isUploadingLogo ? (
                 <>
@@ -613,14 +620,14 @@ export const ShopSetup: React.FC = () => {
         </div>
 
         {/* Footer */}
-        <div className="text-center text-sm text-gray-500">
+        <div className="text-center text-sm text-gray-500 mt-4">
           <p>
             Powered by{' '}
             <a
               href="https://www.abruzzo.ai"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-gray-700 hover:text-gray-900 font-medium underline"
+              className="text-[#1e40af] hover:text-[#1e3a8a] font-medium underline"
             >
               www.abruzzo.ai
             </a>
@@ -657,22 +664,28 @@ export const ShopSetup: React.FC = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-white py-12 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-white py-12 px-4">
         <div className="max-w-2xl w-full">
-          <Card className="p-8 md:p-10 bg-white text-gray-900 border border-gray-200 shadow-lg">
+          <div 
+            className="p-8 md:p-10 rounded-2xl shadow-2xl backdrop-blur-xl border border-white/20"
+            style={{
+              background: 'linear-gradient(135deg, rgba(96, 165, 250, 0.15) 0%, rgba(59, 130, 246, 0.1) 100%)',
+              boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.15)',
+            }}
+          >
             <div className="text-center py-8 space-y-6">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
                 <CheckCircle2 className="w-8 h-8 text-green-600" />
               </div>
-              <h1 className="text-3xl font-bold text-gray-900">Negozio creato con successo!</h1>
+              <h1 className="text-3xl font-bold text-[#1e40af]">Negozio creato con successo!</h1>
               <p className="text-lg text-gray-700">
-                <strong className="text-gray-900">{success.shop.name}</strong> è stato creato correttamente.
+                <strong className="text-[#1e40af]">{success.shop.name}</strong> è stato creato correttamente.
               </p>
-              <div className="border-2 border-gray-200 rounded-lg p-6 bg-gray-50 text-left">
-                <p className="text-sm font-medium text-gray-700 mb-2">
+              <div className="border-2 border-[#1e40af]/30 rounded-lg p-6 bg-white/60 backdrop-blur-sm text-left">
+                <p className="text-sm font-medium text-[#1e40af] mb-2">
                   Link registrazione clienti:
                 </p>
-                <p className="text-base font-mono text-gray-900 break-all bg-white p-3 rounded border border-gray-300">
+                <p className="text-base font-mono text-gray-900 break-all bg-white p-3 rounded border border-[#1e40af]/30">
                   {success.link}
                 </p>
               </div>
@@ -680,7 +693,7 @@ export const ShopSetup: React.FC = () => {
                 Condividi il link o genera un QR code per i tuoi clienti.
               </p>
             </div>
-          </Card>
+          </div>
           <div className="text-center text-sm text-gray-500 mt-6">
             <p>
               Powered by{' '}

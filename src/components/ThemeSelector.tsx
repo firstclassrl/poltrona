@@ -24,8 +24,8 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-on-surface">{title}</p>
-          <p className="text-xs text-muted">Applica tema all\'interfaccia e all\'anteprima.</p>
+          <p className="text-sm font-medium text-black">{title}</p>
+          <p className="text-xs text-gray-700">Applica tema all'interfaccia e all'anteprima.</p>
         </div>
       </div>
 
