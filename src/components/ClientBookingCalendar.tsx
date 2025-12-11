@@ -705,7 +705,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
               setSelectedTime('');
               setCurrentView('monthly');
             }}
-            className="w-full px-4 py-3 border-2 border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base bg-white/70 transition-all hover:border-white shadow-lg backdrop-blur"
+            className="w-full px-4 py-3 border-2 border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base bg-white/80 text-gray-900 transition-all hover:border-white shadow-lg backdrop-blur"
             disabled={isLoading}
           >
             <option value="">{isLoading ? 'Caricamento servizi...' : 'Seleziona un servizio'}</option>
@@ -732,7 +732,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
               setSelectedTime('');
               setCurrentView('monthly');
             }}
-            className="w-full px-4 py-3 border-2 border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base bg-white/70 transition-all hover:border-white shadow-lg backdrop-blur"
+            className="w-full px-4 py-3 border-2 border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base bg-white/80 text-gray-900 transition-all hover:border-white shadow-lg backdrop-blur"
             disabled={!selectedService || isLoading}
           >
             <option value="">{isLoading ? 'Caricamento barbieri...' : 'Seleziona un barbiere'}</option>
