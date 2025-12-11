@@ -264,13 +264,40 @@ export const ShopSetup: React.FC = () => {
           });
 
           if (!signupRes.ok) {
-            const errorData = await signupRes.json().catch(() => ({ message: 'Errore durante la creazione dell\'account admin' }));
-            throw new Error(errorData.error_description || errorData.message || 'Errore durante la creazione dell\'account admin');
+            // Prova a leggere come JSON, altrimenti come testo
+            let errorMessage = 'Errore durante la creazione dell'account admin';
+            try {
+              const errorText = await signupRes.text();
+              if (errorText && errorText.trim().length > 0) {
+                try {
+                  const errorData = JSON.parse(errorText);
+                  errorMessage = errorData.error_description || errorData.message || errorData.error || errorMessage;
+                } catch {
+                  // Non è JSON, usa il testo direttamente
+                  errorMessage = errorText.substring(0, 200); // Limita la lunghezza
+                }
+              }
+            } catch {
+              // Se anche questo fallisce, usa il messaggio di default
+            }
+            throw new Error(errorMessage);
           }
 
-          const signupJson = await signupRes.json();
-          adminUserId = signupJson.user?.id || null;
-          adminAccessToken = signupJson.session?.access_token || null;
+          // Leggi la risposta JSON con gestione errori migliorata
+          let signupJson: any = null;
+          try {
+            const responseText = await signupRes.text();
+            if (!responseText || responseText.trim().length === 0) {
+              throw new Error('Risposta vuota dal server');
+            }
+            signupJson = JSON.parse(responseText);
+          } catch (parseError) {
+            console.error('Errore parsing risposta signup:', parseError);
+            throw new Error('Risposta non valida dal server durante la creazione dell'account. Verifica la configurazione di Supabase.');
+          }
+
+          adminUserId = signupJson?.user?.id || null;
+          adminAccessToken = signupJson?.session?.access_token || null;
 
           // Step 2: Se non abbiamo il token dalla signup, facciamo login per ottenerlo
           // Questo è necessario perché il token potrebbe non essere incluso nella risposta signup
@@ -294,11 +321,23 @@ export const ShopSetup: React.FC = () => {
               });
               
               if (tokenRes.ok) {
-                const tokenJson = await tokenRes.json();
-                adminAccessToken = tokenJson.access_token;
+                try {
+                  const responseText = await tokenRes.text();
+                  if (responseText && responseText.trim().length > 0) {
+                    const tokenJson = JSON.parse(responseText);
+                    adminAccessToken = tokenJson.access_token;
+                  }
+                } catch (parseError) {
+                  console.warn('Errore parsing risposta login:', parseError);
+                }
               } else {
-                const errorText = await tokenRes.text();
-                console.warn('Errore login admin:', errorText);
+                // Prova a leggere l'errore
+                try {
+                  const errorText = await tokenRes.text();
+                  console.warn('Errore login admin:', errorText);
+                } catch {
+                  console.warn('Errore login admin: status', tokenRes.status);
+                }
               }
             } catch (loginError) {
               console.warn('Errore login admin per token:', loginError);
