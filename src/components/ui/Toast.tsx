@@ -41,13 +41,13 @@ export const Toast: React.FC<ToastProps> = ({ message, type, isVisible, onClose 
   const getTypeClasses = () => {
     switch (type) {
       case 'success':
-        return 'bg-green-500/90 text-white border-green-400/50';
+        return 'bg-[color-mix(in_srgb,var(--theme-success)_85%,transparent)] text-white border-[color-mix(in_srgb,var(--theme-success)_60%,transparent)]';
       case 'error':
-        return 'bg-red-500/90 text-white border-red-400/50';
+        return 'bg-[color-mix(in_srgb,var(--theme-danger)_85%,transparent)] text-white border-[color-mix(in_srgb,var(--theme-danger)_60%,transparent)]';
       case 'info':
-        return 'bg-blue-500/90 text-white border-blue-400/50';
+        return 'bg-[color-mix(in_srgb,var(--theme-accent)_80%,transparent)] text-[var(--theme-accent-contrast)] border-[color-mix(in_srgb,var(--theme-accent)_60%,transparent)]';
       default:
-        return 'bg-blue-500/90 text-white border-blue-400/50';
+        return 'bg-[color-mix(in_srgb,var(--theme-accent)_80%,transparent)] text-[var(--theme-accent-contrast)] border-[color-mix(in_srgb,var(--theme-accent)_60%,transparent)]';
     }
   };
 

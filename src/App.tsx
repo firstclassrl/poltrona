@@ -24,6 +24,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { ShopProvider } from './contexts/ShopContext';
 import { ChatProvider } from './contexts/ChatContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { APP_VERSION, VERSION_ENDPOINT } from './config/version';
 import { apiService } from './services/api';
 import type { CreateAppointmentRequest, UpdateAppointmentRequest, Appointment } from './types';
@@ -164,10 +165,10 @@ const AppContent: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-purple-950/20 to-pink-950/20 flex items-center justify-center">
+      <div className="min-h-screen app-gradient flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-yellow-300">Caricamento...</p>
+          <div className="w-16 h-16 border-4 border-[var(--theme-accent)] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-on-surface">Caricamento...</p>
         </div>
       </div>
     );
@@ -181,20 +182,20 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-purple-950/20 to-pink-950/20">
+    <div className="min-h-screen app-gradient text-on-surface">
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* Banner aggiornamento versione */}
       {isUpdateAvailable && (
         <div className="md:pl-64">
-          <div className="bg-yellow-500 text-black px-4 py-2 text-sm flex items-center justify-between shadow-md">
+          <div className="px-4 py-2 text-sm flex items-center justify-between shadow-md surface-card border border-[color-mix(in_srgb,var(--theme-border)_40%,transparent)]">
             <span>
               È disponibile una nuova versione di Poltrona
               {latestVersion ? ` (v${latestVersion})` : ''}. Clicca per aggiornare.
             </span>
             <button
               type="button"
-              className="ml-4 px-3 py-1 rounded bg-black text-yellow-300 text-xs font-semibold hover:bg-gray-900"
+              className="ml-4 px-3 py-1 rounded bg-[var(--theme-primary-strong)] text-[var(--theme-text)] text-xs font-semibold hover:bg-[var(--theme-primary)] border border-[color-mix(in_srgb,var(--theme-border)_30%,transparent)]"
               onClick={() => {
                 // Forza un reload completo per caricare la nuova index.html e i nuovi bundle
                 window.location.reload();
@@ -207,8 +208,8 @@ const AppContent: React.FC = () => {
       )}
 
       {/* Main Content */}
-      <div className="md:pl-64 pb-20 md:pb-0 bg-white">
-        <main className="p-6 max-w-7xl mx-auto bg-white min-h-screen">
+      <div className="md:pl-64 pb-20 md:pb-0">
+        <main className="p-6 max-w-7xl mx-auto min-h-screen bg-[var(--theme-surface)] text-on-surface">
           {renderActiveTab()}
         </main>
       </div>
@@ -239,11 +240,13 @@ function App() {
   return (
     <AuthProvider>
       <ShopProvider>
-        <NotificationProvider>
-          <ChatProvider>
-            <AppContent />
-          </ChatProvider>
-        </NotificationProvider>
+        <ThemeProvider>
+          <NotificationProvider>
+            <ChatProvider>
+              <AppContent />
+            </ChatProvider>
+          </NotificationProvider>
+        </ThemeProvider>
       </ShopProvider>
     </AuthProvider>
   );

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Settings as SettingsIcon, CalendarPlus, Sun, Flag, Package, Calendar, Bell, Mail, Clock, Edit, Save, X } from 'lucide-react';
+import { Settings as SettingsIcon, CalendarPlus, Sun, Flag, Package, Calendar, Bell, Mail, Clock, Edit, Save, X, Palette } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { TimePicker } from './ui/TimePicker';
@@ -9,6 +9,9 @@ import { useVacationMode } from '../hooks/useVacationMode';
 import { apiService } from '../services/api';
 import { API_CONFIG } from '../config/api';
 import type { Shop } from '../types';
+import { ThemeSelector } from './ThemeSelector';
+import { useTheme } from '../contexts/ThemeContext';
+import type { ThemePaletteId } from '../theme/palettes';
 
 const formatDateForDisplay = (isoDate?: string | null): string => {
   if (!isoDate) return '';
@@ -172,6 +175,11 @@ export const Settings = () => {
   const [isEditingNotifications, setIsEditingNotifications] = useState(false);
   const [isSavingNotifications, setIsSavingNotifications] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const { themeId, setTheme } = useTheme();
+  const [themePalette, setThemePalette] = useState<ThemePaletteId>(themeId);
+  const [isEditingTheme, setIsEditingTheme] = useState(false);
+  const [isSavingTheme, setIsSavingTheme] = useState(false);
+  const [themeMessage, setThemeMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
   const { vacationPeriod, setVacationPeriod, clearVacationPeriod } = useVacationMode();
 
@@ -232,6 +240,9 @@ export const Settings = () => {
       setProductsEnabled(syncedShop.products_enabled ?? true);
       setAutoCloseHolidays(syncedShop.auto_close_holidays ?? true);
       setCalendarViewMode(syncedShop.calendar_view_mode ?? 'split');
+      const paletteFromShop = (syncedShop.theme_palette as ThemePaletteId) || themeId;
+      setThemePalette(paletteFromShop);
+      setTheme(paletteFromShop);
       setExtraOpeningForm({
         date: formatDateForDisplay(syncedShop.extra_opening_date),
         morningStart: syncedShop.extra_morning_start ?? '',
@@ -247,6 +258,9 @@ export const Settings = () => {
         setProductsEnabled(syncedShop.products_enabled ?? true);
         setAutoCloseHolidays(syncedShop.auto_close_holidays ?? true);
         setCalendarViewMode(syncedShop.calendar_view_mode ?? 'split');
+        const paletteFromShop = (syncedShop.theme_palette as ThemePaletteId) || themeId;
+        setThemePalette(paletteFromShop);
+        setTheme(paletteFromShop, { persist: false });
         setExtraOpeningForm({
           date: formatDateForDisplay(syncedShop.extra_opening_date),
           morningStart: syncedShop.extra_morning_start ?? '',
@@ -548,6 +562,38 @@ export const Settings = () => {
     }
   };
 
+  const handleCancelTheme = () => {
+    const paletteFromShop = (shop?.theme_palette as ThemePaletteId) || themeId;
+    setThemePalette(paletteFromShop);
+    setTheme(paletteFromShop, { persist: false });
+    setIsEditingTheme(false);
+  };
+
+  const handleSaveTheme = async () => {
+    if (!shop) {
+      showMessage(setThemeMessage, 'error', 'Dati negozio non disponibili.', 5000);
+      return;
+    }
+    setIsSavingTheme(true);
+    const updatedShop: Shop = {
+      ...shop,
+      theme_palette: themePalette,
+    };
+    try {
+      await apiService.updateShop(updatedShop);
+      const syncedShop = persistShopState(updatedShop);
+      setTheme(themePalette);
+      setIsEditingTheme(false);
+      setThemePalette((syncedShop.theme_palette as ThemePaletteId) || themePalette);
+      showMessage(setThemeMessage, 'success', 'Palette aggiornata!');
+    } catch (error) {
+      console.error('Error saving theme palette:', error);
+      showMessage(setThemeMessage, 'error', 'Errore durante il salvataggio del tema.', 5000);
+    } finally {
+      setIsSavingTheme(false);
+    }
+  };
+
   if (user?.role !== 'admin') {
     return (
       <div className="space-y-4 max-w-7xl mx-auto">
@@ -570,11 +616,88 @@ export const Settings = () => {
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center">
-            <SettingsIcon className="w-6 h-6 text-gray-700" />
+          <div className="w-12 h-12 bg-[var(--theme-nav-hover)] rounded-xl flex items-center justify-center">
+            <SettingsIcon className="w-6 h-6 text-[var(--theme-accent)]" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">Opzioni</h1>
+          <h1 className="text-3xl font-bold text-on-surface">Opzioni</h1>
         </div>
+      </div>
+
+      {/* Tema & Palette */}
+      <div className="space-y-4">
+        <div className="flex items-center space-x-2 mb-2">
+          <Palette className="w-5 h-5 text-[var(--theme-accent)]" />
+          <h2 className="text-xl font-semibold text-on-surface">Tema & Palette</h2>
+        </div>
+
+        <Card className="surface-card">
+          <div className="p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-[var(--theme-nav-hover)] rounded-full flex items-center justify-center">
+                  <Palette className="w-5 h-5 text-[var(--theme-accent)]" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-on-surface">Palette colore</h3>
+                  <p className="text-sm text-muted">Applicata a dashboard, navigazione e wizard.</p>
+                </div>
+              </div>
+              {!isEditingTheme ? (
+                <Button
+                  onClick={() => setIsEditingTheme(true)}
+                  size="sm"
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Modifica
+                </Button>
+              ) : (
+                <div className="flex space-x-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleCancelTheme}
+                    disabled={isSavingTheme}
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Annulla
+                  </Button>
+                  <Button
+                    onClick={handleSaveTheme}
+                    size="sm"
+                    loading={isSavingTheme}
+                    disabled={isSavingTheme}
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Salva
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {themeMessage && (
+              <div
+                className={`p-3 rounded-lg ${
+                  themeMessage.type === 'success'
+                    ? 'bg-[color-mix(in_srgb,var(--theme-success)_15%,var(--theme-surface))] border border-[color-mix(in_srgb,var(--theme-success)_40%,transparent)] text-on-surface'
+                    : 'bg-[color-mix(in_srgb,var(--theme-danger)_15%,var(--theme-surface))] border border-[color-mix(in_srgb,var(--theme-danger)_40%,transparent)] text-on-surface'
+                }`}
+              >
+                <p className="text-sm font-medium">{themeMessage.text}</p>
+              </div>
+            )}
+
+            <ThemeSelector
+              value={themePalette}
+              onChange={(id) => {
+                setThemePalette(id);
+                setTheme(id, { persist: false });
+              }}
+            />
+            <p className="text-xs text-muted">
+              Il tema scelto verrà salvato per il negozio e per i futuri accessi dei collaboratori.
+            </p>
+          </div>
+        </Card>
       </div>
 
       {/* Sezione Operativa */}

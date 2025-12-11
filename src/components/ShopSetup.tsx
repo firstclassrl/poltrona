@@ -4,6 +4,9 @@ import { Input } from './ui/Input';
 import { Button } from './ui/Button';
 import { apiService } from '../services/api';
 import type { Shop } from '../types';
+import { ThemeSelector } from './ThemeSelector';
+import { useTheme } from '../contexts/ThemeContext';
+import { DEFAULT_THEME_ID, type ThemePaletteId } from '../theme/palettes';
 
 const getTokenFromUrl = (): string | null => {
   if (typeof window === 'undefined') return null;
@@ -22,6 +25,7 @@ const slugify = (value: string) =>
     .replace(/^-+|-+$/g, '');
 
 export const ShopSetup: React.FC = () => {
+  const { setTheme, themeId } = useTheme();
   const inviteToken = useMemo(() => getTokenFromUrl(), []);
   const [isValidating, setIsValidating] = useState(true);
   const [tokenValid, setTokenValid] = useState(false);
@@ -41,6 +45,7 @@ export const ShopSetup: React.FC = () => {
     email: '',
     notification_email: '',
     description: '',
+    theme_palette: (themeId as ThemePaletteId) || DEFAULT_THEME_ID,
   });
 
   useEffect(() => {
@@ -69,6 +74,14 @@ export const ShopSetup: React.FC = () => {
     }));
   };
 
+  const handleThemeChange = (paletteId: ThemePaletteId) => {
+    setForm((prev) => ({
+      ...prev,
+      theme_palette: paletteId,
+    }));
+    setTheme(paletteId, { persist: false });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteToken) {
@@ -91,6 +104,7 @@ export const ShopSetup: React.FC = () => {
         email: form.email || undefined,
         notification_email: form.notification_email || undefined,
         description: form.description || undefined,
+        theme_palette: form.theme_palette || DEFAULT_THEME_ID,
       });
 
       try {
@@ -100,6 +114,7 @@ export const ShopSetup: React.FC = () => {
       }
 
       const link = `${window.location.origin}?shop=${shop.slug || form.slug}`;
+      setTheme((shop.theme_palette as ThemePaletteId) || form.theme_palette || DEFAULT_THEME_ID);
       setSuccess({ shop, link });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Errore durante la creazione del negozio');
@@ -110,18 +125,18 @@ export const ShopSetup: React.FC = () => {
 
   if (isValidating) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-600">Verifica del link in corso...</p>
+      <div className="min-h-screen flex items-center justify-center app-gradient">
+        <p className="text-on-surface">Verifica del link in corso...</p>
       </div>
     );
   }
 
   if (!tokenValid) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center app-gradient">
         <Card className="p-8 max-w-lg w-full">
-          <h1 className="text-2xl font-bold mb-4">Link non valido</h1>
-          <p className="text-gray-700">Il link di invito non è valido o è scaduto.</p>
+          <h1 className="text-2xl font-bold mb-4 text-on-surface">Link non valido</h1>
+          <p className="text-muted">Il link di invito non è valido o è scaduto.</p>
         </Card>
       </div>
     );
@@ -129,19 +144,19 @@ export const ShopSetup: React.FC = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center app-gradient">
         <Card className="p-8 max-w-lg w-full space-y-4">
-          <h1 className="text-2xl font-bold text-green-700">Negozio creato!</h1>
-          <p className="text-gray-800">
+          <h1 className="text-2xl font-bold text-on-surface">Negozio creato!</h1>
+          <p className="text-on-surface">
             {success.shop.name} è stato creato con successo.
           </p>
-          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-            <p className="text-sm text-green-800 break-all">
+          <div className="surface-card-alt border border-[color-mix(in_srgb,var(--theme-border)_30%,transparent)] rounded-lg p-3">
+            <p className="text-sm text-on-surface break-all">
               Link registrazione clienti:<br />
               <strong>{success.link}</strong>
             </p>
           </div>
-          <p className="text-sm text-gray-700">
+          <p className="text-sm text-muted">
             Condividi il link o genera un QR code per i tuoi clienti. Il QR già stampato senza slug continuerà a puntare al negozio di default.
           </p>
         </Card>
@@ -150,15 +165,15 @@ export const ShopSetup: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center app-gradient">
       <Card className="p-8 max-w-2xl w-full space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Setup negozio</h1>
-          <p className="text-gray-700">Completa i dati per creare il tuo negozio.</p>
+          <h1 className="text-2xl font-bold text-on-surface">Setup negozio</h1>
+          <p className="text-muted">Completa i dati per creare il tuo negozio.</p>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded">
+          <div className="bg-[color-mix(in_srgb,var(--theme-danger)_10%,var(--theme-surface))] border border-[color-mix(in_srgb,var(--theme-danger)_40%,transparent)] text-on-surface p-3 rounded">
             {error}
           </div>
         )}
@@ -222,12 +237,20 @@ export const ShopSetup: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Descrizione</label>
+            <label className="block text-sm font-medium text-on-surface mb-1">Descrizione</label>
             <textarea
-              className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full border border-[color-mix(in_srgb,var(--theme-border)_30%,transparent)] rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] bg-[var(--theme-surface-alt)] text-[var(--theme-text)]"
               rows={3}
               value={form.description}
               onChange={(e) => handleChange('description', e.target.value)}
+            />
+          </div>
+
+          <div className="surface-card rounded-lg p-4">
+            <ThemeSelector
+              value={form.theme_palette as ThemePaletteId}
+              onChange={handleThemeChange}
+              title="Palette negozio"
             />
           </div>
 

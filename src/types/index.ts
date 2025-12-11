@@ -116,6 +116,7 @@ export interface Shop {
   extra_morning_end?: string | null;
   extra_afternoon_start?: string | null;
   extra_afternoon_end?: string | null;
+  theme_palette?: string | null;
   created_at: string;
   updated_at?: string;
 }

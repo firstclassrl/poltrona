@@ -1726,14 +1726,25 @@ export const apiService = {
     if (!data.slug || !data.name) throw new Error('Slug e nome sono obbligatori');
 
     const payload = { ...data };
-    const response = await fetch(API_ENDPOINTS.SHOPS, {
-      method: 'POST',
-      headers: { ...buildHeaders(true), Prefer: 'return=representation' },
-      body: JSON.stringify(payload),
-    });
+    const sendRequest = async (body: Record<string, unknown>) => {
+      return fetch(API_ENDPOINTS.SHOPS, {
+        method: 'POST',
+        headers: { ...buildHeaders(true), Prefer: 'return=representation' },
+        body: JSON.stringify(body),
+      });
+    };
+
+    let response = await sendRequest(payload);
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(`Impossibile creare il negozio: ${response.status} ${text}`);
+      const themeColumnMissing = text.toLowerCase().includes('theme_palette');
+      if (themeColumnMissing) {
+        const { theme_palette: _ignored, ...retryPayload } = payload;
+        response = await sendRequest(retryPayload);
+      }
+      if (!response.ok) {
+        throw new Error(`Impossibile creare il negozio: ${response.status} ${text}`);
+      }
     }
     const created = await response.json();
     const shop = created?.[0];
@@ -1783,15 +1794,26 @@ export const apiService = {
         if (!response.ok) throw new Error('Failed to create shop');
       } else {
         // Aggiorna shop esistente
-        const response = await fetch(`${API_ENDPOINTS.SHOPS}?id=eq.${data.id}`, {
-          method: 'PATCH',
-          headers: { ...buildHeaders(true) },
-          body: JSON.stringify(updateData),
-        });
+        const targetUrl = `${API_ENDPOINTS.SHOPS}?id=eq.${data.id}`;
+        const sendUpdate = async (body: Record<string, unknown>) =>
+          fetch(targetUrl, {
+            method: 'PATCH',
+            headers: { ...buildHeaders(true) },
+            body: JSON.stringify(body),
+          });
+
+        let response = await sendUpdate(updateData);
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('Failed to update shop:', response.status, errorText);
-          throw new Error(`Failed to update shop: ${response.status} ${errorText}`);
+          const themeColumnMissing = errorText.toLowerCase().includes('theme_palette');
+          if (themeColumnMissing) {
+            const { theme_palette: _ignored, ...retryData } = updateData;
+            response = await sendUpdate(retryData);
+          }
+          if (!response.ok) {
+            console.error('Failed to update shop:', response.status, errorText);
+            throw new Error(`Failed to update shop: ${response.status} ${errorText}`);
+          }
         }
       }
     } catch (error) {
