@@ -65,6 +65,63 @@ body {
   background-color: var(--theme-primary);
 }
 
+[data-theme]:not([data-theme='heritage']) body {
+  background: var(--theme-background);
+  color: var(--theme-text);
+}
+
+[data-theme]:not([data-theme='heritage']) .bg-white {
+  background-color: var(--theme-surface) !important;
+}
+
+[data-theme]:not([data-theme='heritage']) .bg-gray-50 {
+  background-color: var(--theme-surface-alt) !important;
+}
+
+[data-theme]:not([data-theme='heritage']) .bg-gray-100 {
+  background-color: color-mix(in srgb, var(--theme-surface) 92%, var(--theme-text) 8%) !important;
+}
+
+[data-theme]:not([data-theme='heritage']) .border-gray-200 {
+  border-color: color-mix(in srgb, var(--theme-border) 25%, transparent) !important;
+}
+
+[data-theme]:not([data-theme='heritage']) .border-gray-300 {
+  border-color: color-mix(in srgb, var(--theme-border) 40%, transparent) !important;
+}
+
+[data-theme]:not([data-theme='heritage']) .text-gray-900,
+[data-theme]:not([data-theme='heritage']) .text-gray-800 {
+  color: var(--theme-text) !important;
+}
+
+[data-theme]:not([data-theme='heritage']) .text-gray-700,
+[data-theme]:not([data-theme='heritage']) .text-gray-600 {
+  color: var(--theme-text-muted) !important;
+}
+
+[data-theme]:not([data-theme='heritage']) .text-gray-500 {
+  color: color-mix(in srgb, var(--theme-text) 60%, transparent) !important;
+}
+
+[data-theme]:not([data-theme='heritage']) .bg-gray-200 {
+  background-color: color-mix(in srgb, var(--theme-surface) 85%, var(--theme-text) 15%) !important;
+}
+
+[data-theme]:not([data-theme='heritage']) .bg-gray-300 {
+  background-color: color-mix(in srgb, var(--theme-surface) 78%, var(--theme-text) 22%) !important;
+}
+
+[data-theme]:not([data-theme='heritage']) .bg-gray-400 {
+  background-color: color-mix(in srgb, var(--theme-surface) 68%, var(--theme-text) 32%) !important;
+}
+
+[data-theme]:not([data-theme='heritage']) .shadow-lg,
+[data-theme]:not([data-theme='heritage']) .shadow-md,
+[data-theme]:not([data-theme='heritage']) .shadow-sm {
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--theme-primary-strong) 18%, transparent);
+}
+
 /* Force 24-hour format for time inputs */
 @layer utilities {
   input[type="time"][data-format="24"] {
