@@ -35,19 +35,19 @@ export const THEME_PALETTES: ThemePalette[] = [
     name: 'Heritage Verde/Oro',
     description: 'Palette attuale ispirata al barbershop retrò.',
     trend: 'Palette attuale (base)',
-    previewGradient: 'linear-gradient(135deg, #d8f5df 0%, #b4e6c2 100%)',
+    previewGradient: 'linear-gradient(135deg, #f4fff6 0%, #e0f4e7 100%)',
     colors: {
-      background: '#0c100a',
-      surface: '#10180f',
-      surfaceAlt: '#0f120f',
-      primary: '#25401c',
+      background: '#ffffff',      // sfondo chiaro
+      surface: '#ffffff',
+      surfaceAlt: '#f5f8f3',
+      primary: '#25401c',         // verde heritage per sidebar e CTA
       primaryStrong: '#1b3015',
-      accent: '#eecf54',
-      accentSoft: '#f5e59a',
-      accentContrast: '#0f0f0c',
-      text: '#f8f7f2',
-      textMuted: '#d8d4c3',
-      border: '#eecf54',
+      accent: '#eecf54',          // oro heritage
+      accentSoft: '#f7e8a3',
+      accentContrast: '#0f0f0f',
+      text: '#0f172a',            // testo scuro per contrasto
+      textMuted: '#4b5563',
+      border: '#d9dfd3',
       success: '#22c55e',
       warning: '#f59e0b',
       danger: '#ef4444',

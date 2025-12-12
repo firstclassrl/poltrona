@@ -6,6 +6,7 @@ import { useNotifications } from '../contexts/NotificationContext';
 import { useChat } from '../contexts/ChatContext';
 import { apiService } from '../services/api';
 import { APP_VERSION } from '../config/version';
+import { API_CONFIG } from '../config/api';
 import type { Shop } from '../types';
 
 const DEFAULT_LOGO = '/logo Poltrona 2025.png';
@@ -42,47 +43,45 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
     const fetchLogo = async () => {
       // Priorità 1: Prova con logo_url salvato (se valido)
       if (shop?.logo_url) {
-        // Verifica che l'URL non sia vuoto o null
         const logoUrl = shop.logo_url.trim();
-        if (logoUrl && logoUrl !== 'null' && logoUrl !== 'undefined') {
+        if (logoUrl && logoUrl !== 'null' && logoUrl !== 'undefined' && logoUrl.length > 0) {
+          console.log('📷 Usando logo_url salvato:', logoUrl);
           setShopLogoUrl(logoUrl);
-          // Verifica se l'URL funziona, altrimenti prova signed URL
-          const img = new Image();
-          img.onerror = async () => {
-            // Se logo_url non funziona, prova signed URL
-            if (shop?.logo_path) {
-              try {
-                const signed = await apiService.getSignedShopLogoUrl(shop.logo_path);
-                setShopLogoUrl(signed);
-                return;
-              } catch (e) {
-                console.error('Error loading shop logo (signed URL):', e);
-              }
-            }
-            // Se anche signed URL fallisce, usa default
-            setShopLogoUrl(DEFAULT_LOGO);
-          };
-          img.onload = () => {
-            // logo_url funziona, mantienilo
-            setShopLogoUrl(logoUrl);
-          };
-          img.src = logoUrl;
           return;
         }
       }
       
-      // Priorità 2: Prova con signed URL da logo_path
+      // Priorità 2: Costruisci URL pubblico da logo_path (se bucket è pubblico)
       if (shop?.logo_path) {
+        const publicUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/shop-logos/${shop.logo_path}`;
+        console.log('📷 Provo URL pubblico da logo_path:', publicUrl);
+        setShopLogoUrl(publicUrl);
+        
+        // Verifica se l'URL funziona (opzionale, solo per debug)
         try {
-          const signed = await apiService.getSignedShopLogoUrl(shop.logo_path);
-          setShopLogoUrl(signed);
-          return;
+          const testRes = await fetch(publicUrl, { method: 'HEAD' });
+          if (!testRes.ok) {
+            console.warn('⚠️ URL pubblico non accessibile, provo signed URL');
+            // Se URL pubblico non funziona, prova signed URL
+            try {
+              const signed = await apiService.getSignedShopLogoUrl(shop.logo_path);
+              console.log('📷 Usando signed URL:', signed);
+              setShopLogoUrl(signed);
+              return;
+            } catch (e) {
+              console.error('❌ Error loading shop logo (signed URL):', e);
+            }
+          } else {
+            console.log('✅ URL pubblico funziona');
+          }
         } catch (e) {
-          console.error('Error loading shop logo (signed URL):', e);
+          console.warn('⚠️ Errore verifica URL pubblico:', e);
         }
+        return;
       }
       
       // Priorità 3: Fallback su logo di default
+      console.log('📷 Usando logo di default');
       setShopLogoUrl(DEFAULT_LOGO);
     };
     fetchLogo();

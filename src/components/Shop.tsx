@@ -6,6 +6,7 @@ import { Input } from './ui/Input';
 import { useAuth } from '../contexts/AuthContext';
 import { DailyHoursManager } from './DailyHoursManager';
 import { apiService } from '../services/api';
+import { API_CONFIG } from '../config/api';
 import type { Shop } from '../types';
 import { PhotoUpload } from './PhotoUpload';
 import { ShopQRCode } from './ShopQRCode';
@@ -162,40 +163,42 @@ export const ShopManagement = () => {
       setLogoPath(incomingLogoPath);
       
       // Priorità 1: Prova con logo_url salvato (se valido)
-      if (incomingLogoUrl && incomingLogoUrl.trim() && incomingLogoUrl !== 'null' && incomingLogoUrl !== 'undefined') {
+      if (incomingLogoUrl && incomingLogoUrl.trim() && incomingLogoUrl !== 'null' && incomingLogoUrl !== 'undefined' && incomingLogoUrl.length > 0) {
+        console.log('📷 Shop.tsx: Usando logo_url salvato:', incomingLogoUrl);
         setLogoUrl(incomingLogoUrl);
-        // Verifica se l'URL funziona, altrimenti prova signed URL
-        const img = new Image();
-        img.onerror = async () => {
-          // Se logo_url non funziona, prova signed URL
-          if (incomingLogoPath) {
+      } else if (incomingLogoPath) {
+        // Priorità 2: Costruisci URL pubblico da logo_path (se bucket è pubblico)
+        const publicUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/shop-logos/${incomingLogoPath}`;
+        console.log('📷 Shop.tsx: Provo URL pubblico da logo_path:', publicUrl);
+        setLogoUrl(publicUrl);
+        
+        // Se URL pubblico non funziona, prova signed URL
+        try {
+          const testRes = await fetch(publicUrl, { method: 'HEAD' });
+          if (!testRes.ok) {
+            console.warn('⚠️ URL pubblico non accessibile, provo signed URL');
             try {
               const signed = await apiService.getSignedShopLogoUrl(incomingLogoPath);
+              console.log('📷 Shop.tsx: Usando signed URL:', signed);
               setLogoUrl(signed);
             } catch (e) {
-              console.error('Error signing logo URL', e);
+              console.error('❌ Error signing logo URL', e);
               setLogoUrl(DEFAULT_LOGO);
             }
-          } else {
+          }
+        } catch (e) {
+          console.warn('⚠️ Errore verifica URL pubblico, provo signed URL:', e);
+          try {
+            const signed = await apiService.getSignedShopLogoUrl(incomingLogoPath);
+            setLogoUrl(signed);
+          } catch (signedError) {
+            console.error('❌ Error signing logo URL', signedError);
             setLogoUrl(DEFAULT_LOGO);
           }
-        };
-        img.onload = () => {
-          // logo_url funziona, mantienilo
-          setLogoUrl(incomingLogoUrl);
-        };
-        img.src = incomingLogoUrl;
-      } else if (incomingLogoPath) {
-        // Priorità 2: Prova con signed URL da logo_path
-        try {
-          const signed = await apiService.getSignedShopLogoUrl(incomingLogoPath);
-          setLogoUrl(signed);
-        } catch (e) {
-          console.error('Error signing logo URL', e);
-          setLogoUrl(DEFAULT_LOGO);
         }
       } else {
         // Priorità 3: Fallback su logo di default
+        console.log('📷 Shop.tsx: Usando logo di default');
         setLogoUrl(DEFAULT_LOGO);
       }
     } catch (error) {

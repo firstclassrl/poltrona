@@ -53,6 +53,7 @@ END $$;
 DO $$
 DECLARE
   v_shop_count INTEGER;
+  v_shop_rec RECORD;
 BEGIN
   RAISE NOTICE '';
   RAISE NOTICE '=== SHOP SENZA LOGO ===';
@@ -65,13 +66,13 @@ BEGIN
     RAISE NOTICE 'Trovati % shop senza logo', v_shop_count;
     RAISE NOTICE 'Slug degli shop senza logo:';
     
-    FOR v_shop IN 
+    FOR v_shop_rec IN 
       SELECT slug, name
       FROM public.shops
       WHERE logo_path IS NULL AND logo_url IS NULL
       ORDER BY slug
     LOOP
-      RAISE NOTICE '  - % (%)', v_shop.slug, v_shop.name;
+      RAISE NOTICE '  - % (%)', v_shop_rec.slug, v_shop_rec.name;
     END LOOP;
   ELSE
     RAISE NOTICE '✅ Tutti gli shop hanno un logo configurato';
