@@ -117,3 +117,4 @@ LEFT JOIN auth.users u ON si.admin_user_id = u.id
 WHERE u.email = 'barbiere@abruzzo.ai' -- ⚠️ SOSTITUISCI CON L'EMAIL DELL'ADMIN
 ORDER BY si.created_at DESC
 LIMIT 5;
+

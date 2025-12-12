@@ -218,3 +218,4 @@ BEGIN
   RAISE NOTICE '  (Dovrebbe restituire l''UUID del negozio)';
   RAISE NOTICE '';
 END $$;
+

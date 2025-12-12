@@ -24,6 +24,7 @@
   --theme-sidebar-shadow: 0 8px 32px rgba(37, 64, 28, 0.6);
   --theme-nav-active: rgba(238, 207, 84, 0.15);
   --theme-nav-hover: rgba(238, 207, 84, 0.1);
+  --theme-sidebar-text: #f8fafc;
 }
 
 body {
@@ -150,6 +151,20 @@ body {
 [data-theme]:not([data-theme='heritage']) .focus\:ring-green-500:focus,
 [data-theme]:not([data-theme='heritage']) .focus\:ring-green-500:focus-visible {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--theme-primary) 70%, transparent) !important;
+}
+
+/* Sidebar text overrides for non-heritage themes to ensure contrast */
+[data-theme]:not([data-theme='heritage']) .glass-sidebar-dark,
+[data-theme]:not([data-theme='heritage']) .glass-sidebar-dark * {
+  color: var(--theme-sidebar-text) !important;
+}
+[data-theme]:not([data-theme='heritage']) .glass-sidebar-dark .border,
+[data-theme]:not([data-theme='heritage']) .glass-sidebar-dark .border-l-2,
+[data-theme]:not([data-theme='heritage']) .glass-sidebar-dark .border-l-4 {
+  border-color: color-mix(in srgb, var(--theme-sidebar-text) 30%, transparent) !important;
+}
+[data-theme]:not([data-theme='heritage']) .glass-sidebar-dark button:hover {
+  background-color: color-mix(in srgb, var(--theme-sidebar-text) 12%, transparent) !important;
 }
 
 [data-theme]:not([data-theme='heritage']) .text-yellow-300,
@@ -303,6 +318,7 @@ body {
     0 8px 32px rgba(37, 64, 28, 0.6),
     0 0 0 1px rgba(238, 207, 84, 0.1),
     inset 0 1px 0 rgba(238, 207, 84, 0.15);
+  color: var(--theme-sidebar-text);
   }
   
   .glass-nav-item {

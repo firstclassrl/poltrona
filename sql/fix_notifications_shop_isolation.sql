@@ -154,3 +154,4 @@ COMMENT ON FUNCTION public.handle_new_user() IS 'Funzione trigger per creare aut
 COMMENT ON FUNCTION public.handle_profile_shop_assigned() IS 'Funzione trigger per creare notifiche quando shop_id viene assegnato a un profilo cliente. Garantisce isolamento tra negozi.';
 
 
+

@@ -280,3 +280,4 @@ BEGIN
   RAISE NOTICE '7. Esegui fix_rls_complete_isolation.sql per correggere tutto';
   RAISE NOTICE '';
 END $$;
+

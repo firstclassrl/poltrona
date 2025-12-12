@@ -47,6 +47,7 @@ const applyPaletteToDocument = (palette: ThemePalette) => {
   root.style.setProperty('--theme-sidebar-shadow', `0 8px 32px color-mix(in srgb, ${colors.primaryStrong} 55%, transparent)`);
   root.style.setProperty('--theme-nav-active', `color-mix(in srgb, ${colors.accent} 18%, transparent)`);
   root.style.setProperty('--theme-nav-hover', `color-mix(in srgb, ${colors.accent} 12%, transparent)`);
+  root.style.setProperty('--theme-sidebar-text', '#f8fafc');
 };
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -108,6 +109,7 @@ export const useTheme = (): ThemeContextValue => {
   }
   return ctx;
 };
+
 
 
 

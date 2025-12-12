@@ -67,3 +67,4 @@ LEFT JOIN auth.users u ON si.admin_user_id = u.id
 WHERE si.admin_user_id = 'ADMIN_USER_ID_QUI'::UUID -- ⚠️ SOSTITUISCI CON L'ID DELL'ADMIN
 ORDER BY si.created_at DESC
 LIMIT 5;
+

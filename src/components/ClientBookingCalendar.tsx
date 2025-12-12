@@ -416,66 +416,32 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
         endDateTime,
       });
       
-      // Send notification to the barber
+      // Nota: La notifica in-app viene creata automaticamente dal trigger del database
+      // quando viene inserito l'appuntamento (vedi sql/triggers.sql - notify_barber_on_appointment_created)
+      // Non è necessario crearla manualmente qui per evitare duplicati
+      
+      // Play notification sound using Web Audio API
       if (barber && user) {
-        // Format date and time for notification
-        const appointmentDate = selectedDate?.toLocaleDateString('it-IT', {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric'
-        }) || '';
-        
-        const clientName = user.full_name || 'Cliente';
-        const serviceName = service?.name || 'Servizio';
-        
-        // Create in-app notification for the barber
-        // Usa user_id se disponibile (collegato a auth.users), altrimenti usa id
-        const barberUserId = barber.user_id || barber.id;
         try {
-          await apiService.createNotification({
-            user_id: barberUserId,
-            user_type: 'staff',
-            type: 'new_appointment',
-            title: '🔔 Nuovo Appuntamento!',
-            message: `${clientName} ha prenotato ${serviceName} per ${appointmentDate} alle ${selectedTime}`,
-            data: {
-              appointment_id: savedAppointment.id,
-              client_name: clientName,
-              client_email: user.email,
-              client_phone: clientPhone,
-              service_name: serviceName,
-              appointment_date: appointmentDate,
-              appointment_time: selectedTime,
-              staff_id: barber.id, // Mantieni anche lo staff_id originale
-            }
-          });
-          console.log('✅ Notifica in-app creata per il barbiere. user_id:', barberUserId, 'staff_id:', barber.id);
+          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
           
-          // Play notification sound using Web Audio API
-          try {
-            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.frequency.value = 880; // A5 note
-            oscillator.type = 'sine';
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-            
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.3);
-          } catch {
-            // Audio not available
-          }
-        } catch (notifError) {
-          console.error('❌ Errore creazione notifica:', notifError);
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          oscillator.frequency.value = 880; // A5 note
+          oscillator.type = 'sine';
+          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+          
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.3);
+        } catch {
+          // Audio not available
         }
         
-        // Refresh notifications count
+        // Refresh notifications count (il trigger del database ha già creato la notifica)
         refreshUnreadCount();
 
         // Emails disabilitate lato app: invio gestito da webhooks Supabase

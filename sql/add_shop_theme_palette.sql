@@ -22,3 +22,4 @@ COMMENT ON COLUMN public.shops.theme_palette IS 'Identificatore palette tema fro
 
 
 
+

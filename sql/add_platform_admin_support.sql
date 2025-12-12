@@ -119,3 +119,4 @@ END $$;
 -- DO UPDATE SET is_platform_admin = true;
 --
 -- Ricorda: il Platform Admin ha accesso completo, usa con cautela.
+

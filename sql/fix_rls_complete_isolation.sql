@@ -625,3 +625,4 @@ BEGIN
   RAISE NOTICE '3. Rientra con ?shop=abruzzo-barber usando l''account admin';
   RAISE NOTICE '4. Verifica che vedi solo i dati del nuovo negozio';
 END $$;
+

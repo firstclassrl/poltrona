@@ -21,3 +21,4 @@ values ('SHOP2025-ABC123XYZ', 'admin@abruzzo.ai');
 
 
 
+
