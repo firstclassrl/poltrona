@@ -905,14 +905,28 @@ export const apiService = {
         throw new Error('Impossibile creare l\'appuntamento: c\'è un conflitto con un altro appuntamento per lo stesso barbiere');
       }
       
+      // Resolve shop_id with multiple fallbacks to satisfy RLS
       let shopId = getStoredShopId();
       if (!shopId) {
         const shop = await this.getShop();
         shopId = shop?.id ?? null;
       }
+      if (!shopId || shopId === 'default') {
+        try {
+          const profile = await this.getUserProfile();
+          shopId = (profile as any)?.shop_id ?? shopId;
+        } catch (e) {
+          console.warn('⚠️ Impossibile recuperare profilo per shop_id fallback', e);
+        }
+      }
+
+      const resolvedShopId = shopId && shopId !== 'default' ? shopId : null;
+      if (!resolvedShopId) {
+        throw new Error('Impossibile creare l\'appuntamento: shop non impostato per questo utente');
+      }
 
       const payload = {
-        shop_id: shopId && shopId !== 'default' ? shopId : null,
+        shop_id: resolvedShopId,
         client_id: data.client_id,
         staff_id: data.staff_id,
         service_id: data.service_id,
