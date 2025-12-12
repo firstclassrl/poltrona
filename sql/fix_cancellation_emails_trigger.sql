@@ -192,9 +192,10 @@ BEGIN
         v_shop_email := v_shop_record.notification_email;
         
         -- Formatta data e ora (formato lungo per email)
-        v_appointment_date_long := TO_CHAR(NEW.start_at, 'Day DD Month YYYY', 'NLS_DATE_LANGUAGE=ITALIAN');
-        v_appointment_date := TO_CHAR(NEW.start_at, 'DD/MM/YYYY');
-        v_appointment_time := TO_CHAR(NEW.start_at, 'HH24:MI');
+        -- Usa il fuso orario Europe/Rome per evitare sfasamenti nelle email
+        v_appointment_date_long := TO_CHAR(NEW.start_at AT TIME ZONE 'Europe/Rome', 'Day DD Month YYYY', 'NLS_DATE_LANGUAGE=ITALIAN');
+        v_appointment_date := TO_CHAR(NEW.start_at AT TIME ZONE 'Europe/Rome', 'DD/MM/YYYY');
+        v_appointment_time := TO_CHAR(NEW.start_at AT TIME ZONE 'Europe/Rome', 'HH24:MI');
         
         -- Crea notifica in-app per il barbiere (solo se ha user_id)
         IF v_staff_record.user_id IS NOT NULL THEN

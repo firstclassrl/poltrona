@@ -256,11 +256,13 @@ export const ClientBookings: React.FC = () => {
           day: 'numeric',
           month: 'long',
           year: 'numeric',
+          timeZone: 'Europe/Rome',
         });
         const appointmentTime = startDateTime.toLocaleTimeString('it-IT', {
           hour: '2-digit',
           minute: '2-digit',
           hour12: false,
+          timeZone: 'Europe/Rome',
         });
 
         try {
@@ -317,13 +319,15 @@ export const ClientBookings: React.FC = () => {
             weekday: 'long',
             day: 'numeric',
             month: 'long',
-            year: 'numeric'
+            year: 'numeric',
+            timeZone: 'Europe/Rome',
           });
           
           const appointmentTime = new Date(selectedAppointment.start_at).toLocaleTimeString('it-IT', {
             hour: '2-digit',
             minute: '2-digit',
-            hour12: false
+            hour12: false,
+            timeZone: 'Europe/Rome',
           });
           
           // Usa user_id se disponibile (collegato a auth.users), altrimenti usa id

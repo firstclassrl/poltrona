@@ -265,8 +265,9 @@ BEGIN
         v_shop_email := v_shop_record.notification_email;
         
         -- Formatta data e ora
-        v_appointment_date := TO_CHAR(NEW.start_at, 'DD/MM/YYYY');
-        v_appointment_time := TO_CHAR(NEW.start_at, 'HH24:MI');
+        -- Usa il fuso orario Europe/Rome per evitare sfasamenti nelle notifiche
+        v_appointment_date := TO_CHAR(NEW.start_at AT TIME ZONE 'Europe/Rome', 'DD/MM/YYYY');
+        v_appointment_time := TO_CHAR(NEW.start_at AT TIME ZONE 'Europe/Rome', 'HH24:MI');
         
         -- Crea notifica in-app per il barbiere (solo se ha user_id)
         IF v_staff_record.user_id IS NOT NULL THEN
@@ -435,8 +436,9 @@ BEGIN
     v_shop_email := v_shop_record.notification_email;
     
     -- Formatta data e ora
-    v_appointment_date := TO_CHAR(NEW.start_at, 'DD/MM/YYYY');
-    v_appointment_time := TO_CHAR(NEW.start_at, 'HH24:MI');
+    -- Usa il fuso orario Europe/Rome per mostrare l'orario corretto al barbiere
+    v_appointment_date := TO_CHAR(NEW.start_at AT TIME ZONE 'Europe/Rome', 'DD/MM/YYYY');
+    v_appointment_time := TO_CHAR(NEW.start_at AT TIME ZONE 'Europe/Rome', 'HH24:MI');
     
     -- Crea notifica in-app per il barbiere (solo se ha user_id)
     IF v_staff_record.user_id IS NOT NULL THEN
