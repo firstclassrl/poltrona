@@ -5,6 +5,38 @@
 -- per garantire l'isolamento completo tra negozi
 -- =====================================================
 
+-- 0) CREA/VERIFICA FUNZIONE current_shop_id()
+-- =====================================================
+CREATE OR REPLACE FUNCTION public.current_shop_id()
+RETURNS UUID
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_user_id UUID;
+  v_shop_id UUID;
+BEGIN
+  -- Ottieni l'ID dell'utente corrente
+  v_user_id := auth.uid();
+  
+  -- Se non c'è un utente autenticato, restituisci NULL
+  IF v_user_id IS NULL THEN
+    RETURN NULL;
+  END IF;
+  
+  -- Cerca il shop_id nel profilo dell'utente
+  SELECT shop_id INTO v_shop_id
+  FROM public.profiles
+  WHERE user_id = v_user_id;
+  
+  -- Restituisci il shop_id (può essere NULL se l'utente non ha un shop associato)
+  RETURN v_shop_id;
+END;
+$$;
+
+COMMENT ON FUNCTION public.current_shop_id() IS 'Restituisce il shop_id dell''utente corrente dal profilo. Usato dalle RLS policies per filtrare i dati per negozio.';
+
 -- 1) VERIFICA PROFILO ADMIN E SHOP_ID
 -- =====================================================
 DO $$
