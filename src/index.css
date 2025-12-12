@@ -194,14 +194,7 @@ body {
 [data-theme]:not([data-theme='heritage']) .brand-hover-green:hover { background-color: color-mix(in srgb, var(--theme-primary) 80%, transparent); }
 [data-theme]:not([data-theme='heritage']) .brand-hover-yellow:hover { background-color: color-mix(in srgb, var(--theme-accent) 12%, transparent); }
 
-[data-theme='aurora'] .text-yellow-400,
-[data-theme='aurora'] .text-yellow-300,
-[data-theme='aurora'] .text-green-800,
-[data-theme='aurora'] .text-green-700,
-[data-theme='aurora'] .text-green-600,
-[data-theme='aurora'] .text-green-500 {
-  color: #ffffff !important;
-}
+/* Rimuovi override Aurora: usa i token di palette (testo scuro su fondo chiaro) */
 /* Force 24-hour format for time inputs */
 @layer utilities {
   input[type="time"][data-format="24"] {
