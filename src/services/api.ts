@@ -1657,8 +1657,12 @@ export const apiService = {
       };
     }
 
+    // Usa buildHeaders(true) se l'utente è autenticato per rispettare RLS
+    // Fallback a buildHeaders(false) solo se non c'è token (es. pagina login)
+    const hasAuth = localStorage.getItem('auth_token');
     const url = `${API_ENDPOINTS.SHOPS}?select=*&id=eq.${id}&limit=1`;
-    const response = await fetch(url, { headers: buildHeaders(false) });
+    console.log('🔍 getShopById: id=', id, 'hasAuth=', !!hasAuth);
+    const response = await fetch(url, { headers: buildHeaders(!!hasAuth) });
     if (!response.ok) {
       throw new Error(`Impossibile caricare shop con id ${id}`);
     }

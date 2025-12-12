@@ -67,7 +67,7 @@ export const THEME_PALETTES: ThemePalette[] = [
       primaryStrong: '#3c5fe6',
       accent: '#9b7bff',
       accentSoft: '#d8d0ff',
-      accentContrast: '#0a0a0a',
+      accentContrast: '#ffffff',
       text: '#ffffff',
       textMuted: '#e5e7eb',
       border: '#d5def7',

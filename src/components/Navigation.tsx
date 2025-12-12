@@ -4,10 +4,10 @@ import { cn } from '../utils/cn';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useChat } from '../contexts/ChatContext';
+import { useShop } from '../contexts/ShopContext';
 import { apiService } from '../services/api';
 import { APP_VERSION } from '../config/version';
 import { API_CONFIG } from '../config/api';
-import type { Shop } from '../types';
 
 const DEFAULT_LOGO = '/logo Poltrona 2025.png';
 
@@ -20,23 +20,8 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
   const { user, logout, hasPermission } = useAuth();
   const { unreadCount: notificationUnreadCount } = useNotifications();
   const { unreadCount: chatUnreadCount } = useChat();
-  const [shop, setShop] = useState<Shop | null>(null);
+  const { currentShop: shop } = useShop();
   const [shopLogoUrl, setShopLogoUrl] = useState<string | null>(null);
-
-  // Load shop data to check products_enabled (only when authenticated)
-  useEffect(() => {
-    if (!user) return; // Skip if not authenticated
-    
-    const loadShopData = async () => {
-      try {
-        const shopData = await apiService.getShop();
-        setShop(shopData);
-      } catch (error) {
-        console.error('Error loading shop data:', error);
-      }
-    };
-    loadShopData();
-  }, [user]);
 
   // Load signed logo when shop changes
   useEffect(() => {
@@ -103,8 +88,8 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
     { id: 'client_booking', label: 'Prenota', icon: Calendar, permission: 'client_booking' },
   ];
 
-  // Check if products are enabled (false = disabled, true/undefined/null = enabled)
-  const areProductsEnabled = shop?.products_enabled !== false;
+  // Check if products are enabled (treat unknown as disabled to avoid showing erroneously)
+  const areProductsEnabled = shop ? shop.products_enabled !== false : false;
 
   // Filter nav items based on user permissions and shop settings
   let navItems = allNavItems.filter(item => {

@@ -41,8 +41,18 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [slugFromUrl, isAuthenticated]);
 
   const currentShopId = useMemo(() => {
-    // User potrebbe essere esteso con shop_id (in auth context)
-    return (user as any)?.shop_id ?? null;
+    // Prova prima da user (se disponibile)
+    if ((user as any)?.shop_id) {
+      return (user as any).shop_id;
+    }
+    // Fallback a localStorage
+    if (typeof window !== 'undefined') {
+      const storedShopId = localStorage.getItem('current_shop_id');
+      if (storedShopId && storedShopId !== 'default') {
+        return storedShopId;
+      }
+    }
+    return null;
   }, [user]);
 
   const loadShop = useCallback(async () => {

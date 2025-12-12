@@ -82,6 +82,12 @@ BEGIN
   -- 2. auth.role() = 'service_role' (chiamate da backend)
   -- 3. is_platform_admin() (platform admin)
   -- 4. shop_id IS NULL (per compatibilità con dati esistenti)
+  -- Nota: In WITH CHECK per INSERT, possiamo riferirci direttamente alle colonne della nuova riga
+  -- La policy permette inserimento se:
+  -- 1. service_role (backend)
+  -- 2. platform admin
+  -- 3. shop_id IS NULL (compatibilità)
+  -- 4. shop_id corrisponde al shop_id nel profilo dell'utente corrente
   CREATE POLICY clients_insert_shop ON public.clients
     FOR INSERT 
     WITH CHECK (
@@ -90,11 +96,11 @@ BEGIN
       OR shop_id IS NULL
       OR (
         auth.uid() IS NOT NULL
-        AND EXISTS (
-          SELECT 1 
-          FROM public.profiles 
-          WHERE user_id = auth.uid() 
-            AND shop_id = clients.shop_id
+        AND shop_id = (
+          SELECT p.shop_id 
+          FROM public.profiles p
+          WHERE p.user_id = auth.uid()
+          LIMIT 1
         )
       )
     );
