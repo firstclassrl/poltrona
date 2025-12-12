@@ -332,15 +332,21 @@ export const apiService = {
       // Use auth token if available, otherwise use provided token
       const accessToken = authAccessToken || options?.accessToken;
       
+      const headers = buildHeaders(true, accessToken);
+      console.log('🔍 createClient: Headers Authorization:', headers.Authorization ? 'Presente' : 'Mancante');
+      console.log('🔍 createClient: Token usato:', accessToken ? 'Override token' : (localStorage.getItem('auth_token') ? 'Token da localStorage' : 'Nessun token'));
+      
       const response = await fetch(API_ENDPOINTS.SEARCH_CLIENTS, {
         method: 'POST',
-        headers: { ...buildHeaders(true, accessToken), Prefer: 'return=representation' },
+        headers: { ...headers, Prefer: 'return=representation' },
         body: JSON.stringify(payload),
       });
       
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ createClient: Errore creazione cliente:', response.status, errorText);
+        console.error('❌ createClient: Payload inviato:', payload);
+        console.error('❌ createClient: URL:', API_ENDPOINTS.SEARCH_CLIENTS);
         throw new Error(`Failed to create client: ${response.status} ${errorText}`);
       }
       

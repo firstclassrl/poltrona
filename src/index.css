@@ -194,6 +194,18 @@ body {
 [data-theme]:not([data-theme='heritage']) .brand-hover-green:hover { background-color: color-mix(in srgb, var(--theme-primary) 80%, transparent); }
 [data-theme]:not([data-theme='heritage']) .brand-hover-yellow:hover { background-color: color-mix(in srgb, var(--theme-accent) 12%, transparent); }
 
+/* Sidebar text/icons forced to white SOLO per temi non-heritage */
+[data-theme]:not([data-theme='heritage']) .glass-sidebar-dark,
+[data-theme]:not([data-theme='heritage']) .glass-sidebar-dark button,
+[data-theme]:not([data-theme='heritage']) .glass-sidebar-dark a,
+[data-theme]:not([data-theme='heritage']) .glass-sidebar-dark span,
+[data-theme]:not([data-theme='heritage']) .glass-sidebar-dark svg {
+  color: #ffffff !important;
+}
+[data-theme]:not([data-theme='heritage']) .glass-sidebar-dark svg {
+  stroke: #ffffff !important;
+}
+
 /* Rimuovi override Aurora: usa i token di palette (testo scuro su fondo chiaro) */
 /* Force 24-hour format for time inputs */
 @layer utilities {
