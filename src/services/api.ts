@@ -1634,7 +1634,7 @@ export const apiService = {
     return shop;
   },
 
-  // Get shop (pubblico - non richiede autenticazione)
+  // Get shop (usa autenticazione se disponibile per rispettare RLS)
   async getShop(slugOverride?: string): Promise<Shop> {
     if (!isSupabaseConfigured()) {
       // Restituisci shop di default se Supabase non è configurato
@@ -1664,10 +1664,15 @@ export const apiService = {
     
     try {
       const slugToUse = slugOverride || getEffectiveSlug();
-      // Usa buildHeaders(false) per permettere accesso pubblico
+      // Usa buildHeaders(true) se l'utente è autenticato per rispettare RLS
+      // Fallback a buildHeaders(false) solo se non c'è token (es. pagina login)
+      const hasAuth = localStorage.getItem('auth_token');
       const url = `${API_ENDPOINTS.SHOPS}?select=*&slug=eq.${encodeURIComponent(slugToUse)}&limit=1`;
-      const response = await fetch(url, { headers: buildHeaders(false) });
+      console.log('🔍 getShop: slug=', slugToUse, 'hasAuth=', !!hasAuth);
+      const response = await fetch(url, { headers: buildHeaders(!!hasAuth) });
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ getShop error:', response.status, errorText);
         // Se fallisce, restituisci shop di default invece di lanciare errore
         return {
           id: 'default',

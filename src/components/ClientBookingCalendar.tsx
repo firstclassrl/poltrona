@@ -581,9 +581,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     <div
       className="space-y-8 rounded-3xl p-6 md:p-10"
       style={{
-        backgroundImage:
-          'linear-gradient(135deg, rgba(16,185,129,0.25), rgba(34,197,94,0.3) 40%, rgba(22,163,74,0.28) 70%, rgba(5,150,105,0.32))',
-        backgroundColor: 'rgba(236,253,245,0.65)',
+        background: 'var(--theme-page-gradient)',
       }}
     >
       {/* Welcome Section */}

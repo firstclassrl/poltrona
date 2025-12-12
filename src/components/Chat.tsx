@@ -238,14 +238,8 @@ export const Chat: React.FC = () => {
   }
 
   const isClient = user?.role === 'client';
-  const outerStyle = {
-    backgroundImage:
-      'linear-gradient(135deg, rgba(16,185,129,0.22), rgba(34,197,94,0.28) 40%, rgba(22,163,74,0.25) 70%, rgba(5,150,105,0.28))',
-    backgroundColor: 'rgba(236,253,245,0.9)',
-  };
-
   return (
-    <div className="min-h-screen p-0" style={outerStyle}>
+    <div className="min-h-screen p-0" style={{ background: 'var(--theme-page-gradient)' }}>
       <div className="w-full h-full rounded-3xl p-4 md:p-6">
       <div className="h-full flex flex-col bg-white/60 backdrop-blur-2xl border border-white/30 shadow-2xl rounded-2xl">
       {/* Header */}
