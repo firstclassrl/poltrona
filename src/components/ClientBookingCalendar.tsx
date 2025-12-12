@@ -100,6 +100,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     startDateTime: Date;
     endDateTime: Date;
   } | null>(null);
+  const areProductsEnabled = shop?.products_enabled === true;
 
   // Load services, staff, and shop data from API
   useEffect(() => {
@@ -350,14 +351,14 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     if (!selectedDate || !selectedTime || !selectedService || !selectedBarber) return;
     
     // Check if products are enabled before showing upsell
-    if (shop && shop.products_enabled === false) {
+    if (!areProductsEnabled) {
       // Skip upsell and directly confirm appointment
       await handleUpsellConfirm([]);
-    } else {
-      // Close booking modal and show upsell modal
-      setShowBookingModal(false);
-      setShowUpsellModal(true);
+      return;
     }
+    // Close booking modal and show upsell modal
+    setShowBookingModal(false);
+    setShowUpsellModal(true);
   };
 
   const handleUpsellConfirm = async (products: { productId: string; quantity: number }[]) => {
@@ -946,7 +947,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       </Modal>
 
       {/* Product Upsell Modal - Only show if products are enabled */}
-      {shop && shop.products_enabled !== false && (
+      {areProductsEnabled && (
         <ProductUpsell
           isOpen={showUpsellModal}
           onClose={handleUpsellSkip}
