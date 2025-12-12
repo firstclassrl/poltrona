@@ -6,6 +6,7 @@ export interface User {
   full_name: string;
   role: UserRole;
   shop_id?: string | null;
+  is_platform_admin?: boolean;
   phone?: string;
   created_at: string;
   updated_at?: string;

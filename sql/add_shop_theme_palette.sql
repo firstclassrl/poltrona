@@ -21,3 +21,4 @@ WHERE theme_palette IS NULL;
 COMMENT ON COLUMN public.shops.theme_palette IS 'Identificatore palette tema frontend (es. heritage, aurora, sunset-neon, terra-soft, cyber-lilac)';
 
 
+

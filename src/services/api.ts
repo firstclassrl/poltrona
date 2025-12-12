@@ -1740,7 +1740,7 @@ export const apiService = {
     }
   },
 
-  async validateShopInvite(token: string): Promise<{ id: string; token: string } | null> {
+  async validateShopInvite(token: string): Promise<{ id: string; token: string; admin_user_id: string | null } | null> {
     if (!isSupabaseConfigured()) return null;
     try {
       const nowIso = new Date().toISOString();
@@ -1752,7 +1752,11 @@ export const apiService = {
       if (!invite) return null;
       if (invite.used_at) return null;
       if (invite.expires_at && invite.expires_at <= nowIso) return null;
-      return invite;
+      return {
+        id: invite.id,
+        token: invite.token,
+        admin_user_id: invite.admin_user_id || null
+      };
     } catch {
       return null;
     }

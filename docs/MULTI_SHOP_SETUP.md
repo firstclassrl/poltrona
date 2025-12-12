@@ -24,3 +24,4 @@
 - Il QR componente (`ShopQRCode`) usa un endpoint pubblico per generare l’immagine senza dipendenze extra.
 
 
+

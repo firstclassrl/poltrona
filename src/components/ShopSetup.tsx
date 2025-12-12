@@ -54,9 +54,11 @@ export const ShopSetup: React.FC = () => {
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
-  const [adminConfirmPassword, setAdminConfirmPassword] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showAdminPassword, setShowAdminPassword] = useState(false);
-  const [showAdminConfirmPassword, setShowAdminConfirmPassword] = useState(false);
+  const [adminAccessToken, setAdminAccessToken] = useState<string | null>(null);
+  const [adminUserId, setAdminUserId] = useState<string | null>(null);
+  const [inviteAdminUserId, setInviteAdminUserId] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     name: '',
@@ -85,6 +87,13 @@ export const ShopSetup: React.FC = () => {
         setTokenValid(false);
       } else {
         setTokenValid(true);
+        // Salva l'admin_user_id associato al token
+        if (valid.admin_user_id) {
+          setInviteAdminUserId(valid.admin_user_id);
+        } else {
+          setError('Token di invito non associato a un admin. Contatta il supporto.');
+          setTokenValid(false);
+        }
       }
       setIsValidating(false);
     };
@@ -192,14 +201,8 @@ export const ShopSetup: React.FC = () => {
       case 1:
         return true; // Benvenuto, sempre valido
       case 2:
-        // Account Admin (ora slide 2)
-        return !!(
-          adminEmail.trim() &&
-          adminPassword.trim() &&
-          adminConfirmPassword.trim() &&
-          adminPassword === adminConfirmPassword &&
-          adminPassword.length >= 6
-        );
+        // Login Admin (slide 2)
+        return isLoggedIn || (!!adminEmail.trim() && !!adminPassword.trim());
       case 3:
         // Shop Info (era slide 2)
         return !!(
@@ -222,6 +225,132 @@ export const ShopSetup: React.FC = () => {
     }
   };
 
+  const handleLogin = async () => {
+    if (!adminEmail.trim() || !adminPassword.trim()) {
+      setError('Inserisci email e password');
+      return;
+    }
+
+    setError(null);
+    try {
+      const tokenUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/token?grant_type=password`;
+      const tokenRes = await fetch(tokenUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${API_CONFIG.SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ 
+          email: adminEmail.trim().toLowerCase(), 
+          password: adminPassword 
+        })
+      });
+
+      if (!tokenRes.ok) {
+        let errorMessage = 'Credenziali non valide';
+        try {
+          const errorText = await tokenRes.text();
+          if (errorText) {
+            try {
+              const errorData = JSON.parse(errorText);
+              errorMessage = errorData.msg || errorData.error_description || errorData.message || errorMessage;
+            } catch {
+              errorMessage = errorText.substring(0, 200);
+            }
+          }
+        } catch {
+          // Usa messaggio di default
+        }
+        throw new Error(errorMessage);
+      }
+
+      const responseText = await tokenRes.text();
+      if (!responseText || responseText.trim().length === 0) {
+        throw new Error('Risposta login vuota');
+      }
+
+      const tokenJson = JSON.parse(responseText);
+      const accessToken = tokenJson.access_token;
+      
+      // Recupera user_id dal token JWT
+      let userId: string | null = null;
+      if (tokenJson.user?.id) {
+        userId = tokenJson.user.id;
+      } else if (accessToken) {
+        try {
+          const payload = JSON.parse(atob(accessToken.split('.')[1]));
+          userId = payload.sub;
+        } catch {
+          console.warn('⚠️ Impossibile decodificare JWT per user_id');
+        }
+      }
+
+      if (!accessToken || !userId) {
+        throw new Error('Impossibile ottenere token o user_id dal login');
+      }
+
+      // Verifica che l'utente che fa login corrisponda all'admin associato al token
+      if (inviteAdminUserId && userId !== inviteAdminUserId) {
+        throw new Error('Le credenziali inserite non corrispondono all\'admin associato a questo token di invito. Usa le credenziali dell\'admin corretto.');
+      }
+
+      // Verifica anche che l'utente abbia ruolo admin
+      try {
+        const profileUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/profiles?user_id=eq.${userId}&select=role,shop_id`;
+        const profileRes = await fetch(profileUrl, {
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        });
+        
+        if (profileRes.ok) {
+          const profiles = await profileRes.json();
+          const profile = profiles?.[0];
+          
+          if (!profile || profile.role !== 'admin') {
+            throw new Error('L\'utente non ha i permessi di amministratore. Contatta il supporto.');
+          }
+          
+          // Verifica che l'admin non sia già associato a un altro negozio
+          if (profile.shop_id) {
+            throw new Error('Questo admin è già associato a un negozio. Non puoi creare un nuovo negozio con questo account.');
+          }
+        }
+      } catch (profileError) {
+        if (profileError instanceof Error && profileError.message.includes('non ha i permessi')) {
+          throw profileError;
+        }
+        if (profileError instanceof Error && profileError.message.includes('già associato')) {
+          throw profileError;
+        }
+        console.warn('⚠️ Impossibile verificare il profilo admin:', profileError);
+        // Continua comunque, ma avvisa
+      }
+
+      // Salva token e user_id
+      setAdminAccessToken(accessToken);
+      setAdminUserId(userId);
+      setIsLoggedIn(true);
+      
+      // Salva anche in localStorage per persistenza
+      localStorage.setItem('auth_token', accessToken);
+      if (tokenJson.refresh_token) {
+        localStorage.setItem('refresh_token', tokenJson.refresh_token);
+      }
+      
+      console.log('✅ Login riuscito, user_id:', userId);
+      
+      // Vai alla slide successiva
+      nextSlide();
+    } catch (loginError) {
+      console.error('❌ Errore login:', loginError);
+      setError(loginError instanceof Error ? loginError.message : 'Errore durante il login');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteToken) {
@@ -237,220 +366,17 @@ export const ShopSetup: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      let adminAccessToken: string | null = null;
-      let adminUserId: string | null = null;
-
-      // STEP 1: Crea PRIMA l'account admin e fai login
-      // Questo permette di avere il token per creare il negozio e caricare il logo
-      if (adminEmail && adminPassword) {
-        try {
-          // Step 1: Crea l'utente in Supabase Auth
-          // Il trigger creerà automaticamente un profilo con ruolo 'client'
-          // Verifica configurazione Supabase
-          if (!API_CONFIG.SUPABASE_EDGE_URL || !API_CONFIG.SUPABASE_ANON_KEY) {
-            throw new Error("Configurazione Supabase mancante. Verifica le variabili d'ambiente VITE_SUPABASE_EDGE_URL e VITE_SUPABASE_ANON_KEY.");
-          }
-
-          const signupUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/signup`;
-          console.log('🔐 Tentativo signup admin:', { url: signupUrl, email: adminEmail.trim().toLowerCase() });
-          
-          const signupRes = await fetch(signupUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': API_CONFIG.SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${API_CONFIG.SUPABASE_ANON_KEY}`,
-            },
-            body: JSON.stringify({
-              email: adminEmail.trim().toLowerCase(),
-              password: adminPassword,
-              data: {
-                full_name: form.name || 'Admin',
-              }
-            })
-          });
-
-          console.log('📡 Risposta signup:', { 
-            status: signupRes.status, 
-            statusText: signupRes.statusText,
-            ok: signupRes.ok,
-            headers: Object.fromEntries(signupRes.headers.entries())
-          });
-
-          if (!signupRes.ok) {
-            // Prova a leggere come JSON, altrimenti come testo
-            let errorMessage = `Errore durante la creazione dell'account admin (status: ${signupRes.status})`;
-            let errorData: any = null;
-            let userExists = false;
-            
-            try {
-              const errorText = await signupRes.text();
-              console.error('❌ Errore signup (testo):', errorText);
-              if (errorText && errorText.trim().length > 0) {
-                try {
-                  errorData = JSON.parse(errorText);
-                  console.error('❌ Errore signup (JSON):', errorData);
-                  // Supabase restituisce msg, error_code, error_description, message, error
-                  errorMessage = errorData.msg || errorData.error_description || errorData.message || errorData.error || errorMessage;
-                  
-                  // Verifica se l'utente esiste già
-                  userExists = errorData.error_code === 'user_already_exists' || errorData.msg?.includes('already registered');
-                } catch {
-                  // Non è JSON, usa il testo direttamente
-                  errorMessage = `${errorMessage}: ${errorText.substring(0, 200)}`;
-                }
-              }
-            } catch (readError) {
-              console.error('❌ Errore lettura risposta:', readError);
-            }
-            
-            // Se l'utente esiste già, prova a fare login invece di signup
-            if (userExists) {
-              console.log('🔄 Utente già esistente, provo login...');
-              try {
-                const tokenUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/token?grant_type=password`;
-                const tokenRes = await fetch(tokenUrl, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'apikey': API_CONFIG.SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${API_CONFIG.SUPABASE_ANON_KEY}`,
-                  },
-                  body: JSON.stringify({ 
-                    email: adminEmail.trim().toLowerCase(), 
-                    password: adminPassword 
-                  })
-                });
-                
-                if (tokenRes.ok) {
-                  try {
-                    const responseText = await tokenRes.text();
-                    if (responseText && responseText.trim().length > 0) {
-                      const tokenJson = JSON.parse(responseText);
-                      adminAccessToken = tokenJson.access_token;
-                      // Recupera l'user_id dal token JWT o dalla risposta
-                      if (tokenJson.user?.id) {
-                        adminUserId = tokenJson.user.id;
-                      } else if (tokenJson.access_token) {
-                        // Decodifica il JWT per ottenere l'user_id
-                        try {
-                          const payload = JSON.parse(atob(tokenJson.access_token.split('.')[1]));
-                          adminUserId = payload.sub;
-                        } catch {
-                          console.warn('⚠️ Impossibile decodificare JWT per user_id');
-                        }
-                      }
-                      console.log('✅ Login riuscito per utente esistente, user_id:', adminUserId);
-                    } else {
-                      throw new Error('Risposta login vuota');
-                    }
-                  } catch (parseError) {
-                    console.warn('⚠️ Errore parsing risposta login:', parseError);
-                    throw new Error('Errore durante il login per utente esistente');
-                  }
-                } else {
-                  const loginErrorText = await tokenRes.text().catch(() => '');
-                  throw new Error(`Email già registrata ma password non corretta. ${loginErrorText ? "Usa la password corretta o un'email diversa." : ''}`);
-                }
-              } catch (loginError) {
-                throw new Error(`Email già registrata. ${loginError instanceof Error ? loginError.message : "Usa un'email diversa."}`);
-              }
-            } else {
-              // Altro tipo di errore, lancia l'eccezione
-              throw new Error(errorMessage);
-            }
-          } else {
-            // Signup riuscito, leggi la risposta normalmente
-            let signupJson: any = null;
-            try {
-              const responseText = await signupRes.text();
-              console.log('✅ Risposta signup (testo):', responseText.substring(0, 500));
-              if (!responseText || responseText.trim().length === 0) {
-                throw new Error('Risposta vuota dal server');
-              }
-              signupJson = JSON.parse(responseText);
-              console.log('✅ Risposta signup (JSON):', { 
-                hasUser: !!signupJson?.user, 
-                hasSession: !!signupJson?.session,
-                userId: signupJson?.user?.id 
-              });
-              
-              adminUserId = signupJson?.user?.id || null;
-              adminAccessToken = signupJson?.session?.access_token || null;
-            } catch (parseError) {
-              console.error('❌ Errore parsing risposta signup:', parseError);
-              throw new Error(`Risposta non valida dal server durante la creazione dell'account (status: ${signupRes.status}). Verifica la configurazione di Supabase.`);
-            }
-          }
-
-          // Step 2: Se non abbiamo il token dalla signup, facciamo login per ottenerlo
-          // Questo è necessario perché il token potrebbe non essere incluso nella risposta signup
-          if (!adminAccessToken && adminUserId) {
-            try {
-              // Aspetta un attimo per assicurarsi che il trigger abbia creato il profilo
-              await new Promise(resolve => setTimeout(resolve, 500));
-              
-              const tokenUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/token?grant_type=password`;
-              const tokenRes = await fetch(tokenUrl, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'apikey': API_CONFIG.SUPABASE_ANON_KEY,
-                  'Authorization': `Bearer ${API_CONFIG.SUPABASE_ANON_KEY}`,
-                },
-                body: JSON.stringify({ 
-                  email: adminEmail.trim().toLowerCase(), 
-                  password: adminPassword 
-                })
-              });
-              
-              if (tokenRes.ok) {
-                try {
-                  const responseText = await tokenRes.text();
-                  if (responseText && responseText.trim().length > 0) {
-                    const tokenJson = JSON.parse(responseText);
-                    adminAccessToken = tokenJson.access_token;
-                  }
-                } catch (parseError) {
-                  console.warn('Errore parsing risposta login:', parseError);
-                }
-              } else {
-                // Prova a leggere l'errore
-                try {
-                  const errorText = await tokenRes.text();
-                  console.warn('Errore login admin:', errorText);
-                } catch {
-                  console.warn('Errore login admin: status', tokenRes.status);
-                }
-              }
-            } catch (loginError) {
-              console.warn('Errore login admin per token:', loginError);
-            }
-          }
-
-          // Step 3: Il profilo verrà aggiornato dopo la creazione del negozio (vedi STEP 4)
-          // Per ora verifichiamo solo che abbiamo i dati necessari
-          if (adminUserId && !adminAccessToken) {
-            throw new Error('Impossibile ottenere il token di autenticazione per l\'account admin');
-          }
-        } catch (adminError) {
-          console.error('Errore creazione account admin:', adminError);
-          throw new Error(`Errore nella creazione dell'account admin: ${adminError instanceof Error ? adminError.message : 'Errore sconosciuto'}`);
-        }
-      } else {
-        throw new Error('Email e password admin sono obbligatorie');
-      }
-
+      // Verifica che l'utente sia loggato
       if (!adminAccessToken || !adminUserId) {
-        throw new Error('Impossibile creare l\'account admin. Riprova.');
+        throw new Error('Devi effettuare il login prima di creare il negozio. Torna alla slide di login.');
       }
 
-      // STEP 2: Genera slug automaticamente dal nome
+      // STEP 1: Genera slug automaticamente dal nome
       const autoSlug = form.name.trim() 
         ? slugify(form.name.trim()) 
         : `shop-${Date.now()}`;
 
-      // STEP 3: Crea il negozio usando il token admin
+      // STEP 2: Crea il negozio usando il token admin
       const shop = await apiService.createShop({
         slug: autoSlug,
         name: form.name || 'Nuovo negozio',
@@ -466,8 +392,7 @@ export const ShopSetup: React.FC = () => {
         theme_palette: form.theme_palette || DEFAULT_THEME_ID,
       });
 
-      // STEP 4: Aggiorna il profilo admin con shop_id e ruolo admin
-      // Il trigger ha creato il profilo con ruolo 'client', dobbiamo cambiarlo a 'admin'
+      // STEP 3: Aggiorna il profilo admin con shop_id (il ruolo admin è già impostato nel database)
       if (shop.id) {
         await new Promise(resolve => setTimeout(resolve, 500)); // Attendi che il trigger completi
         
@@ -481,7 +406,6 @@ export const ShopSetup: React.FC = () => {
             'Prefer': 'return=representation'
           },
           body: JSON.stringify({
-            role: 'admin',
             shop_id: shop.id,
             full_name: form.name || 'Admin'
           })
@@ -490,7 +414,7 @@ export const ShopSetup: React.FC = () => {
         if (!profileRes.ok) {
           const errorText = await profileRes.text();
           console.error('Errore aggiornamento profilo admin:', errorText);
-          throw new Error(`Impossibile impostare il ruolo admin: ${errorText}`);
+          throw new Error(`Impossibile aggiornare il profilo admin: ${errorText}`);
         }
       }
 
@@ -759,70 +683,70 @@ export const ShopSetup: React.FC = () => {
   if (currentSlide === 1) {
     slideContent = <SlideWelcome />;
   } else if (currentSlide === 2) {
-    // Slide 2: Account Admin (era slide 4)
+    // Slide 2: Login Admin
     slideContent = (
       <div className="space-y-6">
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-[#1e40af] rounded-full mb-4">
-            <UserPlus className="w-8 h-8 text-white" />
+            <Shield className="w-8 h-8 text-white" />
           </div>
-          <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Account Admin</h2>
-          <p className="text-gray-600">Crea l'account amministratore per gestire il tuo negozio</p>
+          <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Accesso Admin</h2>
+          <p className="text-gray-600">Accedi con le credenziali admin fornite</p>
         </div>
         
-        <div className="space-y-6">
-          <Input
-            label="Email admin *"
-            labelClassName="text-[#1e40af] font-medium"
-            type="email"
-            value={adminEmail}
-            onChange={(e) => setAdminEmail(e.target.value)}
-            placeholder="admin@negozio.com"
-            required
-          />
-          <div className="relative">
+        {isLoggedIn ? (
+          <div className="p-6 bg-green-50 border-2 border-green-200 rounded-lg">
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="w-6 h-6 text-green-600" />
+              <div>
+                <p className="font-semibold text-green-900">Accesso effettuato</p>
+                <p className="text-sm text-green-700">Puoi procedere con la configurazione del negozio</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
             <Input
-              label="Password *"
+              label="Email admin *"
               labelClassName="text-[#1e40af] font-medium"
-              type={showAdminPassword ? 'text' : 'password'}
-              value={adminPassword}
-              onChange={(e) => setAdminPassword(e.target.value)}
-              placeholder="Minimo 6 caratteri"
+              type="email"
+              value={adminEmail}
+              onChange={(e) => setAdminEmail(e.target.value)}
+              placeholder="admin@negozio.com"
               required
+              disabled={isLoggedIn}
             />
+            <div className="relative">
+              <Input
+                label="Password *"
+                labelClassName="text-[#1e40af] font-medium"
+                type={showAdminPassword ? 'text' : 'password'}
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+                placeholder="Inserisci la password"
+                required
+                disabled={isLoggedIn}
+              />
+              <button
+                type="button"
+                onClick={() => setShowAdminPassword(!showAdminPassword)}
+                className="absolute right-3 top-8 text-gray-400 hover:text-gray-600"
+                disabled={isLoggedIn}
+              >
+                {showAdminPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
             <button
               type="button"
-              onClick={() => setShowAdminPassword(!showAdminPassword)}
-              className="absolute right-3 top-8 text-gray-400 hover:text-gray-600"
+              onClick={handleLogin}
+              disabled={!adminEmail.trim() || !adminPassword.trim()}
+              className="w-full flex items-center justify-center gap-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed px-6 py-3 font-semibold rounded-lg transition-all duration-200"
             >
-              {showAdminPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              <Shield className="w-5 h-5" />
+              Accedi
             </button>
           </div>
-          <div className="relative">
-            <Input
-              label="Conferma Password *"
-              labelClassName="text-[#1e40af] font-medium"
-              type={showAdminConfirmPassword ? 'text' : 'password'}
-              value={adminConfirmPassword}
-              onChange={(e) => setAdminConfirmPassword(e.target.value)}
-              placeholder="Ripeti la password"
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowAdminConfirmPassword(!showAdminConfirmPassword)}
-              className="absolute right-3 top-8 text-gray-400 hover:text-gray-600"
-            >
-              {showAdminConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-            </button>
-          </div>
-          {adminPassword && adminConfirmPassword && adminPassword !== adminConfirmPassword && (
-            <p className="text-sm text-red-500">Le password non corrispondono</p>
-          )}
-          {adminPassword && adminPassword.length > 0 && adminPassword.length < 6 && (
-            <p className="text-sm text-red-500">La password deve essere di almeno 6 caratteri</p>
-          )}
-        </div>
+        )}
       </div>
     );
   } else if (currentSlide === 3) {

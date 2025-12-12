@@ -81,6 +81,7 @@ export interface Profile {
   role: string | null;
   full_name: string | null;
   created_at: string;
+  is_platform_admin?: boolean;
 }
 
 export interface VacationPeriod {

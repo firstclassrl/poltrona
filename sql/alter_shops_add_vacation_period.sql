@@ -32,3 +32,4 @@ CREATE INDEX IF NOT EXISTS idx_shops_vacation_period
 
 
 
+
