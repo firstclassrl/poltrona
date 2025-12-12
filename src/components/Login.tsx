@@ -54,13 +54,24 @@ export const Login: React.FC = () => {
             setShop(shopData);
             
             // Carica il logo dello shop se disponibile
-            // Usa logo_url se disponibile (URL pubblico), altrimenti prova a costruire l'URL pubblico dal path
-            if (shopData.logo_url) {
+            // 1) prova URL firmato (funziona anche con bucket privati)
+            // 2) fallback su logo_url pubblico
+            // 3) fallback su URL pubblico da path (se bucket pubblico)
+            if (shopData.logo_path) {
+              try {
+                const signed = await apiService.getSignedShopLogoUrl(shopData.logo_path);
+                setShopLogoUrl(signed || shopData.logo_url || `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/shop-logos/${shopData.logo_path}`);
+              } catch (e) {
+                console.warn('Errore caricamento logo firmato:', e);
+                if (shopData.logo_url) {
+                  setShopLogoUrl(shopData.logo_url);
+                } else {
+                  const publicUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/shop-logos/${shopData.logo_path}`;
+                  setShopLogoUrl(publicUrl);
+                }
+              }
+            } else if (shopData.logo_url) {
               setShopLogoUrl(shopData.logo_url);
-            } else if (shopData.logo_path) {
-              // Prova a costruire l'URL pubblico del bucket (se il bucket è pubblico)
-              const publicUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/shop-logos/${shopData.logo_path}`;
-              setShopLogoUrl(publicUrl);
             }
           } catch (error) {
             console.warn('Shop non trovato per slug:', shopSlug, error);

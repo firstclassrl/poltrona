@@ -10,6 +10,7 @@ interface AuthContextType extends AuthState {
   register: (data: RegisterData, options?: { shopSlug?: string }) => Promise<void>;
   hasPermission: (permission: string) => boolean;
   refreshSession: () => Promise<boolean>;
+  isPlatformAdmin: () => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -256,6 +257,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         full_name: (profile as any).full_name ?? '',
         role: (profile as any).role ?? 'client',
         shop_id: shopId,
+        is_platform_admin: (profile as any).is_platform_admin ?? false,
         created_at: new Date().toISOString(),
       };
 
@@ -528,8 +530,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const isPlatformAdmin = (): boolean => {
+    return authState.user?.is_platform_admin === true;
+  };
+
   const hasPermission = (permission: string): boolean => {
     if (!authState.user) return false;
+    
+    // Platform Admin ha accesso a tutto
+    if (isPlatformAdmin()) return true;
     
     const { role } = authState.user;
     
@@ -572,6 +581,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     register,
     hasPermission,
     refreshSession,
+    isPlatformAdmin,
   };
 
   return (
