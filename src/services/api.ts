@@ -714,8 +714,8 @@ export const apiService = {
     if (!isSupabaseConfigured()) return [];
     
     try {
-      // Usa buildHeaders(false) per permettere lettura pubblica degli appuntamenti
-      // Questo permette sia ai clienti che ai barbieri di vedere gli appuntamenti
+      // Usa buildHeaders(true) per autenticazione e filtro RLS per shop_id
+      // Le RLS policies filtrano automaticamente per shop_id tramite current_shop_id()
       // Include services per mostrare nome servizio e durata
       // PostgREST accetta date ISO nel formato RFC3339
       // Costruiamo la query URL con i parametri correttamente codificati
@@ -730,7 +730,7 @@ export const apiService = {
       console.log('🔍 Query appointments:', url);
       console.log('📅 Range date:', { start, end });
       
-      const response = await fetch(url, { headers: buildHeaders(false) });
+      const response = await fetch(url, { headers: buildHeaders(true) });
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ Error fetching appointments:', response.status, errorText);
@@ -2177,9 +2177,10 @@ export const apiService = {
     
     try {
       // Mostra tutti i servizi (attivi e non), ordinati per nome
-      // Usa buildHeaders(false) per permettere lettura pubblica (clienti inclusi)
+      // Usa buildHeaders(true) per autenticazione e filtro RLS per shop_id
+      // Le RLS policies filtrano automaticamente per shop_id tramite current_shop_id()
       const url = `${API_ENDPOINTS.SERVICES}?select=*&order=name.asc`;
-      const response = await fetch(url, { headers: buildHeaders(false) });
+      const response = await fetch(url, { headers: buildHeaders(true) });
       if (!response.ok) throw new Error('Failed to fetch services');
       return await response.json();
     } catch (error) {
@@ -2193,9 +2194,10 @@ export const apiService = {
     if (!isSupabaseConfigured()) return [];
     
     try {
-      // Usa buildHeaders(false) per permettere accesso pubblico (clienti possono vedere i barbieri)
+      // Usa buildHeaders(true) per autenticazione e filtro RLS per shop_id
+      // Le RLS policies filtrano automaticamente per shop_id tramite current_shop_id()
       const url = `${API_ENDPOINTS.STAFF}?select=*&order=full_name.asc`;
-      const response = await fetch(url, { headers: buildHeaders(false) });
+      const response = await fetch(url, { headers: buildHeaders(true) });
       if (!response.ok) {
         // Se fallisce, restituisci array vuoto invece di loggare errore
         return [];
@@ -2688,7 +2690,7 @@ export const apiService = {
     
     try {
       const url = `${API_ENDPOINTS.STAFF}?id=eq.${staffId}&select=*&limit=1`;
-      const response = await fetch(url, { headers: buildHeaders(false) });
+      const response = await fetch(url, { headers: buildHeaders(true) });
       if (!response.ok) return null;
       const staff = await response.json();
       return staff[0] || null;
