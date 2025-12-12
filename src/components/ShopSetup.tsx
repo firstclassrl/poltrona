@@ -407,6 +407,7 @@ export const ShopSetup: React.FC = () => {
           },
           body: JSON.stringify({
             shop_id: shop.id,
+            role: 'admin',
             full_name: form.name || 'Admin'
           })
         });
@@ -415,6 +416,12 @@ export const ShopSetup: React.FC = () => {
           const errorText = await profileRes.text();
           console.error('Errore aggiornamento profilo admin:', errorText);
           throw new Error(`Impossibile aggiornare il profilo admin: ${errorText}`);
+        }
+
+        // Persisti anche lato client per evitare residui del vecchio shop
+        localStorage.setItem('current_shop_id', shop.id);
+        if (shop.slug || autoSlug) {
+          localStorage.setItem('current_shop_slug', shop.slug || autoSlug);
         }
       }
 
