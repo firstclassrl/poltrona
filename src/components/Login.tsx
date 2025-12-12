@@ -54,24 +54,29 @@ export const Login: React.FC = () => {
             setShop(shopData);
             
             // Carica il logo dello shop se disponibile
-            // 1) prova URL firmato (funziona anche con bucket privati)
-            // 2) fallback su logo_url pubblico
+            // 1) prova logo_url salvato (se esiste)
+            // 2) prova signed URL pubblico (senza autenticazione, per login page)
             // 3) fallback su URL pubblico da path (se bucket pubblico)
-            if (shopData.logo_path) {
+            if (shopData.logo_url) {
+              // Prova prima con logo_url salvato
+              setShopLogoUrl(shopData.logo_url);
+            } else if (shopData.logo_path) {
               try {
-                const signed = await apiService.getSignedShopLogoUrl(shopData.logo_path);
-                setShopLogoUrl(signed || shopData.logo_url || `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/shop-logos/${shopData.logo_path}`);
-              } catch (e) {
-                console.warn('Errore caricamento logo firmato:', e);
-                if (shopData.logo_url) {
-                  setShopLogoUrl(shopData.logo_url);
+                // Prova a generare un signed URL pubblico (senza autenticazione)
+                const signed = await apiService.getSignedShopLogoUrlPublic(shopData.logo_path);
+                if (signed) {
+                  setShopLogoUrl(signed);
                 } else {
+                  // Fallback su URL pubblico
                   const publicUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/shop-logos/${shopData.logo_path}`;
                   setShopLogoUrl(publicUrl);
                 }
+              } catch (e) {
+                console.warn('Errore caricamento logo:', e);
+                // Fallback su URL pubblico
+                const publicUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/shop-logos/${shopData.logo_path}`;
+                setShopLogoUrl(publicUrl);
               }
-            } else if (shopData.logo_url) {
-              setShopLogoUrl(shopData.logo_url);
             }
           } catch (error) {
             console.warn('Shop non trovato per slug:', shopSlug, error);
@@ -238,6 +243,11 @@ export const Login: React.FC = () => {
                   src={shopLogoUrl} 
                   alt={`Logo ${shop?.name || 'negozio'}`} 
                   className="w-full h-full object-contain filter brightness-110 rounded-lg"
+                  onError={(e) => {
+                    console.warn('Errore caricamento logo shop, uso logo default');
+                    const target = e.target as HTMLImageElement;
+                    target.src = '/logo Poltrona 2025.png';
+                  }}
                 />
               ) : (
                 <img 
@@ -289,7 +299,7 @@ export const Login: React.FC = () => {
                     value={credentials.password}
                     onChange={(e) => setCredentials(prev => ({ ...prev, password: e.target.value }))}
                     placeholder="Inserisci la tua password"
-                    autoComplete="new-password"
+                  autoComplete="current-password"
                     required
                   />
                   <button

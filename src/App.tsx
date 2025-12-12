@@ -165,10 +165,10 @@ const AppContent: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-purple-950/20 to-pink-950/20 flex items-center justify-center">
+      <div className="min-h-screen app-theme-bg flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-yellow-300">Caricamento...</p>
+          <p className="text-on-surface">Caricamento...</p>
         </div>
       </div>
     );
@@ -182,7 +182,7 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-purple-950/20 to-pink-950/20">
+    <div className="min-h-screen app-theme-bg">
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* Banner aggiornamento versione */}

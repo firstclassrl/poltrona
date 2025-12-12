@@ -1418,6 +1418,45 @@ export const apiService = {
     return `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1${signJson.signedURL || signJson.signedUrl || ''}`;
   },
 
+  // Get signed shop logo URL without authentication (for login page)
+  async getSignedShopLogoUrlPublic(path: string): Promise<string | null> {
+    if (!isSupabaseConfigured()) return null;
+    
+    try {
+      const bucket = 'shop-logos';
+      // Prova prima con URL pubblico (se bucket è pubblico)
+      const publicUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/${bucket}/${path}`;
+      
+      // Verifica se l'URL pubblico funziona facendo una HEAD request
+      const headRes = await fetch(publicUrl, { method: 'HEAD' });
+      if (headRes.ok) {
+        return publicUrl;
+      }
+      
+      // Se il bucket è privato, prova a generare un signed URL con anon key
+      // (funziona solo se le policy del bucket lo permettono)
+      const signUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/sign/${bucket}/${path}`;
+      const signRes = await fetch(signUrl, {
+        method: 'POST',
+        headers: {
+          apikey: API_CONFIG.SUPABASE_ANON_KEY || '',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ expiresIn: 60 * 60 * 24 * 7 }),
+      });
+      
+      if (signRes.ok) {
+        const signJson = await signRes.json();
+        return `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1${signJson.signedURL || signJson.signedUrl || ''}`;
+      }
+      
+      return null;
+    } catch (error) {
+      console.warn('Errore generazione signed URL pubblico logo:', error);
+      return null;
+    }
+  },
+
   // Get staff profile
   async getStaffProfile(): Promise<Staff> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
@@ -1447,7 +1486,7 @@ export const apiService = {
     try {
       const response = await fetch(API_ENDPOINTS.STAFF, {
         method: 'POST',
-        headers: { ...buildHeaders(false), Prefer: 'resolution=merge-duplicates,return=minimal' },
+        headers: { ...buildHeaders(true), Prefer: 'resolution=merge-duplicates,return=minimal' },
         body: JSON.stringify(data),
       });
       if (!response.ok) {
@@ -2726,7 +2765,7 @@ export const apiService = {
     try {
       // Includi user_id nello staff per le notifiche
       const url = `${API_ENDPOINTS.APPOINTMENTS_FEED}?id=eq.${appointmentId}&select=*,clients(first_name,last_name,phone_e164,email),staff(id,full_name,email,user_id),services(id,name,duration_min)&limit=1`;
-      const response = await fetch(url, { headers: buildHeaders(false) });
+      const response = await fetch(url, { headers: buildHeaders(true) });
       if (!response.ok) return null;
       const appointments = await response.json();
       return appointments[0] || null;
