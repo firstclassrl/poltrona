@@ -20,10 +20,12 @@ export const Button: React.FC<ButtonProps> = ({
   const baseClasses = 'inline-flex items-center justify-center font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
   
   const variantClasses = {
-    primary: 'bg-gradient-to-r from-green-700 to-green-800 text-yellow-400 hover:from-green-800 hover:to-green-900 focus:ring-green-600 border border-yellow-400/30',
-    secondary: 'bg-yellow-100 text-green-800 border border-green-600 hover:bg-yellow-200 focus:ring-yellow-500',
-    danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
-    ghost: 'text-green-700 hover:bg-green-100 focus:ring-green-500',
+    primary:
+      'bg-[var(--theme-primary)] hover:bg-[var(--theme-primary-strong)] text-white border border-[color-mix(in_srgb,var(--theme-accent)_25%,transparent)] focus:ring-[var(--theme-accent)] focus:ring-offset-[var(--theme-surface)]',
+    secondary:
+      'bg-[var(--theme-surface-alt)] text-[var(--theme-text)] border border-[color-mix(in_srgb,var(--theme-border)_70%,transparent)] hover:bg-[color-mix(in_srgb,var(--theme-surface-alt)_85%,var(--theme-surface))] focus:ring-[var(--theme-primary)] focus:ring-offset-[var(--theme-surface)]',
+    danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 focus:ring-offset-[var(--theme-surface)]',
+    ghost: 'text-[var(--theme-primary)] hover:bg-[var(--theme-nav-hover)] focus:ring-[var(--theme-primary)] focus:ring-offset-[var(--theme-surface)]',
   };
 
   const sizeClasses = {

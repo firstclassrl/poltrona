@@ -1548,12 +1548,31 @@ export const apiService = {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
     
     try {
+      // Assicurati che shop_id sia presente
+      let shopId = data.shop_id || getStoredShopId();
+      if (!shopId || shopId === 'default') {
+        try {
+          const shop = await this.getShop();
+          shopId = shop?.id ?? null;
+        } catch (shopError) {
+          console.warn('⚠️ createService: Errore ottenendo shop, il trigger SQL assegnerà shop_id:', shopError);
+        }
+      }
+      
+      const payload = {
+        ...data,
+        shop_id: shopId && shopId !== 'default' ? shopId : undefined,
+      };
+      
       const response = await fetch(API_ENDPOINTS.SERVICES, {
         method: 'POST',
         headers: { ...buildHeaders(true), Prefer: 'return=representation' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
-      if (!response.ok) throw new Error('Failed to create service');
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to create service: ${response.status} ${errorText}`);
+      }
       const created = await response.json();
       return created[0] as Service;
     } catch (error) {
@@ -2432,10 +2451,23 @@ export const apiService = {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
     
     try {
+      // Assicurati che shop_id sia presente
+      let shopId = (productData as any).shop_id || getStoredShopId();
+      if (!shopId || shopId === 'default') {
+        try {
+          const shop = await this.getShop();
+          shopId = shop?.id ?? null;
+        } catch (shopError) {
+          console.warn('⚠️ createProduct: Errore ottenendo shop, il trigger SQL assegnerà shop_id:', shopError);
+        }
+      }
+      
       const payload = {
         ...productData,
+        shop_id: shopId && shopId !== 'default' ? shopId : undefined,
         active: true,
       } as any;
+      
       const response = await fetch(API_ENDPOINTS.PRODUCTS, {
         method: 'POST',
         headers: { ...buildHeaders(true), Prefer: 'return=representation' },
