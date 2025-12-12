@@ -35,7 +35,7 @@ export const THEME_PALETTES: ThemePalette[] = [
     name: 'Heritage Verde/Oro',
     description: 'Palette attuale ispirata al barbershop retrò.',
     trend: 'Palette attuale (base)',
-    previewGradient: 'linear-gradient(135deg, #25401c 0%, #1a2f15 45%, #eecf54 100%)',
+    previewGradient: 'linear-gradient(135deg, #d8f5df 0%, #b4e6c2 100%)',
     colors: {
       background: '#0c100a',
       surface: '#10180f',

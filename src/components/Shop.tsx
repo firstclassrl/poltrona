@@ -160,16 +160,43 @@ export const ShopManagement = () => {
       const incomingLogoPath = (syncedShop as any).logo_path || '';
       const incomingLogoUrl = (syncedShop as any).logo_url || '';
       setLogoPath(incomingLogoPath);
-      if (incomingLogoPath) {
+      
+      // Priorità 1: Prova con logo_url salvato (se valido)
+      if (incomingLogoUrl && incomingLogoUrl.trim() && incomingLogoUrl !== 'null' && incomingLogoUrl !== 'undefined') {
+        setLogoUrl(incomingLogoUrl);
+        // Verifica se l'URL funziona, altrimenti prova signed URL
+        const img = new Image();
+        img.onerror = async () => {
+          // Se logo_url non funziona, prova signed URL
+          if (incomingLogoPath) {
+            try {
+              const signed = await apiService.getSignedShopLogoUrl(incomingLogoPath);
+              setLogoUrl(signed);
+            } catch (e) {
+              console.error('Error signing logo URL', e);
+              setLogoUrl(DEFAULT_LOGO);
+            }
+          } else {
+            setLogoUrl(DEFAULT_LOGO);
+          }
+        };
+        img.onload = () => {
+          // logo_url funziona, mantienilo
+          setLogoUrl(incomingLogoUrl);
+        };
+        img.src = incomingLogoUrl;
+      } else if (incomingLogoPath) {
+        // Priorità 2: Prova con signed URL da logo_path
         try {
           const signed = await apiService.getSignedShopLogoUrl(incomingLogoPath);
           setLogoUrl(signed);
         } catch (e) {
           console.error('Error signing logo URL', e);
-          setLogoUrl(incomingLogoUrl || DEFAULT_LOGO);
+          setLogoUrl(DEFAULT_LOGO);
         }
       } else {
-        setLogoUrl(incomingLogoUrl || DEFAULT_LOGO);
+        // Priorità 3: Fallback su logo di default
+        setLogoUrl(DEFAULT_LOGO);
       }
     } catch (error) {
       console.error('Error loading shop data:', error);
@@ -191,16 +218,43 @@ export const ShopManagement = () => {
         const incomingLogoPath = (syncedShop as any).logo_path || '';
         const incomingLogoUrl = (syncedShop as any).logo_url || '';
         setLogoPath(incomingLogoPath);
-        if (incomingLogoPath) {
+        
+        // Priorità 1: Prova con logo_url salvato (se valido)
+        if (incomingLogoUrl && incomingLogoUrl.trim() && incomingLogoUrl !== 'null' && incomingLogoUrl !== 'undefined') {
+          setLogoUrl(incomingLogoUrl);
+          // Verifica se l'URL funziona, altrimenti prova signed URL
+          const img = new Image();
+          img.onerror = async () => {
+            // Se logo_url non funziona, prova signed URL
+            if (incomingLogoPath) {
+              try {
+                const signed = await apiService.getSignedShopLogoUrl(incomingLogoPath);
+                setLogoUrl(signed);
+              } catch (e) {
+                console.error('Error signing logo URL', e);
+                setLogoUrl(DEFAULT_LOGO);
+              }
+            } else {
+              setLogoUrl(DEFAULT_LOGO);
+            }
+          };
+          img.onload = () => {
+            // logo_url funziona, mantienilo
+            setLogoUrl(incomingLogoUrl);
+          };
+          img.src = incomingLogoUrl;
+        } else if (incomingLogoPath) {
+          // Priorità 2: Prova con signed URL da logo_path
           try {
             const signed = await apiService.getSignedShopLogoUrl(incomingLogoPath);
             setLogoUrl(signed);
           } catch (e) {
             console.error('Error signing logo URL', e);
-            setLogoUrl(incomingLogoUrl || DEFAULT_LOGO);
+            setLogoUrl(DEFAULT_LOGO);
           }
         } else {
-          setLogoUrl(incomingLogoUrl || DEFAULT_LOGO);
+          // Priorità 3: Fallback su logo di default
+          setLogoUrl(DEFAULT_LOGO);
         }
       }
     }

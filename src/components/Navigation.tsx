@@ -40,21 +40,50 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
   // Load signed logo when shop changes
   useEffect(() => {
     const fetchLogo = async () => {
+      // Priorità 1: Prova con logo_url salvato (se valido)
+      if (shop?.logo_url) {
+        // Verifica che l'URL non sia vuoto o null
+        const logoUrl = shop.logo_url.trim();
+        if (logoUrl && logoUrl !== 'null' && logoUrl !== 'undefined') {
+          setShopLogoUrl(logoUrl);
+          // Verifica se l'URL funziona, altrimenti prova signed URL
+          const img = new Image();
+          img.onerror = async () => {
+            // Se logo_url non funziona, prova signed URL
+            if (shop?.logo_path) {
+              try {
+                const signed = await apiService.getSignedShopLogoUrl(shop.logo_path);
+                setShopLogoUrl(signed);
+                return;
+              } catch (e) {
+                console.error('Error loading shop logo (signed URL):', e);
+              }
+            }
+            // Se anche signed URL fallisce, usa default
+            setShopLogoUrl(DEFAULT_LOGO);
+          };
+          img.onload = () => {
+            // logo_url funziona, mantienilo
+            setShopLogoUrl(logoUrl);
+          };
+          img.src = logoUrl;
+          return;
+        }
+      }
+      
+      // Priorità 2: Prova con signed URL da logo_path
       if (shop?.logo_path) {
         try {
           const signed = await apiService.getSignedShopLogoUrl(shop.logo_path);
           setShopLogoUrl(signed);
           return;
         } catch (e) {
-          console.error('Error loading shop logo:', e);
-          // fallback
+          console.error('Error loading shop logo (signed URL):', e);
         }
       }
-      if (shop?.logo_url) {
-        setShopLogoUrl(shop.logo_url);
-      } else {
-        setShopLogoUrl(DEFAULT_LOGO);
-      }
+      
+      // Priorità 3: Fallback su logo di default
+      setShopLogoUrl(DEFAULT_LOGO);
     };
     fetchLogo();
   }, [shop?.logo_path, shop?.logo_url]);
