@@ -299,9 +299,7 @@ export const Calendar = () => {
       <div
         className="w-full space-y-6 rounded-3xl p-4 md:p-6"
         style={{
-          backgroundImage:
-            'linear-gradient(135deg, rgba(16,185,129,0.22), rgba(34,197,94,0.28) 40%, rgba(22,163,74,0.25) 70%, rgba(5,150,105,0.28))',
-          backgroundColor: 'rgba(236,253,245,0.9)',
+          background: 'var(--theme-page-gradient)',
         }}
       >
       <div className="space-y-6">

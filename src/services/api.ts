@@ -279,18 +279,54 @@ export const apiService = {
     }
     
     let shopId = getStoredShopId();
-    if (!shopId) {
-      const shop = await this.getShop();
-      shopId = shop?.id ?? null;
+    console.log('🔍 createClient: shopId da localStorage:', shopId);
+    if (!shopId || shopId === 'default') {
+      try {
+        const shop = await this.getShop();
+        shopId = shop?.id ?? null;
+        console.log('🔍 createClient: shopId da getShop():', shopId);
+      } catch (shopError) {
+        console.error('❌ createClient: Errore ottenendo shop:', shopError);
+        // Se getShop() fallisce, prova a ottenere shop_id dal profilo
+        const authToken = localStorage.getItem('auth_token');
+        if (authToken) {
+          try {
+            // Decodifica JWT per ottenere user_id
+            const payload = JSON.parse(atob(authToken.split('.')[1]));
+            const userId = payload.sub;
+            if (userId) {
+              const profileUrl = `${API_ENDPOINTS.PROFILES}?user_id=eq.${userId}&select=shop_id&limit=1`;
+              const profileRes = await fetch(profileUrl, { headers: buildHeaders(true) });
+              if (profileRes.ok) {
+                const profiles = await profileRes.json();
+                if (profiles && profiles.length > 0 && profiles[0].shop_id) {
+                  shopId = profiles[0].shop_id;
+                  console.log('🔍 createClient: shopId da profilo:', shopId);
+                }
+              }
+            }
+          } catch (profileError) {
+            console.error('❌ createClient: Errore ottenendo shop_id dal profilo:', profileError);
+          }
+        }
+      }
     }
+    
+    if (!shopId || shopId === 'default') {
+      console.error('❌ createClient: shop_id non disponibile! Impossibile creare cliente.');
+      throw new Error('Impossibile determinare l\'ID del negozio. Assicurati di essere loggato correttamente.');
+    }
+    
     const payload: Partial<Client> = {
-      shop_id: shopId && shopId !== 'default' ? shopId : null,
+      shop_id: shopId,
       first_name: data.first_name.trim(),
       last_name: data.last_name.trim(),
       phone_e164: data.phone_e164.trim(),
       email: data.email.trim(),
       notes: data.notes || null,
     };
+    
+    console.log('📝 createClient: Payload:', payload);
 
     try {
       // Use auth token if available, otherwise use provided token
@@ -304,6 +340,7 @@ export const apiService = {
       
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('❌ createClient: Errore creazione cliente:', response.status, errorText);
         throw new Error(`Failed to create client: ${response.status} ${errorText}`);
       }
       

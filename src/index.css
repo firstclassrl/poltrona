@@ -194,6 +194,11 @@ body {
 [data-theme]:not([data-theme='heritage']) .brand-hover-green:hover { background-color: color-mix(in srgb, var(--theme-primary) 80%, transparent); }
 [data-theme]:not([data-theme='heritage']) .brand-hover-yellow:hover { background-color: color-mix(in srgb, var(--theme-accent) 12%, transparent); }
 
+[data-theme='aurora'] .text-yellow-400,
+[data-theme='aurora'] .text-green-800,
+[data-theme='aurora'] .text-green-700 {
+  color: #2b1b64 !important; /* viola scurissimo per testo bottoni */
+}
 /* Force 24-hour format for time inputs */
 @layer utilities {
   input[type="time"][data-format="24"] {
