@@ -601,7 +601,55 @@ export const ShopSetup: React.FC = () => {
       }
 
       const link = `${window.location.origin}?shop=${shop.slug || autoSlug}`;
-      setTheme((shop.theme_palette as ThemePaletteId) || form.theme_palette || DEFAULT_THEME_ID);
+      
+      // Applica il tema scelto e persivilo
+      // Priorità: tema salvato nel negozio > tema scelto nel form > default
+      const themeToApply = (shop.theme_palette as ThemePaletteId) || form.theme_palette || DEFAULT_THEME_ID;
+      
+      console.log('🎨 ShopSetup: Applicando tema dopo creazione negozio:', {
+        shopTheme: shop.theme_palette,
+        formTheme: form.theme_palette,
+        defaultTheme: DEFAULT_THEME_ID,
+        themeToApply: themeToApply,
+        shopId: shop.id
+      });
+      
+      // Se il tema non è stato salvato nel negozio, aggiornalo nel database
+      if (!shop.theme_palette && form.theme_palette && shop.id) {
+        try {
+          console.log('🎨 ShopSetup: Tema non salvato nel negozio, aggiorno nel database...');
+          const updateShopUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/shops?id=eq.${shop.id}`;
+          const updateShopRes = await fetch(updateShopUrl, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': API_CONFIG.SUPABASE_ANON_KEY || '',
+              'Authorization': `Bearer ${adminAccessToken}`,
+              'Prefer': 'return=representation'
+            },
+            body: JSON.stringify({
+              theme_palette: form.theme_palette
+            })
+          });
+          
+          if (updateShopRes.ok) {
+            const updated = await updateShopRes.json();
+            if (updated && updated[0]) {
+              console.log('✅ ShopSetup: Tema aggiornato nel database:', updated[0].theme_palette);
+              // Aggiorna shop locale con il tema salvato
+              shop.theme_palette = updated[0].theme_palette;
+            }
+          } else {
+            console.warn('⚠️ ShopSetup: Impossibile aggiornare tema nel database:', await updateShopRes.text());
+          }
+        } catch (updateError) {
+          console.error('❌ ShopSetup: Errore aggiornamento tema:', updateError);
+        }
+      }
+      
+      // Applica il tema con persistenza (salva in localStorage per questo shop)
+      setTheme(themeToApply, { persist: true });
+      
       setSuccess({ shop, link });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Errore durante la creazione del negozio');

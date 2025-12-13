@@ -42,12 +42,22 @@ const applyPaletteToDocument = (palette: ThemePalette) => {
   root.style.setProperty('--theme-page-gradient', palette.previewGradient);
 
   // Derivatives for glass/nav
-  root.style.setProperty('--theme-sidebar-bg', `color-mix(in srgb, ${colors.primaryStrong} 78%, transparent)`);
-  root.style.setProperty('--theme-sidebar-border', `color-mix(in srgb, ${colors.accent} 60%, transparent)`);
-  root.style.setProperty('--theme-sidebar-shadow', `0 8px 32px color-mix(in srgb, ${colors.primaryStrong} 55%, transparent)`);
-  root.style.setProperty('--theme-nav-active', `color-mix(in srgb, ${colors.accent} 18%, transparent)`);
-  root.style.setProperty('--theme-nav-hover', `color-mix(in srgb, ${colors.accent} 12%, transparent)`);
-  root.style.setProperty('--theme-sidebar-text', '#f8fafc');
+  if (palette.id === 'dark-mode') {
+    // Dark mode: sidebar nera solida, testo arancione/bianco
+    root.style.setProperty('--theme-sidebar-bg', colors.background);
+    root.style.setProperty('--theme-sidebar-border', colors.border);
+    root.style.setProperty('--theme-sidebar-shadow', `0 8px 32px rgba(0, 0, 0, 0.8)`);
+    root.style.setProperty('--theme-nav-active', `color-mix(in srgb, ${colors.accent} 20%, transparent)`);
+    root.style.setProperty('--theme-nav-hover', `color-mix(in srgb, ${colors.accent} 10%, transparent)`);
+    root.style.setProperty('--theme-sidebar-text', colors.accent);
+  } else {
+    root.style.setProperty('--theme-sidebar-bg', `color-mix(in srgb, ${colors.primaryStrong} 78%, transparent)`);
+    root.style.setProperty('--theme-sidebar-border', `color-mix(in srgb, ${colors.accent} 60%, transparent)`);
+    root.style.setProperty('--theme-sidebar-shadow', `0 8px 32px color-mix(in srgb, ${colors.primaryStrong} 55%, transparent)`);
+    root.style.setProperty('--theme-nav-active', `color-mix(in srgb, ${colors.accent} 18%, transparent)`);
+    root.style.setProperty('--theme-nav-hover', `color-mix(in srgb, ${colors.accent} 12%, transparent)`);
+    root.style.setProperty('--theme-sidebar-text', '#f8fafc');
+  }
 };
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -58,7 +68,19 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const resolveInitialTheme = (): ThemePaletteId => {
     if (typeof window === 'undefined') return currentShop?.theme_palette as ThemePaletteId || DEFAULT_THEME_ID;
     const stored = localStorage.getItem(shopKey) as ThemePaletteId | null;
-    return (currentShop?.theme_palette as ThemePaletteId | null) || stored || DEFAULT_THEME_ID;
+    const shopTheme = currentShop?.theme_palette as ThemePaletteId | null;
+    const resolved = shopTheme || stored || DEFAULT_THEME_ID;
+    
+    console.log('🎨 ThemeContext: Risoluzione tema iniziale:', {
+      shopTheme,
+      stored,
+      defaultTheme: DEFAULT_THEME_ID,
+      resolved,
+      shopId: currentShop?.id,
+      shopKey
+    });
+    
+    return resolved;
   };
 
   const [themeId, setThemeId] = useState<ThemePaletteId>(() => resolveInitialTheme());
@@ -79,6 +101,12 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return;
     }
     const next = resolveInitialTheme();
+    console.log('🎨 ThemeContext: Aggiornamento tema da shop:', {
+      currentTheme: themeId,
+      newTheme: next,
+      shopTheme: currentShop?.theme_palette,
+      shopId: currentShop?.id
+    });
     setThemeId(next);
   }, [shopKey, currentShop?.theme_palette]);
 

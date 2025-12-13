@@ -150,22 +150,22 @@ export const THEME_PALETTES: ThemePalette[] = [
     id: 'dark-mode',
     name: 'Dark Mode',
     description: 'Sfondo nero, testi bianchi e accenti arancioni.',
-    trend: 'Dark mode classico con accenti caldi',
-    previewGradient: 'linear-gradient(135deg, #1a1a1a 0%, #2d1f0f 100%)',
+    trend: 'Dark mode minimale con accenti caldi',
+    previewGradient: 'linear-gradient(135deg, #000000 0%, #1a0a00 100%)',
     colors: {
       background: '#000000',
-      surface: '#1a1a1a',
-      surfaceAlt: '#0f0f0f',
+      surface: '#0a0a0a',
+      surfaceAlt: '#050505',
       primary: '#ff6b35',        // arancione accent
       primaryStrong: '#e55a2b',
       accent: '#ff8c42',         // arancione più chiaro
       accentSoft: '#ffb366',
       accentContrast: '#ffffff',
-      text: '#ffffff',
-      textMuted: '#b0b0b0',
-      border: '#ff6b35',
+      text: '#ffffff',            // solo bianco, niente nero
+      textMuted: '#ff8c42',       // arancione per testi muted
+      border: '#ff6b35',          // bordo arancione per card
       success: '#22c55e',
-      warning: '#f59e0b',
+      warning: '#ff8c42',
       danger: '#ef4444',
     },
   },

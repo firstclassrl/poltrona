@@ -207,6 +207,56 @@ body {
 }
 
 /* Rimuovi override Aurora: usa i token di palette (testo scuro su fondo chiaro) */
+
+/* Dark Mode: card nere con bordo arancione, solo testi bianchi/arancioni */
+[data-theme='dark-mode'] .bg-white,
+[data-theme='dark-mode'] .surface-card,
+[data-theme='dark-mode'] .surface-card-alt,
+[data-theme='dark-mode'] .bg-gray-50,
+[data-theme='dark-mode'] .bg-gray-100 {
+  background-color: #0a0a0a !important;
+  border-color: var(--theme-border) !important;
+  border-width: 1px !important;
+}
+
+[data-theme='dark-mode'] .text-gray-900,
+[data-theme='dark-mode'] .text-gray-800,
+[data-theme='dark-mode'] .text-gray-700,
+[data-theme='dark-mode'] .text-gray-600,
+[data-theme='dark-mode'] .text-gray-500,
+[data-theme='dark-mode'] .text-black {
+  color: #ffffff !important;
+}
+
+[data-theme='dark-mode'] .text-gray-400,
+[data-theme='dark-mode'] .text-gray-300 {
+  color: var(--theme-accent) !important;
+}
+
+[data-theme='dark-mode'] .border-gray-200,
+[data-theme='dark-mode'] .border-gray-300 {
+  border-color: var(--theme-border) !important;
+}
+
+[data-theme='dark-mode'] .app-theme-bg {
+  background: #000000 !important;
+}
+
+[data-theme='dark-mode'] .glass-sidebar-dark {
+  background: #000000 !important;
+  border-color: var(--theme-border) !important;
+}
+
+[data-theme='dark-mode'] .glass-sidebar-dark button,
+[data-theme='dark-mode'] .glass-sidebar-dark span,
+[data-theme='dark-mode'] .glass-sidebar-dark p {
+  color: var(--theme-accent) !important;
+}
+
+[data-theme='dark-mode'] .glass-sidebar-dark button:hover {
+  color: #ffffff !important;
+}
+
 /* Force 24-hour format for time inputs */
 @layer utilities {
   input[type="time"][data-format="24"] {
