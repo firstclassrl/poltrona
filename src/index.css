@@ -293,7 +293,7 @@ body {
   color: #ffffff !important;
 }
 
-/* Barre separatrici per tutti i temi - nascondi quelle vecchie */
+/* Barre separatrici per tutti i temi - SOLO DUE: una sopra, una sotto */
 .theme-separator-top,
 .theme-separator-bottom {
   display: block !important;
@@ -309,51 +309,63 @@ body {
   background: none !important;
 }
 
-/* Rimuovi le vecchie barre */
-[data-theme] .border-t.border-white\/20:not(.theme-separator-top):not(.theme-separator-bottom) {
-  display: none !important;
+/* Rimuovi TUTTE le vecchie barre che non sono theme-separator */
+[data-theme] .border-t:not(.theme-separator-top):not(.theme-separator-bottom) {
+  border-top: none !important;
 }
 
-/* Heritage: barre gialle */
+/* Heritage: barre gialle - FORZA VISIBILITÀ */
 [data-theme='heritage'] .theme-separator-top,
 [data-theme='heritage'] .theme-separator-bottom {
+  display: block !important;
+  visibility: visible !important;
   border-top-color: #eecf54 !important;
-  opacity: 0.8;
+  opacity: 0.8 !important;
 }
 
-/* Aurora: barre bianche */
+/* Aurora: barre bianche - FORZA VISIBILITÀ */
 [data-theme='aurora'] .theme-separator-top,
 [data-theme='aurora'] .theme-separator-bottom {
+  display: block !important;
+  visibility: visible !important;
   border-top-color: #ffffff !important;
-  opacity: 0.8;
+  opacity: 0.8 !important;
 }
 
-/* Sunset Neon: barre bianche */
+/* Sunset Neon: barre bianche - FORZA VISIBILITÀ */
 [data-theme='sunset-neon'] .theme-separator-top,
 [data-theme='sunset-neon'] .theme-separator-bottom {
+  display: block !important;
+  visibility: visible !important;
   border-top-color: #ffffff !important;
-  opacity: 0.8;
+  opacity: 0.8 !important;
 }
 
-/* Terra Soft: barre bianche */
+/* Terra Soft: barre bianche - FORZA VISIBILITÀ */
 [data-theme='terra-soft'] .theme-separator-top,
 [data-theme='terra-soft'] .theme-separator-bottom {
+  display: block !important;
+  visibility: visible !important;
   border-top-color: #ffffff !important;
-  opacity: 0.8;
+  opacity: 0.8 !important;
 }
 
-/* Cyber Lilac: barre bianche */
+/* Cyber Lilac: barre bianche - FORZA VISIBILITÀ */
 [data-theme='cyber-lilac'] .theme-separator-top,
 [data-theme='cyber-lilac'] .theme-separator-bottom {
+  display: block !important;
+  visibility: visible !important;
   border-top-color: #ffffff !important;
-  opacity: 0.8;
+  opacity: 0.8 !important;
 }
 
-/* Dark Mode: barre arancioni */
+/* Dark Mode: barre arancioni - FORZA VISIBILITÀ */
 [data-theme='dark-mode'] .theme-separator-top,
 [data-theme='dark-mode'] .theme-separator-bottom {
+  display: block !important;
+  visibility: visible !important;
   border-top-color: var(--theme-accent) !important;
-  opacity: 0.8;
+  opacity: 0.8 !important;
 }
 
 /* Dark Mode: tasto notifiche con bordo arancione completo */
@@ -380,29 +392,80 @@ body {
   border-color: var(--theme-accent) !important;
 }
 
-/* Colori mail account per ogni tema */
+/* Colori mail account per ogni tema - FORZA con alta specificità */
+[data-theme='heritage'] .glass-sidebar-dark .theme-user-email,
 [data-theme='heritage'] .theme-user-email {
   color: #eecf54 !important;
 }
 
+[data-theme='aurora'] .glass-sidebar-dark .theme-user-email,
 [data-theme='aurora'] .theme-user-email {
   color: #1e3a8a !important; /* blu scurissimo */
 }
 
+[data-theme='sunset-neon'] .glass-sidebar-dark .theme-user-email,
 [data-theme='sunset-neon'] .theme-user-email {
   color: #ff6b35 !important; /* arancione */
 }
 
+[data-theme='terra-soft'] .glass-sidebar-dark .theme-user-email,
 [data-theme='terra-soft'] .theme-user-email {
   color: #5c4033 !important; /* marrone scurissimo */
 }
 
+[data-theme='cyber-lilac'] .glass-sidebar-dark .theme-user-email,
 [data-theme='cyber-lilac'] .theme-user-email {
   color: #ff00ff !important; /* rosa fluo */
 }
 
+[data-theme='dark-mode'] .glass-sidebar-dark .theme-user-email,
 [data-theme='dark-mode'] .theme-user-email {
   color: var(--theme-accent) !important; /* arancione */
+}
+
+/* Heritage: quadrati calendario con bordo giallo */
+[data-theme='heritage'] .calendar-time-slot {
+  border-color: #eecf54 !important;
+}
+
+[data-theme='heritage'] .calendar-time-slot:hover {
+  border-color: #eecf54 !important;
+}
+
+/* Aurora: quadrati calendario con bordo blu */
+[data-theme='aurora'] .calendar-time-slot {
+  border-color: #5b7cff !important;
+}
+
+[data-theme='aurora'] .calendar-time-slot:hover {
+  border-color: #3c5fe6 !important;
+}
+
+/* Sunset Neon: quadrati calendario con bordo arancione */
+[data-theme='sunset-neon'] .calendar-time-slot {
+  border-color: #ff6b35 !important;
+}
+
+[data-theme='sunset-neon'] .calendar-time-slot:hover {
+  border-color: #ff6b35 !important;
+}
+
+/* Terra Soft: quadrati calendario con bordo marrone */
+[data-theme='terra-soft'] .calendar-time-slot {
+  border-color: #d28b6c !important;
+}
+
+[data-theme='terra-soft'] .calendar-time-slot:hover {
+  border-color: #b46a4b !important;
+}
+
+/* Cyber Lilac: quadrati calendario con bordo rosa */
+[data-theme='cyber-lilac'] .calendar-time-slot {
+  border-color: #ff00ff !important;
+}
+
+[data-theme='cyber-lilac'] .calendar-time-slot:hover {
+  border-color: #ff00ff !important;
 }
 
 /* Dark Mode: quadrati calendario neri con bordo arancione */

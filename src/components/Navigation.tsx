@@ -135,7 +135,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
             </div>
             
             {/* Separator Line Below Logo (tra logo e menu) - per tutti i temi */}
-            <div className="mx-4 mb-2 theme-separator-top border-t border-white/20"></div>
+            <div className="mx-4 mb-2 theme-separator-top"></div>
             
             <nav className="mt-1 flex-1 px-3 space-y-2">
               {navItems.map((item) => {
@@ -200,10 +200,10 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
             
             {/* User Info and Logout */}
             <div className="mt-auto px-4 pb-4">
-              <div className="border-t border-yellow-400/30 pt-4">
+              <div className="pt-4">
                 <div className="mb-4">
                   <div className="text-center">
-                    <p className="text-sm text-yellow-300 font-medium theme-user-email">{user?.full_name}</p>
+                    <p className="text-sm font-medium theme-user-email">{user?.full_name}</p>
                     <p className="text-xs text-yellow-400/70 capitalize">{user?.role}</p>
                   </div>
                 </div>
