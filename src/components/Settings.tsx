@@ -586,12 +586,16 @@ export const Settings = () => {
       theme_palette: themePalette,
     };
     try {
+      // Salva prima nel database
       await apiService.updateShop(updatedShop);
+      // Poi aggiorna lo stato locale
       const syncedShop = persistShopState(updatedShop);
-      // Salva il tema con persistenza (nel database e localStorage)
+      // Infine salva il tema con persistenza (nel database e localStorage)
+      // Questo deve essere fatto DOPO l'aggiornamento del database per evitare che il ThemeContext lo resetti
       setTheme(themePalette, { persist: true });
       setIsEditingTheme(false);
       setThemePalette((syncedShop.theme_palette as ThemePaletteId) || themePalette);
+      setOriginalThemePalette((syncedShop.theme_palette as ThemePaletteId) || themePalette);
       showMessage(setThemeMessage, 'success', 'Palette aggiornata!');
     } catch (error) {
       console.error('Error saving theme palette:', error);

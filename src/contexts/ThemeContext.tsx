@@ -64,6 +64,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const { currentShop } = useShop();
   const shopKey = useMemo(() => (currentShop?.id ? `${STORAGE_KEY}:${currentShop.id}` : STORAGE_KEY), [currentShop?.id]);
   const initialisedRef = useRef(false);
+  const manualThemeChangeRef = useRef(false);
 
   const resolveInitialTheme = (): ThemePaletteId => {
     if (typeof window === 'undefined') return currentShop?.theme_palette as ThemePaletteId || DEFAULT_THEME_ID;
@@ -105,8 +106,20 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       currentTheme: themeId,
       newTheme: next,
       shopTheme: currentShop?.theme_palette,
-      shopId: currentShop?.id
+      shopId: currentShop?.id,
+      manualChange: manualThemeChangeRef.current
     });
+    
+    // Se il tema è stato cambiato manualmente, non resettarlo finché non corrisponde al database
+    if (manualThemeChangeRef.current) {
+      // Se il tema nel database corrisponde al tema corrente, significa che è stato salvato
+      if (next === themeId) {
+        manualThemeChangeRef.current = false;
+      }
+      // In ogni caso, non resettare il tema se è stato cambiato manualmente
+      return;
+    }
+    
     // Non resettare il tema se è già quello corretto (evita reset quando si naviga su opzioni)
     if (next !== themeId) {
       setThemeId(next);
@@ -115,6 +128,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const setTheme = (id: ThemePaletteId, options?: SetThemeOptions) => {
     const paletteToApply = getPaletteById(id);
+    // Segna che il tema è stato cambiato manualmente
+    manualThemeChangeRef.current = true;
     setThemeId(paletteToApply.id);
     if (options?.persist !== false && typeof window !== 'undefined') {
       localStorage.setItem(shopKey, paletteToApply.id);
