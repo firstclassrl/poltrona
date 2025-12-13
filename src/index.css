@@ -265,6 +265,11 @@ body {
 [data-theme='dark-mode'] .glass-sidebar-dark {
   background: #000000 !important;
   border-color: transparent !important;
+  /* Glow arancione sottile invece di verde */
+  box-shadow: 
+    0 8px 32px rgba(255, 107, 53, 0.15),
+    0 0 0 1px rgba(255, 140, 66, 0.1),
+    inset 0 1px 0 rgba(255, 140, 66, 0.1) !important;
 }
 
 /* Rimuovi tutti i bordi dalla sidebar in dark-mode */
@@ -289,6 +294,11 @@ body {
 }
 
 /* Dark Mode: due lineette di separazione arancioni nella sidebar */
+.dark-mode-separator-top,
+.dark-mode-separator-bottom {
+  display: none;
+}
+
 [data-theme='dark-mode'] .dark-mode-separator-top,
 [data-theme='dark-mode'] .dark-mode-separator-bottom {
   display: block !important;
@@ -297,7 +307,7 @@ body {
   opacity: 0.6;
 }
 
-/* Dark Mode: tasto notifiche con bordo arancione */
+/* Dark Mode: tasto notifiche con bordo arancione completo */
 [data-theme='dark-mode'] .dark-mode-notification-button {
   border-color: var(--theme-border) !important;
   border-width: 1px !important;
@@ -308,12 +318,17 @@ body {
   border-color: var(--theme-accent) !important;
 }
 
-[data-theme='dark-mode'] .dark-mode-notification-button.border-l-4 {
-  border-left-color: var(--theme-accent) !important;
+/* Forza bordo arancione su tutti i lati, anche quando ha border-l-4 o border-l-2 */
+[data-theme='dark-mode'] .dark-mode-notification-button.border-l-4,
+[data-theme='dark-mode'] .dark-mode-notification-button.border-l-2 {
+  border-color: var(--theme-border) !important;
+  border-width: 1px !important;
+  border-style: solid !important;
 }
 
-[data-theme='dark-mode'] .dark-mode-notification-button.border-l-2 {
-  border-left-color: transparent !important;
+[data-theme='dark-mode'] .dark-mode-notification-button.border-l-4:hover,
+[data-theme='dark-mode'] .dark-mode-notification-button.border-l-2:hover {
+  border-color: var(--theme-accent) !important;
 }
 
 /* Dark Mode: quadrati calendario neri con bordo arancione */
@@ -468,6 +483,14 @@ body {
     0 0 0 1px rgba(238, 207, 84, 0.1),
     inset 0 1px 0 rgba(238, 207, 84, 0.15);
   color: var(--theme-sidebar-text);
+  }
+  
+  /* Dark Mode: override glow verde con glow arancione sottile */
+  [data-theme='dark-mode'] .glass-sidebar-dark {
+    box-shadow: 
+      0 8px 32px rgba(255, 107, 53, 0.15),
+      0 0 0 1px rgba(255, 140, 66, 0.1),
+      inset 0 1px 0 rgba(255, 140, 66, 0.1) !important;
   }
   
   .glass-nav-item {

@@ -126,7 +126,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
         <div className="flex-1 flex flex-col min-h-0 glass-sidebar-dark">
           <div className="flex-1 flex flex-col pt-3 pb-4 overflow-y-auto">
             {/* Dark Mode: Separator Line Above Logo */}
-            <div className="mx-4 mb-4 border-t border-white/20 dark-mode-separator-top" style={{ display: 'none' }}></div>
+            <div className="mx-4 mb-4 border-t border-white/20 dark-mode-separator-top"></div>
             
             {/* Logo Section */}
             <div className="flex items-center justify-center flex-shrink-0 px-4 mb-6">
@@ -199,7 +199,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
             )}
             
             {/* Dark Mode: Separator Line Above User Info */}
-            <div className="mx-4 mt-4 mb-4 border-t border-white/20 dark-mode-separator-bottom" style={{ display: 'none' }}></div>
+            <div className="mx-4 mt-4 mb-4 border-t border-white/20 dark-mode-separator-bottom"></div>
             
             {/* User Info and Logout */}
             <div className="mt-auto px-4 pb-4">
