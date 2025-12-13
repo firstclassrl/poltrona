@@ -27,7 +27,7 @@ const isSetupMode = (): boolean => {
   if (typeof window === 'undefined') return false;
   const params = new URLSearchParams(window.location.search);
   const token = params.get('token');
-  return token && token.trim().length > 0;
+  return !!(token && token.trim().length > 0);
 };
 
 export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -128,6 +128,7 @@ export const useShop = (): ShopContextValue => {
   }
   return ctx;
 };
+
 
 
 
