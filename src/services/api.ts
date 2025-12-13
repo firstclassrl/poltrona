@@ -194,7 +194,19 @@ export const apiService = {
     if (!isSupabaseConfigured()) return [];
     
     try {
-      const url = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=id,first_name,last_name,phone_e164,email&or=(first_name.ilike.*${query}*,last_name.ilike.*${query}*,phone_e164.ilike.*${query}*)&order=created_at.desc&limit=25`;
+      // CRITICO: Aggiungi filtro esplicito shop_id come doppia sicurezza
+      let shopId = getStoredShopId();
+      if (!shopId) {
+        const shop = await this.getShop();
+        shopId = shop?.id ?? null;
+      }
+      
+      // Costruisci URL con filtro shop_id se disponibile
+      let url = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=id,first_name,last_name,phone_e164,email&or=(first_name.ilike.*${query}*,last_name.ilike.*${query}*,phone_e164.ilike.*${query}*)&order=created_at.desc&limit=25`;
+      if (shopId && shopId !== 'default') {
+        url += `&shop_id=eq.${shopId}`;
+      }
+      
       const response = await fetch(url, { headers: buildHeaders(true) });
       if (!response.ok) throw new Error('Failed to search clients');
       return await response.json();
@@ -2146,8 +2158,18 @@ export const apiService = {
     }
     
     try {
-      // Carica le chat base
-      const url = `${API_ENDPOINTS.CHATS}?select=*&order=updated_at.desc`;
+      // CRITICO: Aggiungi filtro esplicito shop_id come doppia sicurezza
+      let shopId = getStoredShopId();
+      if (!shopId) {
+        const shop = await this.getShop();
+        shopId = shop?.id ?? null;
+      }
+      
+      // Carica le chat base con filtro shop_id
+      let url = `${API_ENDPOINTS.CHATS}?select=*&order=updated_at.desc`;
+      if (shopId && shopId !== 'default') {
+        url += `&shop_id=eq.${shopId}`;
+      }
       const response = await fetch(url, { headers: buildHeaders(true) });
       if (!response.ok) {
         // Se è un errore di autenticazione, non loggare
@@ -2290,7 +2312,31 @@ export const apiService = {
     if (!isSupabaseConfigured()) return [];
     
     try {
-      const url = `${API_ENDPOINTS.CHAT_MESSAGES}?select=*&chat_id=eq.${chatId}&order=created_at.asc`;
+      // CRITICO: Aggiungi filtro esplicito shop_id come doppia sicurezza
+      // Recupera shop_id dal chat per validazione
+      let shopId = getStoredShopId();
+      if (!shopId) {
+        // Prova a recuperare shop_id dal chat
+        try {
+          const chatUrl = `${API_ENDPOINTS.CHATS}?id=eq.${chatId}&select=shop_id&limit=1`;
+          const chatResponse = await fetch(chatUrl, { headers: buildHeaders(true) });
+          if (chatResponse.ok) {
+            const chats = await chatResponse.json();
+            if (chats && chats.length > 0 && chats[0].shop_id) {
+              shopId = chats[0].shop_id;
+            }
+          }
+        } catch (e) {
+          // Se fallisce, usa shop corrente
+          const shop = await this.getShop();
+          shopId = shop?.id ?? null;
+        }
+      }
+      
+      let url = `${API_ENDPOINTS.CHAT_MESSAGES}?select=*&chat_id=eq.${chatId}&order=created_at.asc`;
+      if (shopId && shopId !== 'default') {
+        url += `&shop_id=eq.${shopId}`;
+      }
       const response = await fetch(url, { headers: buildHeaders(true) });
       if (!response.ok) throw new Error('Failed to fetch messages');
       return await response.json();
@@ -2401,10 +2447,21 @@ export const apiService = {
     if (!isSupabaseConfigured()) return [];
     
     try {
+      // CRITICO: Aggiungi filtro esplicito shop_id come doppia sicurezza
+      let shopId = getStoredShopId();
+      if (!shopId) {
+        const shop = await this.getShop();
+        shopId = shop?.id ?? null;
+      }
+      
       // Mostra tutti i servizi (attivi e non), ordinati per nome
       // Usa buildHeaders(true) per autenticazione e filtro RLS per shop_id
       // Le RLS policies filtrano automaticamente per shop_id tramite current_shop_id()
-      const url = `${API_ENDPOINTS.SERVICES}?select=*&order=name.asc`;
+      // Aggiungiamo anche filtro esplicito come doppia sicurezza
+      let url = `${API_ENDPOINTS.SERVICES}?select=*&order=name.asc`;
+      if (shopId && shopId !== 'default') {
+        url += `&shop_id=eq.${shopId}`;
+      }
       const response = await fetch(url, { headers: buildHeaders(true) });
       if (!response.ok) throw new Error('Failed to fetch services');
       return await response.json();
@@ -2419,9 +2476,20 @@ export const apiService = {
     if (!isSupabaseConfigured()) return [];
     
     try {
+      // CRITICO: Aggiungi filtro esplicito shop_id come doppia sicurezza
+      let shopId = getStoredShopId();
+      if (!shopId) {
+        const shop = await this.getShop();
+        shopId = shop?.id ?? null;
+      }
+      
       // Usa buildHeaders(true) per autenticazione e filtro RLS per shop_id
       // Le RLS policies filtrano automaticamente per shop_id tramite current_shop_id()
-      const url = `${API_ENDPOINTS.STAFF}?select=*&order=full_name.asc`;
+      // Aggiungiamo anche filtro esplicito come doppia sicurezza
+      let url = `${API_ENDPOINTS.STAFF}?select=*&order=full_name.asc`;
+      if (shopId && shopId !== 'default') {
+        url += `&shop_id=eq.${shopId}`;
+      }
       const response = await fetch(url, { headers: buildHeaders(true) });
       if (!response.ok) {
         // Se fallisce, restituisci array vuoto invece di loggare errore
@@ -2551,7 +2619,17 @@ export const apiService = {
     if (!isSupabaseConfigured()) return [];
     
     try {
-      const url = `${API_ENDPOINTS.PRODUCTS}?select=*&order=name.asc`;
+      // CRITICO: Aggiungi filtro esplicito shop_id come doppia sicurezza
+      let shopId = getStoredShopId();
+      if (!shopId) {
+        const shop = await this.getShop();
+        shopId = shop?.id ?? null;
+      }
+      
+      let url = `${API_ENDPOINTS.PRODUCTS}?select=*&order=name.asc`;
+      if (shopId && shopId !== 'default') {
+        url += `&shop_id=eq.${shopId}`;
+      }
       const response = await fetch(url, { headers: buildHeaders(true) });
       if (!response.ok) throw new Error('Failed to fetch products');
       return await response.json();

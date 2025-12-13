@@ -8,6 +8,7 @@ DECLARE
   v_profile_full_name TEXT;
   v_client_email TEXT;
   v_barber_record RECORD;
+  v_new_user_shop_id UUID;
 BEGIN
   -- Estrai il nome completo e l'email del nuovo utente
   v_profile_full_name := COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email);
@@ -26,20 +27,29 @@ BEGIN
     NOW()                      -- timestamp di creazione
   );
   
-  -- Invia notifica a un solo barbiere attivo (preferibilmente owner/admin, altrimenti il primo barbiere)
+  -- IMPORTANTE: Determina shop_id del nuovo utente (se disponibile)
+  -- Il profilo è stato appena creato, quindi possiamo recuperarlo
+  SELECT shop_id INTO v_new_user_shop_id
+  FROM public.profiles
+  WHERE user_id = NEW.id
+  LIMIT 1;
+  
+  -- Invia notifica a un solo barbiere attivo SOLO se shop_id è determinato
   -- IMPORTANTE: Verifica prima che non esista già una notifica per questo cliente
   -- per evitare duplicati in caso di trigger multipli o esecuzioni duplicate
   -- CONTROLLO: Verifica sia per client_user_id che per client_email per catturare tutti i casi
-  IF NOT EXISTS (
-    SELECT 1 FROM public.notifications 
-    WHERE type = 'new_client' 
-      AND (
-        data->>'client_user_id' = NEW.id::text
-        OR data->>'client_email' = NEW.email
-      )
-      AND created_at > NOW() - INTERVAL '1 minute'
-  ) THEN
+  IF v_new_user_shop_id IS NOT NULL 
+     AND NOT EXISTS (
+       SELECT 1 FROM public.notifications 
+       WHERE type = 'new_client' 
+         AND (
+           data->>'client_user_id' = NEW.id::text
+           OR data->>'client_email' = NEW.email
+         )
+         AND created_at > NOW() - INTERVAL '1 minute'
+     ) THEN
     -- Trova UN SOLO barbiere dalla tabella staff con ruolo 'barber' o simile
+    -- CRITICO: Filtra per shop_id per evitare notifiche cross-shop
     -- IMPORTANTE: LIMIT 1 assicura che venga selezionato solo un barbiere
     SELECT 
       s.id as staff_id,
@@ -50,6 +60,7 @@ BEGIN
     FROM public.staff s
     WHERE s.active = true
       AND s.user_id IS NOT NULL  -- Solo barbieri con user_id collegato
+      AND s.shop_id = v_new_user_shop_id  -- CRITICO: Filtra per shop_id del nuovo utente
       AND (
         LOWER(s.role) LIKE '%barber%' 
         OR LOWER(s.role) IN ('barber', 'barbiere', 'barbiere senior', 'barbiere junior', 'master barber', 'junior barber', 'owner', 'admin', 'proprietario')
@@ -76,7 +87,7 @@ BEGIN
         created_at
       )
       VALUES (
-        v_barber_record.shop_id,
+        v_new_user_shop_id,  -- CRITICO: Usa shop_id del nuovo utente, non del barbiere
         v_barber_record.user_id,  -- user_id deve essere un auth.users.id
         'staff',
         'new_client',
@@ -87,11 +98,16 @@ BEGIN
           'client_user_id', NEW.id,
           'client_name', v_profile_full_name,
           'client_email', v_client_email,
+          'shop_id', v_new_user_shop_id,
           'registered_at', NOW()
         ),
         NOW()
       );
     END IF;
+  ELSIF v_new_user_shop_id IS NULL THEN
+    -- Se shop_id non è disponibile, non inviare notifica per evitare crossing tra negozi
+    -- Log per debugging
+    RAISE LOG 'Nuovo utente % registrato senza shop_id - notifica non inviata per evitare crossing tra negozi', NEW.id;
   END IF;
   
   RETURN NEW;
@@ -180,7 +196,7 @@ CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON public.profiles(user_id);
 CREATE INDEX IF NOT EXISTS idx_profiles_shop_id ON public.profiles(shop_id);
 
 -- Commenti per documentazione
-COMMENT ON FUNCTION public.handle_new_user() IS 'Funzione trigger per creare automaticamente un profilo quando viene creato un nuovo utente e inviare una notifica a tutti i barbieri attivi';
+COMMENT ON FUNCTION public.handle_new_user() IS 'Funzione trigger per creare automaticamente un profilo quando viene creato un nuovo utente. Invia notifica solo se shop_id è disponibile, filtrando barbieri per shop_id per evitare crossing tra negozi.';
 COMMENT ON FUNCTION public.handle_user_update() IS 'Funzione trigger per aggiornare il profilo quando cambiano i metadati utente';
 COMMENT ON FUNCTION public.handle_user_delete() IS 'Funzione trigger per eliminare il profilo quando viene eliminato un utente';
 
