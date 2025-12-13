@@ -1550,12 +1550,10 @@ export const Settings = () => {
             <ThemeSelector
               value={themePalette}
               onChange={(id) => {
-                // Solo in modalità modifica: aggiorna lo stato locale e applica per preview
-                if (isEditingTheme) {
-                  setThemePalette(id);
-                  // Applica il tema per preview (senza persistenza)
-                  setTheme(id, { persist: false });
-                }
+                // Aggiorna lo stato locale e applica per preview (senza persistenza)
+                setThemePalette(id);
+                // Applica il tema per preview (senza persistenza)
+                setTheme(id, { persist: false });
               }}
               disabled={!isEditingTheme}
             />

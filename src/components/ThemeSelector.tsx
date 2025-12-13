@@ -38,7 +38,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
             <button
               key={palette.id}
               type="button"
-              onClick={() => !disabled && onChange(palette.id)}
+              onClick={() => onChange(palette.id)}
               disabled={disabled}
               className={cn(
                 'relative overflow-hidden rounded-xl border transition-all duration-200 text-left focus:outline-none focus:ring-2 focus:ring-offset-2',
