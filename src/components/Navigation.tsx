@@ -125,9 +125,6 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
       <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
         <div className="flex-1 flex flex-col min-h-0 glass-sidebar-dark">
           <div className="flex-1 flex flex-col pt-3 pb-4 overflow-y-auto">
-            {/* Dark Mode: Separator Line Above Logo */}
-            <div className="mx-4 mb-4 dark-mode-separator-top"></div>
-            
             {/* Logo Section */}
             <div className="flex items-center justify-center flex-shrink-0 px-4 mb-6">
               <img 
@@ -137,8 +134,8 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
               />
             </div>
             
-            {/* Separator Line Below Logo (originale) */}
-            <div className="mx-4 mb-2 border-t border-white/20"></div>
+            {/* Dark Mode: Separator Line Below Logo (tra logo e menu) */}
+            <div className="mx-4 mb-2 dark-mode-separator-top border-t border-white/20"></div>
             
             <nav className="mt-1 flex-1 px-3 space-y-2">
               {navItems.map((item) => {
