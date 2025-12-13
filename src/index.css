@@ -299,22 +299,37 @@ body {
 
 /* Dark Mode: tasto notifiche con bordo arancione */
 [data-theme='dark-mode'] .dark-mode-notification-button {
-  border-color: var(--theme-accent) !important;
+  border-color: var(--theme-border) !important;
   border-width: 1px !important;
+  border-style: solid !important;
 }
 
-/* Dark Mode: quadrati calendario arancioni scuri */
-[data-theme='dark-mode'] .calendar-time-slot {
-  background-color: var(--theme-primary-strong) !important;
+[data-theme='dark-mode'] .dark-mode-notification-button:hover {
   border-color: var(--theme-accent) !important;
+}
+
+[data-theme='dark-mode'] .dark-mode-notification-button.border-l-4 {
+  border-left-color: var(--theme-accent) !important;
+}
+
+[data-theme='dark-mode'] .dark-mode-notification-button.border-l-2 {
+  border-left-color: transparent !important;
+}
+
+/* Dark Mode: quadrati calendario neri con bordo arancione */
+[data-theme='dark-mode'] .calendar-time-slot {
+  background-color: #0a0a0a !important;
+  border-color: var(--theme-border) !important;
 }
 
 [data-theme='dark-mode'] .calendar-time-slot:hover {
-  background-color: var(--theme-primary) !important;
+  background-color: #0a0a0a !important;
+  border-color: var(--theme-accent) !important;
 }
 
 [data-theme='dark-mode'] .calendar-time-slot.bg-gray-200 {
-  background-color: color-mix(in srgb, var(--theme-primary-strong) 80%, black) !important;
+  background-color: #050505 !important;
+  border-color: var(--theme-border) !important;
 }
 
 /* Dark Mode: card prossimi appuntamenti nere con bordo arancione */
