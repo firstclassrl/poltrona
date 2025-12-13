@@ -297,14 +297,24 @@ body {
 .dark-mode-separator-top,
 .dark-mode-separator-bottom {
   display: none;
+  border: none !important;
 }
 
 [data-theme='dark-mode'] .dark-mode-separator-top,
 [data-theme='dark-mode'] .dark-mode-separator-bottom {
   display: block !important;
+  visibility: visible !important;
+  border-top: 1px solid var(--theme-accent) !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
   border-color: var(--theme-accent) !important;
   border-width: 1px !important;
-  opacity: 0.6;
+  opacity: 0.8 !important;
+  height: 1px !important;
+  min-height: 1px !important;
+  max-height: 1px !important;
+  background: none !important;
 }
 
 /* Dark Mode: tasto notifiche con bordo arancione completo */
