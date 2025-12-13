@@ -61,16 +61,19 @@ const applyPaletteToDocument = (palette: ThemePalette) => {
 };
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentShop } = useShop();
-  // Usa shop_id da user o localStorage per calcolare shopKey anche prima che shop sia caricato
+  const { currentShop, currentShopId } = useShop();
+  // Usa shop_id da ShopContext (che legge da user o localStorage) per calcolare shopKey
+  // Questo assicura che shopKey sia sempre lo stesso, anche prima che shop sia caricato
   const shopIdForKey = useMemo(() => {
+    // Priorità: 1) shop corrente, 2) shopId da ShopContext, 3) localStorage diretto
     if (currentShop?.id) return currentShop.id;
+    if (currentShopId) return currentShopId;
     if (typeof window !== 'undefined') {
       const storedShopId = localStorage.getItem('current_shop_id');
       if (storedShopId && storedShopId !== 'default') return storedShopId;
     }
     return null;
-  }, [currentShop?.id]);
+  }, [currentShop?.id, currentShopId]);
   
   const shopKey = useMemo(() => (shopIdForKey ? `${STORAGE_KEY}:${shopIdForKey}` : STORAGE_KEY), [shopIdForKey]);
   const initialisedRef = useRef(false);
@@ -138,26 +141,31 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return;
     }
     
-    // Se è la prima inizializzazione, verifica se il tema dal database è diverso da quello corrente
+    const shopTheme = currentShop?.theme_palette as ThemePaletteId | null;
+    
+    // Se è la prima volta che il shop viene caricato, applica sempre il tema dal database
     if (!initialisedRef.current) {
       initialisedRef.current = true;
-      const shopTheme = currentShop?.theme_palette as ThemePaletteId | null;
-      // Se c'è un tema nel database, usalo (ha priorità su localStorage)
+      // Se c'è un tema nel database, usalo SEMPRE (ha priorità assoluta su localStorage)
       if (shopTheme) {
-        console.log('🎨 ThemeContext: Prima inizializzazione, applico tema da database:', { from: themeId, to: shopTheme });
+        console.log('🎨 ThemeContext: Shop caricato per la prima volta, applico tema da database:', { from: themeId, to: shopTheme });
         setThemeId(shopTheme);
         if (typeof window !== 'undefined') {
           localStorage.setItem(shopKey, shopTheme);
         }
+        // Applica immediatamente il tema
+        const paletteToApply = getPaletteById(shopTheme);
+        applyPaletteToDocument(paletteToApply);
       } else {
         // Se non c'è tema nel database, mantieni quello corrente (da localStorage o default)
-        console.log('🎨 ThemeContext: Prima inizializzazione, nessun tema nel database, mantengo:', themeId);
+        console.log('🎨 ThemeContext: Shop caricato, nessun tema nel database, mantengo:', themeId);
       }
       return;
     }
     
+    // Dopo l'inizializzazione, verifica se il tema nel database è diverso
     const next = resolveInitialTheme();
-    console.log('🎨 ThemeContext: Shop caricato, verifica tema:', {
+    console.log('🎨 ThemeContext: Shop già caricato, verifica tema:', {
       currentTheme: themeId,
       newTheme: next,
       shopTheme: currentShop?.theme_palette,
@@ -185,7 +193,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         localStorage.setItem(shopKey, next);
       }
     }
-  }, [currentShop, shopKey, themeId]);
+  }, [currentShop, shopKey]);
 
   const setTheme = (id: ThemePaletteId, options?: SetThemeOptions) => {
     const paletteToApply = getPaletteById(id);

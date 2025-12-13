@@ -6,6 +6,7 @@ import { TimePicker } from './ui/TimePicker';
 import { Modal } from './ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
 import { useVacationMode } from '../hooks/useVacationMode';
+import { useShop } from '../contexts/ShopContext';
 import { apiService } from '../services/api';
 import { API_CONFIG } from '../config/api';
 import type { Shop } from '../types';
@@ -130,6 +131,7 @@ const persistShopLocally = (shopData: Shop) => {
 
 export const Settings = () => {
   const { user } = useAuth();
+  const { refreshShop } = useShop();
   const [shop, setShop] = useState<Shop | null>(null);
   const initialNotificationPrefsRef = useRef<NotificationPrefs>(defaultNotificationPrefs);
   
@@ -588,6 +590,8 @@ export const Settings = () => {
     try {
       // Salva prima nel database
       await apiService.updateShop(updatedShop);
+      // Aggiorna lo shop nel ShopContext per triggerare l'aggiornamento del tema
+      await refreshShop();
       // Poi aggiorna lo stato locale
       const syncedShop = persistShopState(updatedShop);
       // Infine salva il tema con persistenza (nel database e localStorage)

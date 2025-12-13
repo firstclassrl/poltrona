@@ -134,8 +134,8 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
               />
             </div>
             
-            {/* Dark Mode: Separator Line Below Logo (tra logo e menu) */}
-            <div className="mx-4 mb-2 dark-mode-separator-top border-t border-white/20"></div>
+            {/* Separator Line Below Logo (tra logo e menu) - per tutti i temi */}
+            <div className="mx-4 mb-2 theme-separator-top border-t border-white/20"></div>
             
             <nav className="mt-1 flex-1 px-3 space-y-2">
               {navItems.map((item) => {
@@ -195,15 +195,15 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
               </div>
             )}
             
-            {/* Dark Mode: Separator Line Above User Info */}
-            <div className="mx-4 mt-4 mb-4 dark-mode-separator-bottom"></div>
+            {/* Separator Line Above User Info - per tutti i temi */}
+            <div className="mx-4 mt-4 mb-4 theme-separator-bottom"></div>
             
             {/* User Info and Logout */}
             <div className="mt-auto px-4 pb-4">
               <div className="border-t border-yellow-400/30 pt-4">
                 <div className="mb-4">
                   <div className="text-center">
-                    <p className="text-sm text-yellow-300 font-medium">{user?.full_name}</p>
+                    <p className="text-sm text-yellow-300 font-medium theme-user-email">{user?.full_name}</p>
                     <p className="text-xs text-yellow-400/70 capitalize">{user?.role}</p>
                   </div>
                 </div>
