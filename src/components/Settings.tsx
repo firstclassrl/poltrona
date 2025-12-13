@@ -177,6 +177,7 @@ export const Settings = () => {
   const [notificationMessage, setNotificationMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const { themeId, setTheme } = useTheme();
   const [themePalette, setThemePalette] = useState<ThemePaletteId>(themeId);
+  const [originalThemePalette, setOriginalThemePalette] = useState<ThemePaletteId>(themeId);
   const [isEditingTheme, setIsEditingTheme] = useState(false);
   const [isSavingTheme, setIsSavingTheme] = useState(false);
   const [themeMessage, setThemeMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -240,9 +241,12 @@ export const Settings = () => {
       setProductsEnabled(syncedShop.products_enabled ?? true);
       setAutoCloseHolidays(syncedShop.auto_close_holidays ?? true);
       setCalendarViewMode(syncedShop.calendar_view_mode ?? 'split');
+      // Non applicare il tema qui, solo impostare lo stato locale per la UI
+      // Il tema viene gestito dal ThemeContext in base al database
       const paletteFromShop = (syncedShop.theme_palette as ThemePaletteId) || themeId;
       setThemePalette(paletteFromShop);
-      setTheme(paletteFromShop);
+      setOriginalThemePalette(paletteFromShop);
+      // NON chiamare setTheme qui per evitare reset quando si apre la pagina opzioni
       setExtraOpeningForm({
         date: formatDateForDisplay(syncedShop.extra_opening_date),
         morningStart: syncedShop.extra_morning_start ?? '',
@@ -260,7 +264,8 @@ export const Settings = () => {
         setCalendarViewMode(syncedShop.calendar_view_mode ?? 'split');
         const paletteFromShop = (syncedShop.theme_palette as ThemePaletteId) || themeId;
         setThemePalette(paletteFromShop);
-        setTheme(paletteFromShop, { persist: false });
+        setOriginalThemePalette(paletteFromShop);
+        // NON chiamare setTheme qui per evitare reset quando si apre la pagina opzioni
         setExtraOpeningForm({
           date: formatDateForDisplay(syncedShop.extra_opening_date),
           morningStart: syncedShop.extra_morning_start ?? '',
@@ -563,9 +568,10 @@ export const Settings = () => {
   };
 
   const handleCancelTheme = () => {
-    const paletteFromShop = (shop?.theme_palette as ThemePaletteId) || themeId;
-    setThemePalette(paletteFromShop);
-    setTheme(paletteFromShop, { persist: false });
+    // Ripristina il tema originale salvato quando si è entrati in modalità modifica
+    setThemePalette(originalThemePalette);
+    // Ripristina il tema applicato (senza persistenza, solo per annullare le modifiche)
+    setTheme(originalThemePalette, { persist: false });
     setIsEditingTheme(false);
   };
 
@@ -582,7 +588,8 @@ export const Settings = () => {
     try {
       await apiService.updateShop(updatedShop);
       const syncedShop = persistShopState(updatedShop);
-      setTheme(themePalette);
+      // Salva il tema con persistenza (nel database e localStorage)
+      setTheme(themePalette, { persist: true });
       setIsEditingTheme(false);
       setThemePalette((syncedShop.theme_palette as ThemePaletteId) || themePalette);
       showMessage(setThemeMessage, 'success', 'Palette aggiornata!');
@@ -1492,7 +1499,15 @@ export const Settings = () => {
                 </div>
               </div>
               {!isEditingTheme ? (
-                <Button onClick={() => setIsEditingTheme(true)} size="sm">
+                <Button 
+                  onClick={() => {
+                    // Quando si entra in modalità modifica, salva il tema corrente come originale
+                    setOriginalThemePalette(themeId);
+                    setThemePalette(themeId);
+                    setIsEditingTheme(true);
+                  }} 
+                  size="sm"
+                >
                   <Edit className="w-4 h-4 mr-2" />
                   Modifica
                 </Button>
@@ -1535,9 +1550,14 @@ export const Settings = () => {
             <ThemeSelector
               value={themePalette}
               onChange={(id) => {
-                setThemePalette(id);
-                setTheme(id, { persist: false });
+                // Solo in modalità modifica: aggiorna lo stato locale e applica per preview
+                if (isEditingTheme) {
+                  setThemePalette(id);
+                  // Applica il tema per preview (senza persistenza)
+                  setTheme(id, { persist: false });
+                }
               }}
+              disabled={!isEditingTheme}
             />
             <p className="text-xs text-gray-600">
               Il tema scelto verrà salvato per il negozio e per i futuri accessi dei collaboratori.

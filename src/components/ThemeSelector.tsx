@@ -9,6 +9,7 @@ interface ThemeSelectorProps {
   title?: string;
   layout?: 'grid' | 'inline';
   showDescription?: boolean;
+  disabled?: boolean;
 }
 
 export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
@@ -17,6 +18,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
   title = 'Seleziona palette',
   layout = 'grid',
   showDescription = true,
+  disabled = false,
 }) => {
   const { palettes } = useTheme();
 
@@ -36,13 +38,15 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
             <button
               key={palette.id}
               type="button"
-              onClick={() => onChange(palette.id)}
+              onClick={() => !disabled && onChange(palette.id)}
+              disabled={disabled}
               className={cn(
                 'relative overflow-hidden rounded-xl border transition-all duration-200 text-left focus:outline-none focus:ring-2 focus:ring-offset-2',
                 isActive
                   ? 'border-green-600 ring-2 ring-green-600 ring-offset-2'
                   : 'border-gray-200 hover:border-gray-300 hover:shadow-lg',
-                'bg-white text-black'
+                'bg-white text-black',
+                disabled && 'opacity-50 cursor-not-allowed hover:border-gray-200 hover:shadow-none'
               )}
             >
               <div

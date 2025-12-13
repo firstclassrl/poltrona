@@ -194,16 +194,28 @@ body {
 [data-theme]:not([data-theme='heritage']) .brand-hover-green:hover { background-color: color-mix(in srgb, var(--theme-primary) 80%, transparent); }
 [data-theme]:not([data-theme='heritage']) .brand-hover-yellow:hover { background-color: color-mix(in srgb, var(--theme-accent) 12%, transparent); }
 
-/* Sidebar text/icons forced to white SOLO per temi non-heritage */
-[data-theme]:not([data-theme='heritage']) .glass-sidebar-dark,
-[data-theme]:not([data-theme='heritage']) .glass-sidebar-dark button,
-[data-theme]:not([data-theme='heritage']) .glass-sidebar-dark a,
-[data-theme]:not([data-theme='heritage']) .glass-sidebar-dark span,
-[data-theme]:not([data-theme='heritage']) .glass-sidebar-dark svg {
+/* Sidebar text/icons forced to white SOLO per temi non-heritage (escluso dark-mode) */
+[data-theme]:not([data-theme='heritage']):not([data-theme='dark-mode']) .glass-sidebar-dark,
+[data-theme]:not([data-theme='heritage']):not([data-theme='dark-mode']) .glass-sidebar-dark button,
+[data-theme]:not([data-theme='heritage']):not([data-theme='dark-mode']) .glass-sidebar-dark a,
+[data-theme]:not([data-theme='heritage']):not([data-theme='dark-mode']) .glass-sidebar-dark span,
+[data-theme]:not([data-theme='heritage']):not([data-theme='dark-mode']) .glass-sidebar-dark svg {
   color: #ffffff !important;
 }
-[data-theme]:not([data-theme='heritage']) .glass-sidebar-dark svg {
+[data-theme]:not([data-theme='heritage']):not([data-theme='dark-mode']) .glass-sidebar-dark svg {
   stroke: #ffffff !important;
+}
+
+/* Dark Mode: sidebar con icone e testi arancioni */
+[data-theme='dark-mode'] .glass-sidebar-dark,
+[data-theme='dark-mode'] .glass-sidebar-dark button,
+[data-theme='dark-mode'] .glass-sidebar-dark a,
+[data-theme='dark-mode'] .glass-sidebar-dark span,
+[data-theme='dark-mode'] .glass-sidebar-dark svg {
+  color: var(--theme-accent) !important;
+}
+[data-theme='dark-mode'] .glass-sidebar-dark svg {
+  stroke: var(--theme-accent) !important;
 }
 
 /* Rimuovi override Aurora: usa i token di palette (testo scuro su fondo chiaro) */
@@ -238,13 +250,32 @@ body {
   border-color: var(--theme-border) !important;
 }
 
+/* Dark Mode: riduci drasticamente i glow arancioni sotto le card */
+[data-theme='dark-mode'] .shadow-lg,
+[data-theme='dark-mode'] .shadow-md,
+[data-theme='dark-mode'] .shadow-sm,
+[data-theme='dark-mode'] .shadow {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+}
+
 [data-theme='dark-mode'] .app-theme-bg {
   background: #000000 !important;
 }
 
 [data-theme='dark-mode'] .glass-sidebar-dark {
   background: #000000 !important;
-  border-color: var(--theme-border) !important;
+  border-color: transparent !important;
+}
+
+/* Rimuovi tutti i bordi dalla sidebar in dark-mode */
+[data-theme='dark-mode'] .glass-sidebar-dark .border,
+[data-theme='dark-mode'] .glass-sidebar-dark .border-l-2,
+[data-theme='dark-mode'] .glass-sidebar-dark .border-l-4,
+[data-theme='dark-mode'] .glass-sidebar-dark .border-r,
+[data-theme='dark-mode'] .glass-sidebar-dark .border-t,
+[data-theme='dark-mode'] .glass-sidebar-dark .border-b {
+  border-color: transparent !important;
+  border-width: 0 !important;
 }
 
 [data-theme='dark-mode'] .glass-sidebar-dark button,

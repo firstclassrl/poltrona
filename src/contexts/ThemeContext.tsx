@@ -43,9 +43,9 @@ const applyPaletteToDocument = (palette: ThemePalette) => {
 
   // Derivatives for glass/nav
   if (palette.id === 'dark-mode') {
-    // Dark mode: sidebar nera solida, testo arancione/bianco
+    // Dark mode: sidebar nera solida, testo arancione, senza bordo
     root.style.setProperty('--theme-sidebar-bg', colors.background);
-    root.style.setProperty('--theme-sidebar-border', colors.border);
+    root.style.setProperty('--theme-sidebar-border', 'transparent');
     root.style.setProperty('--theme-sidebar-shadow', `0 8px 32px rgba(0, 0, 0, 0.8)`);
     root.style.setProperty('--theme-nav-active', `color-mix(in srgb, ${colors.accent} 20%, transparent)`);
     root.style.setProperty('--theme-nav-hover', `color-mix(in srgb, ${colors.accent} 10%, transparent)`);
@@ -107,8 +107,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       shopTheme: currentShop?.theme_palette,
       shopId: currentShop?.id
     });
-    setThemeId(next);
-  }, [shopKey, currentShop?.theme_palette]);
+    // Non resettare il tema se è già quello corretto (evita reset quando si naviga su opzioni)
+    if (next !== themeId) {
+      setThemeId(next);
+    }
+  }, [shopKey, currentShop?.theme_palette, themeId]);
 
   const setTheme = (id: ThemePaletteId, options?: SetThemeOptions) => {
     const paletteToApply = getPaletteById(id);
