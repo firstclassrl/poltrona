@@ -27,8 +27,11 @@ DO $$
 BEGIN
   RAISE NOTICE '=== RIMOZIONE POLICY ESISTENTI ===';
   
-  -- Rimuovi tutte le policy esistenti
+  -- Rimuovi tutte le policy esistenti (inclusi i nomi alternativi)
   DROP POLICY IF EXISTS shop_invites_select_public ON public.shop_invites;
+  DROP POLICY IF EXISTS shop_invites_insert_admin ON public.shop_invites;
+  DROP POLICY IF EXISTS shop_invites_update_use_token ON public.shop_invites;
+  DROP POLICY IF EXISTS shop_invites_delete_admin ON public.shop_invites;
   DROP POLICY IF EXISTS shop_invites_write_admin ON public.shop_invites;
   DROP POLICY IF EXISTS shop_invites_use_token ON public.shop_invites;
   DROP POLICY IF EXISTS "Enable read access for authenticated users" ON public.shop_invites;
