@@ -276,25 +276,68 @@ export const ShopSetup: React.FC = () => {
     }
 
     setError(null);
+    
+    // Verifica configurazione Supabase
+    if (!API_CONFIG.SUPABASE_EDGE_URL || !API_CONFIG.SUPABASE_ANON_KEY) {
+      const missing = [];
+      if (!API_CONFIG.SUPABASE_EDGE_URL) missing.push('VITE_SUPABASE_EDGE_URL');
+      if (!API_CONFIG.SUPABASE_ANON_KEY) missing.push('VITE_SUPABASE_ANON_KEY');
+      setError(`Configurazione Supabase mancante: ${missing.join(', ')}`);
+      return;
+    }
+
     try {
       const tokenUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/token?grant_type=password`;
-      const tokenRes = await fetch(tokenUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': API_CONFIG.SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${API_CONFIG.SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({ 
-          email: adminEmail.trim().toLowerCase(), 
-          password: adminPassword 
-        })
+      
+      console.log('🔍 handleLogin: Tentativo login...', {
+        email: adminEmail.trim().toLowerCase(),
+        url: tokenUrl.substring(0, 80) + '...',
+        hasAnonKey: !!API_CONFIG.SUPABASE_ANON_KEY,
+        edgeUrl: API_CONFIG.SUPABASE_EDGE_URL
       });
+      
+      // Crea un AbortController per timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 secondi timeout
+      
+      let tokenRes: Response;
+      try {
+        tokenRes = await fetch(tokenUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${API_CONFIG.SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ 
+            email: adminEmail.trim().toLowerCase(), 
+            password: adminPassword 
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        console.error('❌ handleLogin: Errore fetch:', fetchError);
+        
+        if (fetchError.name === 'AbortError') {
+          throw new Error('Timeout: La richiesta ha impiegato troppo tempo. Verifica la connessione internet.');
+        }
+        
+        if (fetchError.message?.includes('Failed to fetch') || fetchError.message?.includes('Load failed')) {
+          throw new Error('Impossibile connettersi al server. Verifica:\n1. La connessione internet\n2. Che l\'URL di Supabase sia corretto\n3. Che non ci siano problemi di CORS o firewall');
+        }
+        
+        throw new Error(`Errore di connessione: ${fetchError.message || 'Impossibile connettersi al server'}`);
+      }
 
+      console.log('🔍 handleLogin: Response status:', tokenRes.status, tokenRes.statusText);
+      
       if (!tokenRes.ok) {
         let errorMessage = 'Credenziali non valide';
         try {
           const errorText = await tokenRes.text();
+          console.error('❌ handleLogin: Errore HTTP:', tokenRes.status, errorText);
           if (errorText) {
             try {
               const errorData = JSON.parse(errorText);
@@ -303,8 +346,9 @@ export const ShopSetup: React.FC = () => {
               errorMessage = errorText.substring(0, 200);
             }
           }
-        } catch {
-          // Usa messaggio di default
+        } catch (parseError) {
+          console.error('❌ handleLogin: Errore parsing risposta:', parseError);
+          errorMessage = `Errore server (${tokenRes.status}): ${tokenRes.statusText}`;
         }
         throw new Error(errorMessage);
       }
