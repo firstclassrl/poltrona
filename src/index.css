@@ -288,11 +288,13 @@ body {
   color: #ffffff !important;
 }
 
-/* Dark Mode: lineette di separazione arancioni nella sidebar */
-[data-theme='dark-mode'] .dark-mode-separator {
+/* Dark Mode: due lineette di separazione arancioni nella sidebar */
+[data-theme='dark-mode'] .dark-mode-separator-top,
+[data-theme='dark-mode'] .dark-mode-separator-bottom {
+  display: block !important;
   border-color: var(--theme-accent) !important;
   border-width: 1px !important;
-  opacity: 0.4;
+  opacity: 0.6;
 }
 
 /* Dark Mode: tasto notifiche con bordo arancione */
