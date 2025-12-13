@@ -122,13 +122,15 @@ export const ShopSetup: React.FC = () => {
           setTokenValid(true);
           setError(null);
           
-          // Salva l'admin_user_id associato al token
+          // Salva l'admin_user_id associato al token (se presente)
+          // Se non presente, permetteremo a qualsiasi admin di usare il token
           if (valid.admin_user_id) {
             setInviteAdminUserId(valid.admin_user_id);
+            console.log('✅ ShopSetup: Token associato a admin specifico:', valid.admin_user_id);
           } else {
-            console.warn('⚠️ ShopSetup: Token valido ma senza admin_user_id');
-            setError('Token di invito non associato a un admin. Contatta il supporto.');
-            setTokenValid(false);
+            console.log('ℹ️ ShopSetup: Token valido ma senza admin_user_id - qualsiasi admin può usarlo');
+            setInviteAdminUserId(null);
+            // Non impostare errore - il token può essere usato da qualsiasi admin
           }
         }
       } catch (validationError) {
@@ -332,12 +334,12 @@ export const ShopSetup: React.FC = () => {
         throw new Error('Impossibile ottenere token o user_id dal login');
       }
 
-      // Verifica che l'utente che fa login corrisponda all'admin associato al token
+      // Se il token è associato a un admin specifico, verifica che corrisponda
       if (inviteAdminUserId && userId !== inviteAdminUserId) {
         throw new Error('Le credenziali inserite non corrispondono all\'admin associato a questo token di invito. Usa le credenziali dell\'admin corretto.');
       }
 
-      // Verifica anche che l'utente abbia ruolo admin
+      // Verifica che l'utente abbia ruolo admin (necessario in entrambi i casi)
       try {
         const profileUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/profiles?user_id=eq.${userId}&select=role,shop_id`;
         const profileRes = await fetch(profileUrl, {

@@ -3,7 +3,8 @@ export type ThemePaletteId =
   | 'aurora'
   | 'sunset-neon'
   | 'terra-soft'
-  | 'cyber-lilac';
+  | 'cyber-lilac'
+  | 'dark-mode';
 
 export interface ThemePalette {
   id: ThemePaletteId;
@@ -143,6 +144,29 @@ export const THEME_PALETTES: ThemePalette[] = [
       success: '#34d399',
       warning: '#fbbf24',
       danger: '#fb7185',
+    },
+  },
+  {
+    id: 'dark-mode',
+    name: 'Dark Mode',
+    description: 'Sfondo nero, testi bianchi e accenti arancioni.',
+    trend: 'Dark mode classico con accenti caldi',
+    previewGradient: 'linear-gradient(135deg, #1a1a1a 0%, #2d1f0f 100%)',
+    colors: {
+      background: '#000000',
+      surface: '#1a1a1a',
+      surfaceAlt: '#0f0f0f',
+      primary: '#ff6b35',        // arancione accent
+      primaryStrong: '#e55a2b',
+      accent: '#ff8c42',         // arancione più chiaro
+      accentSoft: '#ffb366',
+      accentContrast: '#ffffff',
+      text: '#ffffff',
+      textMuted: '#b0b0b0',
+      border: '#ff6b35',
+      success: '#22c55e',
+      warning: '#f59e0b',
+      danger: '#ef4444',
     },
   },
 ];
