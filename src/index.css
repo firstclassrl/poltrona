@@ -303,6 +303,31 @@ body {
   border-width: 1px !important;
 }
 
+/* Dark Mode: quadrati calendario arancioni scuri */
+[data-theme='dark-mode'] .calendar-time-slot {
+  background-color: var(--theme-primary-strong) !important;
+  border-color: var(--theme-accent) !important;
+}
+
+[data-theme='dark-mode'] .calendar-time-slot:hover {
+  background-color: var(--theme-primary) !important;
+}
+
+[data-theme='dark-mode'] .calendar-time-slot.bg-gray-200 {
+  background-color: color-mix(in srgb, var(--theme-primary-strong) 80%, black) !important;
+}
+
+/* Dark Mode: card prossimi appuntamenti nere con bordo arancione */
+[data-theme='dark-mode'] .dashboard-appointment-card {
+  background-color: #0a0a0a !important;
+  border-color: var(--theme-border) !important;
+  border-width: 1px !important;
+}
+
+[data-theme='dark-mode'] .dashboard-appointment-card:hover {
+  border-color: var(--theme-accent) !important;
+}
+
 /* Force 24-hour format for time inputs */
 @layer utilities {
   input[type="time"][data-format="24"] {

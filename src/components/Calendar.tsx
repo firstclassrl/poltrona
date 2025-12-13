@@ -439,7 +439,7 @@ export const Calendar = () => {
                       return (
                         <div
                           key={`${time}-${dayIndex}`}
-                          className={`min-h-[60px] max-h-[60px] p-1 border border-gray-100 transition-colors relative ${
+                          className={`calendar-time-slot min-h-[60px] max-h-[60px] p-1 border border-gray-100 transition-colors relative ${
                             appointmentAtSlot ? 'overflow-visible' : 'overflow-hidden'
                           } ${
                             isTimeSlotAvailable 

@@ -222,7 +222,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               {upcomingAppointments.slice(0, 3).map((appointment) => (
                 <Card 
                   key={appointment.id} 
-                  className="p-3 cursor-pointer transition-colors bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl hover:border-green-100"
+                  className="dashboard-appointment-card p-3 cursor-pointer transition-colors bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl hover:border-green-100"
                   onClick={() => handleAppointmentClick(appointment)}
                 >
                   <div className="flex items-center justify-between">
@@ -316,7 +316,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           {upcomingAppointments.map((appointment) => (
             <div
               key={appointment.id}
-              className="flex items-center justify-between p-4 bg-white/60 backdrop-blur-xl rounded-lg border border-white/30 cursor-pointer hover:border-green-200 transition-colors shadow"
+              className="dashboard-appointment-card flex items-center justify-between p-4 bg-white/60 backdrop-blur-xl rounded-lg border border-white/30 cursor-pointer hover:border-green-200 transition-colors shadow"
               onClick={() => handleAppointmentClick(appointment)}
             >
               <div className="flex items-center space-x-4">
