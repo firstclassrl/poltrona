@@ -90,13 +90,33 @@ const fetchWithTokenRefresh = async (
   let response = await fetch(url, options);
   
   // Se errore 401/403 e usaAuth, prova refresh se token scaduto o bad_jwt
+  // IMPORTANTE: Tentiamo il refresh anche per errori 403 generici, perché potrebbero essere causati da token scaduto
+  // che fa fallire le policy RLS (auth.uid() restituisce NULL quando il token è scaduto)
   if (useAuth && (response.status === 401 || response.status === 403)) {
     const responseText = await response.clone().text();
-    const isJwtIssue = responseText.toLowerCase().includes('jwt expired') || responseText.toLowerCase().includes('bad jwt');
-    if (isJwtIssue) {
+    const responseLower = responseText.toLowerCase();
+    
+    // Controlla se è un errore JWT esplicito
+    const isJwtIssue = responseLower.includes('jwt expired') || 
+                       responseLower.includes('bad jwt') ||
+                       responseLower.includes('jwt') ||
+                       responseLower.includes('unauthorized');
+    
+    // Controlla se è un errore RLS che potrebbe essere causato da token scaduto
+    const isRlsIssue = responseLower.includes('row-level security') || 
+                       responseLower.includes('violates row-level security policy') ||
+                       responseLower.includes('42501');
+    
+    // Tentiamo il refresh se:
+    // 1. È un errore JWT esplicito
+    // 2. È un errore 401 (sempre probabilmente autenticazione)
+    // 3. È un errore 403 con RLS (potrebbe essere token scaduto)
+    if (isJwtIssue || response.status === 401 || (response.status === 403 && isRlsIssue)) {
+      console.log('🔄 Tentativo refresh token per errore:', response.status, isJwtIssue ? 'JWT' : isRlsIssue ? 'RLS' : 'Generico');
       const refreshed = await tryRefreshToken();
       
       if (refreshed) {
+        console.log('✅ Token refreshato, riprovo la chiamata');
         // Ricostruisci gli headers con il nuovo token
         const newHeaders = { ...buildHeaders(true) };
         if (options.headers) {
@@ -108,6 +128,7 @@ const fetchWithTokenRefresh = async (
         response = await fetch(url, { ...options, headers: newHeaders });
       } else {
         // Refresh fallito, forza logout
+        console.log('❌ Refresh fallito, sessione scaduta');
         window.dispatchEvent(new CustomEvent('auth:session-expired'));
       }
     }
@@ -336,11 +357,16 @@ export const apiService = {
       console.log('🔍 createClient: Headers Authorization:', headers.Authorization ? 'Presente' : 'Mancante');
       console.log('🔍 createClient: Token usato:', accessToken ? 'Override token' : (localStorage.getItem('auth_token') ? 'Token da localStorage' : 'Nessun token'));
       
-      const response = await fetch(API_ENDPOINTS.SEARCH_CLIENTS, {
-        method: 'POST',
-        headers: { ...headers, Prefer: 'return=representation' },
-        body: JSON.stringify(payload),
-      });
+      // Usa fetchWithTokenRefresh per gestire automaticamente il refresh del token se scaduto
+      const response = await fetchWithTokenRefresh(
+        API_ENDPOINTS.SEARCH_CLIENTS,
+        {
+          method: 'POST',
+          headers: { ...headers, Prefer: 'return=representation' },
+          body: JSON.stringify(payload),
+        },
+        true // useAuth = true per abilitare il refresh automatico
+      );
       
       if (!response.ok) {
         const errorText = await response.text();

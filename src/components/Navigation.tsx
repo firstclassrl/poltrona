@@ -125,6 +125,9 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
       <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
         <div className="flex-1 flex flex-col min-h-0 glass-sidebar-dark">
           <div className="flex-1 flex flex-col pt-3 pb-4 overflow-y-auto">
+            {/* Separator Line Above Logo */}
+            <div className="mx-4 mb-4 border-t border-white/20 dark-mode-separator"></div>
+            
             {/* Logo Section */}
             <div className="flex items-center justify-center flex-shrink-0 px-4 mb-6">
               <img 
@@ -134,8 +137,8 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
               />
             </div>
             
-            {/* Separator Line */}
-            <div className="mx-4 mb-2 border-t border-white/20"></div>
+            {/* Separator Line Below Logo */}
+            <div className="mx-4 mb-2 border-t border-white/20 dark-mode-separator"></div>
             
             <nav className="mt-1 flex-1 px-3 space-y-2">
               {navItems.map((item) => {
@@ -176,7 +179,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                 <button
                   onClick={() => onTabChange('notifications')}
                   className={cn(
-                    'w-full flex items-center justify-between h-11 px-3 text-sm font-medium rounded-lg transition-all duration-150 border border-yellow-400/40',
+                    'w-full flex items-center justify-between h-11 px-3 text-sm font-medium rounded-lg transition-all duration-150 border border-yellow-400/40 dark-mode-notification-button',
                     activeTab === 'notifications'
                       ? 'bg-yellow-500/15 text-yellow-400 border-l-4 border-yellow-400/50 shadow-md'
                       : 'text-yellow-300 hover:bg-yellow-500/10 hover:text-yellow-400 border-l-2 border-transparent hover:border-yellow-400/30'
@@ -194,6 +197,9 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                 </button>
               </div>
             )}
+            
+            {/* Separator Line Above User Info */}
+            <div className="mx-4 mt-4 mb-4 border-t border-white/20 dark-mode-separator"></div>
             
             {/* User Info and Logout */}
             <div className="mt-auto px-4 pb-4">

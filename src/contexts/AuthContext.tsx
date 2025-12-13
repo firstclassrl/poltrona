@@ -200,9 +200,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (!tokenRes.ok) {
         let serverMsg = 'Credenziali non valide';
+        let errorCode = '';
+        
         try {
           const maybeJson = await tokenRes.clone().json();
           serverMsg = maybeJson?.error_description || maybeJson?.msg || maybeJson?.message || serverMsg;
+          errorCode = maybeJson?.error || '';
         } catch {
           try {
             const errText = await tokenRes.text();
@@ -210,15 +213,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           } catch {}
         }
         
-        // Se l'errore indica credenziali invalide o password sbagliata, mostra messaggio specifico
+        // Interpreta gli errori di Supabase per dare messaggi più chiari all'utente
         const errorLower = serverMsg.toLowerCase();
+        const codeLower = errorCode.toLowerCase();
+        
+        // Password sbagliata
         if (errorLower.includes('invalid login') || 
             errorLower.includes('invalid credentials') || 
             errorLower.includes('wrong password') ||
             errorLower.includes('incorrect password') ||
             errorLower.includes('password') ||
+            codeLower.includes('invalid_credentials') ||
+            codeLower.includes('invalid_grant') ||
             (errorLower.includes('invalid') && errorLower.includes('credential'))) {
-          serverMsg = 'Password sbagliata';
+          serverMsg = 'Password errata. Controlla la password e riprova.';
+        }
+        // Email non trovata o utente non esiste
+        else if (errorLower.includes('user not found') ||
+                 errorLower.includes('email not found') ||
+                 errorLower.includes('no user') ||
+                 codeLower.includes('user_not_found')) {
+          serverMsg = 'Email non trovata. Verifica l\'indirizzo email e riprova.';
+        }
+        // Email non confermata
+        else if (errorLower.includes('email not confirmed') ||
+                 errorLower.includes('email_not_confirmed') ||
+                 errorLower.includes('signup_disabled')) {
+          serverMsg = 'Account non confermato. Controlla la tua email e clicca sul link di conferma.';
+        }
+        // Troppi tentativi
+        else if (errorLower.includes('too many requests') ||
+                 errorLower.includes('rate limit')) {
+          serverMsg = 'Troppi tentativi di accesso. Attendi qualche minuto e riprova.';
+        }
+        // Errore generico di autenticazione
+        else if (tokenRes.status === 400 || tokenRes.status === 401) {
+          serverMsg = 'Credenziali non valide. Verifica email e password.';
         }
         
         setAuthState(prev => ({ ...prev, isLoading: false }));

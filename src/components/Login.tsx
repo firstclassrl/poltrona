@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { flushSync } from 'react-dom';
-import { Eye, EyeOff, User, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, User, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Card } from './ui/Card';
 import { PrivacyPolicy } from './PrivacyPolicy';
 import { Modal } from './ui/Modal';
+import { Toast } from './ui/Toast';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../hooks/useToast';
+import { useTheme } from '../contexts/ThemeContext';
 import { APP_VERSION } from '../config/version';
 import { apiService } from '../services/api';
 import { API_CONFIG } from '../config/api';
@@ -40,6 +43,8 @@ export const Login: React.FC = () => {
   const [isLoadingShop, setIsLoadingShop] = useState(true);
   
   const { login, register } = useAuth();
+  const { toast, showToast, hideToast } = useToast();
+  const { palette } = useTheme();
 
   // Carica i dati dello shop dallo slug nell'URL
   useEffect(() => {
@@ -147,7 +152,12 @@ export const Login: React.FC = () => {
       }
     } catch (err) {
       console.error('❌ Errore in handleSubmit:', err);
-      setError(err instanceof Error ? err.message : 'Errore durante l\'operazione');
+      const errorMessage = err instanceof Error ? err.message : 'Errore durante l\'operazione';
+      setError(errorMessage);
+      
+      // Mostra anche un Toast per rendere l'errore più visibile
+      showToast(errorMessage, 'error');
+      
       // Assicurati che il modal non sia mostrato in caso di errore
       setShowRegistrationSuccess(false);
     }
@@ -205,29 +215,45 @@ export const Login: React.FC = () => {
     setCredentials(demoCredentials[role]);
   };
 
+  // Colori per lo sfondo: più scuro (primaryStrong) e più chiaro (accent) per la texture
+  const bgColor = palette?.colors.primaryStrong || '#1b3015';
+  const bgColorMid = palette?.colors.primary || '#25401c';
+  const textureColor = palette?.colors.accent || '#eecf54';
+  const patternId = `barbershop-pattern-${palette?.id || 'default'}`;
+  
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-green-900 flex items-center justify-center p-4 relative overflow-hidden login-liquid">
+    <div 
+      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden login-liquid"
+      style={{
+        background: `linear-gradient(to bottom right, ${bgColor}, ${bgColorMid}, ${bgColor})`
+      }}
+    >
       <div className="login-grain"></div>
-      {/* Pattern di sfondo */}
+      {/* Pattern di sfondo con colori del tema */}
       <div className="absolute inset-0 opacity-10">
         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
           <defs>
-            <pattern id="barbershop-pattern" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+            <pattern id={patternId} x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
               {/* Linee diagonali */}
-              <line x1="0" y1="0" x2="60" y2="60" stroke="currentColor" strokeWidth="2" className="text-white"/>
-              <line x1="60" y1="0" x2="0" y2="60" stroke="currentColor" strokeWidth="2" className="text-white"/>
+              <line x1="0" y1="0" x2="60" y2="60" stroke={textureColor} strokeWidth="2"/>
+              <line x1="60" y1="0" x2="0" y2="60" stroke={textureColor} strokeWidth="2"/>
               {/* Cerchi decorativi */}
-              <circle cx="30" cy="30" r="3" fill="currentColor" className="text-white"/>
-              <circle cx="0" cy="0" r="2" fill="currentColor" className="text-white"/>
-              <circle cx="60" cy="60" r="2" fill="currentColor" className="text-white"/>
+              <circle cx="30" cy="30" r="3" fill={textureColor}/>
+              <circle cx="0" cy="0" r="2" fill={textureColor}/>
+              <circle cx="60" cy="60" r="2" fill={textureColor}/>
             </pattern>
           </defs>
-          <rect width="100%" height="100%" fill="url(#barbershop-pattern)"/>
+          <rect width="100%" height="100%" fill={`url(#${patternId})`}/>
         </svg>
       </div>
       
-      {/* Overlay sfumato */}
-      <div className="absolute inset-0 bg-gradient-to-t from-green-950/30 via-transparent to-green-950/30"></div>
+      {/* Overlay sfumato con colore del tema */}
+      <div 
+        className="absolute inset-0"
+        style={{
+          background: `linear-gradient(to top, ${bgColor}30, transparent, ${bgColor}30)`
+        }}
+      ></div>
       
       {/* Card principale - sopra il pattern */}
       <Card className="w-full max-w-md p-8 bg-white/25 backdrop-blur-2xl border border-white/30 shadow-2xl relative z-10 login-card-glass">
@@ -433,8 +459,14 @@ export const Login: React.FC = () => {
           )}
 
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-              <p className="text-red-600 text-sm">{error}</p>
+            <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-red-800 font-semibold text-sm mb-1">Errore di accesso</p>
+                  <p className="text-red-700 text-sm">{error}</p>
+                </div>
+              </div>
             </div>
           )}
 
@@ -568,6 +600,14 @@ export const Login: React.FC = () => {
       <PrivacyPolicy 
         isOpen={showPrivacyPolicy} 
         onClose={() => setShowPrivacyPolicy(false)} 
+      />
+
+      {/* Toast Notification */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={hideToast}
       />
 
       {/* Versione e Copyright */}

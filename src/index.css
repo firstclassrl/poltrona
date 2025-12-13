@@ -288,6 +288,19 @@ body {
   color: #ffffff !important;
 }
 
+/* Dark Mode: lineette di separazione arancioni nella sidebar */
+[data-theme='dark-mode'] .dark-mode-separator {
+  border-color: var(--theme-accent) !important;
+  border-width: 1px !important;
+  opacity: 0.4;
+}
+
+/* Dark Mode: tasto notifiche con bordo arancione */
+[data-theme='dark-mode'] .dark-mode-notification-button {
+  border-color: var(--theme-accent) !important;
+  border-width: 1px !important;
+}
+
 /* Force 24-hour format for time inputs */
 @layer utilities {
   input[type="time"][data-format="24"] {
