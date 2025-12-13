@@ -23,6 +23,13 @@ const getSlugFromUrl = (): string | null => {
   return slug && slug.trim().length > 0 ? slug.trim() : null;
 };
 
+const isSetupMode = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+  return token && token.trim().length > 0;
+};
+
 export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
   const [currentShop, setCurrentShop] = useState<Shop | null>(null);
@@ -30,15 +37,19 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [error, setError] = useState<string | null>(null);
 
   const slugFromUrl = useMemo(() => getSlugFromUrl(), []);
+  const setupMode = useMemo(() => isSetupMode(), []);
 
   const effectiveSlug = useMemo(() => {
+    // Se siamo in setup mode (token nell'URL), non caricare negozi
+    if (setupMode) return null;
+    
     // Se c'è query param, vince sempre lui
     if (slugFromUrl) return slugFromUrl;
     // Se utente non loggato, fallback allo shop di default (retro-compatibilità QR)
     if (!isAuthenticated) return DEFAULT_SLUG;
     // Se loggato, sarà determinato da shop_id (non slug)
     return null;
-  }, [slugFromUrl, isAuthenticated]);
+  }, [slugFromUrl, isAuthenticated, setupMode]);
 
   const currentShopId = useMemo(() => {
     // Prova prima da user (se disponibile)
@@ -56,6 +67,15 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [user]);
 
   const loadShop = useCallback(async () => {
+    // Se siamo in setup mode (token nell'URL), non caricare negozi
+    if (setupMode) {
+      console.log('🔍 ShopProvider: Setup mode attivo, salto caricamento negozio');
+      setIsLoading(false);
+      setCurrentShop(null);
+      setError(null);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -67,8 +87,14 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
-      const slugToUse = effectiveSlug || DEFAULT_SLUG;
-      const shop = await apiService.getShopBySlug(slugToUse);
+      // Se non c'è slug da usare, non caricare nulla
+      if (!effectiveSlug) {
+        setIsLoading(false);
+        setCurrentShop(null);
+        return;
+      }
+
+      const shop = await apiService.getShopBySlug(effectiveSlug);
       setCurrentShop(shop);
     } catch (err) {
       console.error('Error loading shop in ShopProvider:', err);
@@ -77,7 +103,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, currentShopId, effectiveSlug]);
+  }, [isAuthenticated, currentShopId, effectiveSlug, setupMode]);
 
   useEffect(() => {
     void loadShop();

@@ -1631,7 +1631,10 @@ export const apiService = {
   },
 
   async getShopBySlug(slug: string): Promise<Shop> {
+    console.log('🔍 getShopBySlug: slug=', slug);
+    
     if (!isSupabaseConfigured()) {
+      console.warn('⚠️ getShopBySlug: Supabase non configurato, uso shop di default');
       return {
         id: 'default',
         slug: slug || DEFAULT_SHOP_SLUG,
@@ -1656,18 +1659,44 @@ export const apiService = {
       };
     }
 
-    const url = `${API_ENDPOINTS.SHOPS}?select=*&slug=eq.${encodeURIComponent(slug)}&limit=1`;
-    const response = await fetch(url, { headers: buildHeaders(false) });
-    if (!response.ok) {
-      throw new Error(`Impossibile caricare shop con slug ${slug}`);
+    try {
+      const encodedSlug = encodeURIComponent(slug);
+      const url = `${API_ENDPOINTS.SHOPS}?select=*&slug=eq.${encodedSlug}&limit=1`;
+      
+      console.log('🔍 getShopBySlug: URL=', url.substring(0, 100) + '...');
+      console.log('🔍 getShopBySlug: Usando headers pubblici (anon)');
+      
+      const response = await fetch(url, { headers: buildHeaders(false) });
+      
+      console.log('🔍 getShopBySlug: Response status=', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ getShopBySlug: Errore HTTP:', response.status, errorText);
+        throw new Error(`Impossibile caricare shop con slug ${slug}: ${response.status} ${errorText}`);
+      }
+      
+      const shops = await response.json();
+      console.log('🔍 getShopBySlug: Shops trovati:', shops?.length || 0);
+      
+      if (!shops || shops.length === 0) {
+        console.error('❌ getShopBySlug: Nessun shop trovato con slug:', slug);
+        throw new Error(`Nessun shop trovato con slug ${slug}`);
+      }
+      
+      const shop = shops[0];
+      console.log('✅ getShopBySlug: Shop trovato:', {
+        id: shop.id,
+        slug: shop.slug,
+        name: shop.name
+      });
+      
+      persistShopLocally(shop);
+      return shop;
+    } catch (error) {
+      console.error('❌ getShopBySlug: Errore durante caricamento:', error);
+      throw error;
     }
-    const shops = await response.json();
-    if (!shops || shops.length === 0) {
-      throw new Error(`Nessun shop trovato con slug ${slug}`);
-    }
-    const shop = shops[0];
-    persistShopLocally(shop);
-    return shop;
   },
 
   async getShopById(id: string): Promise<Shop> {
@@ -1865,23 +1894,69 @@ export const apiService = {
   },
 
   async validateShopInvite(token: string): Promise<{ id: string; token: string; admin_user_id: string | null } | null> {
-    if (!isSupabaseConfigured()) return null;
+    if (!isSupabaseConfigured()) {
+      console.error('❌ validateShopInvite: Supabase non configurato');
+      return null;
+    }
+    
+    if (!token || token.trim().length === 0) {
+      console.error('❌ validateShopInvite: Token vuoto o mancante');
+      return null;
+    }
+    
     try {
       const nowIso = new Date().toISOString();
-      const url = `${API_ENDPOINTS.SHOP_INVITES}?select=*&token=eq.${encodeURIComponent(token)}&limit=1`;
+      const encodedToken = encodeURIComponent(token.trim());
+      const url = `${API_ENDPOINTS.SHOP_INVITES}?select=*&token=eq.${encodedToken}&limit=1`;
+      
+      console.log('🔍 validateShopInvite: Validando token:', {
+        tokenLength: token.length,
+        tokenPreview: token.substring(0, 8) + '...',
+        url: url.substring(0, 100) + '...'
+      });
+      
       const response = await fetch(url, { headers: buildHeaders(false) });
-      if (!response.ok) return null;
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ validateShopInvite: Errore HTTP:', response.status, errorText);
+        return null;
+      }
+      
       const invites = await response.json();
+      console.log('🔍 validateShopInvite: Risposta API:', {
+        invitesCount: invites?.length || 0,
+        hasInvite: !!invites?.[0]
+      });
+      
       const invite = invites?.[0];
-      if (!invite) return null;
-      if (invite.used_at) return null;
-      if (invite.expires_at && invite.expires_at <= nowIso) return null;
+      if (!invite) {
+        console.warn('⚠️ validateShopInvite: Nessun invito trovato per questo token');
+        return null;
+      }
+      
+      if (invite.used_at) {
+        console.warn('⚠️ validateShopInvite: Token già usato il', invite.used_at);
+        return null;
+      }
+      
+      if (invite.expires_at && invite.expires_at <= nowIso) {
+        console.warn('⚠️ validateShopInvite: Token scaduto il', invite.expires_at);
+        return null;
+      }
+      
+      console.log('✅ validateShopInvite: Token valido!', {
+        inviteId: invite.id,
+        hasAdminUserId: !!invite.admin_user_id
+      });
+      
       return {
         id: invite.id,
         token: invite.token,
         admin_user_id: invite.admin_user_id || null
       };
-    } catch {
+    } catch (error) {
+      console.error('❌ validateShopInvite: Errore durante validazione:', error);
       return null;
     }
   },

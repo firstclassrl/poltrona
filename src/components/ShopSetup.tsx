@@ -15,7 +15,23 @@ const getTokenFromUrl = (): string | null => {
   if (typeof window === 'undefined') return null;
   const params = new URLSearchParams(window.location.search);
   const token = params.get('token');
-  return token && token.trim().length > 0 ? token.trim() : null;
+  const result = token && token.trim().length > 0 ? token.trim() : null;
+  
+  // Log per debug
+  if (result) {
+    console.log('🔍 getTokenFromUrl: Token trovato nell\'URL:', {
+      tokenLength: result.length,
+      tokenPreview: result.substring(0, 8) + '...',
+      fullUrl: window.location.href
+    });
+  } else {
+    console.warn('⚠️ getTokenFromUrl: Nessun token trovato nell\'URL:', {
+      search: window.location.search,
+      fullUrl: window.location.href
+    });
+  }
+  
+  return result;
 };
 
 const slugify = (value: string) =>
@@ -76,26 +92,52 @@ export const ShopSetup: React.FC = () => {
 
   useEffect(() => {
     const validate = async () => {
+      console.log('🔍 ShopSetup: Inizio validazione token...');
+      
       if (!inviteToken) {
-        setError('Token di invito mancante o non valido.');
+        console.error('❌ ShopSetup: Token mancante nell\'URL');
+        setError('Token di invito mancante o non valido. Verifica che il link contenga ?token=...');
         setIsValidating(false);
         return;
       }
-      const valid = await apiService.validateShopInvite(inviteToken);
-      if (!valid) {
-        setError('Link di invito non valido o scaduto.');
-        setTokenValid(false);
-      } else {
-        setTokenValid(true);
-        // Salva l'admin_user_id associato al token
-        if (valid.admin_user_id) {
-          setInviteAdminUserId(valid.admin_user_id);
-        } else {
-          setError('Token di invito non associato a un admin. Contatta il supporto.');
+      
+      console.log('🔍 ShopSetup: Token trovato, validazione in corso...', {
+        tokenLength: inviteToken.length,
+        tokenPreview: inviteToken.substring(0, 8) + '...'
+      });
+      
+      try {
+        const valid = await apiService.validateShopInvite(inviteToken);
+        
+        if (!valid) {
+          console.error('❌ ShopSetup: Validazione token fallita');
+          setError('Link di invito non valido o scaduto. Verifica che il token sia corretto e non sia già stato usato.');
           setTokenValid(false);
+        } else {
+          console.log('✅ ShopSetup: Token valido!', {
+            inviteId: valid.id,
+            hasAdminUserId: !!valid.admin_user_id
+          });
+          
+          setTokenValid(true);
+          setError(null);
+          
+          // Salva l'admin_user_id associato al token
+          if (valid.admin_user_id) {
+            setInviteAdminUserId(valid.admin_user_id);
+          } else {
+            console.warn('⚠️ ShopSetup: Token valido ma senza admin_user_id');
+            setError('Token di invito non associato a un admin. Contatta il supporto.');
+            setTokenValid(false);
+          }
         }
+      } catch (validationError) {
+        console.error('❌ ShopSetup: Errore durante validazione:', validationError);
+        setError(`Errore durante la validazione del token: ${validationError instanceof Error ? validationError.message : 'Errore sconosciuto'}`);
+        setTokenValid(false);
+      } finally {
+        setIsValidating(false);
       }
-      setIsValidating(false);
     };
     void validate();
   }, [inviteToken]);
