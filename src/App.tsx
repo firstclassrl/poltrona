@@ -57,7 +57,9 @@ const AppContent: React.FC = () => {
   // Vista cliente: forza il tema a quello impostato sul negozio
   useEffect(() => {
     if (user?.role === 'client' && currentShop?.theme_palette) {
-      setTheme(currentShop.theme_palette as ThemePaletteId, { persist: false });
+      // Per la vista cliente usiamo SEMPRE il tema del negozio
+      // e lo persistiamo così resta anche dopo refresh
+      setTheme(currentShop.theme_palette as ThemePaletteId, { persist: true });
     }
   }, [user?.role, currentShop?.theme_palette, setTheme]);
 
