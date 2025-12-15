@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useChat } from '../contexts/ChatContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotifications } from '../contexts/NotificationContext';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Avatar } from './ui/Avatar';
@@ -37,6 +38,7 @@ export const Chat: React.FC = () => {
     startChatWithClient,
     deleteChat
   } = useChat();
+  const { notifications, markAsRead } = useNotifications();
   
   const [messageInput, setMessageInput] = useState('');
   const [showChatList, setShowChatList] = useState(true);
@@ -61,6 +63,26 @@ export const Chat: React.FC = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Quando si apre la chat, marca come lette tutte le notifiche di tipo chat_message
+  useEffect(() => {
+    const markChatNotificationsAsRead = async () => {
+      try {
+        const chatNotifications = (notifications || []).filter(
+          (n) => n.type === 'chat_message' && !n.read_at
+        );
+        for (const n of chatNotifications) {
+          await markAsRead(n.id);
+        }
+      } catch (error) {
+        console.error('Errore nel marcare come lette le notifiche chat:', error);
+      }
+    };
+
+    if (notifications && notifications.length > 0) {
+      void markChatNotificationsAsRead();
+    }
+  }, [notifications, markAsRead]);
 
   useEffect(() => {
     if (!showNewMessageModal) return;
