@@ -22,9 +22,10 @@ import { Toast } from './components/ui/Toast';
 import { useToast } from './hooks/useToast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
-import { ShopProvider } from './contexts/ShopContext';
+import { ShopProvider, useShop } from './contexts/ShopContext';
 import { ChatProvider } from './contexts/ChatContext';
-import { ThemeProvider } from './contexts/ThemeContext';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import type { ThemePaletteId } from './theme/palettes';
 import { APP_VERSION, VERSION_ENDPOINT } from './config/version';
 import { apiService } from './services/api';
 import type { CreateAppointmentRequest, UpdateAppointmentRequest, Appointment } from './types';
@@ -37,6 +38,8 @@ const AppContent: React.FC = () => {
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const { toast, showToast, hideToast } = useToast();
   const { isAuthenticated, isLoading, user } = useAuth();
+  const { currentShop } = useShop();
+  const { setTheme } = useTheme();
   const setupToken = useMemo(() => {
     if (typeof window === 'undefined') return null;
     const params = new URLSearchParams(window.location.search);
@@ -50,6 +53,13 @@ const AppContent: React.FC = () => {
       setActiveTab('client_booking');
     }
   }, [user]);
+
+  // Vista cliente: forza il tema a quello impostato sul negozio
+  useEffect(() => {
+    if (user?.role === 'client' && currentShop?.theme_palette) {
+      setTheme(currentShop.theme_palette as ThemePaletteId, { persist: false });
+    }
+  }, [user?.role, currentShop?.theme_palette, setTheme]);
 
   // Poll di controllo versione: verifica periodicamente se esiste una versione più recente
   useEffect(() => {

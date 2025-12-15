@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Building2, MapPin, Phone, Mail, Clock, MessageCircle } from 'lucide-react';
+import { Building2, MapPin, Phone, Mail, Clock, MessageCircle, User as UserIcon } from 'lucide-react';
 import { Card } from './ui/Card';
 import { apiService } from '../services/api';
 import { useDailyShopHours } from '../hooks/useDailyShopHours';
-import type { Shop } from '../types';
+import type { Shop, Staff } from '../types';
+import { API_CONFIG } from '../config/api';
 
 const DAYS_OF_WEEK = [
   { key: 0, name: 'Domenica', shortName: 'Dom' },
@@ -19,6 +20,8 @@ const formatTimeSlot = (slot: { start: string; end: string }): string => {
   return `${slot.start} - ${slot.end}`;
 };
 
+const DEFAULT_LOGO = '/logo Poltrona 2025.png';
+
 const formatAddress = (shop: Shop): string => {
   const parts: string[] = [];
   if (shop.address) parts.push(shop.address);
@@ -32,10 +35,27 @@ const formatAddress = (shop: Shop): string => {
   return parts.join(', ') || 'Indirizzo non disponibile';
 };
 
+const getLogoUrl = (shop: Shop): string => {
+  const logoUrl = (shop as any).logo_url as string | undefined;
+  const logoPath = (shop as any).logo_path as string | undefined;
+
+  if (logoUrl && logoUrl.trim() && logoUrl !== 'null' && logoUrl !== 'undefined') {
+    return logoUrl;
+  }
+
+  if (logoPath) {
+    return `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/shop-logos/${logoPath}`;
+  }
+
+  return DEFAULT_LOGO;
+};
+
 export const ClientShop = () => {
   const [shop, setShop] = useState<Shop | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { shopHours, shopHoursLoaded, getShopHoursSummary } = useDailyShopHours();
+  const [staff, setStaff] = useState<Staff[]>([]);
+  const [selectedBarberId, setSelectedBarberId] = useState<string>('');
 
   useEffect(() => {
     const loadShopData = async () => {
@@ -43,6 +63,18 @@ export const ClientShop = () => {
         setIsLoading(true);
         const shopData = await apiService.getShop();
         setShop(shopData);
+
+        // Carica anche i barbieri del negozio
+        try {
+          const staffList = await apiService.getStaff();
+          setStaff(staffList);
+          if (staffList.length > 0) {
+            setSelectedBarberId(staffList[0].id);
+          }
+        } catch (staffError) {
+          console.error('Error loading staff for client view:', staffError);
+          setStaff([]);
+        }
       } catch (error) {
         console.error('Error loading shop data:', error);
       } finally {
@@ -99,7 +131,7 @@ export const ClientShop = () => {
         <div className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
           <div className="flex items-center justify-center w-full h-full">
             <img
-              src="/Logo retro barbershop glass copy copy.png"
+              src={getLogoUrl(shop)}
               alt={shop.name || 'Logo negozio'}
               className="max-h-52 w-auto object-contain drop-shadow-lg"
             />
@@ -165,10 +197,23 @@ export const ClientShop = () => {
                   <p className="text-sm font-medium text-gray-700 mb-1">Email</p>
                   <a 
                     href={`mailto:${shop.email}`}
-                    className="text-green-600 hover:text-green-700 font-medium"
+                    className="text-green-600 hover:text-green-700 font-medium break-all"
                   >
                     {shop.email}
                   </a>
+                </div>
+              </div>
+            )}
+
+            {/* Orari di Apertura - riepilogo compatto */}
+            {shopHoursLoaded && getShopHoursSummary && (
+              <div className="flex items-start mt-4">
+                <Clock className="w-5 h-5 text-gray-500 mr-3 mt-1 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-1">Orari di apertura</p>
+                  <p className="text-sm text-gray-900">
+                    {getShopHoursSummary()}
+                  </p>
                 </div>
               </div>
             )}
@@ -176,70 +221,108 @@ export const ClientShop = () => {
         </div>
       </Card>
 
-      {/* Orari di Apertura */}
-      <Card className="!border-2 !border-indigo-400 bg-white/70 backdrop-blur-xl shadow-2xl">
-        <div className="p-6">
-          <div className="flex items-center mb-6">
-            <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mr-4">
-              <Clock className="w-6 h-6 text-indigo-600" />
+      {/* Card Barbieri */}
+      {staff.length > 0 && (
+        <Card className="!border-2 !border-purple-400 bg-white/70 backdrop-blur-xl shadow-2xl">
+          <div className="p-6 space-y-4">
+            <div className="flex items-center mb-2">
+              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+                <UserIcon className="w-5 h-5 text-purple-600" />
+              </div>
+              <h2 className="text-xl font-semibold text-gray-900">Barbieri</h2>
             </div>
-            <h2 className="text-2xl font-semibold text-gray-900">Orari di Apertura</h2>
-          </div>
 
-          {!shopHoursLoaded ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Caricamento orari...</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {DAYS_OF_WEEK.map((day) => {
-                const dayHours = shopHours[day.key];
-                const isOpen = dayHours.isOpen && dayHours.timeSlots.length > 0;
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+              {/* Selettore */}
+              <div className="md:col-span-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Scegli il tuo barbiere
+                </label>
+                <select
+                  value={selectedBarberId}
+                  onChange={(e) => setSelectedBarberId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm bg-white"
+                >
+                  {staff.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.full_name || 'Barbiere'}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                return (
-                  <div
-                    key={day.key}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200"
-                  >
-                    <div className="flex items-center">
-                      <span className="text-lg font-semibold text-gray-900 w-24">
-                        {day.name}
-                      </span>
-                    </div>
-                    <div className="flex-1 ml-4">
-                      {isOpen ? (
-                        <div className="flex flex-wrap gap-2">
-                          {dayHours.timeSlots.map((slot, index) => (
-                            <span
-                              key={index}
-                              className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800"
-                            >
-                              {formatTimeSlot(slot)}
-                            </span>
-                          ))}
+              {/* Dettagli barbiere */}
+              <div className="md:col-span-2">
+                {(() => {
+                  const selected = staff.find((s) => s.id === selectedBarberId) || staff[0];
+                  if (!selected) return null;
+
+                  return (
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                      <div className="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                        {selected.profile_photo_url ? (
+                          <img
+                            src={selected.profile_photo_url}
+                            alt={selected.full_name || 'Barbiere'}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-white font-semibold text-lg">
+                            {(selected.full_name || 'B')
+                              .split(' ')
+                              .map((n) => n[0])
+                              .join('')
+                              .toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-lg font-semibold text-gray-900">
+                          {selected.full_name || 'Barbiere'}
+                        </p>
+                        {selected.role && (
+                          <p className="text-sm text-gray-600">{selected.role}</p>
+                        )}
+                        <div className="text-sm text-gray-700 space-y-0.5">
+                          {selected.phone && (
+                            <p>
+                              <span className="font-medium">Telefono:</span>{' '}
+                              {selected.phone}
+                            </p>
+                          )}
+                          {selected.email && (
+                            <p className="break-all">
+                              <span className="font-medium">Email:</span>{' '}
+                              {selected.email}
+                            </p>
+                          )}
+                          {selected.chair_id && (
+                            <p className="text-xs text-gray-500">
+                              Poltrona: {selected.chair_id.replace('chair_', 'Poltrona ')}
+                            </p>
+                          )}
                         </div>
-                      ) : (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                          Chiuso
-                        </span>
-                      )}
+                        {selected.specialties && (
+                          <p className="text-xs text-gray-600 mt-1">
+                            <span className="font-medium">Specialità:</span>{' '}
+                            {selected.specialties}
+                          </p>
+                        )}
+                        {selected.bio && (
+                          <p className="text-xs text-gray-600 mt-1">
+                            <span className="font-medium">Bio:</span>{' '}
+                            {selected.bio}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })()}
+              </div>
             </div>
-          )}
-
-          {shopHoursLoaded && getShopHoursSummary && (
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-sm text-blue-800">
-                <strong>Nota:</strong> {getShopHoursSummary()}
-              </p>
-            </div>
-          )}
-        </div>
-      </Card>
+          </div>
+        </Card>
+      )}
     </div>
   );
 };
