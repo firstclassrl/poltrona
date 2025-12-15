@@ -203,7 +203,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
               <div className="pt-4">
                 <div className="mb-4">
                   <div className="text-center">
-                    <p className="text-sm font-medium theme-user-email">{user?.full_name}</p>
+                    <p className="text-sm font-bold theme-user-email">{user?.full_name}</p>
                     <p className="text-xs text-yellow-400/70 capitalize">{user?.role}</p>
                   </div>
                 </div>

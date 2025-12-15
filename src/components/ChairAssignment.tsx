@@ -101,7 +101,11 @@ export const ChairAssignment = () => {
       showToast('Barbiere eliminato dal database con successo!', 'success');
     } catch (error) {
       console.error('Error deleting staff:', error);
-      showToast('Errore durante l\'eliminazione del barbiere. Riprova.', 'error');
+      const message =
+        error instanceof Error && error.message.includes('23503')
+          ? 'Non puoi eliminare questo barbiere perché ha ancora appuntamenti collegati. Annulla o riassegna prima tutti gli appuntamenti.'
+          : 'Errore durante l\'eliminazione del barbiere. Riprova.';
+      showToast(message, 'error');
     } finally {
       setIsDeleting(false);
     }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Building2, MapPin, Edit, Save, X, Clock, Image as ImageIcon, FileText, Download } from 'lucide-react';
+import { Building2, MapPin, Edit, Save, X, Clock, Image as ImageIcon, FileText, Download, User as UserIcon } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -8,7 +8,7 @@ import { DailyHoursManager } from './DailyHoursManager';
 import { apiService } from '../services/api';
 import { API_CONFIG } from '../config/api';
 import { buildShopUrl } from '../utils/slug';
-import type { Shop } from '../types';
+import type { Shop, Staff } from '../types';
 import { PhotoUpload } from './PhotoUpload';
 import { ShopQRCode } from './ShopQRCode';
 
@@ -89,6 +89,8 @@ export const ShopManagement = () => {
   const [logoPath, setLogoPath] = useState<string>('');
   const [logoMessage, setLogoMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isEditingHours, setIsEditingHours] = useState(false);
+  const [staff, setStaff] = useState<Staff[]>([]);
+  const [selectedBarberId, setSelectedBarberId] = useState<string>('');
 
   const showMessage = (
     setter: (value: { type: 'success' | 'error'; text: string } | null) => void,
@@ -201,6 +203,19 @@ export const ShopManagement = () => {
         // Priorità 3: Fallback su logo di default
         console.log('📷 Shop.tsx: Usando logo di default');
         setLogoUrl(DEFAULT_LOGO);
+      }
+      // Per i clienti, carica anche la lista barbieri del negozio
+      if (user?.role === 'client') {
+        try {
+          const staffList = await apiService.getStaff();
+          setStaff(staffList);
+          if (staffList.length > 0) {
+            setSelectedBarberId(staffList[0].id);
+          }
+        } catch (staffError) {
+          console.error('Errore nel caricamento dei barbieri per il cliente:', staffError);
+          setStaff([]);
+        }
       }
     } catch (error) {
       console.error('Error loading shop data:', error);
@@ -608,57 +623,158 @@ export const ShopManagement = () => {
         </div>
       </Card>
 
-      {/* Card Orari di Apertura - Visibile a tutti, editabile solo admin */}
-          <Card className="!border-2 !border-indigo-400">
-            <div className="p-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-indigo-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-semibold text-gray-900">Orari di Apertura</h3>
-                <p className="text-sm text-gray-600">Gestisci l'apertura giornaliera del negozio.</p>
-                  </div>
+      {/* Card Orari di Apertura - solo staff/admin, rimossa per i clienti */}
+      {!isClient && (
+        <Card className="!border-2 !border-indigo-400">
+          <div className="p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-indigo-600" />
                 </div>
-            {isAdmin && (
-              !isEditingHours ? (
-                <Button
-                  onClick={() => setIsEditingHours(true)}
-                  size="sm"
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600"
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  Modifica
-                </Button>
-              ) : (
-                <Button
-                  onClick={() => setIsEditingHours(false)}
-                  size="sm"
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  Termina
-                </Button>
-              )
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900">Orari di Apertura</h3>
+                  <p className="text-sm text-gray-600">Gestisci l'apertura giornaliera del negozio.</p>
+                </div>
+              </div>
+              {isAdmin && (
+                !isEditingHours ? (
+                  <Button
+                    onClick={() => setIsEditingHours(true)}
+                    size="sm"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Modifica
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => setIsEditingHours(false)}
+                    size="sm"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Termina
+                  </Button>
+                )
+              )}
+            </div>
+
+            <DailyHoursManager disabled={!isEditingHours || !isAdmin} />
+
+            {!isEditingHours && isAdmin && (
+              <p className="text-xs text-gray-500">
+                Clicca su Modifica per aggiornare i giorni e le fasce orarie.
+              </p>
             )}
+          </div>
+        </Card>
+      )}
+
+      {/* Card Barbieri - solo vista cliente 'Il Mio Barbiere' */}
+      {isClient && staff.length > 0 && (
+        <Card className="!border-2 !border-purple-400">
+          <div className="p-4 space-y-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                  <UserIcon className="w-4 h-4 text-purple-600" />
+                </div>
+                <h3 className="text-base font-semibold text-gray-900">Barbieri</h3>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Selettore barbiere */}
+              <div className="md:col-span-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Scegli il tuo barbiere
+                </label>
+                <select
+                  value={selectedBarberId}
+                  onChange={(e) => setSelectedBarberId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm bg-white"
+                >
+                  {staff.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.full_name || 'Barbiere'}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-          <DailyHoursManager disabled={!isEditingHours || !isAdmin} />
+              {/* Dettagli barbiere selezionato */}
+              <div className="md:col-span-2">
+                {(() => {
+                  const selected = staff.find((s) => s.id === selectedBarberId) || staff[0];
+                  if (!selected) return null;
 
-          {!isEditingHours && isAdmin && (
-            <p className="text-xs text-gray-500">
-              Clicca su Modifica per aggiornare i giorni e le fasce orarie.
-            </p>
-          )}
-          
-          {isClient && (
-            <p className="text-xs text-gray-500">
-              Visualizzazione in sola lettura. Contatta il negozio per informazioni o modifiche.
-            </p>
-          )}
-        </div>
-      </Card>
+                  return (
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                      <div className="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                        {selected.profile_photo_url ? (
+                          <img
+                            src={selected.profile_photo_url}
+                            alt={selected.full_name || 'Barbiere'}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-white font-semibold text-lg">
+                            {(selected.full_name || 'B')
+                              .split(' ')
+                              .map((n) => n[0])
+                              .join('')
+                              .toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-lg font-semibold text-gray-900">
+                          {selected.full_name || 'Barbiere'}
+                        </p>
+                        {selected.role && (
+                          <p className="text-sm text-gray-600">{selected.role}</p>
+                        )}
+                        <div className="text-sm text-gray-700 space-y-0.5">
+                          {selected.phone && (
+                            <p>
+                              <span className="font-medium">Telefono:</span>{' '}
+                              {selected.phone}
+                            </p>
+                          )}
+                          {selected.email && (
+                            <p>
+                              <span className="font-medium">Email:</span>{' '}
+                              {selected.email}
+                            </p>
+                          )}
+                          {selected.chair_id && (
+                            <p className="text-xs text-gray-500">
+                              Poltrona: {selected.chair_id.replace('chair_', 'Poltrona ')}
+                            </p>
+                          )}
+                        </div>
+                        {selected.specialties && (
+                          <p className="text-xs text-gray-600 mt-1">
+                            <span className="font-medium">Specialità:</span>{' '}
+                            {selected.specialties}
+                          </p>
+                        )}
+                        {selected.bio && (
+                          <p className="text-xs text-gray-600 mt-1">
+                            <span className="font-medium">Bio:</span>{' '}
+                            {selected.bio}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* QR Code per Registrazione Clienti */}
       {shop && shop.slug && (

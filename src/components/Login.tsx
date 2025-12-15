@@ -45,7 +45,7 @@ export const Login: React.FC = () => {
   
   const { login, register } = useAuth();
   const { toast, showToast, hideToast } = useToast();
-  const { palette } = useTheme();
+  const { palette, themeId } = useTheme();
 
   // Carica i dati dello shop dallo slug nell'URL
   useEffect(() => {
@@ -218,7 +218,12 @@ export const Login: React.FC = () => {
   // Colori per lo sfondo: più scuro (primaryStrong) e più chiaro (accent) per la texture
   const bgColor = palette?.colors.primaryStrong || '#1b3015';
   const bgColorMid = palette?.colors.primary || '#25401c';
-  const textureColor = palette?.colors.accent || '#eecf54';
+
+  // Texture: per Heritage usa l'accento originale, per tutti gli altri temi usa bianco per massimo contrasto
+  const isHeritageTheme = themeId === 'heritage';
+  const textureColor = isHeritageTheme
+    ? palette?.colors.accent || '#eecf54'
+    : '#ffffff';
   const patternId = `barbershop-pattern-${palette?.id || 'default'}`;
   
   return (

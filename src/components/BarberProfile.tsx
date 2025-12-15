@@ -51,34 +51,13 @@ export const BarberProfile = () => {
 
   const loadProfileData = async () => {
     try {
-      console.log('Loading profile data...');
-      
-      // Prima prova a caricare dal localStorage
-      const savedProfile = localStorage.getItem('barberProfile');
-      if (savedProfile) {
-        console.log('Found saved profile in localStorage:', savedProfile);
-        const parsedProfile = JSON.parse(savedProfile);
-        setStaffData(parsedProfile);
-        setFormData({
-          full_name: parsedProfile.full_name || '',
-          role: parsedProfile.role || '',
-          phone: '',
-          email: '',
-          specialties: '',
-          bio: '',
-          chair_id: parsedProfile.chair_id || '',
-        });
-        return;
-      }
-
-      // Carica i dati del barbiere dal database
       console.log('Loading staff profile from API...');
       try {
         const staff = await apiService.getStaffProfile();
         console.log('Staff profile loaded:', staff);
         setStaffData(staff);
         
-        // Popola il form con i dati esistenti
+        // Popola il form con i dati esistenti (inclusa email se presente sullo staff)
         if (staff) {
           const profileData = getBarberProfile(staff);
           console.log('Profile data for form:', profileData);

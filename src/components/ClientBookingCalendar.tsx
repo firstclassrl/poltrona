@@ -444,7 +444,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
         
         // Refresh notifications count (il trigger del database ha già creato la notifica)
         refreshUnreadCount();
-
+        
         // Emails disabilitate lato app: invio gestito da webhooks Supabase
       }
       
@@ -829,7 +829,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
                   <button
                     key={time}
                     onClick={() => handleTimeSlotClick(selectedDayForDetail, time)}
-                    className="py-3 px-4 rounded-lg text-center transition-colors bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer border border-green-200 font-medium"
+                    className="py-3 px-4 rounded-lg text-center transition-colors bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer border border-green-200 font-medium client-time-slot"
                   >
                     {time}
                   </button>
