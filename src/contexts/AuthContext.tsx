@@ -3,6 +3,7 @@ import type { User, AuthState, LoginCredentials, RegisterData, UserRole } from '
 import { API_CONFIG, API_ENDPOINTS } from '../config/api';
 import { emailNotificationService } from '../services/emailNotificationService';
 import { apiService } from '../services/api';
+import { buildShopUrl, extractSlugFromLocation } from '../utils/slug';
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
@@ -19,13 +20,7 @@ const isSupabaseConfigured = (): boolean => {
   return Boolean(API_CONFIG.SUPABASE_EDGE_URL && API_CONFIG.SUPABASE_ANON_KEY);
 };
 
-const getShopSlugFromUrl = (): string | null => {
-  if (typeof window === 'undefined') return null;
-  const params = new URLSearchParams(window.location.search);
-  const slug = params.get('shop');
-  if (slug && slug.trim().length > 0) return slug.trim();
-  return null;
-};
+const getShopSlugFromUrl = (): string | null => extractSlugFromLocation();
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -524,7 +519,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         if (data.email) {
           const portalUrl = typeof window !== 'undefined' && window.location?.origin
-            ? `${window.location.origin}/login`
+            ? buildShopUrl(shop?.slug || '')
             : undefined;
 
           const welcomeResult = await emailNotificationService.sendClientWelcomeEmail({

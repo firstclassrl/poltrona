@@ -13,6 +13,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { APP_VERSION } from '../config/version';
 import { apiService } from '../services/api';
 import { API_CONFIG } from '../config/api';
+import { extractSlugFromLocation } from '../utils/slug';
 import type { Shop } from '../types';
 
 export const Login: React.FC = () => {
@@ -50,8 +51,7 @@ export const Login: React.FC = () => {
   useEffect(() => {
     const loadShopFromUrl = async () => {
       try {
-        const params = new URLSearchParams(window.location.search);
-        const shopSlug = params.get('shop');
+        const shopSlug = extractSlugFromLocation();
         
         if (shopSlug) {
           try {

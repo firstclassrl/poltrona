@@ -10,6 +10,7 @@ import { DEFAULT_THEME_ID, type ThemePaletteId } from '../theme/palettes';
 import { ChevronLeft, ChevronRight, Upload, X, CheckCircle2, Shield, Palette, Building2, Mail, Phone, Download, UserPlus, Eye, EyeOff } from 'lucide-react';
 import { ShopQRCode } from './ShopQRCode';
 import { API_CONFIG } from '../config/api';
+import { buildShopUrl, slugify } from '../utils/slug';
 
 const getTokenFromUrl = (): string | null => {
   if (typeof window === 'undefined') return null;
@@ -33,22 +34,6 @@ const getTokenFromUrl = (): string | null => {
   
   return result;
 };
-
-const slugify = (value: string) =>
-  value
-    .toLowerCase()
-    .trim()
-    .replace(/[àáâãäå]/g, 'a')
-    .replace(/[èéêë]/g, 'e')
-    .replace(/[ìíîï]/g, 'i')
-    .replace(/[òóôõö]/g, 'o')
-    .replace(/[ùúûü]/g, 'u')
-    .replace(/[ñ]/g, 'n')
-    .replace(/[ç]/g, 'c')
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '');
 
 type Slide = 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -459,10 +444,11 @@ export const ShopSetup: React.FC = () => {
         throw new Error('Devi effettuare il login prima di creare il negozio. Torna alla slide di login.');
       }
 
-      // STEP 1: Genera slug automaticamente dal nome
-      const autoSlug = form.name.trim() 
-        ? slugify(form.name.trim()) 
-        : `shop-${Date.now()}`;
+      // STEP 1: Genera slug leggibile e garantisci unicità globale
+      const baseSlug = form.name.trim()
+        ? slugify(form.name.trim())
+        : slugify(`shop-${Date.now()}`);
+      const autoSlug = await apiService.ensureUniqueShopSlug(baseSlug);
 
       // STEP 2: Crea il negozio usando il token admin
       const shop = await apiService.createShop({
@@ -600,7 +586,7 @@ export const ShopSetup: React.FC = () => {
         console.warn('Impossibile marcare il token come usato:', markError);
       }
 
-      const link = `${window.location.origin}?shop=${shop.slug || autoSlug}`;
+      const link = buildShopUrl(shop.slug || autoSlug);
       
       // Applica il tema scelto e persivilo
       // Priorità: tema salvato nel negozio > tema scelto nel form > default

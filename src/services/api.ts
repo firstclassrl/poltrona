@@ -23,6 +23,7 @@ import type {
   VacationPeriod
 } from '../types';
 import { createDefaultShopHoursConfig, formatTimeToHHMM, normalizeTimeString } from '../utils/shopHours';
+import { extractSlugFromLocation, nextSlugCandidate, slugify } from '../utils/slug';
 
 // Check if Supabase is configured
 const isSupabaseConfigured = () => {
@@ -152,22 +153,6 @@ const buildHeaders = (authRequired: boolean = false, overrideToken?: string) => 
 
 const DEFAULT_SHOP_SLUG = 'retro-barbershop';
 
-const getSlugFromQueryParam = (): string | null => {
-  if (typeof window === 'undefined') return null;
-  const params = new URLSearchParams(window.location.search);
-  const slug = params.get('shop');
-  if (slug && slug.trim().length > 0) return slug.trim();
-  return null;
-};
-
-const getEffectiveSlug = (): string => {
-  const slugFromUrl = getSlugFromQueryParam();
-  if (slugFromUrl) return slugFromUrl;
-  const storedSlug = getStoredShopSlug();
-  if (storedSlug) return storedSlug;
-  return DEFAULT_SHOP_SLUG;
-};
-
 const getStoredShopId = (): string | null => {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem('current_shop_id');
@@ -176,6 +161,49 @@ const getStoredShopId = (): string | null => {
 const getStoredShopSlug = (): string | null => {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem('current_shop_slug');
+};
+
+const getSlugFromPathOrStorage = (): string | null => {
+  const slugFromUrl = extractSlugFromLocation();
+  if (slugFromUrl) {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('current_shop_slug', slugFromUrl);
+    }
+    return slugFromUrl;
+  }
+  const storedSlug = getStoredShopSlug();
+  if (storedSlug) return storedSlug;
+  return null;
+};
+
+const getEffectiveSlug = (): string => {
+  return getSlugFromPathOrStorage() || DEFAULT_SHOP_SLUG;
+};
+
+const isSlugAvailable = async (slug: string): Promise<boolean> => {
+  if (!isSupabaseConfigured()) return true;
+  const url = `${API_ENDPOINTS.SHOPS}?select=slug&slug=eq.${encodeURIComponent(slug)}&limit=1`;
+  const response = await fetch(url, { headers: buildHeaders(false) });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Impossibile verificare disponibilità slug: ${response.status} ${text}`);
+  }
+  const result = await response.json();
+  return !result || result.length === 0;
+};
+
+const ensureUniqueShopSlug = async (value: string): Promise<string> => {
+  const baseSlug = slugify(value || DEFAULT_SHOP_SLUG);
+  let attempt = 1;
+
+  while (attempt <= 50) {
+    const candidate = nextSlugCandidate(baseSlug, attempt);
+    const available = await isSlugAvailable(candidate);
+    if (available) return candidate;
+    attempt += 1;
+  }
+
+  throw new Error('Impossibile generare uno slug univoco. Riprova con un nome differente.');
 };
 
 const persistShopLocally = (shop: Shop) => {
@@ -189,6 +217,7 @@ const persistShopLocally = (shop: Shop) => {
 };
 
 export const apiService = {
+  ensureUniqueShopSlug: (value: string) => ensureUniqueShopSlug(value),
   // Client search
   async searchClients(query: string): Promise<Client[]> {
     if (!isSupabaseConfigured()) return [];
@@ -2018,6 +2047,7 @@ export const apiService = {
     if (!data.slug || !data.name) throw new Error('Slug e nome sono obbligatori');
 
     const payload = { ...data };
+    payload.slug = slugify(payload.slug || payload.name || DEFAULT_SHOP_SLUG);
     const sendRequest = async (body: Record<string, unknown>) => {
       return fetch(API_ENDPOINTS.SHOPS, {
         method: 'POST',

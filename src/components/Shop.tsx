@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { DailyHoursManager } from './DailyHoursManager';
 import { apiService } from '../services/api';
 import { API_CONFIG } from '../config/api';
+import { buildShopUrl } from '../utils/slug';
 import type { Shop } from '../types';
 import { PhotoUpload } from './PhotoUpload';
 import { ShopQRCode } from './ShopQRCode';
@@ -113,7 +114,7 @@ export const ShopManagement = () => {
 
   const downloadQRCode = async (shop: Shop) => {
     try {
-      const link = `${window.location.origin}?shop=${shop.slug || 'default'}`;
+      const link = buildShopUrl(shop.slug || 'default');
       const encoded = encodeURIComponent(link);
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encoded}&size=500x500`;
       
@@ -669,7 +670,7 @@ export const ShopManagement = () => {
             
             <div className="flex flex-col items-center space-y-4 p-4 bg-gray-50 rounded-lg">
               <ShopQRCode 
-                link={`${window.location.origin}?shop=${shop.slug}`} 
+                link={buildShopUrl(shop.slug)} 
                 size={200} 
               />
               <button

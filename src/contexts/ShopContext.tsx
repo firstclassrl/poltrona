@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState, ReactNo
 import { useAuth } from './AuthContext';
 import type { Shop } from '../types';
 import { apiService } from '../services/api';
+import { buildShopPath, extractSlugFromLocation } from '../utils/slug';
 
 interface ShopContextValue {
   currentShop: Shop | null;
@@ -16,11 +17,8 @@ const ShopContext = createContext<ShopContextValue | undefined>(undefined);
 
 const DEFAULT_SLUG = 'retro-barbershop';
 
-const getSlugFromUrl = (): string | null => {
-  if (typeof window === 'undefined') return null;
-  const params = new URLSearchParams(window.location.search);
-  const slug = params.get('shop');
-  return slug && slug.trim().length > 0 ? slug.trim() : null;
+const getSlugFromLocation = (): string | null => {
+  return extractSlugFromLocation();
 };
 
 const isSetupMode = (): boolean => {
@@ -36,14 +34,31 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const slugFromUrl = useMemo(() => getSlugFromUrl(), []);
+  const slugFromUrl = useMemo(() => getSlugFromLocation(), []);
   const setupMode = useMemo(() => isSetupMode(), []);
+
+  const syncUrlWithSlug = useCallback(
+    (slug: string | null | undefined) => {
+      if (typeof window === 'undefined' || setupMode || !slug) return;
+      const currentSlug = extractSlugFromLocation();
+      if (currentSlug === slug) return;
+
+      const params = new URLSearchParams(window.location.search);
+      params.delete('shop'); // rimuovi vecchio formato query
+      const newSearch = params.toString();
+      const hash = window.location.hash || '';
+      const newPath = buildShopPath(slug, false);
+      const newUrl = `${newPath}${newSearch ? `?${newSearch}` : ''}${hash}`;
+      window.history.replaceState({}, '', newUrl);
+    },
+    [setupMode]
+  );
 
   const effectiveSlug = useMemo(() => {
     // Se siamo in setup mode (token nell'URL), non caricare negozi
     if (setupMode) return null;
     
-    // Se c'è query param, vince sempre lui
+    // Se c'è slug nel percorso, vince sempre lui
     if (slugFromUrl) return slugFromUrl;
     // Se utente non loggato, fallback allo shop di default (retro-compatibilità QR)
     if (!isAuthenticated) return DEFAULT_SLUG;
@@ -84,6 +99,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (isAuthenticated && currentShopId) {
         const shop = await apiService.getShopById(currentShopId);
         setCurrentShop(shop);
+        syncUrlWithSlug(shop?.slug);
         return;
       }
 
@@ -96,6 +112,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       const shop = await apiService.getShopBySlug(effectiveSlug);
       setCurrentShop(shop);
+      syncUrlWithSlug(shop?.slug || effectiveSlug);
     } catch (err) {
       console.error('Error loading shop in ShopProvider:', err);
       setError(err instanceof Error ? err.message : 'Errore caricamento negozio');
@@ -103,7 +120,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, currentShopId, effectiveSlug, setupMode]);
+  }, [isAuthenticated, currentShopId, effectiveSlug, setupMode, syncUrlWithSlug]);
 
   useEffect(() => {
     void loadShop();
@@ -112,7 +129,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const value: ShopContextValue = {
     currentShop,
     currentShopId: currentShop?.id || currentShopId,
-    currentSlug: effectiveSlug,
+    currentSlug: currentShop?.slug || effectiveSlug,
     isLoading,
     error,
     refreshShop: loadShop,
