@@ -18,7 +18,7 @@ interface NavigationProps {
 
 export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
   const { user, logout, hasPermission } = useAuth();
-  const { unreadCount: notificationUnreadCount } = useNotifications();
+  const { notifications, unreadCount: notificationUnreadCount } = useNotifications();
   const { unreadCount: chatUnreadCount } = useChat();
   const { currentShop: shop } = useShop();
   const [shopLogoUrl, setShopLogoUrl] = useState<string | null>(null);
@@ -71,6 +71,12 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
     };
     fetchLogo();
   }, [shop?.logo_path, shop?.logo_url]);
+
+  // Calcola badge chat considerando sia chat non lette che notifiche di tipo chat_message
+  const unreadChatNotifications = notifications
+    ? notifications.filter((n) => n.type === 'chat_message' && !n.read_at).length
+    : 0;
+  const chatBadgeCount = chatUnreadCount + unreadChatNotifications;
 
   const allNavItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, permission: 'dashboard' },
@@ -140,7 +146,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
             <nav className="mt-1 flex-1 px-3 space-y-2">
               {navItems.map((item) => {
                 const Icon = item.icon;
-                const showChatBadge = item.id === 'chat' && chatUnreadCount > 0;
+                const showChatBadge = item.id === 'chat' && chatBadgeCount > 0;
                 // Mostra "Il Mio Barbiere" per i clienti, altrimenti la label originale
                 const displayLabel = item.id === 'shop' && user?.role === 'client' 
                   ? 'Il Mio Barbiere' 
@@ -162,7 +168,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                     {displayLabel}
                     {showChatBadge && (
                       <span className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center min-w-[20px] h-[20px] px-1.5 text-xs font-bold text-white bg-red-500 rounded-full animate-pulse">
-                        {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+                        {chatBadgeCount > 99 ? '99+' : chatBadgeCount}
                       </span>
                     )}
                   </button>
@@ -241,7 +247,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
         <div className="grid grid-cols-6 py-2">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const showChatBadge = item.id === 'chat' && chatUnreadCount > 0;
+            const showChatBadge = item.id === 'chat' && chatBadgeCount > 0;
             // Mostra "Il Mio Barbiere" per i clienti, altrimenti la label originale
             const displayLabel = item.id === 'shop' && user?.role === 'client' 
               ? 'Il Mio Barbiere' 
@@ -263,7 +269,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                   <Icon className="h-5 w-5 mb-1" />
                   {showChatBadge && (
                     <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-red-500 rounded-full animate-pulse">
-                      {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+                      {chatBadgeCount > 99 ? '99+' : chatBadgeCount}
                     </span>
                   )}
                 </div>

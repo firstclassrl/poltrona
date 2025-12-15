@@ -653,22 +653,25 @@ body {
 /* Custom Glass Effect for Sidebar */
 @layer components {
   .glass-sidebar-dark {
-  /* Darker black glass background with more opacity */
-  background: rgba(37, 64, 28, 0.95); /* #25401c with opacity */
-  
-  /* Enhanced frosted glass effect */
-  backdrop-filter: blur(25px) saturate(180%);
-  -webkit-backdrop-filter: blur(25px) saturate(180%);
-  
-  /* More defined border for better contrast */
-  border: 1px solid rgba(238, 207, 84, 0.3); /* Yellow border */
-  
-  /* Deeper shadows for more dramatic effect */
-  box-shadow: 
-    0 8px 32px rgba(37, 64, 28, 0.6),
-    0 0 0 1px rgba(238, 207, 84, 0.1),
-    inset 0 1px 0 rgba(238, 207, 84, 0.15);
-  color: var(--theme-sidebar-text);
+    /* Background, bordo e ombra guidati dalle variabili del tema */
+    background: var(--theme-sidebar-bg, rgba(37, 64, 28, 0.95));
+
+    /* Effetto vetro */
+    backdrop-filter: blur(25px) saturate(180%);
+    -webkit-backdrop-filter: blur(25px) saturate(180%);
+
+    /* Bordo basato sul tema (giallo per heritage, altri colori per gli altri temi) */
+    border: 1px solid var(--theme-sidebar-border, rgba(238, 207, 84, 0.3));
+
+    /* Ombre guidate dal tema (verde heritage, altri colori per gli altri temi) */
+    box-shadow: var(
+      --theme-sidebar-shadow,
+      0 8px 32px rgba(37, 64, 28, 0.6),
+      0 0 0 1px rgba(238, 207, 84, 0.1),
+      inset 0 1px 0 rgba(238, 207, 84, 0.15)
+    );
+
+    color: var(--theme-sidebar-text);
   }
   
   /* Dark Mode: override glow verde con glow arancione sottile */

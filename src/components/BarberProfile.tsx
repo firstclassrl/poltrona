@@ -46,6 +46,12 @@ export const BarberProfile = () => {
       const profileData = getBarberProfile(activeStaff);
       setFormData(profileData);
       setProfileImageUrl(profileData.profile_photo_url || '');
+      // Se abbiamo trovato un barbiere valido, rimuovi eventuali messaggi "nessun barbiere"
+      setMessage((prev) =>
+        prev && prev.type === 'info'
+          ? null
+          : prev
+      );
     }
   }, [getActiveStaff, isEditing]); // Rimosso getBarberProfile dalle dipendenze
 
@@ -59,6 +65,12 @@ export const BarberProfile = () => {
         
         // Popola il form con i dati esistenti (inclusa email se presente sullo staff)
         if (staff) {
+          // Se abbiamo almeno un barbiere, rimuovi l'eventuale messaggio informativo
+          setMessage((prev) =>
+            prev && prev.type === 'info'
+              ? null
+              : prev
+          );
           const profileData = getBarberProfile(staff);
           console.log('Profile data for form:', profileData);
           setFormData(profileData);
