@@ -79,7 +79,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
     { id: 'services', label: 'Servizi', icon: Scissors, permission: 'services' },
     { id: 'products', label: 'Prodotti', icon: ShoppingBag, permission: 'products' },
     { id: 'chat', label: 'Chat', icon: MessageCircle, permission: 'chat' },
-    { id: 'profile', label: 'Profilo', icon: User, permission: 'profile' },
+    { id: 'profile', label: 'Poltrone', icon: User, permission: 'profile' },
     { id: 'shop', label: 'Negozio', icon: Building2, permission: 'shop' },
     { id: 'settings', label: 'Opzioni', icon: Settings, permission: 'shop' },
     // { id: 'analytics', label: 'Analisi', icon: BarChart3, permission: 'analytics' }, // Temporaneamente nascosto

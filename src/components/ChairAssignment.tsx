@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Users, UserPlus, UserMinus, Edit, Trash2, RefreshCw } from 'lucide-react';
+import { Users, UserPlus, UserMinus, Edit, Trash2 } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Select } from './ui/Select';
@@ -30,7 +30,6 @@ export const ChairAssignment = () => {
   const [staffToDelete, setStaffToDelete] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleAssignStaff = async (chairId: string, staffId: string) => {
     setIsSaving(true);
@@ -113,19 +112,6 @@ export const ChairAssignment = () => {
     setStaffToDelete(null);
   };
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      await refreshData();
-      showToast('Dati aggiornati dal database', 'success');
-    } catch (error) {
-      console.error('Error refreshing data:', error);
-      showToast('Errore durante l\'aggiornamento dei dati', 'error');
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
   const assignedChairs = getAssignedChairs();
 
   return (
@@ -133,14 +119,6 @@ export const ChairAssignment = () => {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold text-gray-900">Gestione Poltrone e Barbieri</h2>
         <div className="flex space-x-2">
-          <Button 
-            variant="secondary" 
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-          >
-            <RefreshCw className={`w-5 h-5 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Aggiornamento...' : 'Aggiorna'}
-          </Button>
           <Button onClick={() => setShowBarberForm(true)} disabled={isSaving}>
             <UserPlus className="w-5 h-5 mr-2" />
             Aggiungi Barbiere

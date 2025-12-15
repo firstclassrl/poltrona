@@ -2565,6 +2565,7 @@ export const apiService = {
       if (staffData.email) payload.email = staffData.email;
       if (staffData.phone) payload.phone = staffData.phone;
       if ((staffData as any).chair_id) payload.chair_id = (staffData as any).chair_id;
+      if ((staffData as any).user_id) payload.user_id = (staffData as any).user_id;
       
       const response = await fetch(API_ENDPOINTS.STAFF, {
         method: 'POST',

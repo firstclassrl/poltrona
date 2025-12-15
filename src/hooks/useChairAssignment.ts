@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Staff } from '../types';
 import { apiService } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 export interface ChairAssignment {
   chairId: string;
@@ -14,6 +15,7 @@ export const useChairAssignment = () => {
   const [assignments, setAssignments] = useState<ChairAssignment[]>([]);
   const [availableStaff, setAvailableStaff] = useState<Staff[]>([]);
   const [activeStaffId, setActiveStaffId] = useState<string>('');
+  const { user } = useAuth();
 
   // Definizione delle poltrone (configurazione fissa)
   const defaultAssignments: ChairAssignment[] = [
@@ -152,8 +154,15 @@ export const useChairAssignment = () => {
   };
 
   const addNewStaff = async (staffData: Omit<Staff, 'id' | 'created_at'>): Promise<Staff> => {
+    // Enrich staff data so that notifications can essere collegate all'utente corrente
+    const enrichedStaffData: Omit<Staff, 'id' | 'created_at'> & { user_id?: string | null } = {
+      ...staffData,
+      email: (staffData as any).email || user?.email || '',
+      user_id: user?.id || null,
+    };
+
     // Salva il nuovo barbiere tramite API - nessun fallback locale
-    const newStaff = await apiService.createStaff(staffData);
+    const newStaff = await apiService.createStaff(enrichedStaffData as Omit<Staff, 'id' | 'created_at'>);
     
     // Aggiorna lo state locale solo dopo successo API
     const updatedStaff = [...availableStaff, newStaff];

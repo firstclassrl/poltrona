@@ -19,6 +19,7 @@ export const BarberForm = ({ isOpen, onClose, onSave, staff, mode }: BarberFormP
   const [formData, setFormData] = useState({
     shop_id: null as string | null,
     full_name: '',
+    email: '',
     role: '',
     calendar_id: null as string | null,
     active: true,
@@ -42,6 +43,7 @@ export const BarberForm = ({ isOpen, onClose, onSave, staff, mode }: BarberFormP
         setFormData({
           shop_id: staff.shop_id || null,
           full_name: staff.full_name || '',
+          email: staff.email || '',
           role: staff.role || '',
           calendar_id: staff.calendar_id,
           active: staff.active ?? true,
@@ -59,6 +61,7 @@ export const BarberForm = ({ isOpen, onClose, onSave, staff, mode }: BarberFormP
     setFormData({
       shop_id: null,
       full_name: '',
+      email: '',
       role: '',
       calendar_id: null,
       active: true,
@@ -97,6 +100,7 @@ export const BarberForm = ({ isOpen, onClose, onSave, staff, mode }: BarberFormP
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.full_name.trim()) newErrors.full_name = 'Il nome è richiesto';
+    if (!formData.email.trim()) newErrors.email = 'L\'email è richiesta';
     if (!formData.role) newErrors.role = 'Il ruolo è richiesto';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -138,6 +142,18 @@ export const BarberForm = ({ isOpen, onClose, onSave, staff, mode }: BarberFormP
             required
           />
           
+          <Input
+            label="Email"
+            name="email"
+            type="email"
+            value={formData.email}
+            onChange={handleChange}
+            error={errors.email}
+            required
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Select
             label="Ruolo"
             name="role"

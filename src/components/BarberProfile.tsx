@@ -29,7 +29,6 @@ export const BarberProfile = () => {
     profile_photo_url: '',
   });
   const [profileImageUrl, setProfileImageUrl] = useState('');
-  const [activeTab, setActiveTab] = useState<'profile' | 'assignment'>('profile');
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
 
   useEffect(() => {
@@ -183,13 +182,7 @@ export const BarberProfile = () => {
       >
       <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Gestione Barbieri</h1>
-        {activeTab === 'profile' && !isEditing && (
-          <Button onClick={() => setIsEditing(true)}>
-            <Edit className="w-4 h-4 mr-2" />
-            Modifica Profilo
-          </Button>
-        )}
+        <h1 className="text-3xl font-bold text-gray-900">Gestione Poltrone</h1>
       </div>
 
       {/* Messaggio di feedback */}
@@ -205,38 +198,25 @@ export const BarberProfile = () => {
         </div>
       )}
 
-      {/* Selettore Barbiere */}
-      {activeTab === 'profile' && (
+      {/* Sezione selezione barbiere e profilo personale */}
+      <div className="space-y-8">
         <div className="max-w-md">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Seleziona Barbiere
           </label>
           <BarberSelector />
         </div>
-      )}
 
-      {/* Tab Navigation */}
-      <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
-        <button
-          onClick={() => setActiveTab('profile')}
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'profile' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          Profilo Personale
-        </button>
-        <button
-          onClick={() => setActiveTab('assignment')}
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'assignment' ? 'bg-yellow-100 text-yellow-900 shadow-sm border-2 border-yellow-300' : 'text-gray-600 hover:text-gray-900 bg-yellow-50 hover:bg-yellow-100'
-          }`}
-        >
-          <Users className="w-4 h-4 inline mr-2" />
-          Gestione Poltrone
-        </button>
-      </div>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-gray-900">Profilo Personale</h2>
+          {!isEditing && (
+            <Button onClick={() => setIsEditing(true)}>
+              <Edit className="w-4 h-4 mr-2" />
+              Modifica Profilo
+            </Button>
+          )}
+        </div>
 
-      {activeTab === 'profile' ? (
         <div className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Foto Profilo */}
@@ -388,9 +368,10 @@ export const BarberProfile = () => {
 
       {/* Sezione statistiche rimossa su richiesta */}
         </div>
-      ) : (
-        <ChairAssignment />
-      )}
+      </div>
+
+      {/* Gestione Poltrone e Barbieri */}
+      <ChairAssignment />
       </div>
       </div>
     </div>
