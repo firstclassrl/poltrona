@@ -16,7 +16,7 @@ import type { Staff } from '../types';
 export const BarberProfile = () => {
   const [staffData, setStaffData] = useState<Staff | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const { getActiveStaff, updateStaff } = useChairAssignment();
+  const { getActiveStaff, updateStaff, activeStaffId } = useChairAssignment();
   const { updateBarberProfile, getBarberProfile, isLoading } = useBarberProfile();
   const [formData, setFormData] = useState<BarberProfileData>({
     full_name: '',
@@ -35,7 +35,7 @@ export const BarberProfile = () => {
     loadProfileData();
   }, []);
 
-  // Carica i dati dello staff attivo solo quando non si sta modificando
+  // Carica i dati dello staff attivo quando cambia la selezione o quando non si sta modificando
   useEffect(() => {
     // Non resettare il form se l'utente sta modificando
     if (isEditing) return;
@@ -52,8 +52,23 @@ export const BarberProfile = () => {
           ? null
           : prev
       );
+    } else if (!activeStaff && activeStaffId === '') {
+      // Se non c'è nessun barbiere selezionato, resetta il form
+      setStaffData(null);
+      setFormData({
+        full_name: '',
+        role: '',
+        phone: '',
+        email: '',
+        specialties: '',
+        bio: '',
+        chair_id: '',
+        profile_photo_url: '',
+      });
+      setProfileImageUrl('');
     }
-  }, [getActiveStaff, isEditing]); // Rimosso getBarberProfile dalle dipendenze
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeStaffId, isEditing]);
 
   const loadProfileData = async () => {
     try {
@@ -195,7 +210,19 @@ export const BarberProfile = () => {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Seleziona Barbiere
           </label>
-          <BarberSelector />
+          <BarberSelector 
+            onBarberSelect={(staffId) => {
+              // Forza il reload dei dati quando viene selezionato un barbiere
+              const activeStaff = getActiveStaff();
+              if (activeStaff) {
+                setStaffData(activeStaff);
+                const profileData = getBarberProfile(activeStaff);
+                setFormData(profileData);
+                setProfileImageUrl(profileData.profile_photo_url || '');
+                setIsEditing(false); // Esci dalla modalità modifica se attiva
+              }
+            }}
+          />
         </div>
 
         <div className="flex items-center justify-between">
