@@ -866,13 +866,24 @@ export const apiService = {
       const existingMap = new Map<number, ShopDailyHoursEntity>();
       existingRows.forEach((row) => existingMap.set(row.day_of_week, row));
 
+      console.log('💾 Existing rows in database:', {
+        count: existingRows.length,
+        rows: existingRows.map(r => ({ day: r.day_of_week, is_open: r.is_open }))
+      });
+
       const changedDays: number[] = [];
       for (let day = 0; day < 7; day += 1) {
         const dayConfig = hoursConfig[day] ?? { isOpen: false, timeSlots: [] };
         const existingDay = existingRows.find(r => r.day_of_week === day);
         
+        console.log(`💾 Checking day ${day}:`, {
+          config: { isOpen: dayConfig.isOpen, slotsCount: dayConfig.timeSlots.length },
+          existing: existingDay ? { is_open: existingDay.is_open, slotsCount: existingDay.shop_daily_time_slots?.length || 0 } : null
+        });
+        
         // Se il giorno non esiste nel database, deve essere creato
         if (!existingDay) {
+          console.log(`✅ Day ${day} needs to be created (not in database)`);
           changedDays.push(day);
           continue;
         }
@@ -925,8 +936,11 @@ export const apiService = {
 
       if (changedDays.length === 0) {
         // Nessuna modifica, non salvare
+        console.log('💾 No changes detected, skipping save');
         return;
       }
+      
+      console.log(`💾 Will save ${changedDays.length} days:`, changedDays);
 
       console.log('💾 Saving shop hours:', {
         shopId,
@@ -946,9 +960,9 @@ export const apiService = {
           const updateRes = await fetchWithTokenRefresh(
             `${API_ENDPOINTS.SHOP_DAILY_HOURS}?id=eq.${currentRow.id}`,
             {
-              method: 'PATCH',
-              headers,
-              body: JSON.stringify({ is_open: dayConfig.isOpen }),
+            method: 'PATCH',
+            headers,
+            body: JSON.stringify({ is_open: dayConfig.isOpen }),
             },
             true
           );
@@ -962,13 +976,13 @@ export const apiService = {
           const createRes = await fetchWithTokenRefresh(
             API_ENDPOINTS.SHOP_DAILY_HOURS,
             {
-              method: 'POST',
+            method: 'POST',
               headers: { ...headers, Prefer: 'return=representation,resolution=merge-duplicates' },
-              body: JSON.stringify([{
-                shop_id: shopId,
-                day_of_week: day,
-                is_open: dayConfig.isOpen,
-              }]),
+            body: JSON.stringify([{
+              shop_id: shopId,
+              day_of_week: day,
+              is_open: dayConfig.isOpen,
+            }]),
             },
             true
           );
@@ -1018,6 +1032,7 @@ export const apiService = {
           }
           currentRow = created[0];
           existingMap.set(day, currentRow);
+          console.log(`✅ Successfully created day ${day} with id ${currentRow.id} and is_open=${dayConfig.isOpen}`);
         }
 
         if (!currentRow) {
@@ -1030,8 +1045,8 @@ export const apiService = {
         const deleteSlotsRes = await fetchWithTokenRefresh(
           `${API_ENDPOINTS.SHOP_DAILY_TIME_SLOTS}?daily_hours_id=eq.${currentRow.id}`,
           {
-            method: 'DELETE',
-            headers,
+          method: 'DELETE',
+          headers,
           },
           true
         );
@@ -1064,24 +1079,24 @@ export const apiService = {
 
           if (validSlots.length > 0) {
             const payload = validSlots.map((slot, index) => ({
-              daily_hours_id: currentRow!.id,
-              start_time: normalizeTimeString(slot.start),
-              end_time: normalizeTimeString(slot.end),
-              position: index,
-            }));
+            daily_hours_id: currentRow!.id,
+            start_time: normalizeTimeString(slot.start),
+            end_time: normalizeTimeString(slot.end),
+            position: index,
+          }));
 
             console.log(`💾 Inserting ${validSlots.length} time slots for day ${day}:`, payload);
             const insertSlotsRes = await fetchWithTokenRefresh(
               API_ENDPOINTS.SHOP_DAILY_TIME_SLOTS,
               {
-                method: 'POST',
+            method: 'POST',
                 headers: { ...headers, Prefer: 'return=representation' },
-                body: JSON.stringify(payload),
+            body: JSON.stringify(payload),
               },
               true
             );
-            if (!insertSlotsRes.ok) {
-              const errorText = await insertSlotsRes.text();
+          if (!insertSlotsRes.ok) {
+            const errorText = await insertSlotsRes.text();
               console.error(`❌ Failed to insert time slots for day ${day}:`, {
                 status: insertSlotsRes.status,
                 error: errorText,
