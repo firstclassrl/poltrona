@@ -17,7 +17,10 @@ export const createDefaultShopHoursConfig = (): ShopHoursConfig => ({
 
 export const formatTimeToHHMM = (time: string): string => {
   if (!time) return '00:00';
-  const [hours, minutes] = time.split(':');
+  // Gestisce sia formato HH:MM che HH:MM:SS
+  const parts = time.split(':');
+  const hours = parts[0] || '00';
+  const minutes = parts[1] || '00';
   return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
 };
 

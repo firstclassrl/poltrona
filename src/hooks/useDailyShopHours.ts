@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ShopHoursConfig, DailyHours, TimeSlot } from '../types';
 import { apiService } from '../services/api';
 import { createDefaultShopHoursConfig } from '../utils/shopHours';
@@ -91,6 +91,8 @@ export const useDailyShopHours = () => {
   const [extraOpening, setExtraOpening] = useState<ExtraOpeningConfig | null>(null);
   const [shopHoursLoaded, setShopHoursLoaded] = useState(!isBrowser);
   const [autoCloseHolidays, setAutoCloseHolidays] = useState<boolean>(true); // Default true
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingSaveRef = useRef<ShopHoursConfig | null>(null);
 
   useEffect(() => {
     if (!isBrowser) return;
@@ -128,7 +130,16 @@ export const useDailyShopHours = () => {
           setAutoCloseHolidays(true);
         }
       } catch (error) {
-        console.error('Error loading shop hours from backend:', error);
+        console.error('❌ Error loading shop hours from backend:', error);
+        // Se c'è un errore, mantieni i dati dalla cache locale invece di usare i default
+        // I dati dalla cache sono già stati impostati all'inizio dell'useEffect
+        // Se non c'è cache, usa i default solo come ultima risorsa
+        if (!cached) {
+          console.warn('⚠️ No cached hours available, using defaults');
+          setShopHours(createDefaultShopHoursConfig());
+        } else {
+          console.info('ℹ️ Using cached shop hours due to load error');
+        }
       } finally {
         if (isMounted) {
           setShopHoursLoaded(true);
@@ -164,15 +175,49 @@ export const useDailyShopHours = () => {
     };
   }, []);
 
-  const updateShopHours = (newHours: ShopHoursConfig) => {
-    setShopHours(newHours);
-    persistHoursLocally(newHours);
-    void apiService.saveDailyShopHours(newHours).catch((error) => {
+  const performSave = useCallback(async (hoursToSave: ShopHoursConfig) => {
+    try {
+      await apiService.saveDailyShopHours(hoursToSave);
+    } catch (error) {
       console.error('❌ Error saving daily shop hours:', error);
       // Mostra un messaggio di errore all'utente
       alert(`Errore nel salvataggio degli orari: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
-    });
-  };
+    }
+  }, []);
+
+  const updateShopHours = useCallback((newHours: ShopHoursConfig) => {
+    setShopHours(newHours);
+    persistHoursLocally(newHours);
+    
+    // Salva il riferimento per il salvataggio debounced
+    pendingSaveRef.current = newHours;
+    
+    // Cancella il timeout precedente se esiste
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
+    // Imposta un nuovo timeout per salvare dopo 500ms di inattività
+    saveTimeoutRef.current = setTimeout(() => {
+      if (pendingSaveRef.current) {
+        void performSave(pendingSaveRef.current);
+        pendingSaveRef.current = null;
+      }
+    }, 500);
+  }, [performSave]);
+
+  // Cleanup del timeout quando il componente viene smontato
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      // Salva eventuali modifiche pendenti prima di smontare
+      if (pendingSaveRef.current) {
+        void performSave(pendingSaveRef.current);
+      }
+    };
+  }, [performSave]);
 
   const applyExtraOpening = (config: ExtraOpeningConfig | null) => {
     setExtraOpening(config);

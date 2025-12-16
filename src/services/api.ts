@@ -688,10 +688,17 @@ export const apiService = {
       const url = `${API_ENDPOINTS.SHOP_DAILY_HOURS}?select=*,shop_daily_time_slots(*)&shop_id=eq.${shopId}&order=day_of_week.asc`;
       const response = await fetch(url, { headers: buildHeaders(false) });
       if (!response.ok) {
-        throw new Error(`Failed to fetch shop daily hours: ${response.status}`);
+        const errorText = await response.text().catch(() => 'Unknown error');
+        console.error(`❌ Failed to fetch shop daily hours: ${response.status}`, errorText);
+        throw new Error(`Failed to fetch shop daily hours: ${response.status} ${errorText}`);
       }
 
       const rows = await response.json() as ShopDailyHoursEntity[];
+      
+      if (!Array.isArray(rows)) {
+        console.error('❌ Invalid response format from shop_daily_hours:', rows);
+        throw new Error('Invalid response format from shop_daily_hours');
+      }
       // Inizializza tutti i giorni come chiusi (non usare il default che ha lunedì aperto)
       const config: ShopHoursConfig = {
         0: { isOpen: false, timeSlots: [] }, // Domenica
@@ -710,21 +717,35 @@ export const apiService = {
       });
 
       rows.forEach((row) => {
-        if (row.day_of_week < 0 || row.day_of_week > 6) return;
+        if (row.day_of_week < 0 || row.day_of_week > 6) {
+          console.warn(`⚠️ Invalid day_of_week: ${row.day_of_week}, skipping`);
+          return;
+        }
+        
         const timeSlots = (row.shop_daily_time_slots ?? [])
           .sort((a, b) => {
             const positionDiff = (a.position ?? 0) - (b.position ?? 0);
             if (positionDiff !== 0) return positionDiff;
             return (a.start_time ?? '').localeCompare(b.start_time ?? '');
           })
-          .map((slot: ShopDailyTimeSlotRow): TimeSlot => ({
-            start: formatTimeToHHMM(slot.start_time ?? ''),
-            end: formatTimeToHHMM(slot.end_time ?? ''),
-          }))
-          .filter((slot) => Boolean(slot.start && slot.end));
+          .map((slot: ShopDailyTimeSlotRow): TimeSlot | null => {
+            try {
+              const start = formatTimeToHHMM(slot.start_time ?? '');
+              const end = formatTimeToHHMM(slot.end_time ?? '');
+              if (!start || !end || start === '00:00' && end === '00:00') {
+                console.warn(`⚠️ Invalid time slot for day ${row.day_of_week}:`, { start_time: slot.start_time, end_time: slot.end_time });
+                return null;
+              }
+              return { start, end };
+            } catch (error) {
+              console.error(`❌ Error parsing time slot for day ${row.day_of_week}:`, error, slot);
+              return null;
+            }
+          })
+          .filter((slot): slot is TimeSlot => slot !== null);
 
         config[row.day_of_week] = {
-          isOpen: row.is_open,
+          isOpen: row.is_open ?? false,
           timeSlots,
         };
       });
@@ -733,10 +754,19 @@ export const apiService = {
         config: Object.entries(config).map(([day, data]) => ({ day, isOpen: data.isOpen, slotsCount: data.timeSlots.length }))
       });
 
+      // Verifica che almeno un giorno sia stato caricato correttamente
+      const hasLoadedData = rows.length > 0;
+      if (!hasLoadedData) {
+        console.warn('⚠️ No shop hours found in database for shop:', shopId);
+      }
+
       return config;
     } catch (error) {
-      console.error('Error loading daily shop hours:', error);
-      return createDefaultShopHoursConfig();
+      console.error('❌ Error loading daily shop hours:', error);
+      // Non restituire la configurazione di default se c'è un errore,
+      // perché potrebbe sovrascrivere i dati esistenti in cache
+      // Lascia che l'hook gestisca il fallback alla cache locale
+      throw error;
     }
   },
 
@@ -772,16 +802,81 @@ export const apiService = {
       const existingMap = new Map<number, ShopDailyHoursEntity>();
       existingRows.forEach((row) => existingMap.set(row.day_of_week, row));
 
-      console.log('💾 Saving shop hours:', {
-        shopId,
-        config: Object.entries(hoursConfig).map(([day, data]) => ({ day, isOpen: data.isOpen, slotsCount: data.timeSlots.length }))
-      });
-
+      const changedDays: number[] = [];
       for (let day = 0; day < 7; day += 1) {
         const dayConfig = hoursConfig[day] ?? { isOpen: false, timeSlots: [] };
-        let currentRow = existingMap.get(day);
+        const existingDay = existingRows.find(r => r.day_of_week === day);
+        
+        // Se il giorno non esiste nel database, deve essere creato
+        if (!existingDay) {
+          changedDays.push(day);
+          continue;
+        }
+        
+        // Verifica se is_open è cambiato
+        if (existingDay.is_open !== dayConfig.isOpen) {
+          changedDays.push(day);
+          continue;
+        }
+        
+        // Se il giorno è chiuso, non ci sono time slots da confrontare
+        if (!dayConfig.isOpen) {
+          // Se ci sono time slots nel database ma il giorno è chiuso, dobbiamo eliminarli
+          if (existingDay.shop_daily_time_slots && existingDay.shop_daily_time_slots.length > 0) {
+            changedDays.push(day);
+          }
+          continue;
+        }
+        
+        // Confronta i time slots (ordinati per start_time)
+        const existingSlots = (existingDay.shop_daily_time_slots ?? [])
+          .map(slot => ({
+            start: normalizeTimeString(slot.start_time ?? ''),
+            end: normalizeTimeString(slot.end_time ?? ''),
+          }))
+          .sort((a, b) => a.start.localeCompare(b.start));
+        
+        const configSlots = dayConfig.timeSlots
+          .map(slot => ({
+            start: normalizeTimeString(slot.start),
+            end: normalizeTimeString(slot.end),
+          }))
+          .sort((a, b) => a.start.localeCompare(b.start));
+        
+        if (existingSlots.length !== configSlots.length) {
+          changedDays.push(day);
+          continue;
+        }
+        
+        // Confronta ogni slot
+        const slotsDiffer = existingSlots.some((slot, idx) => {
+          const configSlot = configSlots[idx];
+          return !configSlot || slot.start !== configSlot.start || slot.end !== configSlot.end;
+        });
+        
+        if (slotsDiffer) {
+          changedDays.push(day);
+        }
+      }
 
-        console.log(`💾 Processing day ${day}:`, { isOpen: dayConfig.isOpen, hasExistingRow: !!currentRow });
+      if (changedDays.length === 0) {
+        // Nessuna modifica, non salvare
+        return;
+      }
+
+      console.log('💾 Saving shop hours:', {
+        shopId,
+        changedDays,
+        summary: changedDays.map(day => {
+          const dayConfig = hoursConfig[day] ?? { isOpen: false, timeSlots: [] };
+          return { day, isOpen: dayConfig.isOpen, slotsCount: dayConfig.timeSlots.length };
+        })
+      });
+
+      // Processa solo i giorni che sono cambiati
+      for (const day of changedDays) {
+        const dayConfig = hoursConfig[day] ?? { isOpen: false, timeSlots: [] };
+        let currentRow = existingMap.get(day);
 
         if (currentRow) {
           const updateRes = await fetchWithTokenRefresh(
@@ -798,7 +893,6 @@ export const apiService = {
             console.error(`❌ Failed to update shop hours for day ${day}:`, errorText);
             throw new Error(`Failed to update shop hours (${day}): ${errorText}`);
           }
-          console.log(`✅ Updated day ${day} with is_open=${dayConfig.isOpen}`);
         } else {
           // Prova a creare il record. Se fallisce per unique constraint, prova a fare upsert
           const createRes = await fetchWithTokenRefresh(
@@ -841,7 +935,6 @@ export const apiService = {
                     true
                   );
                   if (updateRes.ok) {
-                    console.log(`✅ Updated existing day ${day} with is_open=${dayConfig.isOpen}`);
                     continue; // Skip to next day
                   } else {
                     const updateErrorText = await updateRes.text();
@@ -861,11 +954,15 @@ export const apiService = {
           }
           currentRow = created[0];
           existingMap.set(day, currentRow);
-          console.log(`✅ Created day ${day} with is_open=${dayConfig.isOpen}`);
         }
 
-        if (!currentRow) continue;
+        if (!currentRow) {
+          console.warn(`⚠️ No currentRow for day ${day}, skipping time slots`);
+          continue;
+        }
 
+        // Elimina i time slots esistenti prima di inserire quelli nuovi
+        console.log(`🗑️ Deleting existing time slots for day ${day} (daily_hours_id: ${currentRow.id})`);
         const deleteSlotsRes = await fetchWithTokenRefresh(
           `${API_ENDPOINTS.SHOP_DAILY_TIME_SLOTS}?daily_hours_id=eq.${currentRow.id}`,
           {
@@ -876,34 +973,77 @@ export const apiService = {
         );
         if (!deleteSlotsRes.ok) {
           const errorText = await deleteSlotsRes.text();
-          throw new Error(`Failed to clear time slots (${day}): ${errorText}`);
+          console.error(`❌ Failed to clear time slots for day ${day}:`, {
+            status: deleteSlotsRes.status,
+            error: errorText,
+            daily_hours_id: currentRow.id
+          });
+          throw new Error(`Failed to clear time slots (${day}): ${deleteSlotsRes.status} ${errorText}`);
         }
+        console.log(`✅ Deleted existing time slots for day ${day}`);
 
         if (dayConfig.isOpen && dayConfig.timeSlots.length > 0) {
-          const payload = dayConfig.timeSlots.map((slot, index) => ({
-            daily_hours_id: currentRow!.id,
-            start_time: normalizeTimeString(slot.start),
-            end_time: normalizeTimeString(slot.end),
-            position: index,
-          }));
+          // Valida i time slots prima di salvarli
+          const validSlots = dayConfig.timeSlots.filter(slot => {
+            if (!slot.start || !slot.end) {
+              console.warn(`⚠️ Invalid time slot for day ${day}: missing start or end`, slot);
+              return false;
+            }
+            const start = normalizeTimeString(slot.start);
+            const end = normalizeTimeString(slot.end);
+            if (start >= end) {
+              console.warn(`⚠️ Invalid time slot for day ${day}: start >= end`, slot);
+              return false;
+            }
+            return true;
+          });
 
-          const insertSlotsRes = await fetchWithTokenRefresh(
-            API_ENDPOINTS.SHOP_DAILY_TIME_SLOTS,
-            {
-              method: 'POST',
-              headers: { ...headers, Prefer: 'return=minimal' },
-              body: JSON.stringify(payload),
-            },
-            true
-          );
-          if (!insertSlotsRes.ok) {
-            const errorText = await insertSlotsRes.text();
-            throw new Error(`Failed to insert time slots (${day}): ${errorText}`);
+          if (validSlots.length > 0) {
+            const payload = validSlots.map((slot, index) => ({
+              daily_hours_id: currentRow!.id,
+              start_time: normalizeTimeString(slot.start),
+              end_time: normalizeTimeString(slot.end),
+              position: index,
+            }));
+
+            console.log(`💾 Inserting ${validSlots.length} time slots for day ${day}:`, payload);
+            const insertSlotsRes = await fetchWithTokenRefresh(
+              API_ENDPOINTS.SHOP_DAILY_TIME_SLOTS,
+              {
+                method: 'POST',
+                headers: { ...headers, Prefer: 'return=representation' },
+                body: JSON.stringify(payload),
+              },
+              true
+            );
+            if (!insertSlotsRes.ok) {
+              const errorText = await insertSlotsRes.text();
+              console.error(`❌ Failed to insert time slots for day ${day}:`, {
+                status: insertSlotsRes.status,
+                error: errorText,
+                payload: payload,
+                headers: Object.fromEntries(Object.entries(headers))
+              });
+              throw new Error(`Failed to insert time slots (${day}): ${insertSlotsRes.status} ${errorText}`);
+            }
+            
+            // Verifica che i time slots siano stati inseriti
+            try {
+              const inserted = await insertSlotsRes.json();
+              console.log(`✅ Inserted ${Array.isArray(inserted) ? inserted.length : 1} time slots for day ${day}`);
+            } catch (parseError) {
+              // Se la risposta è vuota (return=minimal), va bene
+              console.log(`✅ Time slots inserted for day ${day} (minimal response)`);
+            }
+          } else if (dayConfig.timeSlots.length > 0) {
+            console.warn(`⚠️ All time slots for day ${day} were invalid, skipping insertion`);
           }
         }
       }
+      
+      console.log('✅ Shop hours saved successfully');
     } catch (error) {
-      console.error('Error saving daily shop hours:', error);
+      console.error('❌ Error saving daily shop hours:', error);
       throw error;
     }
   },
