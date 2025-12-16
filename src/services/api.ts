@@ -685,20 +685,69 @@ export const apiService = {
       }
 
       // Usa buildHeaders(false) per permettere lettura pubblica degli orari
-      const url = `${API_ENDPOINTS.SHOP_DAILY_HOURS}?select=*,shop_daily_time_slots(*)&shop_id=eq.${shopId}&order=day_of_week.asc`;
-      const response = await fetch(url, { headers: buildHeaders(false) });
+      // Prova prima con la relazione embedded, se non funziona carica separatamente
+      let url = `${API_ENDPOINTS.SHOP_DAILY_HOURS}?select=*,shop_daily_time_slots(*)&shop_id=eq.${shopId}&order=day_of_week.asc`;
+      let response = await fetch(url, { headers: buildHeaders(false) });
+      
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');
         console.error(`❌ Failed to fetch shop daily hours: ${response.status}`, errorText);
         throw new Error(`Failed to fetch shop daily hours: ${response.status} ${errorText}`);
       }
 
-      const rows = await response.json() as ShopDailyHoursEntity[];
+      let rows = await response.json() as ShopDailyHoursEntity[];
+      
+      // Se i time slots non sono presenti nella risposta, caricali separatamente
+      const hasTimeSlots = rows.some(r => r.shop_daily_time_slots !== undefined);
+      if (!hasTimeSlots || rows.some(r => r.shop_daily_time_slots === null)) {
+        console.warn('⚠️ Time slots not found in embedded response, loading separately...');
+        
+        // Carica i time slots separatamente usando i daily_hours_id
+        const dailyHoursIds = rows.map(r => r.id);
+        if (dailyHoursIds.length > 0) {
+          // PostgREST supporta filtri IN con la sintassi: column=in.(value1,value2,...)
+          const idsFilter = dailyHoursIds.join(',');
+          const timeSlotsUrl = `${API_ENDPOINTS.SHOP_DAILY_TIME_SLOTS}?select=*&daily_hours_id=in.(${idsFilter})&order=daily_hours_id.asc,position.asc`;
+          const timeSlotsResponse = await fetch(timeSlotsUrl, { headers: buildHeaders(false) });
+          
+          if (timeSlotsResponse.ok) {
+            const allTimeSlots = await timeSlotsResponse.json() as ShopDailyTimeSlotRow[];
+            
+            // Crea una mappa per raggruppare i time slots per daily_hours_id
+            const timeSlotsMap = new Map<string, ShopDailyTimeSlotRow[]>();
+            
+            allTimeSlots.forEach(slot => {
+              if (!timeSlotsMap.has(slot.daily_hours_id)) {
+                timeSlotsMap.set(slot.daily_hours_id, []);
+              }
+              timeSlotsMap.get(slot.daily_hours_id)!.push(slot);
+            });
+            
+            // Aggiungi i time slots ai rispettivi giorni
+            rows = rows.map(row => ({
+              ...row,
+              shop_daily_time_slots: timeSlotsMap.get(row.id) || []
+            }));
+            
+            console.log('✅ Loaded time slots separately:', {
+              totalSlots: allTimeSlots.length,
+              slotsByDay: rows.map(r => ({ day: r.day_of_week, count: r.shop_daily_time_slots?.length || 0 }))
+            });
+          } else {
+            const errorText = await timeSlotsResponse.text().catch(() => 'Unknown error');
+            console.warn('⚠️ Failed to load time slots separately:', timeSlotsResponse.status, errorText);
+          }
+        }
+      }
       
       if (!Array.isArray(rows)) {
         console.error('❌ Invalid response format from shop_daily_hours:', rows);
         throw new Error('Invalid response format from shop_daily_hours');
       }
+      
+      // Debug: log della risposta raw per vedere la struttura
+      console.log('📅 Raw response from database:', JSON.stringify(rows, null, 2));
+      
       // Inizializza tutti i giorni come chiusi (non usare il default che ha lunedì aperto)
       const config: ShopHoursConfig = {
         0: { isOpen: false, timeSlots: [] }, // Domenica
@@ -713,13 +762,26 @@ export const apiService = {
       console.log('📅 Loading shop hours from database:', {
         shopId,
         rowsCount: rows.length,
-        rows: rows.map(r => ({ day: r.day_of_week, is_open: r.is_open, slotsCount: r.shop_daily_time_slots?.length || 0 }))
+        rows: rows.map(r => ({ 
+          day: r.day_of_week, 
+          is_open: r.is_open, 
+          slotsCount: r.shop_daily_time_slots?.length || 0,
+          slotsRaw: r.shop_daily_time_slots,
+          allKeys: Object.keys(r)
+        }))
       });
 
       rows.forEach((row) => {
         if (row.day_of_week < 0 || row.day_of_week > 6) {
           console.warn(`⚠️ Invalid day_of_week: ${row.day_of_week}, skipping`);
           return;
+        }
+        
+        // Debug: verifica se i time slots sono presenti
+        if (!row.shop_daily_time_slots) {
+          console.warn(`⚠️ No shop_daily_time_slots found for day ${row.day_of_week}. Available keys:`, Object.keys(row));
+        } else {
+          console.log(`✅ Found ${row.shop_daily_time_slots.length} time slots for day ${row.day_of_week}:`, row.shop_daily_time_slots);
         }
         
         const timeSlots = (row.shop_daily_time_slots ?? [])
@@ -743,6 +805,8 @@ export const apiService = {
             }
           })
           .filter((slot): slot is TimeSlot => slot !== null);
+        
+        console.log(`📅 Processed ${timeSlots.length} valid time slots for day ${row.day_of_week}:`, timeSlots);
 
         config[row.day_of_week] = {
           isOpen: row.is_open ?? false,
