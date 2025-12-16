@@ -206,18 +206,36 @@ export const useDailyShopHours = () => {
     // Il salvataggio sarà fatto manualmente quando l'utente clicca su "Salva"
   }, []);
 
-  // Funzione per salvataggio manuale
+  // Funzione per salvataggio manuale - usa un ref per evitare problemi di stale closure
+  const shopHoursRef = useRef<ShopHoursConfig>(shopHours);
+  
+  // Aggiorna il ref ogni volta che shopHours cambia
+  useEffect(() => {
+    shopHoursRef.current = shopHours;
+  }, [shopHours]);
+
   const saveShopHours = useCallback(async (): Promise<boolean> => {
     try {
       console.log('💾 Manual save triggered, saving shop hours...');
-      console.log('💾 Current shopHours state:', JSON.stringify(shopHours, null, 2));
-      const wasSaved = await apiService.saveDailyShopHours(shopHours);
+      // Leggi lo stato corrente dal ref invece di usare la closure
+      // Questo evita problemi di stale closure
+      const currentHours = shopHoursRef.current;
+      console.log('💾 Current shopHours state from ref:', JSON.stringify(currentHours, null, 2));
+      console.log('💾 Days summary:', 
+        Object.entries(currentHours).map(([day, config]) => ({
+          day: parseInt(day),
+          isOpen: config.isOpen,
+          slotsCount: config.timeSlots.length
+        }))
+      );
+      const wasSaved = await apiService.saveDailyShopHours(currentHours);
       if (wasSaved) {
         console.log('✅ Shop hours saved successfully');
         // Dopo il salvataggio, ricarica i dati dal database per sincronizzare
         try {
           const reloadedHours = await apiService.getDailyShopHours();
           setShopHours(reloadedHours);
+          shopHoursRef.current = reloadedHours;
           persistHoursLocally(reloadedHours);
           console.log('✅ Shop hours reloaded from database after save');
         } catch (reloadError) {
@@ -232,7 +250,7 @@ export const useDailyShopHours = () => {
       console.error('❌ Error saving shop hours:', error);
       throw error;
     }
-  }, [shopHours]);
+  }, []); // Nessuna dipendenza - usa sempre il ref aggiornato
 
   const applyExtraOpening = (config: ExtraOpeningConfig | null) => {
     setExtraOpening(config);
