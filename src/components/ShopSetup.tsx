@@ -163,6 +163,17 @@ export const ShopSetup: React.FC = () => {
     setTheme(paletteId, { persist: false });
   };
 
+  // Inizializza il valore del prezzo quando si entra nella slide 8
+  useEffect(() => {
+    if (currentSlide === 8) {
+      if (serviceData.price_cents !== undefined && serviceData.price_cents !== null && serviceData.price_cents > 0) {
+        setPriceInputValue((serviceData.price_cents / 100).toFixed(2));
+      } else {
+        setPriceInputValue('');
+      }
+    }
+  }, [currentSlide, serviceData.price_cents]);
+
   const handleLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -743,8 +754,8 @@ export const ShopSetup: React.FC = () => {
 
   // Slide 1: Benvenuto
   const SlideWelcome = () => (
-    <div className="text-center space-y-8 py-4">
-      <div className="flex justify-center mb-8">
+    <div className="text-center space-y-4 py-2">
+      <div className="flex justify-center mb-4">
         <div 
           className="relative"
           style={{
@@ -754,27 +765,28 @@ export const ShopSetup: React.FC = () => {
           <img 
             src="/logo Poltrona 2025.png" 
             alt="Logo Poltrona" 
-            className="h-32 w-auto object-contain" 
+            className="h-24 w-auto object-contain" 
           />
         </div>
       </div>
       <h1 
-        className="text-5xl md:text-6xl font-bold tracking-tight mb-4"
+        className="text-4xl md:text-5xl font-bold mb-2"
         style={{
-          fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif',
+          fontFamily: '"Inter", "Segoe UI", system-ui, -apple-system, sans-serif',
           color: '#1e40af',
-          fontWeight: 700,
-          letterSpacing: '-0.02em',
+          fontWeight: 800,
+          letterSpacing: '0.01em',
+          lineHeight: '1.1',
         }}
       >
         BENVENUTI IN POLTRONA
       </h1>
-      <p className="text-xl md:text-2xl text-gray-700 max-w-2xl mx-auto leading-relaxed font-light">
+      <p className="text-lg md:text-xl text-gray-700 max-w-2xl mx-auto leading-tight font-normal mb-4">
         Il sistema di gestione appuntamenti più completo per il tuo negozio
       </p>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mt-12">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-5xl mx-auto mt-6">
         <div 
-          className="p-8 rounded-2xl relative overflow-hidden transition-all duration-300"
+          className="p-5 rounded-2xl relative overflow-hidden transition-all duration-300"
           style={{
             background: 'rgba(255, 255, 255, 0.7)',
             backdropFilter: 'blur(20px) saturate(180%)',
@@ -784,7 +796,7 @@ export const ShopSetup: React.FC = () => {
         >
           <div className="relative z-10">
             <div 
-              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 relative overflow-hidden"
+              className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4 relative overflow-hidden"
               style={{
                 background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(96, 165, 250, 0.3) 100%)',
                 backdropFilter: 'blur(10px)',
@@ -792,14 +804,14 @@ export const ShopSetup: React.FC = () => {
                 boxShadow: '0 4px 20px 0 rgba(59, 130, 246, 0.2)',
               }}
             >
-              <Building2 className="w-8 h-8 text-white drop-shadow-lg" />
+              <Building2 className="w-7 h-7 text-white drop-shadow-lg" />
             </div>
-            <h3 className="font-semibold text-[#1e40af] text-lg mb-3">Gestione Completa</h3>
-            <p className="text-sm text-gray-600 leading-relaxed">Appuntamenti, clienti, staff e prodotti in un'unica piattaforma</p>
+            <h3 className="font-semibold text-[#1e40af] text-base mb-2">Gestione Completa</h3>
+            <p className="text-xs text-gray-600 leading-tight">Appuntamenti, clienti, staff e prodotti in un'unica piattaforma</p>
           </div>
         </div>
         <div 
-          className="p-8 rounded-2xl relative overflow-hidden transition-all duration-300"
+          className="p-5 rounded-2xl relative overflow-hidden transition-all duration-300"
           style={{
             background: 'rgba(255, 255, 255, 0.7)',
             backdropFilter: 'blur(20px) saturate(180%)',
@@ -809,7 +821,7 @@ export const ShopSetup: React.FC = () => {
         >
           <div className="relative z-10">
             <div 
-              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 relative overflow-hidden"
+              className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4 relative overflow-hidden"
               style={{
                 background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(96, 165, 250, 0.3) 100%)',
                 backdropFilter: 'blur(10px)',
@@ -817,14 +829,14 @@ export const ShopSetup: React.FC = () => {
                 boxShadow: '0 4px 20px 0 rgba(59, 130, 246, 0.2)',
               }}
             >
-              <Phone className="w-8 h-8 text-white drop-shadow-lg" />
+              <Phone className="w-7 h-7 text-white drop-shadow-lg" />
             </div>
-            <h3 className="font-semibold text-[#1e40af] text-lg mb-3">Notifiche Automatiche</h3>
-            <p className="text-sm text-gray-600 leading-relaxed">Email e SMS automatici per te e i tuoi clienti</p>
+            <h3 className="font-semibold text-[#1e40af] text-base mb-2">Notifiche Automatiche</h3>
+            <p className="text-xs text-gray-600 leading-tight">Email e SMS automatici per te e i tuoi clienti</p>
           </div>
         </div>
         <div 
-          className="p-8 rounded-2xl relative overflow-hidden transition-all duration-300"
+          className="p-5 rounded-2xl relative overflow-hidden transition-all duration-300"
           style={{
             background: 'rgba(255, 255, 255, 0.7)',
             backdropFilter: 'blur(20px) saturate(180%)',
@@ -834,7 +846,7 @@ export const ShopSetup: React.FC = () => {
         >
           <div className="relative z-10">
             <div 
-              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 relative overflow-hidden"
+              className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4 relative overflow-hidden"
               style={{
                 background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(96, 165, 250, 0.3) 100%)',
                 backdropFilter: 'blur(10px)',
@@ -842,10 +854,10 @@ export const ShopSetup: React.FC = () => {
                 boxShadow: '0 4px 20px 0 rgba(59, 130, 246, 0.2)',
               }}
             >
-              <Palette className="w-8 h-8 text-white drop-shadow-lg" />
+              <Palette className="w-7 h-7 text-white drop-shadow-lg" />
             </div>
-            <h3 className="font-semibold text-[#1e40af] text-lg mb-3">Personalizzabile</h3>
-            <p className="text-sm text-gray-600 leading-relaxed">Scegli colori e stile in linea con il tuo brand</p>
+            <h3 className="font-semibold text-[#1e40af] text-base mb-2">Personalizzabile</h3>
+            <p className="text-xs text-gray-600 leading-tight">Scegli colori e stile in linea con il tuo brand</p>
           </div>
         </div>
       </div>
@@ -1539,17 +1551,6 @@ export const ShopSetup: React.FC = () => {
     );
   } else if (currentSlide === 8) {
     // Slide 8: Creazione servizio
-    // Inizializza il valore del prezzo quando si entra nella slide
-    useEffect(() => {
-      if (currentSlide === 8) {
-        if (serviceData.price_cents !== undefined && serviceData.price_cents !== null && serviceData.price_cents > 0) {
-          setPriceInputValue((serviceData.price_cents / 100).toFixed(2));
-        } else {
-          setPriceInputValue('');
-        }
-      }
-    }, [currentSlide]);
-    
     slideContent = (
       <div className="space-y-6">
         <div className="text-center mb-6">
@@ -1821,9 +1822,9 @@ export const ShopSetup: React.FC = () => {
 
         {/* Slide container - flex-1 per occupare lo spazio disponibile */}
         <div className="relative overflow-hidden rounded-2xl flex-1 min-h-0 mb-6">
-          <div className="h-full overflow-y-auto">
+          <div className={`h-full ${currentSlide === 1 ? 'overflow-hidden flex items-center' : 'overflow-y-auto'}`}>
             <div 
-              className="p-8 md:p-10 rounded-2xl relative overflow-hidden"
+              className={`p-6 md:p-8 rounded-2xl relative overflow-hidden w-full ${currentSlide === 1 ? '' : 'min-h-full'}`}
               style={{
                 background: 'rgba(255, 255, 255, 0.8)',
                 backdropFilter: 'blur(30px) saturate(180%)',
