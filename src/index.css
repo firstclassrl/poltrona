@@ -544,41 +544,65 @@ body {
   border-color: var(--theme-accent) !important;
 }
 
-/* Force 24-hour format for time inputs */
+/* 
+ * FORMATO ORARIO ITALIANO (0-24) - FORZA FORMATO 24 ORE
+ * Questo CSS forza tutti gli input time a mostrare il formato 24 ore (0-24)
+ * invece del formato AM/PM (12 ore). Il formato italiano usa sempre 0-24.
+ */
 @layer utilities {
-  input[type="time"][data-format="24"] {
+  /* Force 24-hour format for all time inputs in the app */
+  input[type="time"],
+  input[type="time"][data-format="24"],
+  .time-24h {
     /* Force 24-hour format display */
     -webkit-appearance: none;
     -moz-appearance: textfield;
+    direction: ltr;
   }
   
-  input[type="time"][data-format="24"]::-webkit-datetime-edit-ampm-field {
-    display: none !important;
-  }
-  
-  input[type="time"][data-format="24"]::-webkit-datetime-edit-hour-field,
-  input[type="time"][data-format="24"]::-webkit-datetime-edit-minute-field {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-
-  /* Force 24-hour format for all time inputs in the app */
-  input[type="time"],
-  .time-24h {
-    -webkit-appearance: none;
-    -moz-appearance: textfield;
-  }
-  
+  /* Hide AM/PM field completely */
   input[type="time"]::-webkit-datetime-edit-ampm-field,
+  input[type="time"][data-format="24"]::-webkit-datetime-edit-ampm-field,
   .time-24h::-webkit-datetime-edit-ampm-field {
     display: none !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
-
-  /* Additional 24-hour format enforcement */
+  
+  /* Style hour and minute fields for 24-hour format */
+  input[type="time"]::-webkit-datetime-edit-hour-field,
+  input[type="time"]::-webkit-datetime-edit-minute-field,
+  input[type="time"][data-format="24"]::-webkit-datetime-edit-hour-field,
+  input[type="time"][data-format="24"]::-webkit-datetime-edit-minute-field,
   .time-24h::-webkit-datetime-edit-hour-field,
   .time-24h::-webkit-datetime-edit-minute-field {
     -webkit-appearance: none;
     margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+  }
+  
+  /* Ensure separator is visible */
+  input[type="time"]::-webkit-datetime-edit-text,
+  input[type="time"][data-format="24"]::-webkit-datetime-edit-text,
+  .time-24h::-webkit-datetime-edit-text {
+    color: inherit;
+    padding: 0 2px;
+  }
+  
+  /* Firefox specific - force 24-hour format */
+  input[type="time"]::-moz-datetime-edit-ampm-field {
+    display: none !important;
+  }
+  
+  /* Additional enforcement for all browsers */
+  input[type="time"][lang="it-IT"],
+  input[type="time"][lang="it-IT"][data-format="24"] {
+    /* Force Italian locale which uses 24-hour format */
   }
 
   /* Force Italian date format for date inputs */

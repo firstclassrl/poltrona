@@ -676,18 +676,31 @@ export const apiService = {
 
     try {
       let shopId = getStoredShopId();
+      console.log('📅 getDailyShopHours - Initial shopId from storage:', shopId);
+      
       if (!shopId) {
         const shop = await this.getShop();
         shopId = shop?.id ?? null;
+        console.log('📅 getDailyShopHours - ShopId from getShop():', shopId);
       }
+      
       if (!shopId) {
+        console.warn('📅 getDailyShopHours - No shopId found, returning default config');
         return createDefaultShopHoursConfig();
       }
+      
+      console.log('📅 getDailyShopHours - Using shopId:', shopId);
 
       // Usa buildHeaders(false) per permettere lettura pubblica degli orari
       // Prova prima con la relazione embedded, se non funziona carica separatamente
       let url = `${API_ENDPOINTS.SHOP_DAILY_HOURS}?select=*,shop_daily_time_slots(*)&shop_id=eq.${shopId}&order=day_of_week.asc`;
+      
+      console.log('📅 Fetching shop hours from URL:', url);
+      console.log('📅 Shop ID:', shopId);
+      
       let response = await fetch(url, { headers: buildHeaders(false) });
+      
+      console.log('📅 Response status:', response.status, response.statusText);
       
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');
@@ -697,9 +710,29 @@ export const apiService = {
 
       let rows = await response.json() as ShopDailyHoursEntity[];
       
+      console.log('📅 Raw JSON response:', JSON.stringify(rows, null, 2));
+      console.log('📅 Rows count:', rows.length);
+      console.log('📅 Is array:', Array.isArray(rows));
+      
+      // Se la risposta è vuota, prova a fare una query più semplice per verificare se ci sono record
+      if (rows.length === 0) {
+        console.warn('⚠️ No rows returned, trying simple query to verify records exist...');
+        const simpleUrl = `${API_ENDPOINTS.SHOP_DAILY_HOURS}?shop_id=eq.${shopId}&select=id,day_of_week,is_open&limit=1`;
+        const simpleResponse = await fetch(simpleUrl, { headers: buildHeaders(false) });
+        if (simpleResponse.ok) {
+          const simpleRows = await simpleResponse.json();
+          console.log('📅 Simple query result:', simpleRows);
+          if (simpleRows.length > 0) {
+            console.warn('⚠️ Simple query found records but embedded query did not. This might be a PostgREST issue with the embedded relation.');
+          } else {
+            console.warn('⚠️ No records found in database for this shop_id. Records might not exist or RLS is blocking access.');
+          }
+        }
+      }
+      
       // Se i time slots non sono presenti nella risposta, caricali separatamente
-      const hasTimeSlots = rows.some(r => r.shop_daily_time_slots !== undefined);
-      if (!hasTimeSlots || rows.some(r => r.shop_daily_time_slots === null)) {
+      const hasTimeSlots = rows.some(r => r.shop_daily_time_slots !== undefined && r.shop_daily_time_slots !== null && Array.isArray(r.shop_daily_time_slots));
+      if (!hasTimeSlots) {
         console.warn('⚠️ Time slots not found in embedded response, loading separately...');
         
         // Carica i time slots separatamente usando i daily_hours_id
@@ -731,7 +764,12 @@ export const apiService = {
             
             console.log('✅ Loaded time slots separately:', {
               totalSlots: allTimeSlots.length,
-              slotsByDay: rows.map(r => ({ day: r.day_of_week, count: r.shop_daily_time_slots?.length || 0 }))
+              slotsByDay: rows.map(r => ({ 
+                day: r.day_of_week, 
+                daily_hours_id: r.id,
+                count: r.shop_daily_time_slots?.length || 0,
+                slots: r.shop_daily_time_slots
+              }))
             });
           } else {
             const errorText = await timeSlotsResponse.text().catch(() => 'Unknown error');

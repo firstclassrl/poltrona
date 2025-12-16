@@ -123,7 +123,13 @@ export const DailyHoursManager: React.FC<DailyHoursManagerProps> = ({ disabled =
                                 lang="it-IT"
                                 step={300}
                                 data-format="24"
+                                data-locale="it-IT"
                                 disabled={disabled}
+                                onFocus={(e) => {
+                                  // Force 24-hour format on focus
+                                  e.target.setAttribute('data-format', '24');
+                                  e.target.setAttribute('lang', 'it-IT');
+                                }}
                               />
                               <span className="text-gray-400 text-sm">-</span>
                               <input
@@ -134,7 +140,13 @@ export const DailyHoursManager: React.FC<DailyHoursManagerProps> = ({ disabled =
                                 lang="it-IT"
                                 step={300}
                                 data-format="24"
+                                data-locale="it-IT"
                                 disabled={disabled}
+                                onFocus={(e) => {
+                                  // Force 24-hour format on focus
+                                  e.target.setAttribute('data-format', '24');
+                                  e.target.setAttribute('lang', 'it-IT');
+                                }}
                               />
                             </div>
                             
