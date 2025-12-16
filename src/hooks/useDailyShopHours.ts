@@ -168,7 +168,9 @@ export const useDailyShopHours = () => {
     setShopHours(newHours);
     persistHoursLocally(newHours);
     void apiService.saveDailyShopHours(newHours).catch((error) => {
-      console.error('Error saving daily shop hours:', error);
+      console.error('❌ Error saving daily shop hours:', error);
+      // Mostra un messaggio di errore all'utente
+      alert(`Errore nel salvataggio degli orari: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
     });
   };
 

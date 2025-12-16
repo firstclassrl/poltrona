@@ -692,7 +692,22 @@ export const apiService = {
       }
 
       const rows = await response.json() as ShopDailyHoursEntity[];
-      const config = createDefaultShopHoursConfig();
+      // Inizializza tutti i giorni come chiusi (non usare il default che ha lunedì aperto)
+      const config: ShopHoursConfig = {
+        0: { isOpen: false, timeSlots: [] }, // Domenica
+        1: { isOpen: false, timeSlots: [] }, // Lunedì
+        2: { isOpen: false, timeSlots: [] }, // Martedì
+        3: { isOpen: false, timeSlots: [] }, // Mercoledì
+        4: { isOpen: false, timeSlots: [] }, // Giovedì
+        5: { isOpen: false, timeSlots: [] }, // Venerdì
+        6: { isOpen: false, timeSlots: [] }, // Sabato
+      };
+
+      console.log('📅 Loading shop hours from database:', {
+        shopId,
+        rowsCount: rows.length,
+        rows: rows.map(r => ({ day: r.day_of_week, is_open: r.is_open, slotsCount: r.shop_daily_time_slots?.length || 0 }))
+      });
 
       rows.forEach((row) => {
         if (row.day_of_week < 0 || row.day_of_week > 6) return;
@@ -712,6 +727,10 @@ export const apiService = {
           isOpen: row.is_open,
           timeSlots,
         };
+      });
+
+      console.log('📅 Final config after loading:', {
+        config: Object.entries(config).map(([day, data]) => ({ day, isOpen: data.isOpen, slotsCount: data.timeSlots.length }))
       });
 
       return config;
@@ -753,9 +772,16 @@ export const apiService = {
       const existingMap = new Map<number, ShopDailyHoursEntity>();
       existingRows.forEach((row) => existingMap.set(row.day_of_week, row));
 
+      console.log('💾 Saving shop hours:', {
+        shopId,
+        config: Object.entries(hoursConfig).map(([day, data]) => ({ day, isOpen: data.isOpen, slotsCount: data.timeSlots.length }))
+      });
+
       for (let day = 0; day < 7; day += 1) {
         const dayConfig = hoursConfig[day] ?? { isOpen: false, timeSlots: [] };
         let currentRow = existingMap.get(day);
+
+        console.log(`💾 Processing day ${day}:`, { isOpen: dayConfig.isOpen, hasExistingRow: !!currentRow });
 
         if (currentRow) {
           const updateRes = await fetchWithTokenRefresh(
@@ -769,14 +795,17 @@ export const apiService = {
           );
           if (!updateRes.ok) {
             const errorText = await updateRes.text();
+            console.error(`❌ Failed to update shop hours for day ${day}:`, errorText);
             throw new Error(`Failed to update shop hours (${day}): ${errorText}`);
           }
+          console.log(`✅ Updated day ${day} with is_open=${dayConfig.isOpen}`);
         } else {
+          // Prova a creare il record. Se fallisce per unique constraint, prova a fare upsert
           const createRes = await fetchWithTokenRefresh(
             API_ENDPOINTS.SHOP_DAILY_HOURS,
             {
               method: 'POST',
-              headers: { ...headers, Prefer: 'return=representation' },
+              headers: { ...headers, Prefer: 'return=representation,resolution=merge-duplicates' },
               body: JSON.stringify([{
                 shop_id: shopId,
                 day_of_week: day,
@@ -787,11 +816,52 @@ export const apiService = {
           );
           if (!createRes.ok) {
             const errorText = await createRes.text();
+            // Se è un errore di unique constraint, prova a fare un upsert esplicito
+            if (errorText.includes('duplicate') || errorText.includes('unique') || createRes.status === 409) {
+              console.warn(`⚠️ Day ${day} already exists, trying to update instead`);
+              // Ricarica i record esistenti e aggiorna
+              const retryRes = await fetchWithTokenRefresh(
+                `${API_ENDPOINTS.SHOP_DAILY_HOURS}?shop_id=eq.${shopId}&day_of_week=eq.${day}&select=*&limit=1`,
+                { headers },
+                true
+              );
+              if (retryRes.ok) {
+                const existing = await retryRes.json() as ShopDailyHoursEntity[];
+                if (existing && existing.length > 0) {
+                  currentRow = existing[0];
+                  existingMap.set(day, currentRow);
+                  // Aggiorna il record esistente
+                  const updateRes = await fetchWithTokenRefresh(
+                    `${API_ENDPOINTS.SHOP_DAILY_HOURS}?id=eq.${currentRow.id}`,
+                    {
+                      method: 'PATCH',
+                      headers,
+                      body: JSON.stringify({ is_open: dayConfig.isOpen }),
+                    },
+                    true
+                  );
+                  if (updateRes.ok) {
+                    console.log(`✅ Updated existing day ${day} with is_open=${dayConfig.isOpen}`);
+                    continue; // Skip to next day
+                  } else {
+                    const updateErrorText = await updateRes.text();
+                    console.error(`❌ Failed to update existing day ${day}:`, updateErrorText);
+                    throw new Error(`Failed to update daily hours (${day}): ${updateErrorText}`);
+                  }
+                }
+              }
+            }
+            console.error(`❌ Failed to create shop hours for day ${day}:`, errorText);
             throw new Error(`Failed to create daily hours (${day}): ${errorText}`);
           }
           const created = await createRes.json() as ShopDailyHoursEntity[];
+          if (!created || created.length === 0) {
+            console.error(`❌ Created day ${day} but got no response`);
+            throw new Error(`Failed to create daily hours (${day}): No data returned`);
+          }
           currentRow = created[0];
           existingMap.set(day, currentRow);
+          console.log(`✅ Created day ${day} with is_open=${dayConfig.isOpen}`);
         }
 
         if (!currentRow) continue;
