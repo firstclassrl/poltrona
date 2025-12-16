@@ -3,14 +3,17 @@ import { Card } from './ui/Card';
 import { Input } from './ui/Input';
 import { Button } from './ui/Button';
 import { apiService } from '../services/api';
-import type { Shop } from '../types';
+import type { Shop, ShopHoursConfig, Staff, Service } from '../types';
 import { ThemeSelector } from './ThemeSelector';
 import { useTheme } from '../contexts/ThemeContext';
 import { DEFAULT_THEME_ID, type ThemePaletteId } from '../theme/palettes';
-import { ChevronLeft, ChevronRight, Upload, X, CheckCircle2, Shield, Palette, Building2, Mail, Phone, Download, UserPlus, Eye, EyeOff } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Upload, X, CheckCircle2, Shield, Palette, Building2, Mail, Phone, Download, UserPlus, Eye, EyeOff, Clock, Scissors, Sparkles } from 'lucide-react';
 import { ShopQRCode } from './ShopQRCode';
 import { API_CONFIG } from '../config/api';
 import { buildShopUrl, slugify } from '../utils/slug';
+import { createDefaultShopHoursConfig } from '../utils/shopHours';
+import { TimePicker } from './ui/TimePicker';
+import type { TimeSlot } from '../types';
 
 const getTokenFromUrl = (): string | null => {
   if (typeof window === 'undefined') return null;
@@ -35,7 +38,7 @@ const getTokenFromUrl = (): string | null => {
   return result;
 };
 
-type Slide = 1 | 2 | 3 | 4 | 5 | 6;
+type Slide = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
 export const ShopSetup: React.FC = () => {
   const { setTheme, themeId } = useTheme();
@@ -60,6 +63,21 @@ export const ShopSetup: React.FC = () => {
   const [adminAccessToken, setAdminAccessToken] = useState<string | null>(null);
   const [adminUserId, setAdminUserId] = useState<string | null>(null);
   const [inviteAdminUserId, setInviteAdminUserId] = useState<string | null>(null);
+  
+  // Nuovi state per le slide aggiuntive
+  const [shopHours, setShopHours] = useState<ShopHoursConfig>(createDefaultShopHoursConfig());
+  const [barberData, setBarberData] = useState<Partial<Staff>>({
+    full_name: '',
+    email: '',
+    role: 'Barber',
+    active: true,
+  });
+  const [serviceData, setServiceData] = useState<Partial<Service>>({
+    name: '',
+    duration_min: 30,
+    price_cents: 0,
+    active: true,
+  });
 
   const [form, setForm] = useState({
     name: '',
@@ -214,7 +232,7 @@ export const ShopSetup: React.FC = () => {
   };
 
   const nextSlide = () => {
-    if (currentSlide < 6) {
+    if (currentSlide < 9) {
       goToSlide((currentSlide + 1) as Slide);
     }
   };
@@ -248,6 +266,29 @@ export const ShopSetup: React.FC = () => {
       case 5:
         return true; // Palette, sempre valido
       case 6:
+        // Orari negozio - almeno un giorno deve essere aperto con orari validi
+        const hasOpenDay = Object.values(shopHours).some(day => {
+          if (!day.isOpen) return false;
+          return day.timeSlots.length > 0 && day.timeSlots.every(slot => {
+            const [startH, startM] = slot.start.split(':').map(Number);
+            const [endH, endM] = slot.end.split(':').map(Number);
+            const startTime = startH * 60 + startM;
+            const endTime = endH * 60 + endM;
+            return startTime < endTime && startTime >= 0 && endTime <= 24 * 60;
+          });
+        });
+        return hasOpenDay;
+      case 7:
+        // Barbiere - almeno nome, email e ruolo
+        return !!(barberData.full_name?.trim() && barberData.email?.trim() && barberData.role?.trim());
+      case 8:
+        // Servizio - almeno nome, durata e prezzo
+        return !!(
+          serviceData.name?.trim() &&
+          serviceData.duration_min && serviceData.duration_min >= 5 &&
+          serviceData.price_cents !== undefined && serviceData.price_cents >= 0
+        );
+      case 9:
         return privacyAccepted;
       default:
         return false;
@@ -635,6 +676,61 @@ export const ShopSetup: React.FC = () => {
       
       // Applica il tema con persistenza (salva in localStorage per questo shop)
       setTheme(themeToApply, { persist: true });
+      
+      // STEP 4: Salva gli orari del negozio
+      if (shop.id && adminAccessToken) {
+        try {
+          console.log('🕐 ShopSetup: Salvataggio orari negozio...');
+          // Assicurati che shop_id sia salvato nel localStorage per l'API
+          localStorage.setItem('current_shop_id', shop.id);
+          await apiService.saveDailyShopHours(shopHours);
+          console.log('✅ ShopSetup: Orari salvati con successo');
+        } catch (hoursError) {
+          console.error('❌ ShopSetup: Errore salvataggio orari:', hoursError);
+          // Non bloccare la creazione se gli orari falliscono
+          setError(`Negozio creato con successo, ma errore nel salvataggio degli orari: ${hoursError instanceof Error ? hoursError.message : 'Errore sconosciuto'}. Puoi configurare gli orari successivamente dalle impostazioni.`);
+        }
+      }
+      
+      // STEP 5: Crea il barbiere
+      if (shop.id && adminAccessToken && barberData.full_name && barberData.email && barberData.role) {
+        try {
+          console.log('👨 ShopSetup: Creazione barbiere...');
+          await apiService.createStaff({
+            shop_id: shop.id,
+            full_name: barberData.full_name,
+            email: barberData.email,
+            role: barberData.role,
+            active: barberData.active ?? true,
+          } as Omit<Staff, 'id' | 'created_at'>);
+          console.log('✅ ShopSetup: Barbiere creato con successo');
+        } catch (barberError) {
+          console.error('❌ ShopSetup: Errore creazione barbiere:', barberError);
+          // Non bloccare la creazione se il barbiere fallisce
+          const currentError = error || '';
+          setError(`${currentError ? currentError + ' ' : ''}Errore nella creazione del barbiere: ${barberError instanceof Error ? barberError.message : 'Errore sconosciuto'}. Puoi aggiungere barbieri successivamente dalle impostazioni.`);
+        }
+      }
+      
+      // STEP 6: Crea il servizio
+      if (shop.id && adminAccessToken && serviceData.name && serviceData.duration_min && serviceData.price_cents !== undefined) {
+        try {
+          console.log('✨ ShopSetup: Creazione servizio...');
+          await apiService.createService({
+            shop_id: shop.id,
+            name: serviceData.name,
+            duration_min: serviceData.duration_min,
+            price_cents: serviceData.price_cents,
+            active: serviceData.active ?? true,
+          });
+          console.log('✅ ShopSetup: Servizio creato con successo');
+        } catch (serviceError) {
+          console.error('❌ ShopSetup: Errore creazione servizio:', serviceError);
+          // Non bloccare la creazione se il servizio fallisce
+          const currentError = error || '';
+          setError(`${currentError ? currentError + ' ' : ''}Errore nella creazione del servizio: ${serviceError instanceof Error ? serviceError.message : 'Errore sconosciuto'}. Puoi aggiungere servizi successivamente dalle impostazioni.`);
+        }
+      }
       
       setSuccess({ shop, link });
     } catch (err) {
@@ -1049,6 +1145,277 @@ export const ShopSetup: React.FC = () => {
       </div>
     );
   } else if (currentSlide === 6) {
+    // Slide 6: Orari negozio
+    const DAYS_OF_WEEK = [
+      { key: 0, name: 'Domenica', shortName: 'Dom' },
+      { key: 1, name: 'Lunedì', shortName: 'Lun' },
+      { key: 2, name: 'Martedì', shortName: 'Mar' },
+      { key: 3, name: 'Mercoledì', shortName: 'Mer' },
+      { key: 4, name: 'Giovedì', shortName: 'Gio' },
+      { key: 5, name: 'Venerdì', shortName: 'Ven' },
+      { key: 6, name: 'Sabato', shortName: 'Sab' },
+    ];
+
+    const handleToggleDay = (dayOfWeek: number) => {
+      setShopHours(prev => ({
+        ...prev,
+        [dayOfWeek]: {
+          ...prev[dayOfWeek],
+          isOpen: !prev[dayOfWeek].isOpen,
+        },
+      }));
+    };
+
+    const handleAddTimeSlot = (dayOfWeek: number) => {
+      const newSlot: TimeSlot = { start: '09:00', end: '18:00' };
+      setShopHours(prev => ({
+        ...prev,
+        [dayOfWeek]: {
+          ...prev[dayOfWeek],
+          timeSlots: [...prev[dayOfWeek].timeSlots, newSlot],
+        },
+      }));
+    };
+
+    const handleRemoveTimeSlot = (dayOfWeek: number, slotIndex: number) => {
+      setShopHours(prev => ({
+        ...prev,
+        [dayOfWeek]: {
+          ...prev[dayOfWeek],
+          timeSlots: prev[dayOfWeek].timeSlots.filter((_, i) => i !== slotIndex),
+        },
+      }));
+    };
+
+    const handleTimeSlotChange = (dayOfWeek: number, slotIndex: number, field: 'start' | 'end', value: string) => {
+      setShopHours(prev => ({
+        ...prev,
+        [dayOfWeek]: {
+          ...prev[dayOfWeek],
+          timeSlots: prev[dayOfWeek].timeSlots.map((slot, i) =>
+            i === slotIndex ? { ...slot, [field]: value } : slot
+          ),
+        },
+      }));
+    };
+
+    slideContent = (
+      <div className="space-y-6">
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-[#1e40af] rounded-full mb-4">
+            <Clock className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Orari di Apertura</h2>
+          <p className="text-gray-600">Configura gli orari di apertura del tuo negozio</p>
+        </div>
+        
+        <div className="border-2 border-[#1e40af]/30 rounded-lg p-6 bg-white/60 backdrop-blur-sm">
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2 mb-3">
+              <Clock className="w-5 h-5 text-[#1e40af]" />
+              <h3 className="text-lg font-bold text-gray-900">Orari di Apertura</h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {DAYS_OF_WEEK.map((day) => {
+                const dayHours = shopHours[day.key];
+                const isOpen = dayHours.isOpen;
+                
+                return (
+                  <div key={day.key} className="border border-gray-200 rounded-lg p-3 bg-white hover:shadow-sm transition-shadow">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-semibold text-gray-900">{day.name}</h4>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleDay(day.key)}
+                        className="flex items-center space-x-1 px-2 py-1 text-xs rounded hover:bg-gray-100"
+                      >
+                        {isOpen ? (
+                          <>
+                            <span className="text-green-600 font-medium">Aperto</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-gray-500">Chiuso</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {isOpen ? (
+                      <div className="space-y-2">
+                        {dayHours.timeSlots.length === 0 ? (
+                          <div className="text-center py-3 text-gray-400">
+                            <Clock className="w-5 h-5 mx-auto mb-1 text-gray-300" />
+                            <p className="text-xs">Nessun orario</p>
+                            <button
+                              type="button"
+                              onClick={() => handleAddTimeSlot(day.key)}
+                              className="mt-2 text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded"
+                            >
+                              Aggiungi
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            {dayHours.timeSlots.map((slot, slotIndex) => (
+                              <div
+                                key={slotIndex}
+                                className="flex items-center justify-between p-2 rounded border border-gray-200 bg-gray-50"
+                              >
+                                <div className="flex items-center space-x-2">
+                                  <TimePicker
+                                    value={slot.start}
+                                    onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'start', value)}
+                                    className="w-24 min-w-[6rem]"
+                                    placeholder="09:00"
+                                  />
+                                  <span className="text-gray-400 text-sm">-</span>
+                                  <TimePicker
+                                    value={slot.end}
+                                    onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'end', value)}
+                                    className="w-24 min-w-[6rem]"
+                                    placeholder="18:00"
+                                  />
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveTimeSlot(day.key, slotIndex)}
+                                  className="text-red-500 hover:text-red-700 p-1"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => handleAddTimeSlot(day.key)}
+                              className="w-full text-xs px-2 py-1 mt-1 bg-gray-100 hover:bg-gray-200 rounded"
+                            >
+                              + Aggiungi fascia
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-gray-400">
+                        <p className="text-xs">Chiuso</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+              <p className="text-blue-800 text-xs">
+                💡 Configura gli orari di apertura per ogni giorno della settimana. Clicca su "Aperto" per abilitare un giorno e aggiungi le fasce orarie.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  } else if (currentSlide === 7) {
+    // Slide 7: Creazione barbiere
+    slideContent = (
+      <div className="space-y-6">
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-[#1e40af] rounded-full mb-4">
+            <Scissors className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Aggiungi un Barbiere</h2>
+          <p className="text-gray-600">Crea almeno un barbiere per il tuo negozio</p>
+        </div>
+        
+        <div className="space-y-6">
+          <Input
+            label="Nome Completo *"
+            labelClassName="text-[#1e40af] font-medium"
+            value={barberData.full_name || ''}
+            onChange={(e) => setBarberData(prev => ({ ...prev, full_name: e.target.value }))}
+            placeholder="Es: Mario Rossi"
+            required
+          />
+          <Input
+            label="Email *"
+            labelClassName="text-[#1e40af] font-medium"
+            type="email"
+            value={barberData.email || ''}
+            onChange={(e) => setBarberData(prev => ({ ...prev, email: e.target.value }))}
+            placeholder="mario.rossi@example.com"
+            required
+          />
+          <div>
+            <label className="block text-sm font-medium text-[#1e40af] mb-2">Ruolo *</label>
+            <select
+              value={barberData.role || ''}
+              onChange={(e) => setBarberData(prev => ({ ...prev, role: e.target.value }))}
+              className="w-full border-2 border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e40af] focus:border-[#1e40af] bg-white text-gray-900"
+              required
+            >
+              <option value="">Seleziona ruolo</option>
+              <option value="Barber">Barber</option>
+              <option value="Stylist">Stylist</option>
+              <option value="Master Barber">Master Barber</option>
+              <option value="Junior Barber">Junior Barber</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    );
+  } else if (currentSlide === 8) {
+    // Slide 8: Creazione servizio
+    slideContent = (
+      <div className="space-y-6">
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-[#1e40af] rounded-full mb-4">
+            <Sparkles className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Aggiungi un Servizio</h2>
+          <p className="text-gray-600">Crea almeno un servizio offerto dal tuo negozio</p>
+        </div>
+        
+        <div className="space-y-6">
+          <Input
+            label="Nome Servizio *"
+            labelClassName="text-[#1e40af] font-medium"
+            value={serviceData.name || ''}
+            onChange={(e) => setServiceData(prev => ({ ...prev, name: e.target.value }))}
+            placeholder="Es: Taglio Capelli"
+            required
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="Durata (minuti) *"
+              labelClassName="text-[#1e40af] font-medium"
+              type="number"
+              value={String(serviceData.duration_min || 30)}
+              onChange={(e) => setServiceData(prev => ({ ...prev, duration_min: parseInt(e.target.value || '30', 10) }))}
+              min="5"
+              max="480"
+              required
+            />
+            <Input
+              label="Prezzo (€) *"
+              labelClassName="text-[#1e40af] font-medium"
+              type="number"
+              step="0.01"
+              value={serviceData.price_cents !== undefined ? (serviceData.price_cents / 100).toFixed(2) : ''}
+              onChange={(e) => {
+                const value = parseFloat(e.target.value || '0');
+                setServiceData(prev => ({ ...prev, price_cents: Math.round(value * 100) }));
+              }}
+              min="0"
+              placeholder="0.00"
+              required
+            />
+          </div>
+        </div>
+      </div>
+    );
+  } else if (currentSlide === 9) {
+    // Slide 9: Conferma e crea (era slide 6)
     slideContent = (
       <div className="space-y-6">
         <div className="text-center mb-6">
@@ -1075,6 +1442,14 @@ export const ShopSetup: React.FC = () => {
               <div className="flex justify-between">
                 <span className="text-gray-600">Email notifiche:</span>
                 <span className="font-medium text-[#1e40af]">{form.notification_email || 'Non specificato'}</span>
+              </div>
+              <div className="flex justify-between border-t pt-3 mt-3">
+                <span className="text-gray-600">Barbiere:</span>
+                <span className="font-medium text-[#1e40af]">{barberData.full_name || 'Non specificato'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Servizio:</span>
+                <span className="font-medium text-[#1e40af]">{serviceData.name || 'Non specificato'}</span>
               </div>
             </div>
           </div>
@@ -1211,7 +1586,7 @@ export const ShopSetup: React.FC = () => {
         <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
           <div
             className="bg-[#1e40af] h-2 rounded-full transition-all duration-300"
-            style={{ width: `${(currentSlide / 6) * 100}%` }}
+            style={{ width: `${(currentSlide / 9) * 100}%` }}
           />
         </div>
 
@@ -1252,7 +1627,7 @@ export const ShopSetup: React.FC = () => {
           </button>
 
           <div className="flex gap-2">
-            {[1, 2, 3, 4, 5, 6].map((slide) => (
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((slide) => (
               <button
                 key={slide}
                 type="button"
@@ -1267,7 +1642,7 @@ export const ShopSetup: React.FC = () => {
             ))}
           </div>
 
-          {currentSlide < 6 ? (
+          {currentSlide < 9 ? (
             <button
               type="button"
               onClick={nextSlide}
