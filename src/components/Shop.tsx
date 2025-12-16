@@ -92,7 +92,7 @@ export const ShopManagement = () => {
   const [isEditingHours, setIsEditingHours] = useState(false);
   const [isSavingHours, setIsSavingHours] = useState(false);
   const [hoursMessage, setHoursMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const { saveShopHours } = useDailyShopHours();
+  const [currentShopHours, setCurrentShopHours] = useState<import('../types').ShopHoursConfig | null>(null);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [selectedBarberId, setSelectedBarberId] = useState<string>('');
 
@@ -657,9 +657,19 @@ export const ShopManagement = () => {
                       onClick={async () => {
                         setIsSavingHours(true);
                         try {
-                          await saveShopHours();
-                          showMessage(setHoursMessage, 'success', 'Orari salvati con successo!');
-                          setIsEditingHours(false);
+                          if (!currentShopHours) {
+                            showMessage(setHoursMessage, 'error', 'Nessun dato da salvare');
+                            return;
+                          }
+                          console.log('💾 Save button clicked, current shopHours from DailyHoursManager:', currentShopHours);
+                          // Passa lo stato corrente direttamente da DailyHoursManager
+                          const wasSaved = await apiService.saveDailyShopHours(currentShopHours);
+                          if (wasSaved) {
+                            showMessage(setHoursMessage, 'success', 'Orari salvati con successo!');
+                            setIsEditingHours(false);
+                          } else {
+                            showMessage(setHoursMessage, 'error', 'Nessuna modifica da salvare');
+                          }
                         } catch (error) {
                           showMessage(
                             setHoursMessage,
@@ -695,7 +705,13 @@ export const ShopManagement = () => {
               )}
             </div>
 
-            <DailyHoursManager disabled={!isEditingHours || !isAdmin} />
+            <DailyHoursManager 
+              disabled={!isEditingHours || !isAdmin}
+              onStateChange={(hours) => {
+                console.log('📝 DailyHoursManager state changed:', hours);
+                setCurrentShopHours(hours);
+              }}
+            />
 
             {hoursMessage && (
               <div

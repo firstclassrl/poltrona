@@ -201,6 +201,7 @@ export const useDailyShopHours = () => {
   const updateShopHours = useCallback((newHours: ShopHoursConfig) => {
     console.log('📝 Updating shop hours locally:', newHours);
     setShopHours(newHours);
+    shopHoursRef.current = newHours; // Aggiorna anche il ref
     persistHoursLocally(newHours);
     // NON salvare automaticamente - solo aggiorna lo stato locale
     // Il salvataggio sarà fatto manualmente quando l'utente clicca su "Salva"
@@ -302,33 +303,68 @@ export const useDailyShopHours = () => {
   };
 
   const updateDayHours = (dayOfWeek: number, dayHours: DailyHours) => {
-    const newHours = { ...shopHours, [dayOfWeek]: dayHours };
-    updateShopHours(newHours);
+    // Usa una funzione di aggiornamento per leggere sempre lo stato corrente
+    setShopHours((currentHours) => {
+      const newHours = { ...currentHours, [dayOfWeek]: dayHours };
+      console.log(`📝 Updating day ${dayOfWeek}:`, { 
+        old: currentHours[dayOfWeek], 
+        new: dayHours,
+        allDays: Object.keys(newHours).map(k => ({ day: k, isOpen: newHours[parseInt(k)].isOpen }))
+      });
+      persistHoursLocally(newHours);
+      shopHoursRef.current = newHours; // Aggiorna anche il ref
+      return newHours;
+    });
   };
 
   const addTimeSlot = (dayOfWeek: number, timeSlot: TimeSlot) => {
-    const dayHours = shopHours[dayOfWeek];
-    const newTimeSlots = [...dayHours.timeSlots, timeSlot];
-    updateDayHours(dayOfWeek, { ...dayHours, timeSlots: newTimeSlots });
+    setShopHours((currentHours) => {
+      const dayHours = currentHours[dayOfWeek];
+      const newTimeSlots = [...dayHours.timeSlots, timeSlot];
+      const newHours = { ...currentHours, [dayOfWeek]: { ...dayHours, timeSlots: newTimeSlots } };
+      persistHoursLocally(newHours);
+      shopHoursRef.current = newHours;
+      return newHours;
+    });
   };
 
   const removeTimeSlot = (dayOfWeek: number, slotIndex: number) => {
-    const dayHours = shopHours[dayOfWeek];
-    const newTimeSlots = dayHours.timeSlots.filter((_, index) => index !== slotIndex);
-    updateDayHours(dayOfWeek, { ...dayHours, timeSlots: newTimeSlots });
+    setShopHours((currentHours) => {
+      const dayHours = currentHours[dayOfWeek];
+      const newTimeSlots = dayHours.timeSlots.filter((_, index) => index !== slotIndex);
+      const newHours = { ...currentHours, [dayOfWeek]: { ...dayHours, timeSlots: newTimeSlots } };
+      persistHoursLocally(newHours);
+      shopHoursRef.current = newHours;
+      return newHours;
+    });
   };
 
   const updateTimeSlot = (dayOfWeek: number, slotIndex: number, timeSlot: TimeSlot) => {
-    const dayHours = shopHours[dayOfWeek];
-    const newTimeSlots = dayHours.timeSlots.map((slot, index) => 
-      index === slotIndex ? timeSlot : slot
-    );
-    updateDayHours(dayOfWeek, { ...dayHours, timeSlots: newTimeSlots });
+    setShopHours((currentHours) => {
+      const dayHours = currentHours[dayOfWeek];
+      const newTimeSlots = dayHours.timeSlots.map((slot, index) => 
+        index === slotIndex ? timeSlot : slot
+      );
+      const newHours = { ...currentHours, [dayOfWeek]: { ...dayHours, timeSlots: newTimeSlots } };
+      persistHoursLocally(newHours);
+      shopHoursRef.current = newHours;
+      return newHours;
+    });
   };
 
   const toggleDayOpen = (dayOfWeek: number) => {
-    const dayHours = shopHours[dayOfWeek];
-    updateDayHours(dayOfWeek, { ...dayHours, isOpen: !dayHours.isOpen });
+    setShopHours((currentHours) => {
+      const dayHours = currentHours[dayOfWeek];
+      const newHours = { ...currentHours, [dayOfWeek]: { ...dayHours, isOpen: !dayHours.isOpen } };
+      console.log(`🔄 Toggling day ${dayOfWeek}:`, { 
+        old: dayHours.isOpen, 
+        new: !dayHours.isOpen,
+        allDays: Object.keys(newHours).map(k => ({ day: k, isOpen: newHours[parseInt(k)].isOpen }))
+      });
+      persistHoursLocally(newHours);
+      shopHoursRef.current = newHours;
+      return newHours;
+    });
   };
 
   // Check if a specific date is open

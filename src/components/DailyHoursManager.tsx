@@ -7,9 +7,10 @@ import type { TimeSlot } from '../types';
 
 interface DailyHoursManagerProps {
   disabled?: boolean;
+  onStateChange?: (hours: import('../types').ShopHoursConfig) => void;
 }
 
-export const DailyHoursManager: React.FC<DailyHoursManagerProps> = ({ disabled = false }) => {
+export const DailyHoursManager: React.FC<DailyHoursManagerProps> = ({ disabled = false, onStateChange }) => {
   const {
     shopHours,
     DAYS_OF_WEEK,
@@ -19,6 +20,13 @@ export const DailyHoursManager: React.FC<DailyHoursManagerProps> = ({ disabled =
     updateTimeSlot,
     toggleDayOpen,
   } = useDailyShopHours();
+
+  // Notifica il componente padre quando lo stato cambia
+  React.useEffect(() => {
+    if (onStateChange) {
+      onStateChange(shopHours);
+    }
+  }, [shopHours, onStateChange]);
 
   const handleAddTimeSlot = (dayOfWeek: number) => {
     if (disabled) return;
