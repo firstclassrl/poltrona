@@ -744,40 +744,128 @@ export const ShopSetup: React.FC = () => {
   // Slide 1: Benvenuto
   const SlideWelcome = () => (
     <div className="text-center space-y-8 py-4">
-      <div className="flex justify-center mb-6">
-        <img 
-          src="/logo Poltrona 2025.png" 
-          alt="Logo Poltrona" 
-          className="h-28 w-auto object-contain" 
-        />
+      <div className="flex justify-center mb-8">
+        <div 
+          className="relative"
+          style={{
+            filter: 'drop-shadow(0 10px 40px rgba(59, 130, 246, 0.3))',
+          }}
+        >
+          <img 
+            src="/logo Poltrona 2025.png" 
+            alt="Logo Poltrona" 
+            className="h-32 w-auto object-contain" 
+          />
+        </div>
       </div>
-      <h1 className="text-4xl md:text-5xl font-bold text-[#1e40af] tracking-tight">
+      <h1 
+        className="text-5xl md:text-6xl font-bold tracking-tight mb-4"
+        style={{
+          background: 'linear-gradient(135deg, #3b82f6 0%, #9333ea 50%, #ec4899 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          textShadow: '0 0 40px rgba(59, 130, 246, 0.3)',
+        }}
+      >
         BENVENUTI IN POLTRONA
       </h1>
-      <p className="text-lg md:text-xl text-gray-700 max-w-2xl mx-auto leading-relaxed">
+      <p className="text-xl md:text-2xl text-white/80 max-w-2xl mx-auto leading-relaxed font-light">
         Il sistema di gestione appuntamenti più completo per il tuo negozio
       </p>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mt-8">
-        <div className="p-6 bg-white/60 backdrop-blur-sm rounded-xl border border-white/30">
-          <div className="w-12 h-12 bg-[#10b981] rounded-lg flex items-center justify-center mx-auto mb-4">
-            <Building2 className="w-6 h-6 text-white" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mt-12">
+        <div 
+          className="p-8 rounded-2xl relative overflow-hidden transition-all duration-300 hover:scale-[1.02]"
+          style={{
+            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.1) 100%)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.1)',
+          }}
+        >
+          <div 
+            className="absolute inset-0 opacity-20"
+            style={{
+              background: 'radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.4) 0%, transparent 70%)',
+            }}
+          />
+          <div className="relative z-10">
+            <div 
+              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 relative overflow-hidden"
+              style={{
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(147, 51, 234, 0.3) 100%)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                boxShadow: '0 4px 20px 0 rgba(59, 130, 246, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.2)',
+              }}
+            >
+              <Building2 className="w-8 h-8 text-white drop-shadow-lg" />
+            </div>
+            <h3 className="font-semibold text-white text-lg mb-3 drop-shadow-md">Gestione Completa</h3>
+            <p className="text-sm text-white/70 leading-relaxed">Appuntamenti, clienti, staff e prodotti in un'unica piattaforma</p>
           </div>
-          <h3 className="font-semibold text-[#1e40af] mb-2">Gestione Completa</h3>
-          <p className="text-sm text-gray-600">Appuntamenti, clienti, staff e prodotti in un'unica piattaforma</p>
         </div>
-        <div className="p-6 bg-white/60 backdrop-blur-sm rounded-xl border border-white/30">
-          <div className="w-12 h-12 bg-[#10b981] rounded-lg flex items-center justify-center mx-auto mb-4">
-            <Phone className="w-6 h-6 text-white" />
+        <div 
+          className="p-8 rounded-2xl relative overflow-hidden transition-all duration-300 hover:scale-[1.02]"
+          style={{
+            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.1) 100%)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 8px 32px 0 rgba(236, 72, 153, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.1)',
+          }}
+        >
+          <div 
+            className="absolute inset-0 opacity-20"
+            style={{
+              background: 'radial-gradient(circle at 50% 0%, rgba(236, 72, 153, 0.4) 0%, transparent 70%)',
+            }}
+          />
+          <div className="relative z-10">
+            <div 
+              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 relative overflow-hidden"
+              style={{
+                background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.3) 0%, rgba(147, 51, 234, 0.3) 100%)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                boxShadow: '0 4px 20px 0 rgba(236, 72, 153, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.2)',
+              }}
+            >
+              <Phone className="w-8 h-8 text-white drop-shadow-lg" />
+            </div>
+            <h3 className="font-semibold text-white text-lg mb-3 drop-shadow-md">Notifiche Automatiche</h3>
+            <p className="text-sm text-white/70 leading-relaxed">Email e SMS automatici per te e i tuoi clienti</p>
           </div>
-          <h3 className="font-semibold text-[#1e40af] mb-2">Notifiche Automatiche</h3>
-          <p className="text-sm text-gray-600">Email e SMS automatici per te e i tuoi clienti</p>
         </div>
-        <div className="p-6 bg-white/60 backdrop-blur-sm rounded-xl border border-white/30">
-          <div className="w-12 h-12 bg-[#10b981] rounded-lg flex items-center justify-center mx-auto mb-4">
-            <Palette className="w-6 h-6 text-white" />
+        <div 
+          className="p-8 rounded-2xl relative overflow-hidden transition-all duration-300 hover:scale-[1.02]"
+          style={{
+            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.1) 100%)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 8px 32px 0 rgba(147, 51, 234, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.1)',
+          }}
+        >
+          <div 
+            className="absolute inset-0 opacity-20"
+            style={{
+              background: 'radial-gradient(circle at 50% 0%, rgba(147, 51, 234, 0.4) 0%, transparent 70%)',
+            }}
+          />
+          <div className="relative z-10">
+            <div 
+              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 relative overflow-hidden"
+              style={{
+                background: 'linear-gradient(135deg, rgba(147, 51, 234, 0.3) 0%, rgba(59, 130, 246, 0.3) 100%)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                boxShadow: '0 4px 20px 0 rgba(147, 51, 234, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.2)',
+              }}
+            >
+              <Palette className="w-8 h-8 text-white drop-shadow-lg" />
+            </div>
+            <h3 className="font-semibold text-white text-lg mb-3 drop-shadow-md">Personalizzabile</h3>
+            <p className="text-sm text-white/70 leading-relaxed">Scegli colori e stile in linea con il tuo brand</p>
           </div>
-          <h3 className="font-semibold text-[#1e40af] mb-2">Personalizzabile</h3>
-          <p className="text-sm text-gray-600">Scegli colori e stile in linea con il tuo brand</p>
         </div>
       </div>
     </div>
@@ -912,65 +1000,133 @@ export const ShopSetup: React.FC = () => {
     // Slide 2: Login Admin
     slideContent = (
       <div className="space-y-6">
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-[#1e40af] rounded-full mb-4">
-            <Shield className="w-8 h-8 text-white" />
+        <div className="text-center mb-8">
+          <div 
+            className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-6 relative overflow-hidden"
+            style={{
+              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(147, 51, 234, 0.3) 100%)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.2)',
+            }}
+          >
+            <Shield className="w-10 h-10 text-white relative z-10 drop-shadow-lg" />
+            <div 
+              className="absolute inset-0 opacity-50"
+              style={{
+                background: 'radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4) 0%, transparent 70%)',
+              }}
+            />
           </div>
-          <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Accesso Admin</h2>
-          <p className="text-gray-600">Accedi con le credenziali admin fornite</p>
+          <h2 
+            className="text-4xl font-bold mb-3"
+            style={{
+              background: 'linear-gradient(135deg, #3b82f6 0%, #9333ea 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >
+            Accesso Admin
+          </h2>
+          <p className="text-white/70 text-lg">Accedi con le credenziali admin fornite</p>
         </div>
         
         {isLoggedIn ? (
-          <div className="p-6 bg-green-50 border-2 border-green-200 rounded-lg">
-            <div className="flex items-center gap-3">
-              <CheckCircle2 className="w-6 h-6 text-green-600" />
+          <div 
+            className="p-6 rounded-xl relative overflow-hidden"
+            style={{
+              background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(16, 185, 129, 0.2) 100%)',
+              backdropFilter: 'blur(15px)',
+              border: '1px solid rgba(34, 197, 94, 0.4)',
+              boxShadow: '0 4px 20px 0 rgba(34, 197, 94, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.1)',
+            }}
+          >
+            <div className="flex items-center gap-3 relative z-10">
+              <CheckCircle2 className="w-6 h-6 text-green-300 drop-shadow-lg" />
               <div>
-                <p className="font-semibold text-green-900">Accesso effettuato</p>
-                <p className="text-sm text-green-700">Puoi procedere con la configurazione del negozio</p>
+                <p className="font-semibold text-white drop-shadow-md">Accesso effettuato</p>
+                <p className="text-sm text-white/80">Puoi procedere con la configurazione del negozio</p>
               </div>
             </div>
           </div>
         ) : (
-          <div className="space-y-6">
-            <Input
-              label="Email admin *"
-              labelClassName="text-[#1e40af] font-medium"
-              type="email"
-              value={adminEmail}
-              onChange={(e) => setAdminEmail(e.target.value)}
-              placeholder="admin@negozio.com"
-              required
-              disabled={isLoggedIn}
+          <div 
+            className="space-y-6 p-6 rounded-2xl relative overflow-hidden"
+            style={{
+              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
+              backdropFilter: 'blur(20px) saturate(180%)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.1)',
+            }}
+          >
+            <div 
+              className="absolute inset-0 opacity-30"
+              style={{
+                background: 'radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.3) 0%, transparent 50%)',
+              }}
             />
-            <div className="relative">
+            <div className="relative z-10 space-y-6">
               <Input
-                label="Password *"
-                labelClassName="text-[#1e40af] font-medium"
-                type={showAdminPassword ? 'text' : 'password'}
-                value={adminPassword}
-                onChange={(e) => setAdminPassword(e.target.value)}
-                placeholder="Inserisci la password"
+                label="Email admin *"
+                labelClassName="text-white font-medium drop-shadow-sm"
+                type="email"
+                value={adminEmail}
+                onChange={(e) => setAdminEmail(e.target.value)}
+                placeholder="admin@negozio.com"
                 required
                 disabled={isLoggedIn}
               />
+              <div className="relative">
+                <Input
+                  label="Password *"
+                  labelClassName="text-white font-medium drop-shadow-sm"
+                  type={showAdminPassword ? 'text' : 'password'}
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  placeholder="Inserisci la password"
+                  required
+                  disabled={isLoggedIn}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAdminPassword(!showAdminPassword)}
+                  className="absolute right-3 top-8 text-white/60 hover:text-white transition-colors"
+                  disabled={isLoggedIn}
+                >
+                  {showAdminPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
               <button
                 type="button"
-                onClick={() => setShowAdminPassword(!showAdminPassword)}
-                className="absolute right-3 top-8 text-gray-400 hover:text-gray-600"
-                disabled={isLoggedIn}
+                onClick={handleLogin}
+                disabled={!adminEmail.trim() || !adminPassword.trim()}
+                className={`w-full flex items-center justify-center gap-2 px-6 py-3 font-semibold rounded-xl transition-all duration-300 ${
+                  !adminEmail.trim() || !adminPassword.trim()
+                    ? 'bg-gray-500/30 text-gray-400 cursor-not-allowed'
+                    : 'text-white'
+                }`}
+                style={!adminEmail.trim() || !adminPassword.trim() ? {} : {
+                  background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.4) 0%, rgba(147, 51, 234, 0.4) 100%)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  boxShadow: '0 4px 20px 0 rgba(59, 130, 246, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.2)',
+                }}
+                onMouseEnter={(e) => {
+                  if (!(!adminEmail.trim() || !adminPassword.trim())) {
+                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.5) 0%, rgba(147, 51, 234, 0.5) 100%)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!(!adminEmail.trim() || !adminPassword.trim())) {
+                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.4) 0%, rgba(147, 51, 234, 0.4) 100%)';
+                  }
+                }}
               >
-                {showAdminPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                <Shield className="w-5 h-5" />
+                Accedi
               </button>
             </div>
-            <button
-              type="button"
-              onClick={handleLogin}
-              disabled={!adminEmail.trim() || !adminPassword.trim()}
-              className="w-full flex items-center justify-center gap-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed px-6 py-3 font-semibold rounded-lg transition-all duration-200"
-            >
-              <Shield className="w-5 h-5" />
-              Accedi
-            </button>
           </div>
         )}
       </div>
@@ -1692,7 +1848,19 @@ export const ShopSetup: React.FC = () => {
                   onClick={() => {
                     window.location.href = success.link;
                   }}
-                  className="w-full flex items-center justify-center gap-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white px-6 py-3 font-semibold rounded-lg transition-all duration-200"
+                  className="w-full flex items-center justify-center gap-2 text-white px-6 py-3 font-semibold rounded-xl transition-all duration-300"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.4) 0%, rgba(147, 51, 234, 0.4) 100%)',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    boxShadow: '0 4px 20px 0 rgba(59, 130, 246, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.2)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.5) 0%, rgba(147, 51, 234, 0.5) 100%)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.4) 0%, rgba(147, 51, 234, 0.4) 100%)';
+                  }}
                 >
                   Vai al Login!
                 </button>
@@ -1704,7 +1872,19 @@ export const ShopSetup: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => downloadQRCode(success.link, success.shop.name)}
-                    className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white px-6 py-3 font-semibold rounded-lg transition-all duration-200"
+                    className="flex items-center gap-2 text-white px-6 py-3 font-semibold rounded-xl transition-all duration-300"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.4) 0%, rgba(147, 51, 234, 0.4) 100%)',
+                      backdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(255, 255, 255, 0.3)',
+                      boxShadow: '0 4px 20px 0 rgba(59, 130, 246, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.2)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.5) 0%, rgba(147, 51, 234, 0.5) 100%)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.4) 0%, rgba(147, 51, 234, 0.4) 100%)';
+                    }}
                   >
                     <Download className="w-4 h-4" />
                     Scarica QR Code
@@ -1736,26 +1916,80 @@ export const ShopSetup: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-white py-6 px-4">
-      <div className="max-w-4xl w-full mx-auto flex flex-col h-[calc(100vh-3rem)] max-h-[900px]">
+    <div 
+      className="min-h-screen flex flex-col py-6 px-4 relative overflow-hidden"
+      style={{
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #00f2fe 100%)',
+        backgroundSize: '400% 400%',
+        animation: 'gradient 15s ease infinite',
+      }}
+    >
+      <style>{`
+        @keyframes gradient {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+      `}</style>
+      <div 
+        className="absolute inset-0"
+        style={{
+          background: 'radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.3) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(147, 51, 234, 0.3) 0%, transparent 50%)',
+        }}
+      />
+      <div className="max-w-4xl w-full mx-auto flex flex-col h-[calc(100vh-3rem)] max-h-[900px] relative z-10">
         {/* Progress bar */}
-        <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
+        <div 
+          className="w-full rounded-full h-2 mb-6 relative overflow-hidden"
+          style={{
+            background: 'rgba(255, 255, 255, 0.1)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+          }}
+        >
           <div
-            className="bg-[#1e40af] h-2 rounded-full transition-all duration-300"
-            style={{ width: `${(currentSlide / 9) * 100}%` }}
-          />
+            className="h-2 rounded-full transition-all duration-300 relative overflow-hidden"
+            style={{ 
+              width: `${(currentSlide / 9) * 100}%`,
+              background: 'linear-gradient(90deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.6) 100%)',
+              boxShadow: '0 0 20px rgba(255, 255, 255, 0.5)',
+            }}
+          >
+            <div 
+              className="absolute inset-0"
+              style={{
+                background: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%)',
+                animation: 'shimmer 2s infinite',
+              }}
+            />
+          </div>
         </div>
+        <style>{`
+          @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+          }
+        `}</style>
 
         {/* Slide container - flex-1 per occupare lo spazio disponibile */}
-        <div className="relative overflow-hidden rounded-lg flex-1 min-h-0 mb-6">
+        <div className="relative overflow-hidden rounded-2xl flex-1 min-h-0 mb-6">
           <div className="h-full overflow-y-auto">
             <div 
-              className="p-8 md:p-10 rounded-2xl shadow-2xl backdrop-blur-xl border border-white/20"
+              className="p-8 md:p-10 rounded-2xl relative overflow-hidden"
               style={{
-                background: 'linear-gradient(135deg, rgba(96, 165, 250, 0.15) 0%, rgba(59, 130, 246, 0.1) 100%)',
-                boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.15)',
+                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.1) 100%)',
+                backdropFilter: 'blur(30px) saturate(180%)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.2)',
               }}
             >
+              <div 
+                className="absolute inset-0 opacity-30"
+                style={{
+                  background: 'radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.3) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(147, 51, 234, 0.3) 0%, transparent 50%)',
+                }}
+              />
+              <div className="relative z-10">
               {error && (
                 <div className="bg-red-50 border-2 border-red-200 text-red-800 p-4 rounded-lg mb-6">
                   <div className="flex items-start gap-3">
@@ -1764,7 +1998,8 @@ export const ShopSetup: React.FC = () => {
                   </div>
                 </div>
               )}
-              {slideContent}
+                {slideContent}
+              </div>
             </div>
           </div>
         </div>
