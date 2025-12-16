@@ -182,21 +182,14 @@ export const useDailyShopHours = () => {
     try {
       const wasSaved = await apiService.saveDailyShopHours(hoursToSave);
       
-      // Dopo il salvataggio, ricarica i dati dal database SOLO se è stato effettivamente salvato
+      // NON fare il reload automatico dopo il salvataggio
+      // Il reload sovrascrive lo stato locale e può causare problemi
+      // Lo stato locale è già sincronizzato con quello che è stato salvato
       if (wasSaved) {
-        console.log('🔄 Reloading shop hours from database after save...');
-        try {
-          const reloadedHours = await apiService.getDailyShopHours();
-          setShopHours(reloadedHours);
-          persistHoursLocally(reloadedHours);
-          console.log('✅ Shop hours reloaded and state updated');
-        } catch (reloadError) {
-          console.error('⚠️ Error reloading shop hours after save:', reloadError);
-          // Se il reload fallisce, mantieni lo stato locale che è stato salvato
-          // Lo stato locale dovrebbe corrispondere a quello salvato
-        }
+        console.log('✅ Shop hours saved successfully, keeping local state');
+        // Non fare reload - lo stato locale è già corretto
       } else {
-        console.log('ℹ️ No save was performed, skipping reload');
+        console.log('ℹ️ No save was performed, keeping local state');
       }
     } catch (error) {
       console.error('❌ Error saving daily shop hours:', error);
@@ -209,37 +202,27 @@ export const useDailyShopHours = () => {
     console.log('📝 Updating shop hours locally:', newHours);
     setShopHours(newHours);
     persistHoursLocally(newHours);
-    
-    // Salva il riferimento per il salvataggio debounced
-    pendingSaveRef.current = newHours;
-    
-    // Cancella il timeout precedente se esiste
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-    
-    // Imposta un nuovo timeout per salvare dopo 500ms di inattività
-    saveTimeoutRef.current = setTimeout(() => {
-      if (pendingSaveRef.current) {
-        console.log('💾 Auto-saving shop hours after debounce...');
-        void performSave(pendingSaveRef.current);
-        pendingSaveRef.current = null;
-      }
-    }, 500);
-  }, [performSave]);
+    // NON salvare automaticamente - solo aggiorna lo stato locale
+    // Il salvataggio sarà fatto manualmente quando l'utente clicca su "Salva"
+  }, []);
 
-  // Cleanup del timeout quando il componente viene smontato
-  useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
+  // Funzione per salvataggio manuale
+  const saveShopHours = useCallback(async (): Promise<boolean> => {
+    try {
+      console.log('💾 Manual save triggered, saving shop hours...');
+      const wasSaved = await apiService.saveDailyShopHours(shopHours);
+      if (wasSaved) {
+        console.log('✅ Shop hours saved successfully');
+        return true;
+      } else {
+        console.log('ℹ️ No changes to save');
+        return false;
       }
-      // Salva eventuali modifiche pendenti prima di smontare
-      if (pendingSaveRef.current) {
-        void performSave(pendingSaveRef.current);
-      }
-    };
-  }, [performSave]);
+    } catch (error) {
+      console.error('❌ Error saving shop hours:', error);
+      throw error;
+    }
+  }, [shopHours]);
 
   const applyExtraOpening = (config: ExtraOpeningConfig | null) => {
     setExtraOpening(config);
@@ -447,5 +430,6 @@ export const useDailyShopHours = () => {
     applyExtraOpening,
     refreshExtraOpening: () => setExtraOpening(readExtraOpeningFromStorage()),
     shopHoursLoaded,
+    saveShopHours, // Funzione per salvataggio manuale
   };
 };

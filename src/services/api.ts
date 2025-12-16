@@ -909,9 +909,14 @@ export const apiService = {
         // Se il giorno non esiste nel database, deve essere creato o aggiornato
         if (!existingDay) {
           // Se il giorno è aperto o ha time slots, deve essere creato
+          // IMPORTANTE: anche se è chiuso ma ha time slots, deve essere creato per mantenere la struttura
           if (dayConfig.isOpen || dayConfig.timeSlots.length > 0) {
             console.log(`✅ Day ${day} needs to be created (not in database, isOpen=${dayConfig.isOpen}, slots=${dayConfig.timeSlots.length})`);
             changedDays.push(day);
+          } else {
+            // Se è chiuso e non ha slot, potrebbe non essere necessario crearlo
+            // Ma se lo stato locale dice che è chiuso, creiamolo comunque per mantenere la struttura
+            console.log(`ℹ️ Day ${day} is closed with no slots, skipping creation`);
           }
           continue;
         }
@@ -966,7 +971,24 @@ export const apiService = {
       if (changedDays.length === 0) {
         // Nessuna modifica, non salvare
         console.log('💾 No changes detected, skipping save');
-        return false; // Indica che non è stato fatto alcun salvataggio
+        // Ma se il database è completamente vuoto e lo stato locale ha giorni aperti, 
+        // dobbiamo comunque salvare per inizializzare il database
+        const hasOpenDays = Object.values(hoursConfig).some(day => day.isOpen || day.timeSlots.length > 0);
+        if (existingRows.length === 0 && hasOpenDays) {
+          console.log('⚠️ Database is empty but local state has open days, forcing save of all days');
+          // Salva tutti i giorni che sono aperti o hanno slot
+          for (let day = 0; day < 7; day += 1) {
+            const dayConfig = hoursConfig[day] ?? { isOpen: false, timeSlots: [] };
+            if (dayConfig.isOpen || dayConfig.timeSlots.length > 0) {
+              changedDays.push(day);
+            }
+          }
+          if (changedDays.length === 0) {
+            return false;
+          }
+        } else {
+          return false; // Indica che non è stato fatto alcun salvataggio
+        }
       }
       
       console.log(`💾 Will save ${changedDays.length} days:`, changedDays);

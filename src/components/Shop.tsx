@@ -5,6 +5,7 @@ import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { useAuth } from '../contexts/AuthContext';
 import { DailyHoursManager } from './DailyHoursManager';
+import { useDailyShopHours } from '../hooks/useDailyShopHours';
 import { apiService } from '../services/api';
 import { API_CONFIG } from '../config/api';
 import { buildShopUrl } from '../utils/slug';
@@ -89,6 +90,9 @@ export const ShopManagement = () => {
   const [logoPath, setLogoPath] = useState<string>('');
   const [logoMessage, setLogoMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isEditingHours, setIsEditingHours] = useState(false);
+  const [isSavingHours, setIsSavingHours] = useState(false);
+  const [hoursMessage, setHoursMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const { saveShopHours } = useDailyShopHours();
   const [staff, setStaff] = useState<Staff[]>([]);
   const [selectedBarberId, setSelectedBarberId] = useState<string>('');
 
@@ -648,19 +652,62 @@ export const ShopManagement = () => {
                     Modifica
                   </Button>
                 ) : (
-                  <Button
-                    onClick={() => setIsEditingHours(false)}
-                    size="sm"
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600"
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    Termina
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={async () => {
+                        setIsSavingHours(true);
+                        try {
+                          await saveShopHours();
+                          showMessage(setHoursMessage, 'success', 'Orari salvati con successo!');
+                          setIsEditingHours(false);
+                        } catch (error) {
+                          showMessage(
+                            setHoursMessage,
+                            'error',
+                            `Errore nel salvataggio: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`
+                          );
+                        } finally {
+                          setIsSavingHours(false);
+                        }
+                      }}
+                      size="sm"
+                      disabled={isSavingHours}
+                      className="bg-green-600 hover:bg-green-700 text-white border-green-600"
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      {isSavingHours ? 'Salvataggio...' : 'Salva'}
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setIsEditingHours(false);
+                        setHoursMessage(null);
+                      }}
+                      size="sm"
+                      disabled={isSavingHours}
+                      variant="ghost"
+                      className="text-gray-600 hover:text-gray-800"
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Annulla
+                    </Button>
+                  </div>
                 )
               )}
             </div>
 
             <DailyHoursManager disabled={!isEditingHours || !isAdmin} />
+
+            {hoursMessage && (
+              <div
+                className={`p-3 rounded-lg ${
+                  hoursMessage.type === 'success'
+                    ? 'bg-green-50 text-green-800 border border-green-200'
+                    : 'bg-red-50 text-red-800 border border-red-200'
+                }`}
+              >
+                {hoursMessage.text}
+              </div>
+            )}
 
             {!isEditingHours && isAdmin && (
               <p className="text-xs text-gray-500">
