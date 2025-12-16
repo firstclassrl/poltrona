@@ -210,9 +210,19 @@ export const useDailyShopHours = () => {
   const saveShopHours = useCallback(async (): Promise<boolean> => {
     try {
       console.log('💾 Manual save triggered, saving shop hours...');
+      console.log('💾 Current shopHours state:', JSON.stringify(shopHours, null, 2));
       const wasSaved = await apiService.saveDailyShopHours(shopHours);
       if (wasSaved) {
         console.log('✅ Shop hours saved successfully');
+        // Dopo il salvataggio, ricarica i dati dal database per sincronizzare
+        try {
+          const reloadedHours = await apiService.getDailyShopHours();
+          setShopHours(reloadedHours);
+          persistHoursLocally(reloadedHours);
+          console.log('✅ Shop hours reloaded from database after save');
+        } catch (reloadError) {
+          console.error('⚠️ Error reloading shop hours after save:', reloadError);
+        }
         return true;
       } else {
         console.log('ℹ️ No changes to save');

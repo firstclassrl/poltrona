@@ -901,9 +901,19 @@ export const apiService = {
         const existingDay = existingRows.find(r => r.day_of_week === day);
         
         console.log(`💾 Checking day ${day}:`, {
-          config: { isOpen: dayConfig.isOpen, slotsCount: dayConfig.timeSlots.length },
-          existing: existingDay ? { is_open: existingDay.is_open, slotsCount: existingDay.shop_daily_time_slots?.length || 0 } : null,
-          existingRowsLength: existingRows.length
+          config: { 
+            isOpen: dayConfig.isOpen, 
+            slotsCount: dayConfig.timeSlots.length,
+            slots: dayConfig.timeSlots
+          },
+          existing: existingDay ? { 
+            is_open: existingDay.is_open, 
+            slotsCount: existingDay.shop_daily_time_slots?.length || 0,
+            slots: existingDay.shop_daily_time_slots
+          } : null,
+          existingRowsLength: existingRows.length,
+          willBeAdded: !existingDay && (dayConfig.isOpen || dayConfig.timeSlots.length > 0),
+          isOpenChanged: existingDay ? existingDay.is_open !== dayConfig.isOpen : false
         });
         
         // Se il giorno non esiste nel database, deve essere creato o aggiornato
@@ -987,7 +997,44 @@ export const apiService = {
             return false;
           }
         } else {
-          return false; // Indica che non è stato fatto alcun salvataggio
+          // Se ci sono righe nel database ma nessun cambiamento rilevato, 
+          // potrebbe essere un problema di confronto - verifichiamo ogni giorno aperto
+          const openDaysInConfig = Object.entries(hoursConfig)
+            .filter(([_, config]) => config.isOpen || config.timeSlots.length > 0)
+            .map(([day, _]) => parseInt(day));
+          
+          if (openDaysInConfig.length > 0) {
+            console.log('⚠️ No changes detected but config has open days:', openDaysInConfig);
+            console.log('⚠️ This might be a comparison bug, checking each day in detail...');
+            
+            // Verifica ogni giorno aperto per vedere se c'è davvero una differenza
+            for (const day of openDaysInConfig) {
+              const dayConfig = hoursConfig[day];
+              const existingDay = existingRows.find(r => r.day_of_week === day);
+              
+              if (!existingDay) {
+                console.log(`⚠️ Day ${day} is open in config but missing in DB - adding to changedDays`);
+                changedDays.push(day);
+              } else if (existingDay.is_open !== dayConfig.isOpen) {
+                console.log(`⚠️ Day ${day} is_open mismatch: DB=${existingDay.is_open}, Config=${dayConfig.isOpen} - adding to changedDays`);
+                changedDays.push(day);
+              } else if (dayConfig.isOpen && dayConfig.timeSlots.length > 0) {
+                // Verifica anche i time slots
+                const existingSlotsCount = existingDay.shop_daily_time_slots?.length || 0;
+                if (existingSlotsCount !== dayConfig.timeSlots.length) {
+                  console.log(`⚠️ Day ${day} slots count mismatch: DB=${existingSlotsCount}, Config=${dayConfig.timeSlots.length} - adding to changedDays`);
+                  changedDays.push(day);
+                }
+              }
+            }
+            
+            if (changedDays.length === 0) {
+              console.log('⚠️ Still no changes after detailed check - returning false');
+              return false;
+            }
+          } else {
+            return false; // Indica che non è stato fatto alcun salvataggio
+          }
         }
       }
       
