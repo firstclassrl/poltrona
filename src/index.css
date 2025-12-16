@@ -544,6 +544,80 @@ body {
   border-color: var(--theme-accent) !important;
 }
 
+/* Modali: testi neri in tutti i temi tranne dark mode */
+/* Forza testi neri nelle modali per tutti i temi (escluso dark mode) */
+[data-theme]:not([data-theme='dark-mode']) .bg-white h2,
+[data-theme]:not([data-theme='dark-mode']) .bg-white p,
+[data-theme]:not([data-theme='dark-mode']) .bg-white span,
+[data-theme]:not([data-theme='dark-mode']) .bg-white label,
+[data-theme]:not([data-theme='dark-mode']) .bg-white input[type="text"],
+[data-theme]:not([data-theme='dark-mode']) .bg-white input[type="number"],
+[data-theme]:not([data-theme='dark-mode']) .bg-white input[type="email"],
+[data-theme]:not([data-theme='dark-mode']) .bg-white textarea,
+[data-theme]:not([data-theme='dark-mode']) .bg-white select,
+[data-theme]:not([data-theme='dark-mode']) .bg-white button:not(.bg-green-600):not(.bg-red-600):not(.bg-blue-600),
+[data-theme]:not([data-theme='dark-mode']) .bg-white .text-gray-700,
+[data-theme]:not([data-theme='dark-mode']) .bg-white .text-gray-900,
+[data-theme]:not([data-theme='dark-mode']) .bg-white .text-gray-600,
+[data-theme]:not([data-theme='dark-mode']) .bg-white .text-gray-500 {
+  color: #000000 !important;
+}
+
+/* Dark Mode: testi bianchi nelle modali */
+[data-theme='dark-mode'] .bg-white h2,
+[data-theme='dark-mode'] .bg-white p,
+[data-theme='dark-mode'] .bg-white span,
+[data-theme='dark-mode'] .bg-white label,
+[data-theme='dark-mode'] .bg-white input[type="text"],
+[data-theme='dark-mode'] .bg-white input[type="number"],
+[data-theme='dark-mode'] .bg-white input[type="email"],
+[data-theme='dark-mode'] .bg-white textarea,
+[data-theme='dark-mode'] .bg-white select,
+[data-theme='dark-mode'] .bg-white .text-gray-700,
+[data-theme='dark-mode'] .bg-white .text-gray-900,
+[data-theme='dark-mode'] .bg-white .text-gray-600,
+[data-theme='dark-mode'] .bg-white .text-gray-500 {
+  color: #ffffff !important;
+}
+
+/* Dark Mode: anche lo sfondo della modale deve essere nero */
+[data-theme='dark-mode'] .bg-white {
+  background-color: #0a0a0a !important;
+  border-color: var(--theme-border) !important;
+}
+
+/* Placeholder: nero in tutti i temi tranne dark mode, grigio chiaro in dark mode */
+[data-theme]:not([data-theme='dark-mode']) .bg-white input::placeholder,
+[data-theme]:not([data-theme='dark-mode']) .bg-white textarea::placeholder {
+  color: #6b7280 !important;
+}
+
+[data-theme='dark-mode'] .bg-white input::placeholder,
+[data-theme='dark-mode'] .bg-white textarea::placeholder {
+  color: #9ca3af !important;
+}
+
+/* Input e textarea: sfondo e bordo coerenti con il tema */
+[data-theme]:not([data-theme='dark-mode']) .bg-white input[type="text"],
+[data-theme]:not([data-theme='dark-mode']) .bg-white input[type="number"],
+[data-theme]:not([data-theme='dark-mode']) .bg-white input[type="email"],
+[data-theme]:not([data-theme='dark-mode']) .bg-white textarea,
+[data-theme]:not([data-theme='dark-mode']) .bg-white select {
+  background-color: #ffffff !important;
+  border-color: #d1d5db !important;
+  color: #000000 !important;
+}
+
+[data-theme='dark-mode'] .bg-white input[type="text"],
+[data-theme='dark-mode'] .bg-white input[type="number"],
+[data-theme='dark-mode'] .bg-white input[type="email"],
+[data-theme='dark-mode'] .bg-white textarea,
+[data-theme='dark-mode'] .bg-white select {
+  background-color: #1a1a1a !important;
+  border-color: var(--theme-border) !important;
+  color: #ffffff !important;
+}
+
 /* 
  * FORMATO ORARIO ITALIANO (0-24) - FORZA FORMATO 24 ORE
  * Questo CSS forza tutti gli input time a mostrare il formato 24 ore (0-24)
