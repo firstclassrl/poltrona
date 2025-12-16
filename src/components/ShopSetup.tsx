@@ -269,7 +269,7 @@ export const ShopSetup: React.FC = () => {
         // Orari negozio - almeno un giorno deve essere aperto con orari validi
         const hasOpenDay = Object.values(shopHours).some(day => {
           if (!day.isOpen) return false;
-          return day.timeSlots.length > 0 && day.timeSlots.every(slot => {
+          return day.timeSlots.length > 0 && day.timeSlots.every((slot: TimeSlot) => {
             const [startH, startM] = slot.start.split(':').map(Number);
             const [endH, endM] = slot.end.split(':').map(Number);
             const startTime = startH * 60 + startM;
@@ -286,7 +286,7 @@ export const ShopSetup: React.FC = () => {
         return !!(
           serviceData.name?.trim() &&
           serviceData.duration_min && serviceData.duration_min >= 5 &&
-          serviceData.price_cents !== undefined && serviceData.price_cents >= 0
+          serviceData.price_cents !== undefined && serviceData.price_cents !== null && serviceData.price_cents >= 0
         );
       case 9:
         return privacyAccepted;
@@ -1401,7 +1401,7 @@ export const ShopSetup: React.FC = () => {
               labelClassName="text-[#1e40af] font-medium"
               type="number"
               step="0.01"
-              value={serviceData.price_cents !== undefined ? (serviceData.price_cents / 100).toFixed(2) : ''}
+              value={serviceData.price_cents !== undefined && serviceData.price_cents !== null ? (serviceData.price_cents / 100).toFixed(2) : ''}
               onChange={(e) => {
                 const value = parseFloat(e.target.value || '0');
                 setServiceData(prev => ({ ...prev, price_cents: Math.round(value * 100) }));
