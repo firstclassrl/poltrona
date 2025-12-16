@@ -99,6 +99,7 @@ export const useDailyShopHours = () => {
 
     const cached = readCachedHours();
     if (cached) {
+      console.log('📦 Loading cached shop hours:', cached);
       setShopHours(cached);
     }
     setExtraOpening(readExtraOpeningFromStorage());
@@ -114,8 +115,10 @@ export const useDailyShopHours = () => {
     let isMounted = true;
     (async () => {
       try {
+        console.log('🔄 Fetching shop hours from database...');
         const remoteHours = await apiService.getDailyShopHours();
         if (!isMounted) return;
+        console.log('✅ Loaded shop hours from database:', remoteHours);
         setShopHours(remoteHours);
         persistHoursLocally(remoteHours);
         
@@ -178,6 +181,18 @@ export const useDailyShopHours = () => {
   const performSave = useCallback(async (hoursToSave: ShopHoursConfig) => {
     try {
       await apiService.saveDailyShopHours(hoursToSave);
+      // Dopo il salvataggio, ricarica i dati dal database per sincronizzare lo stato
+      console.log('🔄 Reloading shop hours from database after save...');
+      try {
+        const reloadedHours = await apiService.getDailyShopHours();
+        setShopHours(reloadedHours);
+        persistHoursLocally(reloadedHours);
+        console.log('✅ Shop hours reloaded and state updated');
+      } catch (reloadError) {
+        console.error('⚠️ Error reloading shop hours after save:', reloadError);
+        // Se il reload fallisce, mantieni lo stato locale che è stato salvato
+        // Lo stato locale dovrebbe corrispondere a quello salvato
+      }
     } catch (error) {
       console.error('❌ Error saving daily shop hours:', error);
       // Mostra un messaggio di errore all'utente
@@ -186,6 +201,7 @@ export const useDailyShopHours = () => {
   }, []);
 
   const updateShopHours = useCallback((newHours: ShopHoursConfig) => {
+    console.log('📝 Updating shop hours locally:', newHours);
     setShopHours(newHours);
     persistHoursLocally(newHours);
     
@@ -200,6 +216,7 @@ export const useDailyShopHours = () => {
     // Imposta un nuovo timeout per salvare dopo 500ms di inattività
     saveTimeoutRef.current = setTimeout(() => {
       if (pendingSaveRef.current) {
+        console.log('💾 Auto-saving shop hours after debounce...');
         void performSave(pendingSaveRef.current);
         pendingSaveRef.current = null;
       }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Clock, Plus, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
 import { Button } from './ui/Button';
+import { TimePicker } from './ui/TimePicker';
 import { useDailyShopHours } from '../hooks/useDailyShopHours';
 import type { TimeSlot } from '../types';
 
@@ -115,38 +116,20 @@ export const DailyHoursManager: React.FC<DailyHoursManagerProps> = ({ disabled =
                           }`}
                         >
                             <div className="flex items-center space-x-2">
-                              <input
-                                type="time"
+                              <TimePicker
                                 value={slot.start}
-                                onChange={(e) => handleTimeSlotChange(day.key, slotIndex, 'start', e.target.value)}
-                                className="w-24 min-w-[6rem] px-2 py-1 border border-gray-300 rounded text-sm font-mono text-center time-24h"
-                                lang="it-IT"
-                                step={300}
-                                data-format="24"
-                                data-locale="it-IT"
+                                onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'start', value)}
+                                className="w-24 min-w-[6rem]"
                                 disabled={disabled}
-                                onFocus={(e) => {
-                                  // Force 24-hour format on focus
-                                  e.target.setAttribute('data-format', '24');
-                                  e.target.setAttribute('lang', 'it-IT');
-                                }}
+                                placeholder="09:00"
                               />
                               <span className="text-gray-400 text-sm">-</span>
-                              <input
-                                type="time"
+                              <TimePicker
                                 value={slot.end}
-                                onChange={(e) => handleTimeSlotChange(day.key, slotIndex, 'end', e.target.value)}
-                                className="w-24 min-w-[6rem] px-2 py-1 border border-gray-300 rounded text-sm font-mono text-center time-24h"
-                                lang="it-IT"
-                                step={300}
-                                data-format="24"
-                                data-locale="it-IT"
+                                onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'end', value)}
+                                className="w-24 min-w-[6rem]"
                                 disabled={disabled}
-                                onFocus={(e) => {
-                                  // Force 24-hour format on focus
-                                  e.target.setAttribute('data-format', '24');
-                                  e.target.setAttribute('lang', 'it-IT');
-                                }}
+                                placeholder="18:00"
                               />
                             </div>
                             
