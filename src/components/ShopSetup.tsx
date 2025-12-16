@@ -78,6 +78,7 @@ export const ShopSetup: React.FC = () => {
     price_cents: 0,
     active: true,
   });
+  const [priceInputValue, setPriceInputValue] = useState<string>('');
 
   const [form, setForm] = useState({
     name: '',
@@ -1202,113 +1203,233 @@ export const ShopSetup: React.FC = () => {
     slideContent = (
       <div className="space-y-6">
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-[#1e40af] rounded-full mb-4">
-            <Clock className="w-8 h-8 text-white" />
+          <div 
+            className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-4 relative overflow-hidden"
+            style={{
+              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(147, 51, 234, 0.3) 100%)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.2)',
+            }}
+          >
+            <Clock className="w-10 h-10 text-white relative z-10 drop-shadow-lg" />
+            <div 
+              className="absolute inset-0 opacity-50"
+              style={{
+                background: 'radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4) 0%, transparent 70%)',
+              }}
+            />
           </div>
-          <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Orari di Apertura</h2>
-          <p className="text-gray-600">Configura gli orari di apertura del tuo negozio</p>
+          <h2 
+            className="text-4xl font-bold mb-2 bg-clip-text text-transparent"
+            style={{
+              backgroundImage: 'linear-gradient(135deg, #3b82f6 0%, #9333ea 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              textShadow: '0 0 30px rgba(59, 130, 246, 0.5)',
+            }}
+          >
+            Orari di Apertura
+          </h2>
+          <p className="text-gray-300 text-lg">Configura gli orari di apertura del tuo negozio</p>
         </div>
         
-        <div className="border-2 border-[#1e40af]/30 rounded-lg p-6 bg-white/60 backdrop-blur-sm">
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2 mb-3">
-              <Clock className="w-5 h-5 text-[#1e40af]" />
-              <h3 className="text-lg font-bold text-gray-900">Orari di Apertura</h3>
+        <div 
+          className="rounded-2xl p-6 relative overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.1)',
+          }}
+        >
+          <div 
+            className="absolute inset-0 opacity-30"
+            style={{
+              background: 'radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.3) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(147, 51, 234, 0.3) 0%, transparent 50%)',
+            }}
+          />
+          <div className="space-y-4 relative z-10">
+            <div className="flex items-center space-x-3 mb-4">
+              <div 
+                className="p-2 rounded-lg"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(147, 51, 234, 0.2) 100%)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                }}
+              >
+                <Clock className="w-5 h-5 text-white drop-shadow-lg" />
+              </div>
+              <h3 className="text-xl font-bold text-white drop-shadow-lg">Orari di Apertura</h3>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {DAYS_OF_WEEK.map((day) => {
                 const dayHours = shopHours[day.key];
                 const isOpen = dayHours.isOpen;
                 
                 return (
-                  <div key={day.key} className="border border-gray-200 rounded-lg p-3 bg-white hover:shadow-sm transition-shadow">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-sm font-semibold text-gray-900">{day.name}</h4>
-                      <button
-                        type="button"
-                        onClick={() => handleToggleDay(day.key)}
-                        className="flex items-center space-x-1 px-2 py-1 text-xs rounded hover:bg-gray-100"
-                      >
-                        {isOpen ? (
-                          <>
-                            <span className="text-green-600 font-medium">Aperto</span>
-                          </>
-                        ) : (
-                          <>
-                            <span className="text-gray-500">Chiuso</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
+                  <div 
+                    key={day.key} 
+                    className="rounded-xl p-4 relative overflow-hidden transition-all duration-300 hover:scale-[1.02]"
+                    style={{
+                      background: isOpen 
+                        ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.1) 100%)'
+                        : 'linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.05) 100%)',
+                      backdropFilter: 'blur(15px) saturate(180%)',
+                      border: isOpen 
+                        ? '1px solid rgba(34, 197, 94, 0.4)'
+                        : '1px solid rgba(255, 255, 255, 0.15)',
+                      boxShadow: isOpen
+                        ? '0 4px 20px 0 rgba(34, 197, 94, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.1)'
+                        : '0 4px 20px 0 rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.05)',
+                    }}
+                  >
+                    <div 
+                      className="absolute inset-0 opacity-20"
+                      style={{
+                        background: isOpen
+                          ? 'radial-gradient(circle at 50% 0%, rgba(34, 197, 94, 0.3) 0%, transparent 70%)'
+                          : 'radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.1) 0%, transparent 70%)',
+                      }}
+                    />
+                    <div className="relative z-10">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-bold text-white drop-shadow-md">{day.name}</h4>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleDay(day.key)}
+                          className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all duration-300 ${
+                            isOpen
+                              ? 'bg-gradient-to-r from-green-400/30 to-emerald-400/30 text-green-200 border border-green-400/40 hover:from-green-400/40 hover:to-emerald-400/40'
+                              : 'bg-white/10 text-gray-300 border border-white/20 hover:bg-white/15'
+                          }`}
+                          style={{
+                            backdropFilter: 'blur(10px)',
+                          }}
+                        >
+                          {isOpen ? 'Aperto' : 'Chiuso'}
+                        </button>
+                      </div>
 
-                    {isOpen ? (
-                      <div className="space-y-2">
-                        {dayHours.timeSlots.length === 0 ? (
-                          <div className="text-center py-3 text-gray-400">
-                            <Clock className="w-5 h-5 mx-auto mb-1 text-gray-300" />
-                            <p className="text-xs">Nessun orario</p>
-                            <button
-                              type="button"
-                              onClick={() => handleAddTimeSlot(day.key)}
-                              className="mt-2 text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded"
-                            >
-                              Aggiungi
-                            </button>
-                          </div>
-                        ) : (
-                          <>
-                            {dayHours.timeSlots.map((slot, slotIndex) => (
-                              <div
-                                key={slotIndex}
-                                className="flex items-center justify-between p-2 rounded border border-gray-200 bg-gray-50"
+                      {isOpen ? (
+                        <div className="space-y-2">
+                          {dayHours.timeSlots.length === 0 ? (
+                            <div className="text-center py-4">
+                              <Clock className="w-6 h-6 mx-auto mb-2 text-white/40" />
+                              <p className="text-xs text-white/60 mb-3">Nessun orario</p>
+                              <button
+                                type="button"
+                                onClick={() => handleAddTimeSlot(day.key)}
+                                className="text-xs px-3 py-1.5 rounded-lg transition-all duration-300"
+                                style={{
+                                  background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(147, 51, 234, 0.3) 100%)',
+                                  backdropFilter: 'blur(10px)',
+                                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                                  color: 'white',
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.4) 0%, rgba(147, 51, 234, 0.4) 100%)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(147, 51, 234, 0.3) 100%)';
+                                }}
                               >
-                                <div className="flex items-center space-x-2">
-                                  <TimePicker
-                                    value={slot.start}
-                                    onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'start', value)}
-                                    className="w-24 min-w-[6rem]"
-                                    placeholder="09:00"
-                                  />
-                                  <span className="text-gray-400 text-sm">-</span>
-                                  <TimePicker
-                                    value={slot.end}
-                                    onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'end', value)}
-                                    className="w-24 min-w-[6rem]"
-                                    placeholder="18:00"
-                                  />
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveTimeSlot(day.key, slotIndex)}
-                                  className="text-red-500 hover:text-red-700 p-1"
+                                Aggiungi
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              {dayHours.timeSlots.map((slot, slotIndex) => (
+                                <div
+                                  key={slotIndex}
+                                  className="flex items-center gap-2 p-2.5 rounded-lg relative overflow-hidden"
+                                  style={{
+                                    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
+                                    backdropFilter: 'blur(10px)',
+                                    border: '1px solid rgba(34, 197, 94, 0.3)',
+                                    boxShadow: '0 2px 10px 0 rgba(34, 197, 94, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.1)',
+                                  }}
                                 >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </div>
-                            ))}
-                            <button
-                              type="button"
-                              onClick={() => handleAddTimeSlot(day.key)}
-                              className="w-full text-xs px-2 py-1 mt-1 bg-gray-100 hover:bg-gray-200 rounded"
-                            >
-                              + Aggiungi fascia
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="text-center py-4 text-gray-400">
-                        <p className="text-xs">Chiuso</p>
-                      </div>
-                    )}
+                                  <div className="flex items-center space-x-2 flex-1 min-w-0">
+                                    <TimePicker
+                                      value={slot.start}
+                                      onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'start', value)}
+                                      className="w-24 min-w-[6rem]"
+                                      placeholder="09:00"
+                                    />
+                                    <span className="text-white/60 text-sm font-medium">-</span>
+                                    <TimePicker
+                                      value={slot.end}
+                                      onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'end', value)}
+                                      className="w-24 min-w-[6rem]"
+                                      placeholder="18:00"
+                                    />
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveTimeSlot(day.key, slotIndex)}
+                                    className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-md transition-all duration-200 hover:scale-110"
+                                    style={{
+                                      background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(220, 38, 38, 0.3) 100%)',
+                                      backdropFilter: 'blur(10px)',
+                                      border: '1px solid rgba(239, 68, 68, 0.4)',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.5) 0%, rgba(220, 38, 38, 0.5) 100%)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(220, 38, 38, 0.3) 100%)';
+                                    }}
+                                  >
+                                    <X className="w-3.5 h-3.5 text-white drop-shadow-sm" />
+                                  </button>
+                                </div>
+                              ))}
+                              <button
+                                type="button"
+                                onClick={() => handleAddTimeSlot(day.key)}
+                                className="w-full text-xs px-3 py-2 rounded-lg transition-all duration-300 font-medium"
+                                style={{
+                                  background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(147, 51, 234, 0.2) 100%)',
+                                  backdropFilter: 'blur(10px)',
+                                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                                  color: 'white',
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(147, 51, 234, 0.3) 100%)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(147, 51, 234, 0.2) 100%)';
+                                }}
+                              >
+                                + Aggiungi fascia
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center py-4">
+                          <p className="text-xs text-white/50 font-medium">Chiuso</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })}
             </div>
 
-            <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-              <p className="text-blue-800 text-xs">
+            <div 
+              className="mt-4 p-4 rounded-xl relative overflow-hidden"
+              style={{
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(147, 51, 234, 0.15) 100%)',
+                backdropFilter: 'blur(15px)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.1)',
+              }}
+            >
+              <p className="text-white/90 text-xs leading-relaxed">
                 💡 Configura gli orari di apertura per ogni giorno della settimana. Clicca su "Aperto" per abilitare un giorno e aggiungi le fasce orarie.
               </p>
             </div>
@@ -1366,6 +1487,17 @@ export const ShopSetup: React.FC = () => {
     );
   } else if (currentSlide === 8) {
     // Slide 8: Creazione servizio
+    // Inizializza il valore del prezzo quando si entra nella slide
+    useEffect(() => {
+      if (currentSlide === 8) {
+        if (serviceData.price_cents !== undefined && serviceData.price_cents !== null && serviceData.price_cents > 0) {
+          setPriceInputValue((serviceData.price_cents / 100).toFixed(2));
+        } else {
+          setPriceInputValue('');
+        }
+      }
+    }, [currentSlide]);
+    
     slideContent = (
       <div className="space-y-6">
         <div className="text-center mb-6">
@@ -1399,14 +1531,38 @@ export const ShopSetup: React.FC = () => {
             <Input
               label="Prezzo (€) *"
               labelClassName="text-[#1e40af] font-medium"
-              type="number"
-              step="0.01"
-              value={serviceData.price_cents !== undefined && serviceData.price_cents !== null ? (serviceData.price_cents / 100).toFixed(2) : ''}
+              type="text"
+              inputMode="decimal"
+              value={priceInputValue}
               onChange={(e) => {
-                const value = parseFloat(e.target.value || '0');
-                setServiceData(prev => ({ ...prev, price_cents: Math.round(value * 100) }));
+                const raw = e.target.value.replace(',', '.');
+                // Permetti solo numeri e un punto decimale
+                if (raw === '' || /^\d*\.?\d*$/.test(raw)) {
+                  setPriceInputValue(raw);
+                  const parsed = parseFloat(raw);
+                  if (!isNaN(parsed) && parsed >= 0) {
+                    setServiceData(prev => ({ ...prev, price_cents: Math.round(parsed * 100) }));
+                  } else if (raw === '' || raw === '.') {
+                    setServiceData(prev => ({ ...prev, price_cents: 0 }));
+                  }
+                }
               }}
-              min="0"
+              onBlur={() => {
+                // Formatta il valore quando perde il focus
+                if (priceInputValue && priceInputValue !== '.') {
+                  const parsed = parseFloat(priceInputValue.replace(',', '.'));
+                  if (!isNaN(parsed) && parsed >= 0) {
+                    setPriceInputValue(parsed.toFixed(2));
+                    setServiceData(prev => ({ ...prev, price_cents: Math.round(parsed * 100) }));
+                  } else {
+                    setPriceInputValue('');
+                    setServiceData(prev => ({ ...prev, price_cents: 0 }));
+                  }
+                } else if (priceInputValue === '.') {
+                  setPriceInputValue('0.00');
+                  setServiceData(prev => ({ ...prev, price_cents: 0 }));
+                }
+              }}
               placeholder="0.00"
               required
             />
@@ -1619,8 +1775,11 @@ export const ShopSetup: React.FC = () => {
             type="button"
             onClick={prevSlide}
             disabled={currentSlide === 1}
-            className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed px-6 py-3 font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:ring-offset-2"
-            style={{ backgroundColor: currentSlide === 1 ? undefined : '#1e3a8a' }}
+            className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:ring-offset-2 ${
+              currentSlide === 1
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-[#1e3a8a] hover:bg-[#1e40af] text-white'
+            }`}
           >
             <ChevronLeft className="w-4 h-4" />
             Indietro
@@ -1647,8 +1806,11 @@ export const ShopSetup: React.FC = () => {
               type="button"
               onClick={nextSlide}
               disabled={!validateSlide(currentSlide)}
-              className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed px-6 py-3 font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:ring-offset-2"
-              style={{ backgroundColor: !validateSlide(currentSlide) ? undefined : '#1e3a8a' }}
+              className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:ring-offset-2 ${
+                !validateSlide(currentSlide)
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-[#1e3a8a] hover:bg-[#1e40af] text-white'
+              }`}
             >
               Avanti
               <ChevronRight className="w-4 h-4" />
@@ -1658,8 +1820,11 @@ export const ShopSetup: React.FC = () => {
               type="button"
               onClick={handleSubmit}
               disabled={!privacyAccepted || isSubmitting || isUploadingLogo}
-              className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed px-6 py-3 font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:ring-offset-2"
-              style={{ backgroundColor: (!privacyAccepted || isSubmitting || isUploadingLogo) ? undefined : '#1e3a8a' }}
+              className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:ring-offset-2 ${
+                !privacyAccepted || isSubmitting || isUploadingLogo
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-[#1e3a8a] hover:bg-[#1e40af] text-white'
+              }`}
             >
               {isSubmitting || isUploadingLogo ? (
                 <>
