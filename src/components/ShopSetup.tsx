@@ -761,110 +761,91 @@ export const ShopSetup: React.FC = () => {
       <h1 
         className="text-5xl md:text-6xl font-bold tracking-tight mb-4"
         style={{
-          background: 'linear-gradient(135deg, #3b82f6 0%, #9333ea 50%, #ec4899 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-          textShadow: '0 0 40px rgba(59, 130, 246, 0.3)',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif',
+          color: '#1e40af',
+          fontWeight: 700,
+          letterSpacing: '-0.02em',
         }}
       >
         BENVENUTI IN POLTRONA
       </h1>
-      <p className="text-xl md:text-2xl text-white/80 max-w-2xl mx-auto leading-relaxed font-light">
+      <p className="text-xl md:text-2xl text-gray-700 max-w-2xl mx-auto leading-relaxed font-light">
         Il sistema di gestione appuntamenti più completo per il tuo negozio
       </p>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mt-12">
         <div 
-          className="p-8 rounded-2xl relative overflow-hidden transition-all duration-300 hover:scale-[1.02]"
+          className="p-8 rounded-2xl relative overflow-hidden transition-all duration-300"
           style={{
-            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.1) 100%)',
+            background: 'rgba(255, 255, 255, 0.7)',
             backdropFilter: 'blur(20px) saturate(180%)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.1)',
+            border: '1px solid rgba(59, 130, 246, 0.2)',
+            boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.5)',
           }}
         >
-          <div 
-            className="absolute inset-0 opacity-20"
-            style={{
-              background: 'radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.4) 0%, transparent 70%)',
-            }}
-          />
           <div className="relative z-10">
             <div 
               className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 relative overflow-hidden"
               style={{
-                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(147, 51, 234, 0.3) 100%)',
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(96, 165, 250, 0.3) 100%)',
                 backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                boxShadow: '0 4px 20px 0 rgba(59, 130, 246, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.2)',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                boxShadow: '0 4px 20px 0 rgba(59, 130, 246, 0.2)',
               }}
             >
               <Building2 className="w-8 h-8 text-white drop-shadow-lg" />
             </div>
-            <h3 className="font-semibold text-white text-lg mb-3 drop-shadow-md">Gestione Completa</h3>
-            <p className="text-sm text-white/70 leading-relaxed">Appuntamenti, clienti, staff e prodotti in un'unica piattaforma</p>
+            <h3 className="font-semibold text-[#1e40af] text-lg mb-3">Gestione Completa</h3>
+            <p className="text-sm text-gray-600 leading-relaxed">Appuntamenti, clienti, staff e prodotti in un'unica piattaforma</p>
           </div>
         </div>
         <div 
-          className="p-8 rounded-2xl relative overflow-hidden transition-all duration-300 hover:scale-[1.02]"
+          className="p-8 rounded-2xl relative overflow-hidden transition-all duration-300"
           style={{
-            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.1) 100%)',
+            background: 'rgba(255, 255, 255, 0.7)',
             backdropFilter: 'blur(20px) saturate(180%)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            boxShadow: '0 8px 32px 0 rgba(236, 72, 153, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.1)',
+            border: '1px solid rgba(59, 130, 246, 0.2)',
+            boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.5)',
           }}
         >
-          <div 
-            className="absolute inset-0 opacity-20"
-            style={{
-              background: 'radial-gradient(circle at 50% 0%, rgba(236, 72, 153, 0.4) 0%, transparent 70%)',
-            }}
-          />
           <div className="relative z-10">
             <div 
               className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 relative overflow-hidden"
               style={{
-                background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.3) 0%, rgba(147, 51, 234, 0.3) 100%)',
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(96, 165, 250, 0.3) 100%)',
                 backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                boxShadow: '0 4px 20px 0 rgba(236, 72, 153, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.2)',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                boxShadow: '0 4px 20px 0 rgba(59, 130, 246, 0.2)',
               }}
             >
               <Phone className="w-8 h-8 text-white drop-shadow-lg" />
             </div>
-            <h3 className="font-semibold text-white text-lg mb-3 drop-shadow-md">Notifiche Automatiche</h3>
-            <p className="text-sm text-white/70 leading-relaxed">Email e SMS automatici per te e i tuoi clienti</p>
+            <h3 className="font-semibold text-[#1e40af] text-lg mb-3">Notifiche Automatiche</h3>
+            <p className="text-sm text-gray-600 leading-relaxed">Email e SMS automatici per te e i tuoi clienti</p>
           </div>
         </div>
         <div 
-          className="p-8 rounded-2xl relative overflow-hidden transition-all duration-300 hover:scale-[1.02]"
+          className="p-8 rounded-2xl relative overflow-hidden transition-all duration-300"
           style={{
-            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.1) 100%)',
+            background: 'rgba(255, 255, 255, 0.7)',
             backdropFilter: 'blur(20px) saturate(180%)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            boxShadow: '0 8px 32px 0 rgba(147, 51, 234, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.1)',
+            border: '1px solid rgba(59, 130, 246, 0.2)',
+            boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.5)',
           }}
         >
-          <div 
-            className="absolute inset-0 opacity-20"
-            style={{
-              background: 'radial-gradient(circle at 50% 0%, rgba(147, 51, 234, 0.4) 0%, transparent 70%)',
-            }}
-          />
           <div className="relative z-10">
             <div 
               className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 relative overflow-hidden"
               style={{
-                background: 'linear-gradient(135deg, rgba(147, 51, 234, 0.3) 0%, rgba(59, 130, 246, 0.3) 100%)',
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(96, 165, 250, 0.3) 100%)',
                 backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                boxShadow: '0 4px 20px 0 rgba(147, 51, 234, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.2)',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                boxShadow: '0 4px 20px 0 rgba(59, 130, 246, 0.2)',
               }}
             >
               <Palette className="w-8 h-8 text-white drop-shadow-lg" />
             </div>
-            <h3 className="font-semibold text-white text-lg mb-3 drop-shadow-md">Personalizzabile</h3>
-            <p className="text-sm text-white/70 leading-relaxed">Scegli colori e stile in linea con il tuo brand</p>
+            <h3 className="font-semibold text-[#1e40af] text-lg mb-3">Personalizzabile</h3>
+            <p className="text-sm text-gray-600 leading-relaxed">Scegli colori e stile in linea con il tuo brand</p>
           </div>
         </div>
       </div>
@@ -1021,15 +1002,13 @@ export const ShopSetup: React.FC = () => {
           <h2 
             className="text-4xl font-bold mb-3"
             style={{
-              background: 'linear-gradient(135deg, #3b82f6 0%, #9333ea 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
+              color: '#1e40af',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif',
             }}
           >
             Accesso Admin
           </h2>
-          <p className="text-white/70 text-lg">Accedi con le credenziali admin fornite</p>
+          <p className="text-gray-700 text-lg">Accedi con le credenziali admin fornite</p>
         </div>
         
         {isLoggedIn ? (
@@ -1054,22 +1033,16 @@ export const ShopSetup: React.FC = () => {
           <div 
             className="space-y-6 p-6 rounded-2xl relative overflow-hidden"
             style={{
-              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
+              background: 'rgba(255, 255, 255, 0.6)',
               backdropFilter: 'blur(20px) saturate(180%)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.1)',
+              border: '1px solid rgba(59, 130, 246, 0.2)',
+              boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.5)',
             }}
           >
-            <div 
-              className="absolute inset-0 opacity-30"
-              style={{
-                background: 'radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.3) 0%, transparent 50%)',
-              }}
-            />
-            <div className="relative z-10 space-y-6">
+            <div className="space-y-6">
               <Input
                 label="Email admin *"
-                labelClassName="text-white font-medium drop-shadow-sm"
+                labelClassName="text-[#1e40af] font-medium"
                 type="email"
                 value={adminEmail}
                 onChange={(e) => setAdminEmail(e.target.value)}
@@ -1080,7 +1053,7 @@ export const ShopSetup: React.FC = () => {
               <div className="relative">
                 <Input
                   label="Password *"
-                  labelClassName="text-white font-medium drop-shadow-sm"
+                  labelClassName="text-[#1e40af] font-medium"
                   type={showAdminPassword ? 'text' : 'password'}
                   value={adminPassword}
                   onChange={(e) => setAdminPassword(e.target.value)}
@@ -1091,7 +1064,7 @@ export const ShopSetup: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowAdminPassword(!showAdminPassword)}
-                  className="absolute right-3 top-8 text-white/60 hover:text-white transition-colors"
+                  className="absolute right-3 top-8 text-gray-400 hover:text-gray-600 transition-colors"
                   disabled={isLoggedIn}
                 >
                   {showAdminPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -1103,25 +1076,9 @@ export const ShopSetup: React.FC = () => {
                 disabled={!adminEmail.trim() || !adminPassword.trim()}
                 className={`w-full flex items-center justify-center gap-2 px-6 py-3 font-semibold rounded-xl transition-all duration-300 ${
                   !adminEmail.trim() || !adminPassword.trim()
-                    ? 'bg-gray-500/30 text-gray-400 cursor-not-allowed'
-                    : 'text-white'
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-[#1e40af] hover:bg-[#1e3a8a] text-white shadow-lg'
                 }`}
-                style={!adminEmail.trim() || !adminPassword.trim() ? {} : {
-                  background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.4) 0%, rgba(147, 51, 234, 0.4) 100%)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  boxShadow: '0 4px 20px 0 rgba(59, 130, 246, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.2)',
-                }}
-                onMouseEnter={(e) => {
-                  if (!(!adminEmail.trim() || !adminPassword.trim())) {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.5) 0%, rgba(147, 51, 234, 0.5) 100%)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!(!adminEmail.trim() || !adminPassword.trim())) {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.4) 0%, rgba(147, 51, 234, 0.4) 100%)';
-                  }
-                }}
               >
                 <Shield className="w-5 h-5" />
                 Accedi
@@ -1217,7 +1174,7 @@ export const ShopSetup: React.FC = () => {
             ) : (
               <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-[#1e40af] rounded-lg cursor-pointer bg-white/60 hover:bg-white/80 transition-colors">
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <Upload className="w-10 h-10 text-[#10b981] mb-3" />
+                  <Upload className="w-10 h-10 text-[#1e40af] mb-3" />
                   <p className="mb-2 text-sm text-gray-700">
                     <span className="font-semibold text-[#1e40af]">Clicca per caricare</span> o trascina qui
                   </p>
@@ -1362,62 +1319,48 @@ export const ShopSetup: React.FC = () => {
           <div 
             className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-4 relative overflow-hidden"
             style={{
-              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(147, 51, 234, 0.3) 100%)',
+              background: 'rgba(59, 130, 246, 0.2)',
               backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255, 255, 255, 0.3)',
-              boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.2)',
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.2)',
             }}
           >
-            <Clock className="w-10 h-10 text-white relative z-10 drop-shadow-lg" />
-            <div 
-              className="absolute inset-0 opacity-50"
-              style={{
-                background: 'radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4) 0%, transparent 70%)',
-              }}
-            />
+            <Clock className="w-10 h-10 text-[#1e40af] relative z-10 drop-shadow-sm" />
           </div>
           <h2 
-            className="text-4xl font-bold mb-2 bg-clip-text text-transparent"
+            className="text-4xl font-bold mb-2"
             style={{
-              backgroundImage: 'linear-gradient(135deg, #3b82f6 0%, #9333ea 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              textShadow: '0 0 30px rgba(59, 130, 246, 0.5)',
+              color: '#1e40af',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif',
             }}
           >
             Orari di Apertura
           </h2>
-          <p className="text-gray-300 text-lg">Configura gli orari di apertura del tuo negozio</p>
+          <p className="text-gray-700 text-lg">Configura gli orari di apertura del tuo negozio</p>
         </div>
         
         <div 
           className="rounded-2xl p-6 relative overflow-hidden"
           style={{
-            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
+            background: 'rgba(255, 255, 255, 0.7)',
             backdropFilter: 'blur(20px) saturate(180%)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.1)',
+            border: '1px solid rgba(59, 130, 246, 0.2)',
+            boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.5)',
           }}
         >
-          <div 
-            className="absolute inset-0 opacity-30"
-            style={{
-              background: 'radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.3) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(147, 51, 234, 0.3) 0%, transparent 50%)',
-            }}
-          />
-          <div className="space-y-4 relative z-10">
+          <div className="space-y-4">
             <div className="flex items-center space-x-3 mb-4">
               <div 
                 className="p-2 rounded-lg"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(147, 51, 234, 0.2) 100%)',
+                  background: 'rgba(59, 130, 246, 0.2)',
                   backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  border: '1px solid rgba(59, 130, 246, 0.3)',
                 }}
               >
-                <Clock className="w-5 h-5 text-white drop-shadow-lg" />
+                <Clock className="w-5 h-5 text-[#1e40af] drop-shadow-sm" />
               </div>
-              <h3 className="text-xl font-bold text-white drop-shadow-lg">Orari di Apertura</h3>
+              <h3 className="text-xl font-bold text-[#1e40af]">Orari di Apertura</h3>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1428,42 +1371,31 @@ export const ShopSetup: React.FC = () => {
                 return (
                   <div 
                     key={day.key} 
-                    className="rounded-xl p-4 relative overflow-hidden transition-all duration-300 hover:scale-[1.02]"
+                    className="rounded-xl p-4 relative overflow-hidden transition-all duration-300"
                     style={{
                       background: isOpen 
-                        ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.1) 100%)'
-                        : 'linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.05) 100%)',
+                        ? 'rgba(255, 255, 255, 0.8)'
+                        : 'rgba(255, 255, 255, 0.5)',
                       backdropFilter: 'blur(15px) saturate(180%)',
                       border: isOpen 
-                        ? '1px solid rgba(34, 197, 94, 0.4)'
-                        : '1px solid rgba(255, 255, 255, 0.15)',
+                        ? '1px solid rgba(59, 130, 246, 0.4)'
+                        : '1px solid rgba(59, 130, 246, 0.2)',
                       boxShadow: isOpen
-                        ? '0 4px 20px 0 rgba(34, 197, 94, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.1)'
-                        : '0 4px 20px 0 rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.05)',
+                        ? '0 4px 20px 0 rgba(59, 130, 246, 0.15), inset 0 0 0 1px rgba(255, 255, 255, 0.5)'
+                        : '0 4px 20px 0 rgba(59, 130, 246, 0.05), inset 0 0 0 1px rgba(255, 255, 255, 0.3)',
                     }}
                   >
-                    <div 
-                      className="absolute inset-0 opacity-20"
-                      style={{
-                        background: isOpen
-                          ? 'radial-gradient(circle at 50% 0%, rgba(34, 197, 94, 0.3) 0%, transparent 70%)'
-                          : 'radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.1) 0%, transparent 70%)',
-                      }}
-                    />
                     <div className="relative z-10">
                       <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-sm font-bold text-white drop-shadow-md">{day.name}</h4>
+                        <h4 className="text-sm font-bold text-[#1e40af]">{day.name}</h4>
                         <button
                           type="button"
                           onClick={() => handleToggleDay(day.key)}
                           className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all duration-300 ${
                             isOpen
-                              ? 'bg-gradient-to-r from-green-400/30 to-emerald-400/30 text-green-200 border border-green-400/40 hover:from-green-400/40 hover:to-emerald-400/40'
-                              : 'bg-white/10 text-gray-300 border border-white/20 hover:bg-white/15'
+                              ? 'bg-[#1e40af] text-white border border-[#1e40af] hover:bg-[#1e3a8a]'
+                              : 'bg-white/50 text-gray-600 border border-gray-300 hover:bg-white/70'
                           }`}
-                          style={{
-                            backdropFilter: 'blur(10px)',
-                          }}
                         >
                           {isOpen ? 'Aperto' : 'Chiuso'}
                         </button>
@@ -1473,24 +1405,12 @@ export const ShopSetup: React.FC = () => {
                         <div className="space-y-2">
                           {dayHours.timeSlots.length === 0 ? (
                             <div className="text-center py-4">
-                              <Clock className="w-6 h-6 mx-auto mb-2 text-white/40" />
-                              <p className="text-xs text-white/60 mb-3">Nessun orario</p>
+                              <Clock className="w-6 h-6 mx-auto mb-2 text-gray-400" />
+                              <p className="text-xs text-gray-600 mb-3">Nessun orario</p>
                               <button
                                 type="button"
                                 onClick={() => handleAddTimeSlot(day.key)}
-                                className="text-xs px-3 py-1.5 rounded-lg transition-all duration-300"
-                                style={{
-                                  background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(147, 51, 234, 0.3) 100%)',
-                                  backdropFilter: 'blur(10px)',
-                                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                                  color: 'white',
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.4) 0%, rgba(147, 51, 234, 0.4) 100%)';
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(147, 51, 234, 0.3) 100%)';
-                                }}
+                                className="text-xs px-3 py-1.5 rounded-lg transition-all duration-300 bg-[#1e40af] hover:bg-[#1e3a8a] text-white"
                               >
                                 Aggiungi
                               </button>
@@ -1526,39 +1446,16 @@ export const ShopSetup: React.FC = () => {
                                   <button
                                     type="button"
                                     onClick={() => handleRemoveTimeSlot(day.key, slotIndex)}
-                                    className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-md transition-all duration-200 hover:scale-110"
-                                    style={{
-                                      background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(220, 38, 38, 0.3) 100%)',
-                                      backdropFilter: 'blur(10px)',
-                                      border: '1px solid rgba(239, 68, 68, 0.4)',
-                                    }}
-                                    onMouseEnter={(e) => {
-                                      e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.5) 0%, rgba(220, 38, 38, 0.5) 100%)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(220, 38, 38, 0.3) 100%)';
-                                    }}
+                                    className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-md transition-all duration-200 hover:bg-red-100 bg-red-50 border border-red-200"
                                   >
-                                    <X className="w-3.5 h-3.5 text-white drop-shadow-sm" />
+                                    <X className="w-3.5 h-3.5 text-red-600" />
                                   </button>
                                 </div>
                               ))}
                               <button
                                 type="button"
                                 onClick={() => handleAddTimeSlot(day.key)}
-                                className="w-full text-xs px-3 py-2 rounded-lg transition-all duration-300 font-medium"
-                                style={{
-                                  background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(147, 51, 234, 0.2) 100%)',
-                                  backdropFilter: 'blur(10px)',
-                                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                                  color: 'white',
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(147, 51, 234, 0.3) 100%)';
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(147, 51, 234, 0.2) 100%)';
-                                }}
+                                className="w-full text-xs px-3 py-2 rounded-lg transition-all duration-300 font-medium bg-[#1e40af] hover:bg-[#1e3a8a] text-white"
                               >
                                 + Aggiungi fascia
                               </button>
@@ -1567,7 +1464,7 @@ export const ShopSetup: React.FC = () => {
                         </div>
                       ) : (
                         <div className="text-center py-4">
-                          <p className="text-xs text-white/50 font-medium">Chiuso</p>
+                          <p className="text-xs text-gray-500 font-medium">Chiuso</p>
                         </div>
                       )}
                     </div>
@@ -1579,13 +1476,12 @@ export const ShopSetup: React.FC = () => {
             <div 
               className="mt-4 p-4 rounded-xl relative overflow-hidden"
               style={{
-                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(147, 51, 234, 0.15) 100%)',
+                background: 'rgba(59, 130, 246, 0.1)',
                 backdropFilter: 'blur(15px)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(59, 130, 246, 0.2)',
               }}
             >
-              <p className="text-white/90 text-xs leading-relaxed">
+              <p className="text-gray-700 text-xs leading-relaxed">
                 💡 Configura gli orari di apertura per ogni giorno della settimana. Clicca su "Aperto" per abilitare un giorno e aggiungi le fasce orarie.
               </p>
             </div>
@@ -1848,19 +1744,7 @@ export const ShopSetup: React.FC = () => {
                   onClick={() => {
                     window.location.href = success.link;
                   }}
-                  className="w-full flex items-center justify-center gap-2 text-white px-6 py-3 font-semibold rounded-xl transition-all duration-300"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.4) 0%, rgba(147, 51, 234, 0.4) 100%)',
-                    backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                    boxShadow: '0 4px 20px 0 rgba(59, 130, 246, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.2)',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.5) 0%, rgba(147, 51, 234, 0.5) 100%)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.4) 0%, rgba(147, 51, 234, 0.4) 100%)';
-                  }}
+                  className="w-full flex items-center justify-center gap-2 bg-[#1e40af] hover:bg-[#1e3a8a] text-white px-6 py-3 font-semibold rounded-xl transition-all duration-300 shadow-lg"
                 >
                   Vai al Login!
                 </button>
@@ -1872,19 +1756,7 @@ export const ShopSetup: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => downloadQRCode(success.link, success.shop.name)}
-                    className="flex items-center gap-2 text-white px-6 py-3 font-semibold rounded-xl transition-all duration-300"
-                    style={{
-                      background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.4) 0%, rgba(147, 51, 234, 0.4) 100%)',
-                      backdropFilter: 'blur(10px)',
-                      border: '1px solid rgba(255, 255, 255, 0.3)',
-                      boxShadow: '0 4px 20px 0 rgba(59, 130, 246, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.2)',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.5) 0%, rgba(147, 51, 234, 0.5) 100%)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.4) 0%, rgba(147, 51, 234, 0.4) 100%)';
-                    }}
+                    className="flex items-center gap-2 bg-[#1e40af] hover:bg-[#1e3a8a] text-white px-6 py-3 font-semibold rounded-xl transition-all duration-300 shadow-lg"
                   >
                     <Download className="w-4 h-4" />
                     Scarica QR Code
@@ -1919,22 +1791,13 @@ export const ShopSetup: React.FC = () => {
     <div 
       className="min-h-screen flex flex-col py-6 px-4 relative overflow-hidden"
       style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #00f2fe 100%)',
-        backgroundSize: '400% 400%',
-        animation: 'gradient 15s ease infinite',
+        background: 'linear-gradient(135deg, #e0f2fe 0%, #bfdbfe 50%, #dbeafe 100%)',
       }}
     >
-      <style>{`
-        @keyframes gradient {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-      `}</style>
       <div 
         className="absolute inset-0"
         style={{
-          background: 'radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.3) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(147, 51, 234, 0.3) 0%, transparent 50%)',
+          background: 'radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(96, 165, 250, 0.1) 0%, transparent 50%)',
         }}
       />
       <div className="max-w-4xl w-full mx-auto flex flex-col h-[calc(100vh-3rem)] max-h-[900px] relative z-10">
@@ -1942,34 +1805,19 @@ export const ShopSetup: React.FC = () => {
         <div 
           className="w-full rounded-full h-2 mb-6 relative overflow-hidden"
           style={{
-            background: 'rgba(255, 255, 255, 0.1)',
+            background: 'rgba(255, 255, 255, 0.5)',
             backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
+            border: '1px solid rgba(59, 130, 246, 0.2)',
           }}
         >
           <div
-            className="h-2 rounded-full transition-all duration-300 relative overflow-hidden"
+            className="h-2 rounded-full transition-all duration-300"
             style={{ 
               width: `${(currentSlide / 9) * 100}%`,
-              background: 'linear-gradient(90deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.6) 100%)',
-              boxShadow: '0 0 20px rgba(255, 255, 255, 0.5)',
+              background: 'linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%)',
             }}
-          >
-            <div 
-              className="absolute inset-0"
-              style={{
-                background: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%)',
-                animation: 'shimmer 2s infinite',
-              }}
-            />
-          </div>
+          />
         </div>
-        <style>{`
-          @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-          }
-        `}</style>
 
         {/* Slide container - flex-1 per occupare lo spazio disponibile */}
         <div className="relative overflow-hidden rounded-2xl flex-1 min-h-0 mb-6">
@@ -1977,18 +1825,12 @@ export const ShopSetup: React.FC = () => {
             <div 
               className="p-8 md:p-10 rounded-2xl relative overflow-hidden"
               style={{
-                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.1) 100%)',
+                background: 'rgba(255, 255, 255, 0.8)',
                 backdropFilter: 'blur(30px) saturate(180%)',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.2)',
+                border: '1px solid rgba(59, 130, 246, 0.2)',
+                boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.5)',
               }}
             >
-              <div 
-                className="absolute inset-0 opacity-30"
-                style={{
-                  background: 'radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.3) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(147, 51, 234, 0.3) 0%, transparent 50%)',
-                }}
-              />
               <div className="relative z-10">
               {error && (
                 <div className="bg-red-50 border-2 border-red-200 text-red-800 p-4 rounded-lg mb-6">
@@ -2010,10 +1852,10 @@ export const ShopSetup: React.FC = () => {
             type="button"
             onClick={prevSlide}
             disabled={currentSlide === 1}
-            className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:ring-offset-2 ${
+            className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:ring-offset-2 ${
               currentSlide === 1
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-[#1e3a8a] hover:bg-[#1e40af] text-white'
+                : 'bg-[#1e40af] hover:bg-[#1e3a8a] text-white shadow-lg'
             }`}
           >
             <ChevronLeft className="w-4 h-4" />
@@ -2028,8 +1870,8 @@ export const ShopSetup: React.FC = () => {
                 onClick={() => goToSlide(slide as Slide)}
                 className={`h-2 rounded-full transition-all ${
                   currentSlide === slide
-                    ? 'bg-[#1e3a8a] w-8'
-                    : 'bg-gray-300 hover:bg-gray-400 w-2'
+                    ? 'bg-[#1e40af] w-8'
+                    : 'bg-white/40 hover:bg-white/60 w-2'
                 }`}
                 aria-label={`Vai alla slide ${slide}`}
               />
@@ -2041,10 +1883,10 @@ export const ShopSetup: React.FC = () => {
               type="button"
               onClick={nextSlide}
               disabled={!validateSlide(currentSlide)}
-              className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:ring-offset-2 ${
+              className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:ring-offset-2 ${
                 !validateSlide(currentSlide)
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-[#1e3a8a] hover:bg-[#1e40af] text-white'
+                  : 'bg-[#1e40af] hover:bg-[#1e3a8a] text-white shadow-lg'
               }`}
             >
               Avanti
@@ -2055,10 +1897,10 @@ export const ShopSetup: React.FC = () => {
               type="button"
               onClick={handleSubmit}
               disabled={!privacyAccepted || isSubmitting || isUploadingLogo}
-              className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:ring-offset-2 ${
+              className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:ring-offset-2 ${
                 !privacyAccepted || isSubmitting || isUploadingLogo
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-[#1e3a8a] hover:bg-[#1e40af] text-white'
+                  : 'bg-[#1e40af] hover:bg-[#1e3a8a] text-white shadow-lg'
               }`}
             >
               {isSubmitting || isUploadingLogo ? (
