@@ -856,10 +856,10 @@ export const apiService = {
     }
   },
 
-  async saveDailyShopHours(hoursConfig: ShopHoursConfig): Promise<void> {
+  async saveDailyShopHours(hoursConfig: ShopHoursConfig): Promise<boolean> {
     if (!isSupabaseConfigured()) {
       console.warn('Supabase non configurato - impossibile salvare gli orari del negozio');
-      return;
+      return false;
     }
 
     try {
@@ -894,24 +894,31 @@ export const apiService = {
       });
 
       const changedDays: number[] = [];
+      console.log(`💾 Comparing ${existingRows.length} existing rows with config`);
+      
       for (let day = 0; day < 7; day += 1) {
         const dayConfig = hoursConfig[day] ?? { isOpen: false, timeSlots: [] };
         const existingDay = existingRows.find(r => r.day_of_week === day);
         
         console.log(`💾 Checking day ${day}:`, {
           config: { isOpen: dayConfig.isOpen, slotsCount: dayConfig.timeSlots.length },
-          existing: existingDay ? { is_open: existingDay.is_open, slotsCount: existingDay.shop_daily_time_slots?.length || 0 } : null
+          existing: existingDay ? { is_open: existingDay.is_open, slotsCount: existingDay.shop_daily_time_slots?.length || 0 } : null,
+          existingRowsLength: existingRows.length
         });
         
-        // Se il giorno non esiste nel database, deve essere creato
+        // Se il giorno non esiste nel database, deve essere creato o aggiornato
         if (!existingDay) {
-          console.log(`✅ Day ${day} needs to be created (not in database)`);
-          changedDays.push(day);
+          // Se il giorno è aperto o ha time slots, deve essere creato
+          if (dayConfig.isOpen || dayConfig.timeSlots.length > 0) {
+            console.log(`✅ Day ${day} needs to be created (not in database, isOpen=${dayConfig.isOpen}, slots=${dayConfig.timeSlots.length})`);
+            changedDays.push(day);
+          }
           continue;
         }
         
         // Verifica se is_open è cambiato
         if (existingDay.is_open !== dayConfig.isOpen) {
+          console.log(`✅ Day ${day} is_open changed: ${existingDay.is_open} -> ${dayConfig.isOpen}`);
           changedDays.push(day);
           continue;
         }
@@ -959,7 +966,7 @@ export const apiService = {
       if (changedDays.length === 0) {
         // Nessuna modifica, non salvare
         console.log('💾 No changes detected, skipping save');
-        return;
+        return false; // Indica che non è stato fatto alcun salvataggio
       }
       
       console.log(`💾 Will save ${changedDays.length} days:`, changedDays);
@@ -1143,6 +1150,7 @@ export const apiService = {
       }
       
       console.log('✅ Shop hours saved successfully');
+      return true; // Indica che il salvataggio è stato completato con successo
     } catch (error) {
       console.error('❌ Error saving daily shop hours:', error);
       throw error;

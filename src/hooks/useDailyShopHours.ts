@@ -180,18 +180,23 @@ export const useDailyShopHours = () => {
 
   const performSave = useCallback(async (hoursToSave: ShopHoursConfig) => {
     try {
-      await apiService.saveDailyShopHours(hoursToSave);
-      // Dopo il salvataggio, ricarica i dati dal database per sincronizzare lo stato
-      console.log('🔄 Reloading shop hours from database after save...');
-      try {
-        const reloadedHours = await apiService.getDailyShopHours();
-        setShopHours(reloadedHours);
-        persistHoursLocally(reloadedHours);
-        console.log('✅ Shop hours reloaded and state updated');
-      } catch (reloadError) {
-        console.error('⚠️ Error reloading shop hours after save:', reloadError);
-        // Se il reload fallisce, mantieni lo stato locale che è stato salvato
-        // Lo stato locale dovrebbe corrispondere a quello salvato
+      const wasSaved = await apiService.saveDailyShopHours(hoursToSave);
+      
+      // Dopo il salvataggio, ricarica i dati dal database SOLO se è stato effettivamente salvato
+      if (wasSaved) {
+        console.log('🔄 Reloading shop hours from database after save...');
+        try {
+          const reloadedHours = await apiService.getDailyShopHours();
+          setShopHours(reloadedHours);
+          persistHoursLocally(reloadedHours);
+          console.log('✅ Shop hours reloaded and state updated');
+        } catch (reloadError) {
+          console.error('⚠️ Error reloading shop hours after save:', reloadError);
+          // Se il reload fallisce, mantieni lo stato locale che è stato salvato
+          // Lo stato locale dovrebbe corrispondere a quello salvato
+        }
+      } else {
+        console.log('ℹ️ No save was performed, skipping reload');
       }
     } catch (error) {
       console.error('❌ Error saving daily shop hours:', error);
