@@ -16,7 +16,7 @@ import type { Staff } from '../types';
 export const BarberProfile = () => {
   const [staffData, setStaffData] = useState<Staff | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const { getActiveStaff, updateStaff, activeStaffId } = useChairAssignment();
+  const { getActiveStaff, updateStaff, activeStaffId, availableStaff } = useChairAssignment();
   const { updateBarberProfile, getBarberProfile, isLoading } = useBarberProfile();
   const [formData, setFormData] = useState<BarberProfileData>({
     full_name: '',
@@ -31,78 +31,69 @@ export const BarberProfile = () => {
   const [profileImageUrl, setProfileImageUrl] = useState('');
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
 
-  useEffect(() => {
-    loadProfileData();
-  }, []);
-
   // Carica i dati dello staff attivo quando cambia la selezione o quando non si sta modificando
   useEffect(() => {
     // Non resettare il form se l'utente sta modificando
     if (isEditing) return;
     
-    const activeStaff = getActiveStaff();
-    if (activeStaff && activeStaff.id !== staffData?.id) {
-      setStaffData(activeStaff);
-      const profileData = getBarberProfile(activeStaff);
-      setFormData(profileData);
-      setProfileImageUrl(profileData.profile_photo_url || '');
-      // Se abbiamo trovato un barbiere valido, rimuovi eventuali messaggi "nessun barbiere"
-      setMessage((prev) =>
-        prev && prev.type === 'info'
-          ? null
-          : prev
-      );
-    } else if (!activeStaff && activeStaffId === '') {
-      // Se non c'è nessun barbiere selezionato, resetta il form
-      setStaffData(null);
-      setFormData({
-        full_name: '',
-        role: '',
-        phone: '',
-        email: '',
-        specialties: '',
-        bio: '',
-        chair_id: '',
-        profile_photo_url: '',
-      });
-      setProfileImageUrl('');
+    // Se non ci sono barbieri disponibili ancora, aspetta
+    if (availableStaff.length === 0 && activeStaffId) {
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeStaffId, isEditing]);
-
-  const loadProfileData = async () => {
-    try {
-      console.log('Loading staff profile from API...');
-      try {
-        const staff = await apiService.getStaffProfile();
-        console.log('Staff profile loaded:', staff);
-        setStaffData(staff);
+    
+    // Se c'è un activeStaffId, trova il barbiere corrispondente
+    if (activeStaffId) {
+      const activeStaff = availableStaff.find(s => s.id === activeStaffId);
+      if (activeStaff) {
+        // Carica i dati se è un barbiere diverso o se i dati sono stati aggiornati
+        const shouldReload = !staffData || 
+                             staffData.id !== activeStaff.id || 
+                             staffData.full_name !== activeStaff.full_name ||
+                             staffData.email !== activeStaff.email ||
+                             staffData.profile_photo_url !== activeStaff.profile_photo_url;
         
-        // Popola il form con i dati esistenti (inclusa email se presente sullo staff)
-        if (staff) {
-          // Se abbiamo almeno un barbiere, rimuovi l'eventuale messaggio informativo
+        if (shouldReload) {
+          setStaffData(activeStaff);
+          const profileData = getBarberProfile(activeStaff);
+          setFormData(profileData);
+          setProfileImageUrl(profileData.profile_photo_url || '');
+          // Se abbiamo trovato un barbiere valido, rimuovi eventuali messaggi "nessun barbiere"
           setMessage((prev) =>
             prev && prev.type === 'info'
               ? null
               : prev
           );
-          const profileData = getBarberProfile(staff);
-          console.log('Profile data for form:', profileData);
-          setFormData(profileData);
         }
-      } catch (apiError) {
-        console.log('No staff data found in database');
+        return;
+      }
+    }
+    
+    // Se non c'è nessun barbiere selezionato, resetta il form
+    if (!activeStaffId) {
+      if (staffData !== null) {
         setStaffData(null);
+        setFormData({
+          full_name: '',
+          role: '',
+          phone: '',
+          email: '',
+          specialties: '',
+          bio: '',
+          chair_id: '',
+          profile_photo_url: '',
+        });
+        setProfileImageUrl('');
+      }
+      // Mostra un messaggio informativo se non ci sono barbieri disponibili
+      if (availableStaff.length === 0) {
         setMessage({ 
           type: 'info', 
-          text: 'Nessun barbiere trovato nel database. Vai su "Gestione Poltrone" per aggiungere un barbiere.' 
+          text: 'Nessun barbiere trovato. Vai su "Gestione Poltrone" per aggiungere un barbiere.' 
         });
       }
-    } catch (error) {
-      console.error('Error loading profile data:', error);
-      setStaffData(null);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeStaffId, isEditing, availableStaff]);
 
   const handleSave = async () => {
     if (!staffData) {
@@ -212,14 +203,20 @@ export const BarberProfile = () => {
           </label>
           <BarberSelector 
             onBarberSelect={(staffId) => {
-              // Forza il reload dei dati quando viene selezionato un barbiere
-              const activeStaff = getActiveStaff();
-              if (activeStaff) {
-                setStaffData(activeStaff);
-                const profileData = getBarberProfile(activeStaff);
+              // Trova direttamente il barbiere da availableStaff usando lo staffId
+              const selectedStaff = availableStaff.find(s => s.id === staffId);
+              if (selectedStaff) {
+                setStaffData(selectedStaff);
+                const profileData = getBarberProfile(selectedStaff);
                 setFormData(profileData);
                 setProfileImageUrl(profileData.profile_photo_url || '');
                 setIsEditing(false); // Esci dalla modalità modifica se attiva
+                // Rimuovi eventuali messaggi informativi
+                setMessage((prev) =>
+                  prev && prev.type === 'info'
+                    ? null
+                    : prev
+                );
               }
             }}
           />
