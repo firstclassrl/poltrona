@@ -676,31 +676,29 @@ export const apiService = {
 
     try {
       let shopId = getStoredShopId();
-      console.log('📅 getDailyShopHours - Initial shopId from storage:', shopId);
       
-      if (!shopId) {
+      // Se lo shop_id non è trovato o è 'default', carica lo shop dal database
+      if (!shopId || shopId === 'default') {
         const shop = await this.getShop();
         shopId = shop?.id ?? null;
-        console.log('📅 getDailyShopHours - ShopId from getShop():', shopId);
+        // Assicurati che lo shop_id sia salvato nel localStorage
+        if (shopId && shopId !== 'default') {
+          localStorage.setItem('current_shop_id', shopId);
+        }
       }
       
-      if (!shopId) {
-        console.warn('📅 getDailyShopHours - No shopId found, returning default config');
+      // Se ancora non abbiamo uno shop_id valido, restituisci config vuota
+      if (!shopId || shopId === 'default') {
         return createDefaultShopHoursConfig();
       }
-      
-      console.log('📅 getDailyShopHours - Using shopId:', shopId);
 
-      // Usa buildHeaders(false) per permettere lettura pubblica degli orari
-      // Carica prima i daily_hours, poi i time slots separatamente (la relazione embedded non funziona sempre)
+      // IMPORTANTE: Usa sempre buildHeaders(true) per avere autenticazione
+      // Le RLS policies filtrano per shop_id usando current_shop_id() che richiede autenticazione
+      // Se non c'è autenticazione, le RLS policies potrebbero non trovare i record
+      const hasAuth = !!localStorage.getItem('auth_token');
       let url = `${API_ENDPOINTS.SHOP_DAILY_HOURS}?select=*&shop_id=eq.${shopId}&order=day_of_week.asc`;
       
-      console.log('📅 Fetching shop hours from URL:', url);
-      console.log('📅 Shop ID:', shopId);
-      
-      let response = await fetch(url, { headers: buildHeaders(false) });
-      
-      console.log('📅 Response status:', response.status, response.statusText);
+      let response = await fetch(url, { headers: buildHeaders(hasAuth) });
       
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');
@@ -709,9 +707,6 @@ export const apiService = {
       }
 
       let rows = await response.json() as ShopDailyHoursEntity[];
-      
-      console.log('📅 Raw JSON response (daily hours):', JSON.stringify(rows, null, 2));
-      console.log('📅 Rows count:', rows.length);
       
       // Carica sempre i time slots separatamente (più affidabile della relazione embedded)
       if (rows.length > 0) {
@@ -722,7 +717,8 @@ export const apiService = {
         const timeSlotsUrl = `${API_ENDPOINTS.SHOP_DAILY_TIME_SLOTS}?select=*&daily_hours_id=in.(${idsFilter})&order=daily_hours_id.asc,position.asc`;
         
         console.log('📅 Fetching time slots from URL:', timeSlotsUrl);
-        const timeSlotsResponse = await fetch(timeSlotsUrl, { headers: buildHeaders(false) });
+        // Usa la stessa autenticazione usata per i daily_hours
+        const timeSlotsResponse = await fetch(timeSlotsUrl, { headers: buildHeaders(hasAuth) });
         
         if (timeSlotsResponse.ok) {
           const allTimeSlots = await timeSlotsResponse.json() as ShopDailyTimeSlotRow[];
@@ -864,11 +860,15 @@ export const apiService = {
 
     try {
       let shopId = getStoredShopId();
-      if (!shopId) {
+      if (!shopId || shopId === 'default') {
         const shop = await this.getShop();
         shopId = shop?.id ?? null;
+        // Assicurati che lo shop_id sia salvato nel localStorage
+        if (shopId && shopId !== 'default') {
+          localStorage.setItem('current_shop_id', shopId);
+        }
       }
-      if (!shopId) {
+      if (!shopId || shopId === 'default') {
         throw new Error('Impossibile determinare l\'ID del negozio');
       }
 
