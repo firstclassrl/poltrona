@@ -170,3 +170,4 @@ END $$;
 -- STEP 4: Copia il token generato e usalo nel link:
 -- https://poltrona.abruzzo.ai/setup?token=TOKEN_GENERATO
 
+

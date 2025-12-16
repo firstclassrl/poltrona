@@ -739,12 +739,15 @@ export const apiService = {
 
       const headers = buildHeaders(true);
 
-      const existingRes = await fetch(
+      // Usa fetchWithTokenRefresh per gestire automaticamente il refresh del token
+      const existingRes = await fetchWithTokenRefresh(
         `${API_ENDPOINTS.SHOP_DAILY_HOURS}?select=*,shop_daily_time_slots(*)&shop_id=eq.${shopId}`,
-        { headers }
+        { headers },
+        true
       );
       if (!existingRes.ok) {
-        throw new Error(`Failed to load existing shop hours: ${existingRes.status}`);
+        const errorText = await existingRes.text();
+        throw new Error(`Failed to load existing shop hours: ${existingRes.status} ${errorText}`);
       }
       const existingRows = await existingRes.json() as ShopDailyHoursEntity[];
       const existingMap = new Map<number, ShopDailyHoursEntity>();
@@ -755,25 +758,33 @@ export const apiService = {
         let currentRow = existingMap.get(day);
 
         if (currentRow) {
-          const updateRes = await fetch(`${API_ENDPOINTS.SHOP_DAILY_HOURS}?id=eq.${currentRow.id}`, {
-            method: 'PATCH',
-            headers,
-            body: JSON.stringify({ is_open: dayConfig.isOpen }),
-          });
+          const updateRes = await fetchWithTokenRefresh(
+            `${API_ENDPOINTS.SHOP_DAILY_HOURS}?id=eq.${currentRow.id}`,
+            {
+              method: 'PATCH',
+              headers,
+              body: JSON.stringify({ is_open: dayConfig.isOpen }),
+            },
+            true
+          );
           if (!updateRes.ok) {
             const errorText = await updateRes.text();
             throw new Error(`Failed to update shop hours (${day}): ${errorText}`);
           }
         } else {
-          const createRes = await fetch(API_ENDPOINTS.SHOP_DAILY_HOURS, {
-            method: 'POST',
-            headers: { ...headers, Prefer: 'return=representation' },
-            body: JSON.stringify([{
-              shop_id: shopId,
-              day_of_week: day,
-              is_open: dayConfig.isOpen,
-            }]),
-          });
+          const createRes = await fetchWithTokenRefresh(
+            API_ENDPOINTS.SHOP_DAILY_HOURS,
+            {
+              method: 'POST',
+              headers: { ...headers, Prefer: 'return=representation' },
+              body: JSON.stringify([{
+                shop_id: shopId,
+                day_of_week: day,
+                is_open: dayConfig.isOpen,
+              }]),
+            },
+            true
+          );
           if (!createRes.ok) {
             const errorText = await createRes.text();
             throw new Error(`Failed to create daily hours (${day}): ${errorText}`);
@@ -785,10 +796,14 @@ export const apiService = {
 
         if (!currentRow) continue;
 
-        const deleteSlotsRes = await fetch(`${API_ENDPOINTS.SHOP_DAILY_TIME_SLOTS}?daily_hours_id=eq.${currentRow.id}`, {
-          method: 'DELETE',
-          headers,
-        });
+        const deleteSlotsRes = await fetchWithTokenRefresh(
+          `${API_ENDPOINTS.SHOP_DAILY_TIME_SLOTS}?daily_hours_id=eq.${currentRow.id}`,
+          {
+            method: 'DELETE',
+            headers,
+          },
+          true
+        );
         if (!deleteSlotsRes.ok) {
           const errorText = await deleteSlotsRes.text();
           throw new Error(`Failed to clear time slots (${day}): ${errorText}`);
@@ -802,11 +817,15 @@ export const apiService = {
             position: index,
           }));
 
-          const insertSlotsRes = await fetch(API_ENDPOINTS.SHOP_DAILY_TIME_SLOTS, {
-            method: 'POST',
-            headers: { ...headers, Prefer: 'return=minimal' },
-            body: JSON.stringify(payload),
-          });
+          const insertSlotsRes = await fetchWithTokenRefresh(
+            API_ENDPOINTS.SHOP_DAILY_TIME_SLOTS,
+            {
+              method: 'POST',
+              headers: { ...headers, Prefer: 'return=minimal' },
+              body: JSON.stringify(payload),
+            },
+            true
+          );
           if (!insertSlotsRes.ok) {
             const errorText = await insertSlotsRes.text();
             throw new Error(`Failed to insert time slots (${day}): ${errorText}`);

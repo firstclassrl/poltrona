@@ -644,3 +644,4 @@ BEGIN
   RAISE NOTICE '4. Verifica che vedi solo i dati del tuo negozio';
   RAISE NOTICE '';
 END $$;
+

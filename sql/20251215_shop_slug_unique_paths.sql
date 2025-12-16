@@ -92,3 +92,4 @@ CREATE UNIQUE INDEX IF NOT EXISTS shops_slug_unique ON public.shops(slug);
 -- Nota: nessun redirect legacy (richiesto dal business)
 -- Esegui questo script in prod e negli ambienti di staging/preview.
 
+

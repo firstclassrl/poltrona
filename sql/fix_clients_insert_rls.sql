@@ -188,3 +188,4 @@ BEGIN
   RAISE NOTICE '5. Se fallisce, controlla i log per vedere quale condizione non è soddisfatta';
   RAISE NOTICE '';
 END $$;
+

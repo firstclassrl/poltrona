@@ -68,3 +68,4 @@ WHERE si.admin_user_id = 'ADMIN_USER_ID_QUI'::UUID -- ⚠️ SOSTITUISCI CON L'I
 ORDER BY si.created_at DESC
 LIMIT 5;
 
+

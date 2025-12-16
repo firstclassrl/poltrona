@@ -54,15 +54,15 @@ drop policy if exists shop_daily_hours_modify on public.shop_daily_hours;
 create policy shop_daily_hours_modify
 on public.shop_daily_hours
 for all
-using (auth.role() = 'authenticated')
-with check (auth.role() = 'authenticated');
+using (auth.uid() IS NOT NULL)
+with check (auth.uid() IS NOT NULL);
 
 drop policy if exists shop_daily_time_slots_modify on public.shop_daily_time_slots;
 create policy shop_daily_time_slots_modify
 on public.shop_daily_time_slots
 for all
-using (auth.role() = 'authenticated')
-with check (auth.role() = 'authenticated');
+using (auth.uid() IS NOT NULL)
+with check (auth.uid() IS NOT NULL);
 
 -- Optional: migrate legacy JSON from shops.opening_hours into the new structure
 do $$

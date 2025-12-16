@@ -145,3 +145,4 @@ BEGIN
   RAISE NOTICE '4. Esegui fix_clients_insert_rls.sql per correggere tutto';
   RAISE NOTICE '';
 END $$;
+

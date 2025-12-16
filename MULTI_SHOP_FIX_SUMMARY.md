@@ -119,3 +119,4 @@
 3. Aggiungere monitoring per rilevare potenziali crossing
 4. Documentare il sistema multi-shop per nuovi sviluppatori
 
+

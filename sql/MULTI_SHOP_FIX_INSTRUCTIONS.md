@@ -151,3 +151,4 @@ Se riscontri problemi:
 2. Controlla i log di Supabase per errori
 3. Verifica che `current_shop_id()` funzioni correttamente
 
+

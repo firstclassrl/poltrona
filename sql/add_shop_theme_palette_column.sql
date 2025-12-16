@@ -7,3 +7,4 @@ ADD COLUMN IF NOT EXISTS theme_palette TEXT;
 -- (Opzionale) commento di documentazione
 COMMENT ON COLUMN public.shops.theme_palette IS 'ID della palette tema scelta per il negozio';
 
+

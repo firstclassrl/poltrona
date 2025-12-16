@@ -118,3 +118,4 @@ WHERE u.email = 'barbiere@abruzzo.ai' -- ⚠️ SOSTITUISCI CON L'EMAIL DELL'ADM
 ORDER BY si.created_at DESC
 LIMIT 5;
 
+

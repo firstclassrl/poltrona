@@ -136,3 +136,4 @@ GROUP BY n.user_id, n.shop_id, sh.name
 ORDER BY notification_count DESC
 LIMIT 20;
 
+

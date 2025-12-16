@@ -12,3 +12,4 @@ CREATE INDEX IF NOT EXISTS idx_shop_invites_admin_user_id ON public.shop_invites
 COMMENT ON COLUMN public.shop_invites.admin_user_id IS 'ID dell''utente admin associato a questo token di invito. Solo questo admin può usare il token per creare il negozio.';
 
 
+

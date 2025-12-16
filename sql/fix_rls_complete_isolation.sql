@@ -626,3 +626,4 @@ BEGIN
   RAISE NOTICE '4. Verifica che vedi solo i dati del nuovo negozio';
 END $$;
 
+

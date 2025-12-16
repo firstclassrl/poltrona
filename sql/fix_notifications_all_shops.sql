@@ -318,3 +318,4 @@ LEFT JOIN public.shops sh ON n.shop_id = sh.id
 GROUP BY n.shop_id, sh.name
 ORDER BY sh.name;
 
+

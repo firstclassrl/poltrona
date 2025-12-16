@@ -71,3 +71,4 @@ CREATE INDEX IF NOT EXISTS idx_shop_invites_token ON public.shop_invites(token);
 
 
 
+

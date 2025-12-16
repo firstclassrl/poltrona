@@ -155,3 +155,4 @@ COMMENT ON FUNCTION public.handle_profile_shop_assigned() IS 'Funzione trigger p
 
 
 
+
