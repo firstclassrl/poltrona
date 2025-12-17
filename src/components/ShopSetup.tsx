@@ -14,6 +14,8 @@ import { buildShopUrl, slugify } from '../utils/slug';
 import { createDefaultShopHoursConfig } from '../utils/shopHours';
 import { TimePicker } from './ui/TimePicker';
 import type { TimeSlot } from '../types';
+import { PrivacyPolicy } from './PrivacyPolicy';
+import { TermsOfService } from './TermsOfService';
 
 const getTokenFromUrl = (): string | null => {
   if (typeof window === 'undefined') return null;
@@ -79,6 +81,8 @@ export const ShopSetup: React.FC = () => {
     active: true,
   });
   const [priceInputValue, setPriceInputValue] = useState<string>('');
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   const [form, setForm] = useState({
     name: '',
@@ -1673,8 +1677,29 @@ export const ShopSetup: React.FC = () => {
                 className="mt-1 w-5 h-5 text-[#1e40af] border-gray-300 rounded focus:ring-[#1e40af]"
               />
               <label htmlFor="privacy" className="flex-1 text-sm text-gray-700 cursor-pointer">
-                Accetto i <a href="#" className="text-[#1e40af] underline font-medium">Termini di Servizio</a> e la{' '}
-                <a href="#" className="text-[#1e40af] underline font-medium">Privacy Policy</a> di Poltrona.
+                Accetto i{' '}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setShowTermsModal(true);
+                  }}
+                  className="text-[#1e40af] underline font-medium hover:text-[#1e3a8a]"
+                >
+                  Termini di Servizio
+                </button>
+                {' '}e la{' '}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setShowPrivacyModal(true);
+                  }}
+                  className="text-[#1e40af] underline font-medium hover:text-[#1e3a8a]"
+                >
+                  Privacy Policy
+                </button>
+                {' '}di Poltrona.
                 <span className="text-red-500 ml-1">*</span>
               </label>
             </div>
@@ -1934,6 +1959,16 @@ export const ShopSetup: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {/* Modali per Termini e Privacy */}
+      <PrivacyPolicy 
+        isOpen={showPrivacyModal} 
+        onClose={() => setShowPrivacyModal(false)} 
+      />
+      <TermsOfService 
+        isOpen={showTermsModal} 
+        onClose={() => setShowTermsModal(false)} 
+      />
     </div>
   );
 };
