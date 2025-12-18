@@ -85,7 +85,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       const unread = filtered.filter(n => !n.read_at).length;
       
       // Play sound if new notifications arrived (not on initial load)
-      if (!isInitialLoad.current && unread > previousUnreadCount.current) {
+      // Clients: no in-app bell UX; prefer push/email + badge in "Le Mie Prenotazioni"
+      if (!isInitialLoad.current && unread > previousUnreadCount.current && user?.role !== 'client') {
         playNotificationSound();
         console.log('🔔 Nuova notifica ricevuta!');
       }
@@ -110,8 +111,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       const filtered = filterNotificationsForUser(data, user.role);
       const count = filtered.filter(n => !n.read_at).length;
       
-      // Play sound if new notifications arrived
-      if (count > previousUnreadCount.current) {
+      // Play sound if new notifications arrived (no sound for clients)
+      if (count > previousUnreadCount.current && user?.role !== 'client') {
         playNotificationSound();
         console.log('🔔 Nuova notifica ricevuta! Totale non lette:', count);
         setNotifications(filtered);

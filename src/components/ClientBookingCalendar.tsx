@@ -987,11 +987,10 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
               />
               <div>
                 <div className="text-sm font-semibold text-gray-900">
-                  Avvisami se si libera un posto prima
+                  AVVISAMI SE SI LIBERA UNO SLOT PRIMA
                 </div>
                 <div className="text-xs text-gray-600 mt-1">
-                  Se si libera uno slot <strong>della stessa durata</strong> con lo stesso barbiere prima del tuo
-                  appuntamento, ti avviseremo per anticiparlo.
+                  Se si libera un posto prima, ti invieremo una mail e una notifica su questa app!
                 </div>
               </div>
             </label>

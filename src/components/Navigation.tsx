@@ -78,6 +78,11 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
     : 0;
   const chatBadgeCount = chatUnreadCount + unreadChatNotifications;
 
+  // Cliente: badge su "Le Mie Prenotazioni" quando arriva uno slot prima
+  const unreadEarlierOffers = notifications
+    ? notifications.filter((n) => n.type === 'appointment_earlier_available' && !n.read_at).length
+    : 0;
+
   const allNavItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, permission: 'dashboard' },
     { id: 'calendar', label: 'Calendario', icon: Calendar, permission: 'appointments' },
@@ -148,6 +153,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const showChatBadge = item.id === 'chat' && chatBadgeCount > 0;
+                const showClientBookingsBadge = item.id === 'client_bookings' && user?.role === 'client' && unreadEarlierOffers > 0;
                 // Mostra "Il Mio Barbiere" per i clienti, altrimenti la label originale
                 const displayLabel = item.id === 'shop' && user?.role === 'client' 
                   ? 'Il Mio Barbiere' 
@@ -170,6 +176,11 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                     {showChatBadge && (
                       <span className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center min-w-[20px] h-[20px] px-1.5 text-xs font-bold text-white bg-red-500 rounded-full animate-pulse">
                         {chatBadgeCount > 99 ? '99+' : chatBadgeCount}
+                      </span>
+                    )}
+                    {showClientBookingsBadge && (
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center min-w-[20px] h-[20px] px-1.5 text-xs font-bold text-white bg-red-500 rounded-full animate-pulse">
+                        {unreadEarlierOffers > 99 ? '99+' : unreadEarlierOffers}
                       </span>
                     )}
                   </button>
@@ -249,6 +260,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
           {navItems.map((item) => {
             const Icon = item.icon;
             const showChatBadge = item.id === 'chat' && chatBadgeCount > 0;
+            const showClientBookingsBadge = item.id === 'client_bookings' && user?.role === 'client' && unreadEarlierOffers > 0;
             // Mostra "Il Mio Barbiere" per i clienti, altrimenti la label originale
             const displayLabel = item.id === 'shop' && user?.role === 'client' 
               ? 'Il Mio Barbiere' 
@@ -271,6 +283,11 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                   {showChatBadge && (
                     <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-red-500 rounded-full animate-pulse">
                       {chatBadgeCount > 99 ? '99+' : chatBadgeCount}
+                    </span>
+                  )}
+                  {showClientBookingsBadge && (
+                    <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-red-500 rounded-full animate-pulse">
+                      {unreadEarlierOffers > 99 ? '99+' : unreadEarlierOffers}
                     </span>
                   )}
                 </div>

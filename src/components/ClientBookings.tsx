@@ -5,13 +5,15 @@ import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { Modal } from './ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotifications } from '../contexts/NotificationContext';
 import { useAppointments } from '../hooks/useAppointments';
 import { useClientRegistration } from '../hooks/useClientRegistration';
 import { apiService } from '../services/api';
 import { API_CONFIG } from '../config/api';
 import { useDailyShopHours } from '../hooks/useDailyShopHours';
 import { useVacationMode } from '../hooks/useVacationMode';
-import type { Appointment, Shop } from '../types';
+import type { Appointment, Shop, Notification } from '../types';
+import { AppointmentRescheduleModal } from './AppointmentRescheduleModal';
 import { generateICSFile, downloadICSFile } from '../utils/calendar';
 import { findAvailableSlotsForDuration } from '../utils/availability';
 import { addMinutes, getSlotDateTime } from '../utils/date';
@@ -30,6 +32,7 @@ const statusLabels: Record<string, string> = {
 
 export const ClientBookings: React.FC = () => {
   const { user } = useAuth();
+  const { notifications, loadNotifications, markAsRead, deleteNotification } = useNotifications();
   const { appointments, loadAppointments } = useAppointments();
   const { getClientByEmail } = useClientRegistration();
   const { isDateOpen, getAvailableTimeSlots, shopHoursLoaded } = useDailyShopHours();
@@ -47,6 +50,13 @@ export const ClientBookings: React.FC = () => {
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [appointmentToReschedule, setAppointmentToReschedule] = useState<Appointment | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [earlierOffer, setEarlierOffer] = useState<{
+    waitlistId: string;
+    appointmentId: string;
+    earlierStartAt: string;
+    earlierEndAt: string;
+    notificationId: string;
+  } | null>(null);
 
   useEffect(() => {
     if (user?.email) {
@@ -68,6 +78,56 @@ export const ClientBookings: React.FC = () => {
     };
     loadShop();
   }, []);
+
+  // Ensure notifications are loaded (used to show the red badge and the "slot prima" offers list)
+  useEffect(() => {
+    if (user?.id) {
+      loadNotifications().catch(() => undefined);
+    }
+  }, [user?.id, loadNotifications]);
+
+  const earlierOfferNotifications = useMemo(() => {
+    return (notifications || []).filter((n) => n.type === 'appointment_earlier_available');
+  }, [notifications]);
+
+  const formatOfferDateTime = (iso: string) => {
+    const d = new Date(iso);
+    const date = d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+    const time = d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', hour12: false });
+    return `${date} alle ${time}`;
+  };
+
+  const openEarlierOffer = async (n: Notification) => {
+    const data = (n.data || {}) as any;
+    if (!data?.waitlist_id || !data?.appointment_id || !data?.earlier_start_at || !data?.earlier_end_at) return;
+
+    try {
+      if (!n.read_at) await markAsRead(n.id);
+    } catch {
+      // ignore
+    }
+
+    setEarlierOffer({
+      waitlistId: String(data.waitlist_id),
+      appointmentId: String(data.appointment_id),
+      earlierStartAt: String(data.earlier_start_at),
+      earlierEndAt: String(data.earlier_end_at),
+      notificationId: n.id,
+    });
+  };
+
+  const declineEarlierOffer = async (n: Notification) => {
+    const data = (n.data || {}) as any;
+    if (!data?.waitlist_id) return;
+    try {
+      await apiService.declineEarlierSlotOffer(String(data.waitlist_id));
+      if (!n.read_at) await markAsRead(n.id);
+      await deleteNotification(n.id);
+    } catch (e) {
+      console.warn('Decline earlier offer failed:', e);
+      setMessage({ type: 'error', text: 'Impossibile aggiornare la richiesta. Riprova.' });
+    }
+  };
 
   const filteredAppointments = useMemo(() => {
     const authEmail = normalizeEmail(user?.email);
@@ -464,6 +524,62 @@ export const ClientBookings: React.FC = () => {
         </div>
       )}
 
+      {/* Notifiche (solo cliente): proposte per anticipare la prenotazione */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-gray-900 flex items-center space-x-2">
+            <Clock className="w-5 h-5 text-emerald-700" />
+            <span>Notifiche</span>
+          </h2>
+        </div>
+
+        {earlierOfferNotifications.length === 0 ? (
+          <Card className="p-5 text-gray-600">
+            Nessuna notifica al momento.
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {earlierOfferNotifications
+              .slice()
+              .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+              .map((n) => {
+                const data = (n.data || {}) as any;
+                const isUnread = !n.read_at;
+                const slotText = data?.earlier_start_at
+                  ? formatOfferDateTime(String(data.earlier_start_at))
+                  : 'Slot disponibile';
+                return (
+                  <Card key={n.id} className="p-4 border border-gray-200">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-lg font-semibold text-gray-900 truncate">{n.title}</p>
+                          {isUnread && <span className="w-2 h-2 bg-red-500 rounded-full" />}
+                        </div>
+                        <p className="text-sm text-gray-700 mt-1">{n.message}</p>
+                        <p className="text-sm text-emerald-700 font-semibold mt-2">
+                          Slot disponibile: {slotText}
+                        </p>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          onClick={() => openEarlierOffer(n)}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        >
+                          Anticipa
+                        </Button>
+                        <Button variant="secondary" onClick={() => declineEarlierOffer(n)}>
+                          Rifiuta
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+          </div>
+        )}
+      </section>
+
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900 flex items-center space-x-2">
@@ -592,6 +708,34 @@ export const ClientBookings: React.FC = () => {
           {isUpdating && <p>Salvataggio modifica...</p>}
         </div>
       </Modal>
+
+      {/* Modale "slot prima" */}
+      <AppointmentRescheduleModal
+        isOpen={earlierOffer !== null}
+        offer={
+          earlierOffer
+            ? {
+                waitlistId: earlierOffer.waitlistId,
+                appointmentId: earlierOffer.appointmentId,
+                earlierStartAt: earlierOffer.earlierStartAt,
+                earlierEndAt: earlierOffer.earlierEndAt,
+              }
+            : null
+        }
+        onClose={() => setEarlierOffer(null)}
+        onSuccess={async () => {
+          try {
+            if (earlierOffer?.notificationId) {
+              await deleteNotification(earlierOffer.notificationId);
+            }
+          } catch {
+            // ignore
+          }
+          setEarlierOffer(null);
+          await loadAppointments();
+          setMessage({ type: 'success', text: 'Prenotazione anticipata con successo.' });
+        }}
+      />
     </div>
   );
 };

@@ -52,6 +52,32 @@ CHECK (type IN (
 ));
 
 -- ============================================
+-- PARTE 2B: Webhook outbox (tabella dedicata per N8N/push/email)
+-- ============================================
+-- Supabase Database Webhook NON ha filtro lato DB: se lo punti su notifications
+-- scatterà per qualunque notifica (new_appointment, ecc).
+-- Soluzione: usa una tabella "outbox" che popoliamo SOLO per eventi waitlist.
+
+CREATE TABLE IF NOT EXISTS public.webhook_outbox (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  shop_id UUID REFERENCES public.shops(id) ON DELETE CASCADE,
+  event_type TEXT NOT NULL,
+  payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_webhook_outbox_event_created
+  ON public.webhook_outbox(event_type, created_at DESC);
+
+-- (opzionale) RLS: di default abilitiamo e lasciamo accesso solo al service_role
+ALTER TABLE public.webhook_outbox ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Service role full access (webhook_outbox)" ON public.webhook_outbox;
+CREATE POLICY "Service role full access (webhook_outbox)" ON public.webhook_outbox
+  FOR ALL
+  USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');
+
+-- ============================================
 -- PARTE 3: Migrazione tabella waitlist (per-appuntamento)
 -- ============================================
 
@@ -328,6 +354,34 @@ BEGIN
         '⏩ Posto disponibile prima!',
         'Si è liberato uno slot prima del tuo appuntamento. Clicca per anticipare la prenotazione.',
         jsonb_build_object(
+          'waitlist_id', v_candidate.waitlist_id,
+          'appointment_id', v_candidate.appointment_id,
+          'earlier_start_at', v_freed_start,
+          'earlier_end_at', v_freed_end,
+          'current_start_at', v_candidate.current_start_at,
+          'current_end_at', v_candidate.current_end_at,
+          'staff_id', OLD.staff_id,
+          'staff_name', COALESCE(v_staff_name, ''),
+          'duration_min', v_candidate.duration_min
+        ),
+        NOW()
+      );
+
+      -- Inserisci evento SOLO per N8N/push/email nella outbox dedicata
+      -- (così il database webhook non si triggera su tutte le notifiche)
+      INSERT INTO public.webhook_outbox (
+        shop_id,
+        event_type,
+        payload,
+        created_at
+      ) VALUES (
+        OLD.shop_id,
+        'appointment_earlier_available',
+        jsonb_build_object(
+          'notification_type', 'appointment_earlier_available',
+          'user_id', v_candidate.client_user_id,
+          'client_email', COALESCE(v_candidate.client_email, ''),
+          'client_name', COALESCE(v_candidate.client_name, ''),
           'waitlist_id', v_candidate.waitlist_id,
           'appointment_id', v_candidate.appointment_id,
           'earlier_start_at', v_freed_start,
