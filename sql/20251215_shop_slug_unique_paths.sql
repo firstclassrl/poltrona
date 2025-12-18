@@ -95,3 +95,4 @@ CREATE UNIQUE INDEX IF NOT EXISTS shops_slug_unique ON public.shops(slug);
 
 
 
+

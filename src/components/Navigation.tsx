@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Home, ShoppingBag, User, Building2, LogOut, UserCheck, MessageCircle, Scissors, Bell, ListChecks, Settings } from 'lucide-react';
+import { Calendar, Users, Home, ShoppingBag, User, Building2, LogOut, UserCheck, MessageCircle, Scissors, Bell, ListChecks, Settings, Clock } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../contexts/NotificationContext';
@@ -82,6 +82,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
     { id: 'dashboard', label: 'Dashboard', icon: Home, permission: 'dashboard' },
     { id: 'calendar', label: 'Calendario', icon: Calendar, permission: 'appointments' },
     { id: 'clients', label: 'Clienti', icon: Users, permission: 'clients' },
+    { id: 'waitlist', label: 'Lista d\'Attesa', icon: Clock, permission: 'appointments' },
     { id: 'services', label: 'Servizi', icon: Scissors, permission: 'services' },
     { id: 'products', label: 'Prodotti', icon: ShoppingBag, permission: 'products' },
     { id: 'chat', label: 'Chat', icon: MessageCircle, permission: 'chat' },

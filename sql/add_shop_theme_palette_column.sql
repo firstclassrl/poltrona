@@ -10,3 +10,4 @@ COMMENT ON COLUMN public.shops.theme_palette IS 'ID della palette tema scelta pe
 
 
 
+

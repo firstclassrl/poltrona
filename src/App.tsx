@@ -18,6 +18,7 @@ import { ClientBookingCalendar } from './components/ClientBookingCalendar';
 import { ClientProducts } from './components/ClientProducts';
 import { Chat } from './components/Chat';
 import { Notifications } from './components/Notifications';
+import { WaitlistDashboard } from './components/WaitlistDashboard';
 import { Toast } from './components/ui/Toast';
 import { useToast } from './hooks/useToast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -147,6 +148,8 @@ const AppContent: React.FC = () => {
         ) : <Products />;
       case 'services':
         return <Services />;
+      case 'waitlist':
+        return <WaitlistDashboard shopId={currentShop?.id} />;
       case 'chat':
         return <Chat />;
       case 'profile':
@@ -163,7 +166,25 @@ const AppContent: React.FC = () => {
       case 'client_bookings':
         return <ClientBookings />;
       case 'client_booking':
-        return <ClientBookingCalendar onNavigateToProfile={() => setActiveTab('client_profile')} />;
+        return (
+          <ClientBookingCalendar 
+            onNavigateToProfile={() => setActiveTab('client_profile')}
+            initialParams={(() => {
+              // Recupera parametri da localStorage se presenti (impostati dalla notifica)
+              try {
+                const params = localStorage.getItem('bookingParams');
+                if (params) {
+                  const parsed = JSON.parse(params);
+                  localStorage.removeItem('bookingParams'); // Rimuovi dopo averli letti
+                  return parsed;
+                }
+              } catch (e) {
+                console.error('Error parsing booking params:', e);
+              }
+              return undefined;
+            })()}
+          />
+        );
       default:
         return (
           <Dashboard

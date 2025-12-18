@@ -15,3 +15,4 @@ COMMENT ON COLUMN public.shop_invites.admin_user_id IS 'ID dell''utente admin as
 
 
 
+

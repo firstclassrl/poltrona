@@ -18,9 +18,10 @@ import { generateICSFile, downloadICSFile } from '../utils/calendar';
 
 interface ClientBookingCalendarProps {
   onNavigateToProfile?: () => void;
+  initialParams?: { date?: string; serviceId?: string; staffId?: string };
 }
 
-export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ onNavigateToProfile }) => {
+export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ onNavigateToProfile, initialParams }) => {
   const { getAvailableTimeSlots, isDateOpen, shopHoursLoaded } = useDailyShopHours();
   const { availableStaff } = useChairAssignment();
   const { refreshUnreadCount } = useNotifications();
@@ -101,6 +102,25 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     endDateTime: Date;
   } | null>(null);
   const areProductsEnabled = shop?.products_enabled === true;
+
+  // Apply initial params from notification (if any)
+  useEffect(() => {
+    if (initialParams && services.length > 0 && staff.length > 0) {
+      if (initialParams.date) {
+        const date = new Date(initialParams.date);
+        setSelectedDate(date);
+        // Switch to day detail view if date is provided
+        setCurrentView('day_detail');
+        setSelectedDayForDetail(date);
+      }
+      if (initialParams.serviceId && services.find(s => s.id === initialParams.serviceId)) {
+        setSelectedService(initialParams.serviceId);
+      }
+      if (initialParams.staffId && staff.find(s => s.id === initialParams.staffId)) {
+        setSelectedBarber(initialParams.staffId);
+      }
+    }
+  }, [initialParams, services, staff]);
 
   // Load services, staff, and shop data from API
   useEffect(() => {

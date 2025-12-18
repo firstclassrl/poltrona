@@ -1,11 +1,12 @@
 import React from 'react';
-import { X, Check, CheckCheck, Trash2, Calendar, AlertCircle, Bell, Clock, MessageCircle } from 'lucide-react';
+import { X, Check, CheckCheck, Trash2, Calendar, AlertCircle, Bell, Clock, MessageCircle, ArrowRight } from 'lucide-react';
 import { useNotifications } from '../contexts/NotificationContext';
 import type { Notification, NotificationType } from '../types';
 import { cn } from '../utils/cn';
 
 interface NotificationPanelProps {
   onClose: () => void;
+  onNavigateToBooking?: (params?: { date?: string; serviceId?: string; staffId?: string }) => void;
 }
 
 const getNotificationIcon = (type: NotificationType) => {
@@ -18,6 +19,8 @@ const getNotificationIcon = (type: NotificationType) => {
       return <Bell className="w-5 h-5 text-blue-400" />;
     case 'waitlist_available':
       return <Clock className="w-5 h-5 text-amber-400" />;
+    case 'waitlist_summary':
+      return <Users className="w-5 h-5 text-purple-400" />;
     case 'chat_message':
       return <MessageCircle className="w-5 h-5 text-blue-400" />;
     case 'system':
@@ -43,22 +46,72 @@ interface NotificationItemProps {
   notification: Notification;
   onMarkAsRead: (id: string) => void;
   onDelete: (id: string) => void;
+  onNavigateToBooking?: (params?: { date?: string; serviceId?: string; staffId?: string }) => void;
 }
 
 const NotificationItem: React.FC<NotificationItemProps> = ({ 
   notification, 
   onMarkAsRead, 
-  onDelete 
+  onDelete,
+  onNavigateToBooking
 }) => {
   const isUnread = !notification.read_at;
+  const isWaitlistAvailable = notification.type === 'waitlist_available';
+  
+  const handleClick = () => {
+    if (isWaitlistAvailable && onNavigateToBooking) {
+      const data = notification.data as any;
+      // Salva parametri in localStorage per ClientBookingCalendar
+      try {
+        localStorage.setItem('bookingParams', JSON.stringify({
+          date: data?.available_date,
+          serviceId: data?.service_id,
+          staffId: data?.staff_id,
+        }));
+      } catch (e) {
+        console.error('Error saving booking params:', e);
+      }
+      onNavigateToBooking({
+        date: data?.available_date,
+        serviceId: data?.service_id,
+        staffId: data?.staff_id,
+      });
+    }
+  };
+
+  const formatWaitlistDetails = () => {
+    if (!isWaitlistAvailable) return null;
+    const data = notification.data as any;
+    const parts: string[] = [];
+    
+    if (data?.available_date) {
+      const date = new Date(data.available_date);
+      parts.push(date.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }));
+    }
+    
+    if (data?.available_time) {
+      parts.push(`alle ${data.available_time}`);
+    }
+    
+    if (data?.service_name) {
+      parts.push(`per ${data.service_name}`);
+    }
+    
+    if (data?.staff_name) {
+      parts.push(`con ${data.staff_name}`);
+    }
+    
+    return parts.length > 0 ? parts.join(' ') : null;
+  };
 
   return (
     <div 
       className={cn(
         'p-3 border-b border-yellow-400/20 transition-colors duration-200',
         isUnread ? 'bg-yellow-500/10' : 'bg-transparent',
-        'hover:bg-yellow-500/5'
+        isWaitlistAvailable ? 'hover:bg-yellow-500/10 cursor-pointer' : 'hover:bg-yellow-500/5'
       )}
+      onClick={isWaitlistAvailable ? handleClick : undefined}
     >
       <div className="flex items-start gap-3">
         {/* Icon */}
@@ -84,13 +137,24 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
               ? `${notification.data.sender_name}: ${notification.message}`
               : notification.message}
           </p>
+          {isWaitlistAvailable && formatWaitlistDetails() && (
+            <p className="text-xs text-amber-400/80 mt-1 font-medium">
+              {formatWaitlistDetails()}
+            </p>
+          )}
+          {isWaitlistAvailable && (
+            <div className="flex items-center gap-1 mt-2 text-xs text-amber-400/70">
+              <span>Clicca per prenotare</span>
+              <ArrowRight className="w-3 h-3" />
+            </div>
+          )}
           <p className="text-xs text-yellow-300/50 mt-1">
             {formatTimeAgo(notification.created_at)}
           </p>
         </div>
 
         {/* Actions */}
-        <div className="flex-shrink-0 flex items-center gap-1">
+        <div className="flex-shrink-0 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
           {isUnread && (
             <button
               onClick={() => onMarkAsRead(notification.id)}
@@ -113,7 +177,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
   );
 };
 
-export const NotificationPanel: React.FC<NotificationPanelProps> = ({ onClose }) => {
+export const NotificationPanel: React.FC<NotificationPanelProps> = ({ onClose, onNavigateToBooking }) => {
   const { 
     notifications, 
     unreadCount, 
@@ -201,6 +265,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ onClose })
                 notification={notification}
                 onMarkAsRead={handleMarkAsRead}
                 onDelete={handleDelete}
+                onNavigateToBooking={onNavigateToBooking}
               />
             ))}
           </div>

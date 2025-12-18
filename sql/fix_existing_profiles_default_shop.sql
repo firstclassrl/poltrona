@@ -60,3 +60,4 @@ SELECT
   COUNT(CASE WHEN shop_id IS NOT NULL THEN 1 END) as profiles_with_shop_id
 FROM public.profiles;
 
+

@@ -8,13 +8,13 @@ import { apiService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import type { Service, Staff, WaitlistEntry } from '../types';
 
-// Helper per ottenere i prossimi 3 giorni (oggi, domani, dopodomani)
-const getNextThreeDays = (): Date[] => {
+// Helper per ottenere i prossimi 7 giorni (oggi + 6 giorni successivi)
+const getNextSevenDays = (): Date[] => {
   const days: Date[] = [];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 7; i++) {
     const day = new Date(today);
     day.setDate(today.getDate() + i);
     days.push(day);
@@ -129,9 +129,9 @@ export const ClientBooking: React.FC = () => {
     return shopHoursLoaded && isDateOpen(date);
   };
 
-  // Ottieni i prossimi 3 giorni aperti per la waitlist
-  const nextThreeDays = getNextThreeDays();
-  const openDays = nextThreeDays.filter(day => shopHoursLoaded && isDateOpen(day));
+  // Ottieni i prossimi 7 giorni aperti per la waitlist
+  const nextSevenDays = getNextSevenDays();
+  const openDays = nextSevenDays.filter(day => shopHoursLoaded && isDateOpen(day));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -440,7 +440,7 @@ export const ClientBooking: React.FC = () => {
             ) : shopHoursLoaded && openDays.length === 0 ? (
               <div className="mb-4 bg-gray-50 border border-gray-200 rounded-lg p-3">
                 <p className="text-sm text-gray-600">
-                  Non ci sono giorni aperti nei prossimi 3 giorni. Controlla le tue richieste in lista d'attesa qui sotto.
+                  Non ci sono giorni aperti nei prossimi 7 giorni. Controlla le tue richieste in lista d'attesa qui sotto.
                 </p>
               </div>
             ) : (

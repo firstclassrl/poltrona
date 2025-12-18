@@ -5,7 +5,11 @@ import { useNotifications } from '../contexts/NotificationContext';
 import { NotificationPanel } from './NotificationPanel';
 import { cn } from '../utils/cn';
 
-export const NotificationBell: React.FC = () => {
+interface NotificationBellProps {
+  onNavigateToBooking?: (params?: { date?: string; serviceId?: string; staffId?: string }) => void;
+}
+
+export const NotificationBell: React.FC<NotificationBellProps> = ({ onNavigateToBooking }) => {
   const { unreadCount, loadNotifications } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 });
@@ -88,7 +92,15 @@ export const NotificationBell: React.FC = () => {
             zIndex: 9999 
           }}
         >
-          <NotificationPanel onClose={() => setIsOpen(false)} />
+          <NotificationPanel 
+            onClose={() => setIsOpen(false)}
+            onNavigateToBooking={(params) => {
+              setIsOpen(false);
+              if (onNavigateToBooking) {
+                onNavigateToBooking(params);
+              }
+            }}
+          />
         </div>,
         document.body
       )}

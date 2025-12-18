@@ -56,3 +56,4 @@ CREATE POLICY "Functions can insert notifications" ON public.notifications
 
 
 
+

@@ -224,7 +224,7 @@ export interface ShopHoursConfig {
 // Notifications
 // ============================================
 
-export type NotificationType = 'new_appointment' | 'appointment_cancelled' | 'appointment_rescheduled' | 'appointment_reminder' | 'system' | 'waitlist_available' | 'new_client' | 'chat_message';
+export type NotificationType = 'new_appointment' | 'appointment_cancelled' | 'appointment_rescheduled' | 'appointment_reminder' | 'system' | 'waitlist_available' | 'waitlist_summary' | 'new_client' | 'chat_message';
 export type NotificationUserType = 'staff' | 'client';
 
 export interface Notification {
