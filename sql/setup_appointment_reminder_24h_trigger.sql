@@ -100,3 +100,5 @@ COMMENT ON TRIGGER n8n_appointment_reminder_24h ON public.appointments IS 'Trigg
 
 
 
+
+

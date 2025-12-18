@@ -9,19 +9,52 @@ DECLARE
   v_client_email TEXT;
   v_barber_record RECORD;
   v_new_user_shop_id UUID;
+  v_shop_slug TEXT;
+  v_resolved_shop_id UUID;
 BEGIN
   -- Estrai il nome completo e l'email del nuovo utente
   v_profile_full_name := COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email);
   v_client_email := NEW.email;
   
+  -- IMPORTANTE: Recupera lo shop_slug dai metadati dell'utente
+  -- Il frontend passa shop_slug nei raw_user_meta_data durante la registrazione
+  -- basandosi sull'URL da cui l'utente si sta registrando (es: /retro-barbershop, /xxxx)
+  v_shop_slug := NEW.raw_user_meta_data->>'shop_slug';
+  
+  -- Se shop_slug è presente, cerca lo shop corrispondente
+  IF v_shop_slug IS NOT NULL AND v_shop_slug != '' THEN
+    SELECT id INTO v_resolved_shop_id
+    FROM public.shops
+    WHERE slug = v_shop_slug
+    LIMIT 1;
+  END IF;
+  
+  -- Se non ha trovato lo shop dallo slug, usa retro-barbershop come default
+  -- (gestisce il caso del redirect temporaneo da poltrona.abruzzo.ai)
+  IF v_resolved_shop_id IS NULL THEN
+    SELECT id INTO v_resolved_shop_id
+    FROM public.shops
+    WHERE slug = 'retro-barbershop'
+    LIMIT 1;
+  END IF;
+  
+  -- Se ancora non ha trovato nessuno shop, usa il primo disponibile come fallback
+  IF v_resolved_shop_id IS NULL THEN
+    SELECT id INTO v_resolved_shop_id
+    FROM public.shops
+    ORDER BY created_at ASC
+    LIMIT 1;
+  END IF;
+  
   -- Inserisce automaticamente un nuovo record nella tabella profiles
   -- collegato al nuovo utente creato in auth.users
   -- IMPORTANTE: Tutti i nuovi utenti hanno SEMPRE il ruolo 'client'
   -- indipendentemente da eventuali ruoli nei metadati
+  -- IMPORTANTE: Assegna automaticamente lo shop_id basato sullo shop_slug nell'URL di registrazione
   INSERT INTO public.profiles (user_id, shop_id, role, full_name, created_at)
   VALUES (
     NEW.id,                    -- ID dell'utente appena creato
-    NULL,                      -- shop_id inizialmente NULL (da assegnare successivamente)
+    v_resolved_shop_id,        -- shop_id assegnato automaticamente basato sullo shop_slug nell'URL
     'client',                  -- ruolo SEMPRE 'client' per tutti i nuovi utenti
     v_profile_full_name,       -- nome completo o email come fallback
     NOW()                      -- timestamp di creazione
@@ -196,7 +229,7 @@ CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON public.profiles(user_id);
 CREATE INDEX IF NOT EXISTS idx_profiles_shop_id ON public.profiles(shop_id);
 
 -- Commenti per documentazione
-COMMENT ON FUNCTION public.handle_new_user() IS 'Funzione trigger per creare automaticamente un profilo quando viene creato un nuovo utente. Invia notifica solo se shop_id è disponibile, filtrando barbieri per shop_id per evitare crossing tra negozi.';
+COMMENT ON FUNCTION public.handle_new_user() IS 'Funzione trigger per creare automaticamente un profilo quando viene creato un nuovo utente. Assegna automaticamente lo shop_id basato sullo shop_slug passato nei metadati utente (estratto dall''URL di registrazione). Se shop_slug non è presente, usa retro-barbershop come default. Invia notifica solo se shop_id è disponibile, filtrando barbieri per shop_id per evitare crossing tra negozi.';
 COMMENT ON FUNCTION public.handle_user_update() IS 'Funzione trigger per aggiornare il profilo quando cambiano i metadati utente';
 COMMENT ON FUNCTION public.handle_user_delete() IS 'Funzione trigger per eliminare il profilo quando viene eliminato un utente';
 

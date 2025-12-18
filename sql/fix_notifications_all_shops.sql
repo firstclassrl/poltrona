@@ -319,3 +319,5 @@ GROUP BY n.shop_id, sh.name
 ORDER BY sh.name;
 
 
+
+

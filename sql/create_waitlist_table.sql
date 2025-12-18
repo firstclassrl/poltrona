@@ -225,3 +225,5 @@ COMMENT ON FUNCTION public.notify_waitlist_on_cancellation() IS 'Trigger functio
 
 
 
+
+

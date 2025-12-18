@@ -96,3 +96,5 @@ COMMENT ON COLUMN public.notifications.data IS 'Dati JSON aggiuntivi (appointmen
 
 
 
+
+

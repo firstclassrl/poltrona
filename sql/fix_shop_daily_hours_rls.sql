@@ -18,3 +18,5 @@ for all
 using (auth.uid() IS NOT NULL)
 with check (auth.uid() IS NOT NULL);
 
+
+

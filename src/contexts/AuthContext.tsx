@@ -381,12 +381,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Risolvi shop in base a query param o opzione
       let resolvedShopId: string | null = null;
       const slugFromOptions = options?.shopSlug || getShopSlugFromUrl();
-      if (slugFromOptions) {
+      // IMPORTANTE: Se non c'è slug nell'URL, usa 'retro-barbershop' come default
+      // (questo gestisce il caso del redirect temporaneo da poltrona.abruzzo.ai)
+      const effectiveShopSlug = slugFromOptions || 'retro-barbershop';
+      
+      if (effectiveShopSlug) {
         try {
-          const shop = await apiService.getShopBySlug(slugFromOptions);
+          const shop = await apiService.getShopBySlug(effectiveShopSlug);
           resolvedShopId = shop.id;
         } catch (e) {
-          console.warn('Shop non trovato per slug durante registrazione:', slugFromOptions, e);
+          console.warn('Shop non trovato per slug durante registrazione:', effectiveShopSlug, e);
         }
       }
       if (!resolvedShopId) {
@@ -395,6 +399,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       
       // Crea l'utente in Supabase Auth
+      // IMPORTANTE: Passa shop_slug nei metadati così il trigger SQL può assegnare lo shop_id corretto
       const signupUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/signup`;
       const signupRes = await fetch(signupUrl, {
         method: 'POST',
@@ -408,7 +413,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           password: data.password,
           data: {
             full_name: data.full_name,
-            role: forcedRole  // Sempre 'client' per tutti i nuovi utenti
+            role: forcedRole,  // Sempre 'client' per tutti i nuovi utenti
+            shop_slug: effectiveShopSlug  // IMPORTANTE: Passa lo shop_slug per il trigger SQL
           }
         })
       });

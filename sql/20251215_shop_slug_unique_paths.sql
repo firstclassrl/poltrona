@@ -93,3 +93,5 @@ CREATE UNIQUE INDEX IF NOT EXISTS shops_slug_unique ON public.shops(slug);
 -- Esegui questo script in prod e negli ambienti di staging/preview.
 
 
+
+

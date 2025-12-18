@@ -67,12 +67,46 @@ CREATE POLICY "Enable insert for authenticated users" ON public.profiles
 -- 9. Creiamo la funzione trigger
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+  v_shop_slug TEXT;
+  v_resolved_shop_id UUID;
 BEGIN
+  -- IMPORTANTE: Recupera lo shop_slug dai metadati dell'utente
+  -- Il frontend passa shop_slug nei raw_user_meta_data durante la registrazione
+  -- basandosi sull'URL da cui l'utente si sta registrando (es: /retro-barbershop, /xxxx)
+  v_shop_slug := NEW.raw_user_meta_data->>'shop_slug';
+  
+  -- Se shop_slug è presente, cerca lo shop corrispondente
+  IF v_shop_slug IS NOT NULL AND v_shop_slug != '' THEN
+    SELECT id INTO v_resolved_shop_id
+    FROM public.shops
+    WHERE slug = v_shop_slug
+    LIMIT 1;
+  END IF;
+  
+  -- Se non ha trovato lo shop dallo slug, usa retro-barbershop come default
+  -- (gestisce il caso del redirect temporaneo da poltrona.abruzzo.ai)
+  IF v_resolved_shop_id IS NULL THEN
+    SELECT id INTO v_resolved_shop_id
+    FROM public.shops
+    WHERE slug = 'retro-barbershop'
+    LIMIT 1;
+  END IF;
+  
+  -- Se ancora non ha trovato nessuno shop, usa il primo disponibile come fallback
+  IF v_resolved_shop_id IS NULL THEN
+    SELECT id INTO v_resolved_shop_id
+    FROM public.shops
+    ORDER BY created_at ASC
+    LIMIT 1;
+  END IF;
+  
   -- Inserisce automaticamente un nuovo record nella tabella profiles
+  -- IMPORTANTE: Assegna automaticamente lo shop_id basato sullo shop_slug nell'URL di registrazione
   INSERT INTO public.profiles (user_id, shop_id, role, full_name, created_at)
   VALUES (
     NEW.id,
-    NULL,
+    v_resolved_shop_id,  -- shop_id assegnato automaticamente basato sullo shop_slug nell'URL
     'client',
     COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email),
     NOW()
