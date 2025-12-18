@@ -180,14 +180,15 @@ export const ClientBooking: React.FC = () => {
     setWaitlistError(null);
 
     try {
-      // Controlla se già in coda per queste date
-      const alreadyInWaitlist = await apiService.isClientInWaitlist(clientId, selectedWaitlistDates);
-      if (alreadyInWaitlist) {
-        setWaitlistError('Sei già in lista d\'attesa per una o più di queste date');
-        setIsJoiningWaitlist(false);
-        return;
-      }
+      // TODO: Il sistema waitlist attuale richiede un appointment_id esistente
+      // Questo componente usa un sistema diverso con date preferite
+      // Per ora disabilitiamo questa funzionalità fino a quando non sarà implementata l'API corretta
+      setWaitlistError('Funzionalità in fase di sviluppo. Il sistema waitlist richiede un appuntamento esistente.');
+      setIsJoiningWaitlist(false);
+      return;
 
+      // Codice originale commentato - da aggiornare quando l'API supporterà date preferite
+      /*
       const entry = await apiService.joinWaitlist({
         client_id: clientId,
         preferred_dates: selectedWaitlistDates,
@@ -204,6 +205,7 @@ export const ClientBooking: React.FC = () => {
         
         setTimeout(() => setWaitlistSuccess(false), 5000);
       }
+      */
     } catch (error) {
       console.error('Error joining waitlist:', error);
       setWaitlistError('Errore durante l\'iscrizione alla lista d\'attesa');
@@ -532,10 +534,12 @@ export const ClientBooking: React.FC = () => {
                             </span>
                           )}
                           <span className="text-sm text-gray-600">
-                            {entry.preferred_dates?.map(d => {
-                              const date = new Date(d);
-                              return formatDateDisplay(date);
-                            }).join(', ')}
+                            {entry.appointment_id ? (
+                              // Mostra la data dell'appuntamento collegato se disponibile
+                              'Appuntamento collegato'
+                            ) : (
+                              'Nessuna data disponibile'
+                            )}
                           </span>
                         </div>
                         {(entry.services || entry.staff) && (
