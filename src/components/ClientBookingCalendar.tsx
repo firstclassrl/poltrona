@@ -90,6 +90,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   const [error, setError] = useState<string | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showUpsellModal, setShowUpsellModal] = useState(false);
+  const [notifyIfEarlierSlot, setNotifyIfEarlierSlot] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<{ productId: string; quantity: number }[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
@@ -364,6 +365,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
 
     setSelectedDate(date);
     setSelectedTime(time);
+    setNotifyIfEarlierSlot(false);
     setShowBookingModal(true);
   };
 
@@ -428,6 +430,30 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       
       const savedAppointment = await createAppointment(appointmentData);
       console.log('✅ Appuntamento salvato con successo:', savedAppointment);
+
+      // Optional: enable earlier-slot waitlist for this appointment
+      if (notifyIfEarlierSlot) {
+        try {
+          const resolvedShopId = shop?.id || (await apiService.getShop())?.id;
+          if (resolvedShopId) {
+            const already = await apiService.isClientInWaitlist(clientId, savedAppointment.id);
+            if (!already) {
+              await apiService.joinWaitlist({
+                shop_id: resolvedShopId,
+                client_id: clientId,
+                appointment_id: savedAppointment.id,
+                staff_id: selectedBarber,
+                appointment_duration_min: service?.duration_min || 60,
+                notify_if_earlier: true,
+                expires_at: startDateTime.toISOString(),
+                notes: 'notify_if_earlier',
+              });
+            }
+          }
+        } catch (e) {
+          console.warn('⚠️ Impossibile attivare avviso posto prima:', e);
+        }
+      }
       
       // Save appointment data for calendar export
       setLastAppointmentData({
@@ -482,6 +508,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       setSelectedService('');
       setSelectedBarber('');
       setSelectedProducts([]);
+      setNotifyIfEarlierSlot(false);
       setCurrentView('monthly');
       
       // Navigate to profile after 5 seconds (increased to allow time for calendar action)
@@ -499,6 +526,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       // Close modals on error too
       setShowUpsellModal(false);
       setShowBookingModal(false);
+      setNotifyIfEarlierSlot(false);
       // Clear error after 5 seconds
       setTimeout(() => setError(null), 5000);
     } finally {
@@ -946,6 +974,27 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
                 </p>
               )}
             </div>
+          </div>
+
+          {/* Earlier slot waitlist */}
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4"
+                checked={notifyIfEarlierSlot}
+                onChange={(e) => setNotifyIfEarlierSlot(e.target.checked)}
+              />
+              <div>
+                <div className="text-sm font-semibold text-gray-900">
+                  Avvisami se si libera un posto prima
+                </div>
+                <div className="text-xs text-gray-600 mt-1">
+                  Se si libera uno slot <strong>della stessa durata</strong> con lo stesso barbiere prima del tuo
+                  appuntamento, ti avviseremo per anticiparlo.
+                </div>
+              </div>
+            </label>
           </div>
 
           {/* Submit Button */}

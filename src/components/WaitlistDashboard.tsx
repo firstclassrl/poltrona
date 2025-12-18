@@ -7,16 +7,16 @@ import { useShop } from '../contexts/ShopContext';
 import type { WaitlistEntry } from '../types';
 
 interface WaitlistStats {
-  totalWaiting: number;
+  totalActive: number;
   totalNotified: number;
-  totalBooked: number;
+  totalAccepted: number;
   totalExpired: number;
   conversionRate: number;
   byDate: {
     date: string;
-    waiting: number;
+    active: number;
     notified: number;
-    booked: number;
+    accepted: number;
     expired: number;
   }[];
 }
@@ -52,7 +52,7 @@ export const WaitlistDashboard: React.FC<WaitlistDashboardProps> = ({ shopId: pr
       const authToken = localStorage.getItem('auth_token') || API_CONFIG.SUPABASE_ANON_KEY;
       
       const response = await fetch(
-        `${API_ENDPOINTS.WAITLIST}?shop_id=eq.${shopId || ''}&select=*,clients(id,first_name,last_name,email,phone_e164),services(id,name),staff(id,full_name)&order=created_at.desc`,
+        `${API_ENDPOINTS.WAITLIST}?shop_id=eq.${shopId || ''}&select=*,clients(id,first_name,last_name,email,phone_e164),staff(id,full_name),appointments:appointment_id(id,start_at,end_at,services(id,name,duration_min),staff(id,full_name))&order=created_at.desc`,
         {
           headers: {
             'Content-Type': 'application/json',
@@ -82,60 +82,62 @@ export const WaitlistDashboard: React.FC<WaitlistDashboardProps> = ({ shopId: pr
 
   const calculateStats = (entries: WaitlistEntry[]) => {
     const statsData: WaitlistStats = {
-      totalWaiting: 0,
+      totalActive: 0,
       totalNotified: 0,
-      totalBooked: 0,
+      totalAccepted: 0,
       totalExpired: 0,
       conversionRate: 0,
       byDate: [],
     };
 
-    const dateMap = new Map<string, { waiting: number; notified: number; booked: number; expired: number }>();
+    const dateMap = new Map<string, { active: number; notified: number; accepted: number; expired: number }>();
 
     entries.forEach((entry) => {
       // Conta per status
       switch (entry.status) {
-        case 'waiting':
-          statsData.totalWaiting++;
+        case 'active':
+          statsData.totalActive++;
           break;
         case 'notified':
           statsData.totalNotified++;
           break;
-        case 'booked':
-          statsData.totalBooked++;
+        case 'accepted':
+          statsData.totalAccepted++;
           break;
         case 'expired':
           statsData.totalExpired++;
           break;
       }
 
-      // Conta per data
-      entry.preferred_dates.forEach((dateStr) => {
+      // Conta per data (data dell'appuntamento associato)
+      const aptStart = (entry as any).appointments?.start_at as string | undefined;
+      if (aptStart) {
+        const dateStr = new Date(aptStart).toISOString().split('T')[0];
         if (!dateMap.has(dateStr)) {
-          dateMap.set(dateStr, { waiting: 0, notified: 0, booked: 0, expired: 0 });
+          dateMap.set(dateStr, { active: 0, notified: 0, accepted: 0, expired: 0 });
         }
         const dateStats = dateMap.get(dateStr)!;
         switch (entry.status) {
-          case 'waiting':
-            dateStats.waiting++;
+          case 'active':
+            dateStats.active++;
             break;
           case 'notified':
             dateStats.notified++;
             break;
-          case 'booked':
-            dateStats.booked++;
+          case 'accepted':
+            dateStats.accepted++;
             break;
           case 'expired':
             dateStats.expired++;
             break;
         }
-      });
+      }
     });
 
     // Calcola conversion rate
-    const totalNotified = statsData.totalNotified + statsData.totalBooked;
+    const totalNotified = statsData.totalNotified + statsData.totalAccepted;
     statsData.conversionRate = totalNotified > 0 
-      ? (statsData.totalBooked / totalNotified) * 100 
+      ? (statsData.totalAccepted / totalNotified) * 100 
       : 0;
 
     // Converti dateMap in array
@@ -166,11 +168,11 @@ export const WaitlistDashboard: React.FC<WaitlistDashboardProps> = ({ shopId: pr
 
   const getStatusColor = (status: string): string => {
     switch (status) {
-      case 'waiting':
+      case 'active':
         return 'bg-blue-100 text-blue-800';
       case 'notified':
         return 'bg-yellow-100 text-yellow-800';
-      case 'booked':
+      case 'accepted':
         return 'bg-green-100 text-green-800';
       case 'expired':
         return 'bg-gray-100 text-gray-800';
@@ -181,12 +183,12 @@ export const WaitlistDashboard: React.FC<WaitlistDashboardProps> = ({ shopId: pr
 
   const getStatusLabel = (status: string): string => {
     switch (status) {
-      case 'waiting':
-        return 'In attesa';
+      case 'active':
+        return 'Attivo';
       case 'notified':
         return 'Notificato';
-      case 'booked':
-        return 'Prenotato';
+      case 'accepted':
+        return 'Accettato';
       case 'expired':
         return 'Scaduto';
       default:
@@ -195,7 +197,10 @@ export const WaitlistDashboard: React.FC<WaitlistDashboardProps> = ({ shopId: pr
   };
 
   const filteredEntries = selectedDate
-    ? waitlistEntries.filter((entry) => entry.preferred_dates.includes(selectedDate))
+    ? waitlistEntries.filter((entry) => {
+        const aptStart = (entry as any).appointments?.start_at as string | undefined;
+        return aptStart ? new Date(aptStart).toISOString().split('T')[0] === selectedDate : false;
+      })
     : waitlistEntries;
 
   if (isLoading) {
@@ -241,8 +246,8 @@ export const WaitlistDashboard: React.FC<WaitlistDashboardProps> = ({ shopId: pr
                 <Clock className="w-6 h-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">In Attesa</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalWaiting}</p>
+                <p className="text-sm text-gray-600">Attivi</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalActive}</p>
               </div>
             </div>
           </Card>
@@ -265,8 +270,8 @@ export const WaitlistDashboard: React.FC<WaitlistDashboardProps> = ({ shopId: pr
                 <CheckCircle className="w-6 h-6 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Prenotati</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalBooked}</p>
+                <p className="text-sm text-gray-600">Accettati</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalAccepted}</p>
               </div>
             </div>
           </Card>
@@ -310,16 +315,16 @@ export const WaitlistDashboard: React.FC<WaitlistDashboardProps> = ({ shopId: pr
                   </div>
                   <div className="flex items-center space-x-4">
                     <div className="text-center">
-                      <p className="text-xs text-gray-500">In attesa</p>
-                      <p className="text-lg font-semibold text-blue-600">{dateStat.waiting}</p>
+                      <p className="text-xs text-gray-500">Attivi</p>
+                      <p className="text-lg font-semibold text-blue-600">{dateStat.active}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-xs text-gray-500">Notificati</p>
                       <p className="text-lg font-semibold text-yellow-600">{dateStat.notified}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-xs text-gray-500">Prenotati</p>
-                      <p className="text-lg font-semibold text-green-600">{dateStat.booked}</p>
+                      <p className="text-xs text-gray-500">Accettati</p>
+                      <p className="text-lg font-semibold text-green-600">{dateStat.accepted}</p>
                     </div>
                   </div>
                 </div>
@@ -347,8 +352,10 @@ export const WaitlistDashboard: React.FC<WaitlistDashboardProps> = ({ shopId: pr
           <div className="space-y-3">
             {filteredEntries.map((entry) => {
               const client = (entry as any).clients;
-              const service = (entry as any).services;
-              const staff = (entry as any).staff;
+              const apt = (entry as any).appointments;
+              const service = apt?.services;
+              const staff = apt?.staff || (entry as any).staff;
+              const aptStart = apt?.start_at ? new Date(apt.start_at) : null;
 
               return (
                 <div
@@ -384,9 +391,15 @@ export const WaitlistDashboard: React.FC<WaitlistDashboardProps> = ({ shopId: pr
                         <div className="flex items-center space-x-1 text-sm text-gray-600">
                           <Calendar className="w-4 h-4" />
                           <span>
-                            {entry.preferred_dates.map(formatDate).join(', ')}
+                            {aptStart ? aptStart.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' }) : '-'}
                           </span>
                         </div>
+                        {aptStart && (
+                          <div className="flex items-center space-x-1 text-sm text-gray-600">
+                            <Clock className="w-4 h-4" />
+                            <span>{aptStart.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
+                          </div>
+                        )}
                         {service && (
                           <div className="flex items-center space-x-1 text-sm text-gray-600">
                             <span className="font-medium">Servizio:</span>
@@ -399,6 +412,10 @@ export const WaitlistDashboard: React.FC<WaitlistDashboardProps> = ({ shopId: pr
                             <span>{staff.full_name}</span>
                           </div>
                         )}
+                        <div className="flex items-center space-x-1 text-sm text-gray-600">
+                          <span className="font-medium">Durata:</span>
+                          <span>{entry.appointment_duration_min} min</span>
+                        </div>
                       </div>
                     </div>
 

@@ -224,7 +224,17 @@ export interface ShopHoursConfig {
 // Notifications
 // ============================================
 
-export type NotificationType = 'new_appointment' | 'appointment_cancelled' | 'appointment_rescheduled' | 'appointment_reminder' | 'system' | 'waitlist_available' | 'waitlist_summary' | 'new_client' | 'chat_message';
+export type NotificationType =
+  | 'new_appointment'
+  | 'appointment_cancelled'
+  | 'appointment_rescheduled'
+  | 'appointment_reminder'
+  | 'system'
+  | 'waitlist_available'
+  | 'waitlist_summary'
+  | 'appointment_earlier_available'
+  | 'new_client'
+  | 'chat_message';
 export type NotificationUserType = 'staff' | 'client';
 
 export interface Notification {
@@ -251,6 +261,10 @@ export interface NotificationData {
   available_date?: string;
   waitlist_id?: string;
   cancelled_appointment_id?: string;
+  earlier_start_at?: string;
+  earlier_end_at?: string;
+  current_start_at?: string;
+  current_end_at?: string;
   [key: string]: unknown;
 }
 
@@ -258,15 +272,16 @@ export interface NotificationData {
 // Waitlist - Lista d'attesa
 // ============================================
 
-export type WaitlistStatus = 'waiting' | 'notified' | 'booked' | 'expired';
+export type WaitlistStatus = 'active' | 'notified' | 'accepted' | 'expired' | 'disabled';
 
 export interface WaitlistEntry {
   id: string;
   shop_id: string | null;
   client_id: string;
-  service_id: string | null;
-  staff_id: string | null;
-  preferred_dates: string[]; // Array di date in formato ISO
+  appointment_id: string;
+  staff_id: string;
+  appointment_duration_min: number;
+  notify_if_earlier: boolean;
   status: WaitlistStatus;
   created_at: string;
   notified_at: string | null;
@@ -279,9 +294,12 @@ export interface WaitlistEntry {
 }
 
 export interface JoinWaitlistRequest {
+  shop_id: string;
   client_id: string;
-  preferred_dates: string[]; // Array di date in formato ISO (YYYY-MM-DD)
-  service_id?: string;
-  staff_id?: string;
+  appointment_id: string;
+  staff_id: string;
+  appointment_duration_min: number;
+  notify_if_earlier?: boolean;
+  expires_at?: string;
   notes?: string;
 }

@@ -19,6 +19,8 @@ import { ClientProducts } from './components/ClientProducts';
 import { Chat } from './components/Chat';
 import { Notifications } from './components/Notifications';
 import { WaitlistDashboard } from './components/WaitlistDashboard';
+import { NotificationBell } from './components/NotificationBell';
+import { AppointmentRescheduleModal } from './components/AppointmentRescheduleModal';
 import { Toast } from './components/ui/Toast';
 import { useToast } from './hooks/useToast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -37,6 +39,12 @@ const AppContent: React.FC = () => {
   const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
   const [isAppointmentFormOpen, setIsAppointmentFormOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+  const [earlierOffer, setEarlierOffer] = useState<{
+    waitlistId: string;
+    appointmentId: string;
+    earlierStartAt: string;
+    earlierEndAt: string;
+  } | null>(null);
   const { toast, showToast, hideToast } = useToast();
   const { isAuthenticated, isLoading, user } = useAuth();
   const { currentShop } = useShop();
@@ -218,6 +226,16 @@ const AppContent: React.FC = () => {
     <div className="min-h-screen app-theme-bg text-[var(--theme-text)]">
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
 
+      {/* Global notification bell (client + staff) */}
+      <div className="fixed top-4 right-4 z-50">
+        <NotificationBell
+          onNavigateToBooking={() => setActiveTab('client_booking')}
+          onOpenEarlierSlotOffer={(params) => {
+            setEarlierOffer(params);
+          }}
+        />
+      </div>
+
       {/* Banner aggiornamento versione */}
       {isUpdateAvailable && (
         <div className="md:pl-64">
@@ -256,6 +274,17 @@ const AppContent: React.FC = () => {
         }}
         onSave={handleSaveAppointment}
         appointment={editingAppointment}
+      />
+
+      {/* Earlier slot offer modal (client) */}
+      <AppointmentRescheduleModal
+        isOpen={earlierOffer !== null}
+        offer={earlierOffer}
+        onClose={() => setEarlierOffer(null)}
+        onSuccess={() => {
+          showToast('Prenotazione anticipata ✅', 'success');
+          setActiveTab('client_bookings');
+        }}
       />
 
       {/* Toast Notifications */}

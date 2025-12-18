@@ -12,7 +12,8 @@ import {
   Filter,
   Clock,
   MessageCircle,
-  RotateCcw
+  RotateCcw,
+  ArrowUpCircle
 } from 'lucide-react';
 import { useNotifications } from '../contexts/NotificationContext';
 import type { Notification, NotificationType } from '../types';
@@ -28,6 +29,8 @@ const getNotificationIcon = (type: NotificationType) => {
       return <X className="w-6 h-6 text-red-500" />;
     case 'appointment_rescheduled':
       return <RotateCcw className="w-6 h-6 text-orange-500" />;
+    case 'appointment_earlier_available':
+      return <ArrowUpCircle className="w-6 h-6 text-emerald-500" />;
     case 'new_client':
       return <UserPlus className="w-6 h-6 text-purple-500" />;
     case 'chat_message':
@@ -46,6 +49,8 @@ const getNotificationBadgeColor = (type: NotificationType) => {
       return 'bg-red-100 text-red-700 border-red-200';
     case 'appointment_rescheduled':
       return 'bg-orange-100 text-orange-700 border-orange-200';
+    case 'appointment_earlier_available':
+      return 'bg-emerald-100 text-emerald-700 border-emerald-200';
     case 'new_client':
       return 'bg-purple-100 text-purple-700 border-purple-200';
     case 'chat_message':
@@ -64,6 +69,8 @@ const getNotificationTypeLabel = (type: NotificationType) => {
       return 'Annullamento';
     case 'appointment_rescheduled':
       return 'Appuntamento Spostato';
+    case 'appointment_earlier_available':
+      return 'Posto Prima Disponibile';
     case 'new_client':
       return 'Nuovo Cliente';
     case 'chat_message':

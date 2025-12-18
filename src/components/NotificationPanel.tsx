@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Check, CheckCheck, Trash2, Calendar, AlertCircle, Bell, Clock, MessageCircle, ArrowRight } from 'lucide-react';
+import { X, Check, CheckCheck, Trash2, Calendar, AlertCircle, Bell, Clock, MessageCircle, ArrowRight, Users, ArrowUpCircle } from 'lucide-react';
 import { useNotifications } from '../contexts/NotificationContext';
 import type { Notification, NotificationType } from '../types';
 import { cn } from '../utils/cn';
@@ -7,6 +7,7 @@ import { cn } from '../utils/cn';
 interface NotificationPanelProps {
   onClose: () => void;
   onNavigateToBooking?: (params?: { date?: string; serviceId?: string; staffId?: string }) => void;
+  onOpenEarlierSlotOffer?: (params: { waitlistId: string; appointmentId: string; earlierStartAt: string; earlierEndAt: string }) => void;
 }
 
 const getNotificationIcon = (type: NotificationType) => {
@@ -21,6 +22,8 @@ const getNotificationIcon = (type: NotificationType) => {
       return <Clock className="w-5 h-5 text-amber-400" />;
     case 'waitlist_summary':
       return <Users className="w-5 h-5 text-purple-400" />;
+    case 'appointment_earlier_available':
+      return <ArrowUpCircle className="w-5 h-5 text-emerald-400" />;
     case 'chat_message':
       return <MessageCircle className="w-5 h-5 text-blue-400" />;
     case 'system':
@@ -47,16 +50,19 @@ interface NotificationItemProps {
   onMarkAsRead: (id: string) => void;
   onDelete: (id: string) => void;
   onNavigateToBooking?: (params?: { date?: string; serviceId?: string; staffId?: string }) => void;
+  onOpenEarlierSlotOffer?: (params: { waitlistId: string; appointmentId: string; earlierStartAt: string; earlierEndAt: string }) => void;
 }
 
 const NotificationItem: React.FC<NotificationItemProps> = ({ 
   notification, 
   onMarkAsRead, 
   onDelete,
-  onNavigateToBooking
+  onNavigateToBooking,
+  onOpenEarlierSlotOffer
 }) => {
   const isUnread = !notification.read_at;
   const isWaitlistAvailable = notification.type === 'waitlist_available';
+  const isEarlierOffer = notification.type === 'appointment_earlier_available';
   
   const handleClick = () => {
     if (isWaitlistAvailable && onNavigateToBooking) {
@@ -76,6 +82,18 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
         serviceId: data?.service_id,
         staffId: data?.staff_id,
       });
+    }
+
+    if (isEarlierOffer && onOpenEarlierSlotOffer) {
+      const data = notification.data as any;
+      if (data?.waitlist_id && data?.appointment_id && data?.earlier_start_at && data?.earlier_end_at) {
+        onOpenEarlierSlotOffer({
+          waitlistId: String(data.waitlist_id),
+          appointmentId: String(data.appointment_id),
+          earlierStartAt: String(data.earlier_start_at),
+          earlierEndAt: String(data.earlier_end_at),
+        });
+      }
     }
   };
 
@@ -104,14 +122,24 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
     return parts.length > 0 ? parts.join(' ') : null;
   };
 
+  const formatEarlierOfferDetails = () => {
+    if (!isEarlierOffer) return null;
+    const data = notification.data as any;
+    if (!data?.earlier_start_at) return null;
+    const start = new Date(data.earlier_start_at);
+    const date = start.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
+    const time = start.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', hour12: false });
+    return `${date} alle ${time}`;
+  };
+
   return (
     <div 
       className={cn(
         'p-3 border-b border-yellow-400/20 transition-colors duration-200',
         isUnread ? 'bg-yellow-500/10' : 'bg-transparent',
-        isWaitlistAvailable ? 'hover:bg-yellow-500/10 cursor-pointer' : 'hover:bg-yellow-500/5'
+        (isWaitlistAvailable || isEarlierOffer) ? 'hover:bg-yellow-500/10 cursor-pointer' : 'hover:bg-yellow-500/5'
       )}
-      onClick={isWaitlistAvailable ? handleClick : undefined}
+      onClick={(isWaitlistAvailable || isEarlierOffer) ? handleClick : undefined}
     >
       <div className="flex items-start gap-3">
         {/* Icon */}
@@ -142,9 +170,20 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
               {formatWaitlistDetails()}
             </p>
           )}
+          {isEarlierOffer && formatEarlierOfferDetails() && (
+            <p className="text-xs text-emerald-400/80 mt-1 font-medium">
+              Slot disponibile: {formatEarlierOfferDetails()}
+            </p>
+          )}
           {isWaitlistAvailable && (
             <div className="flex items-center gap-1 mt-2 text-xs text-amber-400/70">
               <span>Clicca per prenotare</span>
+              <ArrowRight className="w-3 h-3" />
+            </div>
+          )}
+          {isEarlierOffer && (
+            <div className="flex items-center gap-1 mt-2 text-xs text-emerald-400/70">
+              <span>Clicca per anticipare</span>
               <ArrowRight className="w-3 h-3" />
             </div>
           )}
@@ -177,7 +216,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
   );
 };
 
-export const NotificationPanel: React.FC<NotificationPanelProps> = ({ onClose, onNavigateToBooking }) => {
+export const NotificationPanel: React.FC<NotificationPanelProps> = ({ onClose, onNavigateToBooking, onOpenEarlierSlotOffer }) => {
   const { 
     notifications, 
     unreadCount, 
@@ -266,6 +305,10 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ onClose, o
                 onMarkAsRead={handleMarkAsRead}
                 onDelete={handleDelete}
                 onNavigateToBooking={onNavigateToBooking}
+                onOpenEarlierSlotOffer={(params) => {
+                  onClose();
+                  onOpenEarlierSlotOffer?.(params);
+                }}
               />
             ))}
           </div>

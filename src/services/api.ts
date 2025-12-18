@@ -18,6 +18,7 @@ import type {
   ShopDailyHoursEntity,
   ShopDailyTimeSlotRow,
   Notification,
+  NotificationType,
   WaitlistEntry,
   JoinWaitlistRequest,
   VacationPeriod
@@ -3376,7 +3377,7 @@ export const apiService = {
   async createNotification(data: {
     user_id: string;
     user_type: 'staff' | 'client';
-    type: 'new_appointment' | 'appointment_cancelled' | 'appointment_rescheduled' | 'appointment_reminder' | 'system' | 'waitlist_available' | 'new_client' | 'chat_message';
+    type: NotificationType;
     title: string;
     message: string;
     data?: Record<string, unknown>;
@@ -3491,10 +3492,10 @@ export const apiService = {
   },
 
   // ============================================
-  // Waitlist - Lista d'attesa
+  // Waitlist - "Avvisami se si libera un posto prima" (collegata ad appuntamenti)
   // ============================================
 
-  // Join waitlist - Mettersi in coda per i prossimi giorni
+  // Enable waitlist for an existing appointment (earlier slot notifications)
   async joinWaitlist(data: JoinWaitlistRequest): Promise<WaitlistEntry | null> {
     if (!isSupabaseConfigured()) {
       console.warn('Supabase non configurato - impossibile mettersi in coda');
@@ -3502,26 +3503,20 @@ export const apiService = {
     }
     
     try {
-      let shopId = getStoredShopId();
-      if (!shopId) {
-        const shop = await this.getShop();
-        shopId = shop?.id ?? null;
-      }
-      
-      // Calcola la data di scadenza (fine dell'ultima data preferita)
-      const sortedDates = [...data.preferred_dates].sort();
-      const lastDate = sortedDates[sortedDates.length - 1];
-      const expiresAt = new Date(lastDate);
-      expiresAt.setHours(23, 59, 59, 999);
-      
+      // Expire at: default = appointment start (passed by caller) or 30 days
+      const expiresAt =
+        data.expires_at ||
+        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
       const payload = {
-        shop_id: shopId && shopId !== 'default' ? shopId : null,
+        shop_id: data.shop_id,
         client_id: data.client_id,
-        service_id: data.service_id || null,
-        staff_id: data.staff_id || null,
-        preferred_dates: data.preferred_dates,
-        status: 'waiting',
-        expires_at: expiresAt.toISOString(),
+        staff_id: data.staff_id,
+        appointment_id: data.appointment_id,
+        appointment_duration_min: data.appointment_duration_min,
+        notify_if_earlier: data.notify_if_earlier ?? true,
+        status: 'active',
+        expires_at: expiresAt,
         notes: data.notes || null,
       };
       
@@ -3545,7 +3540,7 @@ export const apiService = {
     }
   },
 
-  // Leave waitlist - Rimuoversi dalla coda
+  // Disable waitlist entry (delete)
   async leaveWaitlist(waitlistId: string): Promise<void> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
     
@@ -3567,13 +3562,19 @@ export const apiService = {
     }
   },
 
-  // Get client's waitlist status - Vedere il proprio stato in coda
+  // Get client's active waitlist entries (for upcoming appointments)
   async getClientWaitlistStatus(clientId: string): Promise<WaitlistEntry[]> {
     if (!isSupabaseConfigured()) return [];
     
     try {
-      // Ottieni solo le entry attive (waiting o notified) che non sono scadute
-      const url = `${API_ENDPOINTS.WAITLIST}?client_id=eq.${clientId}&status=in.(waiting,notified)&expires_at=gte.${new Date().toISOString()}&select=*,services(id,name),staff(id,full_name)&order=created_at.desc`;
+      // Active / notified entries that haven't expired
+      const url =
+        `${API_ENDPOINTS.WAITLIST}` +
+        `?client_id=eq.${clientId}` +
+        `&status=in.(active,notified)` +
+        `&expires_at=gte.${new Date().toISOString()}` +
+        `&select=*,staff(id,full_name),appointments:appointment_id(id,start_at,end_at,service_id,services(id,name,duration_min))` +
+        `&order=created_at.desc`;
       const response = await fetch(url, { headers: buildHeaders(true) });
       
       if (!response.ok) {
@@ -3590,7 +3591,7 @@ export const apiService = {
   },
 
   // Update waitlist entry status
-  async updateWaitlistStatus(waitlistId: string, status: 'waiting' | 'notified' | 'booked' | 'expired'): Promise<void> {
+  async updateWaitlistStatus(waitlistId: string, status: 'active' | 'notified' | 'accepted' | 'expired' | 'disabled'): Promise<void> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
     
     try {
@@ -3617,28 +3618,65 @@ export const apiService = {
     }
   },
 
-  // Check if client is already in waitlist for specific dates
-  async isClientInWaitlist(clientId: string, dates: string[]): Promise<boolean> {
+  // Check if client is already subscribed for the given appointment
+  async isClientInWaitlist(clientId: string, appointmentId: string): Promise<boolean> {
     if (!isSupabaseConfigured()) return false;
     
     try {
-      // Cerca entry attive per questo cliente
-      const waitlistEntries = await this.getClientWaitlistStatus(clientId);
-      
-      // Controlla se una qualsiasi delle date richieste è già in coda
-      for (const entry of waitlistEntries) {
-        const entryDates = entry.preferred_dates || [];
-        for (const date of dates) {
-          if (entryDates.includes(date)) {
-            return true;
-          }
-        }
-      }
-      
-      return false;
+      const url =
+        `${API_ENDPOINTS.WAITLIST}` +
+        `?client_id=eq.${clientId}` +
+        `&appointment_id=eq.${appointmentId}` +
+        `&status=in.(active,notified)` +
+        `&select=id&limit=1`;
+      const response = await fetch(url, { headers: buildHeaders(true) });
+      if (!response.ok) return false;
+      const json = await response.json();
+      return Array.isArray(json) && json.length > 0;
     } catch (error) {
       console.error('Error checking waitlist:', error);
       return false;
     }
+  },
+
+  // Convenience: accept earlier slot offer (update appointment + update waitlist)
+  async acceptEarlierSlotOffer(params: {
+    waitlistId: string;
+    appointmentId: string;
+    staffId: string;
+    serviceId: string;
+    earlierStartAt: string;
+    earlierEndAt: string;
+  }): Promise<void> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+
+    // 1) Move appointment (overlap checked inside updateAppointmentDirect)
+    await this.updateAppointmentDirect({
+      id: params.appointmentId,
+      staff_id: params.staffId,
+      service_id: params.serviceId,
+      start_at: params.earlierStartAt,
+      end_at: params.earlierEndAt,
+      status: 'rescheduled',
+    });
+
+    // 2) Mark waitlist as accepted
+    await this.updateWaitlistStatus(params.waitlistId, 'accepted');
+
+    // 3) Trigger email workflow (non-blocking)
+    this.triggerAppointmentModifiedHook({
+      id: params.appointmentId,
+      staff_id: params.staffId,
+      service_id: params.serviceId,
+      start_at: params.earlierStartAt,
+      end_at: params.earlierEndAt,
+      status: 'rescheduled',
+    }).catch((e) => console.warn('appointment_modified_hook failed:', e));
+  },
+
+  async declineEarlierSlotOffer(waitlistId: string): Promise<void> {
+    if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
+    // Reset to active so the client can receive future earlier offers
+    await this.updateWaitlistStatus(waitlistId, 'active');
   },
 };

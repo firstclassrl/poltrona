@@ -7,9 +7,10 @@ import { cn } from '../utils/cn';
 
 interface NotificationBellProps {
   onNavigateToBooking?: (params?: { date?: string; serviceId?: string; staffId?: string }) => void;
+  onOpenEarlierSlotOffer?: (params: { waitlistId: string; appointmentId: string; earlierStartAt: string; earlierEndAt: string }) => void;
 }
 
-export const NotificationBell: React.FC<NotificationBellProps> = ({ onNavigateToBooking }) => {
+export const NotificationBell: React.FC<NotificationBellProps> = ({ onNavigateToBooking, onOpenEarlierSlotOffer }) => {
   const { unreadCount, loadNotifications } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 });
@@ -99,6 +100,10 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onNavigateTo
               if (onNavigateToBooking) {
                 onNavigateToBooking(params);
               }
+            }}
+            onOpenEarlierSlotOffer={(params) => {
+              setIsOpen(false);
+              onOpenEarlierSlotOffer?.(params);
             }}
           />
         </div>,
