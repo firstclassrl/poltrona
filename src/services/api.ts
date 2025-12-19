@@ -2945,14 +2945,29 @@ export const apiService = {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
     
     try {
-      // Ottieni lo shop_id reale dal database
-      let shopId = staffData.shop_id || getStoredShopId();
-      if (!shopId || shopId === '1') {
-        try {
-          const shop = await this.getShop();
-          shopId = shop?.id || null;
-        } catch {
-          shopId = null; // Se non riesce a ottenere lo shop, lascia null
+      // Se shop_id è passato esplicitamente, usalo (può essere null per indicare "non assegnato")
+      // Altrimenti prova a ottenere lo shop_id dal contesto corrente
+      let shopId: string | null = null;
+      
+      if (staffData.shop_id !== undefined) {
+        // shop_id è stato passato esplicitamente (può essere null o un valore)
+        shopId = staffData.shop_id;
+        console.log('📌 createStaff: shop_id passato esplicitamente:', shopId);
+      } else {
+        // shop_id non è stato passato, prova a ottenerlo dal contesto
+        const storedShopId = getStoredShopId();
+        if (storedShopId && storedShopId !== '1' && storedShopId !== 'default') {
+          shopId = storedShopId;
+          console.log('📌 createStaff: shop_id ottenuto dal localStorage:', shopId);
+        } else {
+          try {
+            const shop = await this.getShop();
+            shopId = shop?.id || null;
+            console.log('📌 createStaff: shop_id ottenuto da getShop():', shopId);
+          } catch {
+            shopId = null; // Se non riesce a ottenere lo shop, lascia null
+            console.log('📌 createStaff: shop_id impostato a null (nessun shop trovato)');
+          }
         }
       }
       
@@ -2963,9 +2978,24 @@ export const apiService = {
         active: staffData.active ?? true,
       };
       
-      // Aggiungi shop_id solo se è un UUID valido
-      if (shopId && shopId !== '1') {
-        payload.shop_id = shopId;
+      // Aggiungi shop_id solo se è un UUID valido (può essere null esplicitamente)
+      // Non aggiungere shop_id se è '1' o 'default' (valori di default non validi)
+      if (shopId && shopId !== '1' && shopId !== 'default') {
+        // Verifica che sia un UUID valido (formato base)
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (uuidRegex.test(shopId)) {
+          payload.shop_id = shopId;
+          console.log('✅ createStaff: shop_id valido aggiunto al payload:', shopId);
+        } else {
+          console.warn('⚠️ createStaff: shop_id non è un UUID valido, impostato a null:', shopId);
+          payload.shop_id = null;
+        }
+      } else if (shopId === null) {
+        // shop_id è null esplicitamente, aggiungilo come null per essere chiari
+        payload.shop_id = null;
+        console.log('📌 createStaff: shop_id impostato a null nel payload');
+      } else {
+        console.warn('⚠️ createStaff: shop_id ignorato (valore non valido):', shopId);
       }
       
       // Aggiungi campi opzionali solo se hanno un valore

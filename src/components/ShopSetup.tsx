@@ -711,15 +711,19 @@ export const ShopSetup: React.FC = () => {
       // STEP 5: Crea il barbiere
       if (shop.id && adminAccessToken && barberData.full_name && barberData.email && barberData.role) {
         try {
-          console.log('👨 ShopSetup: Creazione barbiere...');
-          await apiService.createStaff({
+          console.log('👨 ShopSetup: Creazione barbiere...', {
             shop_id: shop.id,
+            shop_name: shop.name,
+            barber_name: barberData.full_name
+          });
+          await apiService.createStaff({
+            shop_id: shop.id, // Usa l'ID del negozio appena creato, non quello di default
             full_name: barberData.full_name,
             email: barberData.email,
             role: barberData.role,
             active: barberData.active ?? true,
           } as Omit<Staff, 'id' | 'created_at'>);
-          console.log('✅ ShopSetup: Barbiere creato con successo');
+          console.log('✅ ShopSetup: Barbiere creato con successo per il negozio:', shop.id);
         } catch (barberError) {
           console.error('❌ ShopSetup: Errore creazione barbiere:', barberError);
           // Non bloccare la creazione se il barbiere fallisce
@@ -766,12 +770,12 @@ export const ShopSetup: React.FC = () => {
             filter: 'drop-shadow(0 10px 40px rgba(59, 130, 246, 0.3))',
           }}
         >
-          <img 
-            src="/logo Poltrona 2025.png" 
-            alt="Logo Poltrona" 
+        <img 
+          src="/logo Poltrona 2025.png" 
+          alt="Logo Poltrona" 
             className="h-24 w-auto object-contain" 
-          />
-        </div>
+        />
+      </div>
       </div>
       <h1 
         className="text-4xl md:text-5xl font-bold mb-2"
@@ -809,11 +813,11 @@ export const ShopSetup: React.FC = () => {
               }}
             >
               <Building2 className="w-7 h-7 text-white drop-shadow-lg" />
-            </div>
+          </div>
             <h3 className="font-semibold text-[#1e40af] text-base mb-2">Gestione Completa</h3>
             <p className="text-xs text-gray-600 leading-tight">Appuntamenti, clienti, staff e prodotti in un'unica piattaforma</p>
-          </div>
         </div>
+          </div>
         <div 
           className="p-5 rounded-2xl relative overflow-hidden transition-all duration-300"
           style={{
@@ -834,7 +838,7 @@ export const ShopSetup: React.FC = () => {
               }}
             >
               <Phone className="w-7 h-7 text-white drop-shadow-lg" />
-            </div>
+        </div>
             <h3 className="font-semibold text-[#1e40af] text-base mb-2">Notifiche Automatiche</h3>
             <p className="text-xs text-gray-600 leading-tight">Email e SMS automatici per te e i tuoi clienti</p>
           </div>
@@ -1055,50 +1059,50 @@ export const ShopSetup: React.FC = () => {
               boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.5)',
             }}
           >
-            <div className="space-y-6">
+          <div className="space-y-6">
+            <Input
+              label="Email admin *"
+              labelClassName="text-[#1e40af] font-medium"
+              type="email"
+              value={adminEmail}
+              onChange={(e) => setAdminEmail(e.target.value)}
+              placeholder="admin@negozio.com"
+              required
+              disabled={isLoggedIn}
+            />
+            <div className="relative">
               <Input
-                label="Email admin *"
+                label="Password *"
                 labelClassName="text-[#1e40af] font-medium"
-                type="email"
-                value={adminEmail}
-                onChange={(e) => setAdminEmail(e.target.value)}
-                placeholder="admin@negozio.com"
+                type={showAdminPassword ? 'text' : 'password'}
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+                placeholder="Inserisci la password"
                 required
                 disabled={isLoggedIn}
               />
-              <div className="relative">
-                <Input
-                  label="Password *"
-                  labelClassName="text-[#1e40af] font-medium"
-                  type={showAdminPassword ? 'text' : 'password'}
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                  placeholder="Inserisci la password"
-                  required
-                  disabled={isLoggedIn}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowAdminPassword(!showAdminPassword)}
-                  className="absolute right-3 top-8 text-gray-400 hover:text-gray-600 transition-colors"
-                  disabled={isLoggedIn}
-                >
-                  {showAdminPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
               <button
                 type="button"
-                onClick={handleLogin}
-                disabled={!adminEmail.trim() || !adminPassword.trim()}
+                onClick={() => setShowAdminPassword(!showAdminPassword)}
+                  className="absolute right-3 top-8 text-gray-400 hover:text-gray-600 transition-colors"
+                disabled={isLoggedIn}
+              >
+                {showAdminPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={handleLogin}
+              disabled={!adminEmail.trim() || !adminPassword.trim()}
                 className={`w-full flex items-center justify-center gap-2 px-6 py-3 font-semibold rounded-xl transition-all duration-300 ${
                   !adminEmail.trim() || !adminPassword.trim()
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'bg-[#1e40af] hover:bg-[#1e3a8a] text-white shadow-lg'
                 }`}
-              >
-                <Shield className="w-5 h-5" />
-                Accedi
-              </button>
+            >
+              <Shield className="w-5 h-5" />
+              Accedi
+            </button>
             </div>
           </div>
         )}
@@ -1866,7 +1870,7 @@ export const ShopSetup: React.FC = () => {
                   </div>
                 </div>
               )}
-                {slideContent}
+              {slideContent}
               </div>
             </div>
           </div>
