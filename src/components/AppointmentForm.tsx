@@ -32,7 +32,9 @@ export const AppointmentForm = ({
   prefilledData,
 }: AppointmentFormProps) => {
   const [formData, setFormData] = useState({
+    is_walk_in: false,
     client_id: '',
+    client_name: '',
     staff_id: '',
     service_id: '',
     date: '',
@@ -85,7 +87,9 @@ export const AppointmentForm = ({
     if (appointment) {
       const startDate = new Date(appointment.start_at);
       setFormData({
+        is_walk_in: !appointment.client_id && !!appointment.client_name,
         client_id: appointment.client_id || '',
+        client_name: appointment.client_name || '',
         staff_id: appointment.staff_id || '',
         service_id: appointment.service_id || '',
         date: startDate.toISOString().split('T')[0],
@@ -93,11 +97,18 @@ export const AppointmentForm = ({
         notes: appointment.notes || '',
       });
       setSelectedClient(appointment.clients || null);
-      setClientQuery(`${appointment.clients?.first_name || ''} ${appointment.clients?.last_name || ''}`.trim());
+      setClientQuery(
+        (!appointment.client_id && appointment.client_name
+          ? appointment.client_name
+          : `${appointment.clients?.first_name || ''} ${appointment.clients?.last_name || ''}`.trim()
+        ).trim()
+      );
     } else if (prefilledData) {
       // Use prefilled data when clicking on empty slot
       setFormData({
+        is_walk_in: false,
         client_id: '',
+        client_name: '',
         staff_id: prefilledData.staff_id || '',
         service_id: '',
         date: prefilledData.date,
@@ -124,7 +135,9 @@ export const AppointmentForm = ({
 
   const resetForm = () => {
     setFormData({
+      is_walk_in: false,
       client_id: '',
+      client_name: '',
       staff_id: '',
       service_id: '',
       date: '',
@@ -188,7 +201,7 @@ export const AppointmentForm = ({
 
   const handleClientSelect = (client: Client) => {
     setSelectedClient(client);
-    setFormData(prev => ({ ...prev, client_id: client.id }));
+    setFormData(prev => ({ ...prev, is_walk_in: false, client_name: '', client_id: client.id }));
     setClientQuery(`${client.first_name} ${client.last_name || ''}`);
     setShowClientSuggestions(false);
     setErrors(prev => ({ ...prev, client_id: '' }));
@@ -203,7 +216,11 @@ export const AppointmentForm = ({
       return false;
     }
 
-    if (!formData.client_id) newErrors.client_id = 'Seleziona cliente';
+    if (formData.is_walk_in) {
+      if (!formData.client_name.trim()) newErrors.client_name = 'Inserisci nome cliente';
+    } else {
+      if (!formData.client_id) newErrors.client_id = 'Seleziona cliente';
+    }
     if (!formData.staff_id) newErrors.staff_id = 'Seleziona barbiere';
     if (!formData.service_id) newErrors.service_id = 'Seleziona servizio';
     if (!formData.date) newErrors.date = 'Seleziona data';
@@ -287,7 +304,8 @@ export const AppointmentForm = ({
       const endAt = new Date(new Date(startAt).getTime() + durationMinutes * 60000).toISOString();
       
       const appointmentData = {
-        client_id: formData.client_id,
+        client_id: formData.is_walk_in ? null : formData.client_id,
+        client_name: formData.is_walk_in ? formData.client_name.trim() : undefined,
         staff_id: formData.staff_id,
         service_id: formData.service_id,
         start_at: startAt,
@@ -323,31 +341,69 @@ export const AppointmentForm = ({
       <div className="space-y-6">
         {/* Client Selection */}
         <div className="relative">
-          <div className="flex space-x-2">
+          <div className="flex items-center gap-2 mb-2">
+            <input
+              type="checkbox"
+              checked={formData.is_walk_in}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setFormData((prev) => ({
+                  ...prev,
+                  is_walk_in: checked,
+                  client_id: checked ? '' : prev.client_id,
+                  client_name: checked ? prev.client_name : '',
+                }));
+                setClientQuery('');
+                setSelectedClient(null);
+                setClientSuggestions([]);
+                setShowClientSuggestions(false);
+                setErrors((prev) => ({ ...prev, client_id: '', client_name: '' }));
+              }}
+              className="form-checkbox h-4 w-4 text-green-600 rounded"
+            />
+            <span className="text-sm text-gray-200">Cliente senza account</span>
+          </div>
+
+          {formData.is_walk_in ? (
             <Input
-              label="Cliente"
-              value={clientQuery}
-              onChange={(e) => handleClientSearch(e.target.value)}
-              placeholder="Cerca cliente per nome, cognome o telefono..."
-              error={errors.client_id}
+              label="Nome cliente"
+              value={formData.client_name}
+              onChange={(e) => {
+                const v = e.target.value;
+                setFormData((prev) => ({ ...prev, client_name: v }));
+                setErrors((prev) => ({ ...prev, client_name: '' }));
+              }}
+              placeholder="Es. Mario Rossi"
+              error={errors.client_name}
               className="flex-1"
             />
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                setShowClientSuggestions(false);
-                setShowCustomerForm(true);
-              }}
-              className="mt-6"
-              title="Crea nuovo cliente"
-            >
-              <UserPlus className="w-4 h-4" />
-            </Button>
-          </div>
+          ) : (
+            <div className="flex space-x-2">
+              <Input
+                label="Cliente"
+                value={clientQuery}
+                onChange={(e) => handleClientSearch(e.target.value)}
+                placeholder="Cerca cliente per nome, cognome o telefono..."
+                error={errors.client_id}
+                className="flex-1"
+              />
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setShowClientSuggestions(false);
+                  setShowCustomerForm(true);
+                }}
+                className="mt-6"
+                title="Crea nuovo cliente"
+              >
+                <UserPlus className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
           
-          {(showClientSuggestions || isSearchingClients) && (
+          {!formData.is_walk_in && (showClientSuggestions || isSearchingClients) && (
             <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
               {isSearchingClients ? (
                 <div className="p-3 text-center text-gray-300">

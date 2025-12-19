@@ -4,7 +4,8 @@ import type { Appointment } from '../types';
 import { doesAppointmentOverlapSlot } from '../utils/date';
 
 export interface CreateAppointmentData {
-  client_id: string;
+  client_id: string | null;
+  client_name?: string;
   staff_id: string;
   service_id: string;
   start_at: string;
@@ -81,6 +82,7 @@ export const useAppointments = () => {
       // Prova a salvare nel database
       const created = await apiService.createAppointmentDirect({
         client_id: appointmentData.client_id,
+        client_name: appointmentData.client_name,
         staff_id: appointmentData.staff_id,
         service_id: appointmentData.service_id,
         start_at: appointmentData.start_at,

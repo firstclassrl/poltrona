@@ -178,6 +178,16 @@ body {
 [data-theme]:not([data-theme='heritage']) .bg-yellow-200 { background-color: color-mix(in srgb, var(--theme-accent) 30%, var(--theme-surface)) !important; }
 [data-theme]:not([data-theme='heritage']) .bg-yellow-100 { background-color: color-mix(in srgb, var(--theme-accent) 20%, var(--theme-surface)) !important; }
 [data-theme]:not([data-theme='heritage']) .bg-yellow-50  { background-color: color-mix(in srgb, var(--theme-accent) 12%, var(--theme-surface)) !important; }
+
+/* Heritage: bottoni verdi a sfondo pieno devono avere testo bianco per contrasto */
+[data-theme='heritage'] button[class*="bg-[var(--theme-primary)]"],
+[data-theme='heritage'] button[style*="background-color"][style*="var(--theme-primary)"],
+[data-theme='heritage'] .bg-green-600,
+[data-theme='heritage'] .bg-green-700,
+[data-theme='heritage'] button.bg-green-600,
+[data-theme='heritage'] button.bg-green-700 {
+  color: #ffffff !important;
+}
 [data-theme]:not([data-theme='heritage']) .border-yellow-400 { border-color: color-mix(in srgb, var(--theme-accent) 60%, transparent) !important; }
 [data-theme]:not([data-theme='heritage']) .border-yellow-400\/30 { border-color: color-mix(in srgb, var(--theme-accent) 30%, transparent) !important; }
 [data-theme]:not([data-theme='heritage']) .border-yellow-400\/40 { border-color: color-mix(in srgb, var(--theme-accent) 40%, transparent) !important; }
@@ -555,12 +565,66 @@ body {
 [data-theme]:not([data-theme='dark-mode']) .bg-white input[type="email"],
 [data-theme]:not([data-theme='dark-mode']) .bg-white textarea,
 [data-theme]:not([data-theme='dark-mode']) .bg-white select,
-[data-theme]:not([data-theme='dark-mode']) .bg-white button:not(.bg-green-600):not(.bg-red-600):not(.bg-blue-600),
+[data-theme]:not([data-theme='dark-mode']) .bg-white button:not([class*="bg-green"]):not([class*="bg-red"]):not([class*="bg-blue"]):not([class*="bg-[var(--theme-primary)"]),
 [data-theme]:not([data-theme='dark-mode']) .bg-white .text-gray-700,
 [data-theme]:not([data-theme='dark-mode']) .bg-white .text-gray-900,
 [data-theme]:not([data-theme='dark-mode']) .bg-white .text-gray-600,
 [data-theme]:not([data-theme='dark-mode']) .bg-white .text-gray-500 {
   color: #000000 !important;
+}
+
+/* Heritage: bottoni verdi a sfondo pieno devono avere testo bianco */
+/* Forza testo bianco su tutti i bottoni con background verde nel tema Heritage */
+[data-theme='heritage'] button[class*="bg-[var(--theme-primary)]"],
+[data-theme='heritage'] button[style*="background-color"][style*="var(--theme-primary)"],
+[data-theme='heritage'] .bg-green-600,
+[data-theme='heritage'] .bg-green-700,
+[data-theme='heritage'] button.bg-green-600,
+[data-theme='heritage'] button.bg-green-700 {
+  color: #ffffff !important;
+}
+
+/* Heritage: bottoni primary nelle modali devono avere testo bianco (override regole modali) */
+/* Usa alta specificità per sovrascrivere le regole generali delle modali */
+[data-theme='heritage'] .bg-white button[class*="bg-[var(--theme-primary)]"],
+[data-theme='heritage'] .bg-white button[class*="bg-green"],
+[data-theme='heritage'] .bg-white button.bg-green-600,
+[data-theme='heritage'] .bg-white button.bg-green-700,
+[data-theme='heritage'] .bg-white button[class*="primary"],
+[data-theme='heritage'] .bg-white button[class*="bg-[var(--theme-primary)"] {
+  color: #ffffff !important;
+}
+
+/* Heritage: forzare testo bianco su bottoni con background verde scuro (alta specificità) */
+/* Targetta bottoni che usano bg-[var(--theme-primary)] che nel tema Heritage è verde scuro */
+[data-theme='heritage'] button.bg-\[var\(--theme-primary\)\],
+[data-theme='heritage'] button[class*="bg-[var(--theme-primary)"] {
+  color: #ffffff !important;
+}
+
+/* Heritage: override specifico per bottoni primary nelle modali (massima specificità) */
+[data-theme='heritage'] .bg-white button.bg-\[var\(--theme-primary\)\],
+[data-theme='heritage'] .bg-white button[class*="bg-[var(--theme-primary)"] {
+  color: #ffffff !important;
+}
+
+/* Heritage: anche bottoni che hanno sia primary che bg-[var(--theme-primary)] */
+[data-theme='heritage'] button[class*="primary"][class*="bg-[var(--theme-primary)"] {
+  color: #ffffff !important;
+}
+
+/* Heritage: massima specificità per bottoni primary verdi (override regole modali) */
+/* Questa regola viene DOPO le regole generali delle modali per avere priorità */
+[data-theme='heritage'] .bg-white button.bg-\[var\(--theme-primary\)\].text-white,
+[data-theme='heritage'] .bg-white button[class*="bg-[var(--theme-primary)"][class*="text-white"],
+[data-theme='heritage'] .bg-white button[class*="primary"][class*="bg-[var(--theme-primary)"] {
+  color: #ffffff !important;
+}
+
+/* Heritage: override finale con massima specificità per tutti i bottoni verdi a sfondo pieno */
+[data-theme='heritage'] button[class*="bg-[var(--theme-primary)"]:not([class*="text-black"]):not([class*="text-gray"]),
+[data-theme='heritage'] .bg-white button[class*="bg-[var(--theme-primary)"]:not([class*="text-black"]):not([class*="text-gray"]) {
+  color: #ffffff !important;
 }
 
 /* Dark Mode: testi bianchi nelle modali */

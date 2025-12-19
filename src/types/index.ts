@@ -60,6 +60,7 @@ export interface Appointment {
   id: string;
   shop_id: string | null;
   client_id: string | null;
+  client_name?: string | null;
   staff_id: string | null;
   service_id: string | null;
   start_at: string;
@@ -132,7 +133,8 @@ export interface Chair {
 }
 
 export interface CreateAppointmentRequest {
-  client_id: string;
+  client_id: string | null;
+  client_name?: string;
   staff_id: string;
   service_id: string;
   start_at: string;

@@ -76,11 +76,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
   }, []);
 
   // Record no-show reali (derivati dagli appuntamenti con status no_show)
+  const getAppointmentClientLabel = (apt: Appointment): string => {
+    const fromClientRecord = `${apt.clients?.first_name || ''} ${apt.clients?.last_name || ''}`.trim();
+    return (apt.client_name?.trim() || fromClientRecord || 'Cliente');
+  };
+
+  const getAppointmentClientInitials = (apt: Appointment): string => {
+    const label = getAppointmentClientLabel(apt);
+    const parts = label.split(' ').filter(Boolean);
+    const a = parts[0]?.[0] ?? '?';
+    const b = parts[1]?.[0] ?? '';
+    return `${a}${b}`.toUpperCase();
+  };
+
   const noShowRecords = appointments
     .filter(a => a.status === 'no_show')
     .map(a => ({
       id: a.id,
-      client: { first_name: a.clients?.first_name || '', last_name: a.clients?.last_name || '', phone_e164: a.clients?.phone_e164 || '' },
+      client: {
+        first_name: getAppointmentClientLabel(a),
+        last_name: '',
+        phone_e164: a.clients?.phone_e164 || '',
+      },
       date: a.start_at,
       service: a.services?.name || '',
       staff: a.staff?.full_name || '',
@@ -230,12 +247,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <div className="flex items-center space-x-2">
                         <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
                           <span className="text-white font-semibold text-xs">
-                            {appointment.clients?.first_name?.[0]}{appointment.clients?.last_name?.[0]}
+                            {getAppointmentClientInitials(appointment)}
                           </span>
                         </div>
                         <div>
                           <p className="font-medium text-gray-900 text-sm">
-                            {appointment.clients?.first_name} {appointment.clients?.last_name}
+                            {getAppointmentClientLabel(appointment)}
                           </p>
                           <p className="text-xs text-gray-600">
                             {formatTime(appointment.start_at)} - {appointment.services?.name}
@@ -337,12 +354,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <div className="flex items-center space-x-3">
                   <div className="w-12 h-12 bg-gradient-to-br from-green-600 to-green-800 rounded-full flex items-center justify-center">
                     <span className="text-yellow-300 font-semibold text-sm">
-                      {appointment.clients?.first_name?.[0]}{appointment.clients?.last_name?.[0]}
+                      {getAppointmentClientInitials(appointment)}
                     </span>
                   </div>
                   <div>
                     <h3 className="text-gray-900 font-medium">
-                      {appointment.clients?.first_name} {appointment.clients?.last_name}
+                      {getAppointmentClientLabel(appointment)}
                     </h3>
                     <p className="text-gray-600 text-sm">
                       {appointment.staff?.full_name} • {appointment.services?.name}
@@ -452,12 +469,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="flex items-center space-x-4">
               <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
                 <span className="text-white font-bold text-lg">
-                  {selectedAppointment.clients?.first_name?.[0]}{selectedAppointment.clients?.last_name?.[0]}
+                  {getAppointmentClientInitials(selectedAppointment)}
                 </span>
               </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-900">
-                  {selectedAppointment.clients?.first_name} {selectedAppointment.clients?.last_name || ''}
+                  {getAppointmentClientLabel(selectedAppointment)}
                 </h2>
                 <p className="text-gray-600">{formatTime(selectedAppointment.start_at)} - {selectedAppointment.staff?.full_name}</p>
               </div>
@@ -560,14 +577,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
               <div className="w-16 h-16 bg-gradient-to-br from-green-600 to-green-800 rounded-full flex items-center justify-center">
                 <span className="text-yellow-300 font-bold text-xl">
-                  {selectedAppointment.clients?.first_name?.[0]}{selectedAppointment.clients?.last_name?.[0]}
+                  {getAppointmentClientInitials(selectedAppointment)}
                 </span>
               </div>
               <div>
                 <h3 className="text-xl font-semibold text-gray-900">
-                  {selectedAppointment.clients?.first_name} {selectedAppointment.clients?.last_name}
+                  {getAppointmentClientLabel(selectedAppointment)}
                 </h3>
-                <p className="text-gray-600">{selectedAppointment.clients?.phone_e164}</p>
+                {selectedAppointment.clients?.phone_e164 ? (
+                  <p className="text-gray-600">{selectedAppointment.clients?.phone_e164}</p>
+                ) : (
+                  <p className="text-gray-500 text-sm">Cliente senza account</p>
+                )}
               </div>
             </div>
 
@@ -677,7 +698,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="bg-gray-50 rounded-lg p-4">
               <h4 className="font-medium text-gray-900 mb-2">Dettagli Appuntamento:</h4>
               <div className="text-sm text-gray-600 space-y-1">
-                <p><strong>Cliente:</strong> {selectedAppointment.clients?.first_name} {selectedAppointment.clients?.last_name}</p>
+                <p><strong>Cliente:</strong> {getAppointmentClientLabel(selectedAppointment)}</p>
                 <p><strong>Data:</strong> {new Date(selectedAppointment.start_at).toLocaleDateString('it-IT')}</p>
                 <p><strong>Orario:</strong> {formatTime(selectedAppointment.start_at)}</p>
                 <p><strong>Servizio:</strong> {selectedAppointment.services?.name}</p>

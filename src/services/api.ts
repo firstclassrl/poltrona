@@ -1278,6 +1278,7 @@ export const apiService = {
       console.log('N8N non configurato, uso creazione diretta in Supabase');
       await this.createAppointmentDirect({
         client_id: data.client_id,
+        client_name: (data as any).client_name,
         staff_id: data.staff_id,
         service_id: data.service_id,
         start_at: data.start_at,
@@ -1302,6 +1303,7 @@ export const apiService = {
       // Fallback a creazione diretta se N8N fallisce
       await this.createAppointmentDirect({
         client_id: data.client_id,
+        client_name: (data as any).client_name,
         staff_id: data.staff_id,
         service_id: data.service_id,
         start_at: data.start_at,
@@ -1314,7 +1316,8 @@ export const apiService = {
 
   // Create appointment directly in Supabase (for client bookings)
   async createAppointmentDirect(data: {
-    client_id: string;
+    client_id: string | null;
+    client_name?: string;
     staff_id: string;
     service_id: string;
     start_at: string;
@@ -1325,6 +1328,15 @@ export const apiService = {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
     
     try {
+      const normalizedClientId =
+        typeof data.client_id === 'string' && data.client_id.trim().length > 0 ? data.client_id.trim() : null;
+      const normalizedClientName =
+        typeof data.client_name === 'string' && data.client_name.trim().length > 0 ? data.client_name.trim() : null;
+
+      if (!normalizedClientId && !normalizedClientName) {
+        throw new Error('Seleziona un cliente oppure inserisci un nome cliente (cliente senza account)');
+      }
+
       // Check for overlapping appointments before creating
       const startDate = new Date(data.start_at);
       const endDate = new Date(data.end_at);
@@ -1402,7 +1414,8 @@ export const apiService = {
 
       const payload = {
         shop_id: resolvedShopId,
-        client_id: data.client_id,
+        client_id: normalizedClientId,
+        client_name: normalizedClientName,
         staff_id: data.staff_id,
         service_id: data.service_id,
         start_at: data.start_at,

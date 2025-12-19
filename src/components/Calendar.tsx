@@ -44,6 +44,19 @@ export const Calendar = () => {
     staff_id?: string;
   } | null>(null);
 
+  const getAppointmentClientLabel = (apt: Appointment): string => {
+    const fromClientRecord = `${apt.clients?.first_name || ''} ${apt.clients?.last_name || ''}`.trim();
+    return (apt.client_name?.trim() || fromClientRecord || 'Cliente');
+  };
+
+  const getAppointmentClientInitials = (apt: Appointment): string => {
+    const label = getAppointmentClientLabel(apt);
+    const parts = label.split(' ').filter(Boolean);
+    const a = parts[0]?.[0] ?? '?';
+    const b = parts[1]?.[0] ?? '';
+    return `${a}${b}`.toUpperCase();
+  };
+
   const handleAppointmentClick = (appointment: Appointment) => {
     setSelectedAppointment(appointment);
     setShowAppointmentDetails(true);
@@ -472,10 +485,10 @@ export const Calendar = () => {
                                 e.stopPropagation();
                                 handleAppointmentClick(appointmentAtSlot);
                               }}
-                              title={`${appointmentAtSlot.clients?.first_name} ${appointmentAtSlot.clients?.last_name || ''} - ${appointmentAtSlot.services?.name || 'Servizio'} - ${appointmentAtSlot.staff?.full_name}`}
+                              title={`${getAppointmentClientLabel(appointmentAtSlot)} - ${appointmentAtSlot.services?.name || 'Servizio'} - ${appointmentAtSlot.staff?.full_name}`}
                             >
                               <div className="font-medium truncate whitespace-nowrap overflow-hidden text-ellipsis">
-                                {appointmentAtSlot.clients?.first_name} {appointmentAtSlot.clients?.last_name || ''}
+                                {getAppointmentClientLabel(appointmentAtSlot)}
                               </div>
                               {slotCount > 1 && (
                                 <div className="text-xs text-gray-600 mt-1 truncate">
@@ -662,12 +675,12 @@ export const Calendar = () => {
                       <div className="flex items-center space-x-3">
                         <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
                           <span className="text-white font-semibold text-sm">
-                            {appointment.clients?.first_name?.[0]}{appointment.clients?.last_name?.[0]}
+                            {getAppointmentClientInitials(appointment)}
                           </span>
                         </div>
                         <div className="flex-1">
                           <h3 className="text-gray-900 font-medium text-lg">
-                            {appointment.clients?.first_name} {appointment.clients?.last_name}
+                            {getAppointmentClientLabel(appointment)}
                           </h3>
                           <div className="flex items-center space-x-1 text-gray-600 text-sm">
                             <User className="w-3 h-3" />
@@ -780,7 +793,7 @@ export const Calendar = () => {
         }}
         title="Elimina Appuntamento"
         message="Sei sicuro di voler eliminare questo appuntamento? Questa azione non può essere annullata."
-        itemName={selectedAppointment ? `${selectedAppointment.clients?.first_name} ${selectedAppointment.clients?.last_name || ''} - ${formatTime(selectedAppointment.start_at)}` : ''}
+        itemName={selectedAppointment ? `${getAppointmentClientLabel(selectedAppointment)} - ${formatTime(selectedAppointment.start_at)}` : ''}
         isLoading={isDeleting}
       />
 
@@ -799,14 +812,18 @@ export const Calendar = () => {
             <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
               <div className="w-16 h-16 bg-gradient-to-br from-green-600 to-green-800 rounded-full flex items-center justify-center">
                 <span className="text-yellow-300 font-bold text-xl">
-                  {selectedAppointment.clients?.first_name?.[0]}{selectedAppointment.clients?.last_name?.[0]}
+                  {getAppointmentClientInitials(selectedAppointment)}
                 </span>
               </div>
               <div>
                 <h3 className="text-xl font-semibold text-gray-900">
-                  {selectedAppointment.clients?.first_name} {selectedAppointment.clients?.last_name}
+                  {getAppointmentClientLabel(selectedAppointment)}
                 </h3>
-                <p className="text-gray-600">{selectedAppointment.clients?.phone_e164}</p>
+                {selectedAppointment.clients?.phone_e164 ? (
+                  <p className="text-gray-600">{selectedAppointment.clients?.phone_e164}</p>
+                ) : (
+                  <p className="text-gray-500 text-sm">Cliente senza account</p>
+                )}
               </div>
             </div>
 
