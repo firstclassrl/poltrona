@@ -10,6 +10,8 @@ interface AuthContextType extends AuthState {
   logout: () => void;
   register: (data: RegisterData, options?: { shopSlug?: string }) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  resetPasswordRequest: (email: string) => Promise<void>;
+  resetPasswordConfirm: (token: string, newPassword: string) => Promise<void>;
   hasPermission: (permission: string) => boolean;
   refreshSession: () => Promise<boolean>;
   isPlatformAdmin: () => boolean;

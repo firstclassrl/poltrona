@@ -44,6 +44,7 @@ export const Login: React.FC = () => {
   const [shopLogoUrl, setShopLogoUrl] = useState<string | null>(null);
   const [isLoadingShop, setIsLoadingShop] = useState(true);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   
   const { login, register, signInWithGoogle, isLoading } = useAuth();
   const { toast, showToast, hideToast } = useToast();
@@ -743,30 +744,6 @@ export const Login: React.FC = () => {
         isVisible={toast.isVisible}
         onClose={hideToast}
       />
-
-      {/* Versione e Copyright */}
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center text-white/70 text-sm z-10">
-        <p>Poltrona v{APP_VERSION}</p>
-        <p>Copyright 2025 abruzzo.ai</p>
-      </div>
-    </div>
-  );
-};
-
-          <PrivacyPolicy 
-            isOpen={showPrivacyPolicy} 
-            onClose={() => setShowPrivacyPolicy(false)} 
-          />
-
-          {/* Toast Notification */}
-          <Toast
-            message={toast.message}
-            type={toast.type}
-            isVisible={toast.isVisible}
-            onClose={hideToast}
-          />
-        </>
-      )}
 
       {/* Versione e Copyright */}
       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center text-white/70 text-sm z-10">

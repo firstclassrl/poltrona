@@ -1324,6 +1324,472 @@ Questa email è stata generata automaticamente dal sistema di gestione.
 ${data.shopName} - Sistema di Gestione Appuntamenti
     `.trim();
   }
+
+  // Genera HTML per email di conferma iscrizione
+  private generateEmailConfirmationHTML(data: EmailConfirmationData): string {
+    return this.cleanHtml(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Conferma la tua email - ${data.shopName}</title>
+        <style>
+          body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #1f2937;
+            background-color: #f9fafb;
+            margin: 0;
+            padding: 20px;
+          }
+          .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.1);
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+          }
+          .hero {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: #ffffff;
+            text-align: center;
+            padding: 40px 24px;
+          }
+          .hero-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+          }
+          .hero h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+          }
+          .content {
+            padding: 40px 32px;
+          }
+          .welcome-text {
+            font-size: 18px;
+            color: #374151;
+            margin-bottom: 24px;
+            line-height: 1.8;
+          }
+          .confirmation-box {
+            background: linear-gradient(135deg, #eff6ff, #dbeafe);
+            border: 2px solid #3b82f6;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 32px 0;
+            text-align: center;
+          }
+          .confirmation-box p {
+            margin: 0 0 20px 0;
+            font-size: 16px;
+            color: #1e40af;
+            font-weight: 600;
+          }
+          .cta-button {
+            display: inline-block;
+            padding: 16px 32px;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+            transition: transform 0.2s;
+          }
+          .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(59, 130, 246, 0.4);
+          }
+          .info-box {
+            background-color: #f3f4f6;
+            border-left: 4px solid #6b7280;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 24px 0;
+            font-size: 14px;
+            color: #4b5563;
+          }
+          .info-box strong {
+            color: #1f2937;
+          }
+          .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #9ca3af;
+            padding: 24px 32px;
+            background-color: #f9fafb;
+            border-top: 1px solid #e5e7eb;
+          }
+          .footer-link {
+            color: #3b82f6;
+            text-decoration: none;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="hero">
+            <div class="hero-icon">✉️</div>
+            <h1>Conferma la tua email</h1>
+          </div>
+          <div class="content">
+            <p class="welcome-text">
+              Ciao <strong>${data.clientName.split(' ')[0] || data.clientName}</strong>,
+            </p>
+            <p class="welcome-text">
+              Grazie per esserti registrato su <strong>${data.shopName}</strong>! Per completare la registrazione e attivare il tuo account, ti chiediamo di confermare il tuo indirizzo email.
+            </p>
+            
+            <div class="confirmation-box">
+              <p>Conferma il tuo indirizzo email cliccando sul pulsante qui sotto:</p>
+              <a href="${data.confirmationUrl}" class="cta-button" target="_blank" rel="noopener noreferrer">
+                Conferma Email
+              </a>
+            </div>
+
+            <div class="info-box">
+              <strong>💡 Non riesci a cliccare il pulsante?</strong><br />
+              Copia e incolla questo link nel tuo browser:<br />
+              <a href="${data.confirmationUrl}" style="color: #3b82f6; word-break: break-all;">${data.confirmationUrl}</a>
+            </div>
+
+            <p style="font-size: 14px; color: #6b7280; margin-top: 24px;">
+              Se non hai richiesto questa registrazione, puoi ignorare questa email. Il tuo account non verrà creato finché non confermi l'indirizzo email.
+            </p>
+
+            <p style="font-size: 14px; color: #6b7280; margin-top: 20px;">
+              Il link di conferma scade dopo 24 ore per motivi di sicurezza.
+            </p>
+
+            ${data.supportEmail ? `
+            <div class="info-box" style="margin-top: 32px;">
+              <strong>Hai bisogno di aiuto?</strong><br />
+              Contattaci all'indirizzo <a href="mailto:${data.supportEmail}" class="footer-link">${data.supportEmail}</a> e saremo felici di aiutarti.
+            </div>
+            ` : ''}
+
+            <p style="margin-top: 32px; color: #374151;">
+              A presto,<br />
+              <strong>Il team di ${data.shopName}</strong>
+            </p>
+          </div>
+          <div class="footer">
+            <p>Questa email è stata inviata a ${data.clientEmail}</p>
+            <p>Se non hai richiesto questa registrazione, ignora questa email.</p>
+            <p style="margin-top: 12px;">
+              © ${new Date().getFullYear()} ${data.shopName} - Tutti i diritti riservati
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+
+  // Genera testo semplice per email di conferma iscrizione
+  private generateEmailConfirmationText(data: EmailConfirmationData): string {
+    return `
+CONFERMA LA TUA EMAIL - ${data.shopName.toUpperCase()}
+
+Ciao ${data.clientName.split(' ')[0] || data.clientName},
+
+Grazie per esserti registrato su ${data.shopName}!
+
+Per completare la registrazione e attivare il tuo account, ti chiediamo di confermare il tuo indirizzo email cliccando sul link qui sotto:
+
+${data.confirmationUrl}
+
+Se non riesci a cliccare il link, copia e incolla l'URL sopra nel tuo browser.
+
+IMPORTANTE:
+- Il link di conferma scade dopo 24 ore per motivi di sicurezza
+- Se non hai richiesto questa registrazione, puoi ignorare questa email
+- Il tuo account non verrà creato finché non confermi l'indirizzo email
+
+${data.supportEmail ? `Hai bisogno di aiuto? Contattaci all'indirizzo ${data.supportEmail}` : ''}
+
+A presto,
+Il team di ${data.shopName}
+
+---
+Questa email è stata inviata a ${data.clientEmail}
+Se non hai richiesto questa registrazione, ignora questa email.
+© ${new Date().getFullYear()} ${data.shopName} - Tutti i diritti riservati
+    `.trim();
+  }
+
+  // Genera HTML per email di reset password
+  private generatePasswordResetHTML(data: PasswordResetData): string {
+    const expirationText = data.expirationHours 
+      ? `Il link scade tra ${data.expirationHours} ${data.expirationHours === 1 ? 'ora' : 'ore'} per motivi di sicurezza.`
+      : 'Il link scade dopo 1 ora per motivi di sicurezza.';
+    
+    return this.cleanHtml(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Reimposta la tua password - ${data.shopName}</title>
+        <style>
+          body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #1f2937;
+            background-color: #f9fafb;
+            margin: 0;
+            padding: 20px;
+          }
+          .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.1);
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+          }
+          .hero {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #ffffff;
+            text-align: center;
+            padding: 40px 24px;
+          }
+          .hero-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+          }
+          .hero h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+          }
+          .content {
+            padding: 40px 32px;
+          }
+          .welcome-text {
+            font-size: 18px;
+            color: #374151;
+            margin-bottom: 24px;
+            line-height: 1.8;
+          }
+          .reset-box {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 32px 0;
+            text-align: center;
+          }
+          .reset-box p {
+            margin: 0 0 20px 0;
+            font-size: 16px;
+            color: #92400e;
+            font-weight: 600;
+          }
+          .cta-button {
+            display: inline-block;
+            padding: 16px 32px;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            box-shadow: 0 4px 6px rgba(245, 158, 11, 0.3);
+            transition: transform 0.2s;
+          }
+          .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(245, 158, 11, 0.4);
+          }
+          .warning-box {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 24px 0;
+            font-size: 14px;
+            color: #991b1b;
+          }
+          .warning-box strong {
+            color: #dc2626;
+          }
+          .info-box {
+            background-color: #f3f4f6;
+            border-left: 4px solid #6b7280;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 24px 0;
+            font-size: 14px;
+            color: #4b5563;
+          }
+          .info-box strong {
+            color: #1f2937;
+          }
+          .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #9ca3af;
+            padding: 24px 32px;
+            background-color: #f9fafb;
+            border-top: 1px solid #e5e7eb;
+          }
+          .footer-link {
+            color: #f59e0b;
+            text-decoration: none;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="hero">
+            <div class="hero-icon">🔐</div>
+            <h1>Reimposta la tua password</h1>
+          </div>
+          <div class="content">
+            <p class="welcome-text">
+              Ciao <strong>${data.clientName.split(' ')[0] || data.clientName}</strong>,
+            </p>
+            <p class="welcome-text">
+              Abbiamo ricevuto una richiesta per reimpostare la password del tuo account su <strong>${data.shopName}</strong>. Se hai fatto tu questa richiesta, clicca sul pulsante qui sotto per creare una nuova password.
+            </p>
+            
+            <div class="reset-box">
+              <p>Reimposta la tua password cliccando sul pulsante qui sotto:</p>
+              <a href="${data.resetUrl}" class="cta-button" target="_blank" rel="noopener noreferrer">
+                Reimposta Password
+              </a>
+            </div>
+
+            <div class="warning-box">
+              <strong>⚠️ Attenzione!</strong><br />
+              Se non hai richiesto il reset della password, ignora questa email. La tua password attuale rimarrà invariata.
+            </div>
+
+            <div class="info-box">
+              <strong>💡 Non riesci a cliccare il pulsante?</strong><br />
+              Copia e incolla questo link nel tuo browser:<br />
+              <a href="${data.resetUrl}" style="color: #f59e0b; word-break: break-all;">${data.resetUrl}</a>
+            </div>
+
+            <p style="font-size: 14px; color: #6b7280; margin-top: 24px;">
+              ${expirationText}
+            </p>
+
+            <p style="font-size: 14px; color: #6b7280; margin-top: 16px;">
+              Per motivi di sicurezza, questo link può essere utilizzato una sola volta. Se il link è scaduto o hai già reimpostato la password, puoi richiedere un nuovo link dalla pagina di login.
+            </p>
+
+            ${data.supportEmail ? `
+            <div class="info-box" style="margin-top: 32px;">
+              <strong>Hai bisogno di aiuto?</strong><br />
+              Se hai problemi o non hai richiesto questo reset, contattaci all'indirizzo <a href="mailto:${data.supportEmail}" class="footer-link">${data.supportEmail}</a> e saremo felici di aiutarti.
+            </div>
+            ` : ''}
+
+            <p style="margin-top: 32px; color: #374151;">
+              A presto,<br />
+              <strong>Il team di ${data.shopName}</strong>
+            </p>
+          </div>
+          <div class="footer">
+            <p>Questa email è stata inviata a ${data.clientEmail}</p>
+            <p>Se non hai richiesto il reset della password, ignora questa email.</p>
+            <p style="margin-top: 12px;">
+              © ${new Date().getFullYear()} ${data.shopName} - Tutti i diritti riservati
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+
+  // Genera testo semplice per email di reset password
+  private generatePasswordResetText(data: PasswordResetData): string {
+    const expirationText = data.expirationHours 
+      ? `Il link scade tra ${data.expirationHours} ${data.expirationHours === 1 ? 'ora' : 'ore'} per motivi di sicurezza.`
+      : 'Il link scade dopo 1 ora per motivi di sicurezza.';
+    
+    return `
+REIMPOSTA LA TUA PASSWORD - ${data.shopName.toUpperCase()}
+
+Ciao ${data.clientName.split(' ')[0] || data.clientName},
+
+Abbiamo ricevuto una richiesta per reimpostare la password del tuo account su ${data.shopName}.
+
+Se hai fatto tu questa richiesta, clicca sul link qui sotto per creare una nuova password:
+
+${data.resetUrl}
+
+Se non riesci a cliccare il link, copia e incolla l'URL sopra nel tuo browser.
+
+⚠️ ATTENZIONE:
+- Se non hai richiesto il reset della password, IGNORA questa email
+- La tua password attuale rimarrà invariata se non clicchi sul link
+- Questo link può essere utilizzato una sola volta
+- ${expirationText}
+
+${data.supportEmail ? `Hai bisogno di aiuto? Contattaci all'indirizzo ${data.supportEmail}` : ''}
+
+A presto,
+Il team di ${data.shopName}
+
+---
+Questa email è stata inviata a ${data.clientEmail}
+Se non hai richiesto il reset della password, ignora questa email.
+© ${new Date().getFullYear()} ${data.shopName} - Tutti i diritti riservati
+    `.trim();
+  }
+
+  // Invia email di conferma iscrizione
+  async sendEmailConfirmation(
+    data: EmailConfirmationData
+  ): Promise<EmailResponse> {
+    try {
+      this.ensureConfigured();
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Servizio email non configurato' 
+      };
+    }
+
+    return this.sendEmailViaResend({
+      to: data.clientEmail,
+      subject: `Conferma la tua email - ${data.shopName}`,
+      html: this.generateEmailConfirmationHTML(data),
+      text: this.generateEmailConfirmationText(data),
+    });
+  }
+
+  // Invia email di reset password
+  async sendPasswordResetEmail(
+    data: PasswordResetData
+  ): Promise<EmailResponse> {
+    try {
+      this.ensureConfigured();
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Servizio email non configurato' 
+      };
+    }
+
+    return this.sendEmailViaResend({
+      to: data.clientEmail,
+      subject: `Reimposta la tua password - ${data.shopName}`,
+      html: this.generatePasswordResetHTML(data),
+      text: this.generatePasswordResetText(data),
+    });
+  }
 }
 
 export const emailNotificationService = new EmailNotificationService();
