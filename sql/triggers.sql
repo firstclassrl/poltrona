@@ -543,4 +543,3 @@ CREATE TRIGGER trigger_notify_barber_on_created
     EXECUTE FUNCTION public.notify_barber_on_appointment_created();
 
 COMMENT ON FUNCTION public.notify_barber_on_appointment_created() IS 'Funzione trigger per notificare il barbiere (in-app; email via webhook) quando viene creato un nuovo appuntamento';
-

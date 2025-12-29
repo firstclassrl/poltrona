@@ -9,6 +9,7 @@ interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => void;
   register: (data: RegisterData, options?: { shopSlug?: string }) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   hasPermission: (permission: string) => boolean;
   refreshSession: () => Promise<boolean>;
   isPlatformAdmin: () => boolean;
@@ -51,6 +52,246 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return false;
     }
   };
+
+  // Gestisce il callback OAuth quando l'app viene caricata con i parametri OAuth nell'URL
+  useEffect(() => {
+    const handleOAuthCallback = async () => {
+      // Controlla se ci sono parametri OAuth nell'URL (hash o query params)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const queryParams = new URLSearchParams(window.location.search);
+      
+      const accessToken = hashParams.get('access_token') || queryParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token') || queryParams.get('refresh_token');
+      const error = hashParams.get('error') || queryParams.get('error');
+      const errorDescription = hashParams.get('error_description') || queryParams.get('error_description');
+
+      if (error) {
+        console.error('❌ Errore OAuth:', error, errorDescription);
+        setAuthState(prev => ({ ...prev, isLoading: false }));
+        // Rimuovi i parametri dall'URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return;
+      }
+
+      if (accessToken && refreshToken) {
+        try {
+          setAuthState(prev => ({ ...prev, isLoading: true }));
+          
+          // Ottieni i dati dell'utente
+          const userRes = await fetch(`${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/user`, {
+            headers: {
+              'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${accessToken}`,
+            }
+          });
+
+          if (!userRes.ok) {
+            throw new Error('Impossibile recuperare i dati utente');
+          }
+
+          const authUser = await userRes.json();
+          const authUserId = authUser.id;
+          const userEmail = authUser.email;
+          const userMetadata = authUser.user_metadata || {};
+          
+          // Estrai i dati da Google
+          const fullName = userMetadata.full_name || userMetadata.name || userEmail?.split('@')[0] || 'Cliente';
+          const avatarUrl = userMetadata.avatar_url || userMetadata.picture || null;
+
+          // Fetch o crea profilo
+          let profile: User | undefined;
+          const profileRes = await fetch(`${API_ENDPOINTS.PROFILES}?select=*&user_id=eq.${authUserId}`, {
+            headers: {
+              'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${accessToken}`,
+            }
+          });
+
+          if (profileRes.ok) {
+            const profiles = await profileRes.json();
+            profile = profiles[0] as User | undefined;
+          }
+
+          // Risolvi shop slug (serve sia per creare profilo che per User)
+          const effectiveShopSlug = getShopSlugFromUrl() || 'retro-barbershop';
+          let resolvedShopId: string | null = null;
+          
+          if (effectiveShopSlug) {
+            try {
+              const shop = await apiService.getShopBySlug(effectiveShopSlug);
+              resolvedShopId = shop.id;
+            } catch (e) {
+              console.warn('Shop non trovato per slug durante OAuth:', effectiveShopSlug, e);
+            }
+          }
+          
+          if (!resolvedShopId) {
+            const stored = localStorage.getItem('current_shop_id');
+            if (stored) resolvedShopId = stored;
+          }
+
+          // Se il profilo non esiste, crealo
+          if (!profile) {
+
+            // Crea il profilo tramite API
+            const createProfileRes = await fetch(API_ENDPOINTS.PROFILES, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${accessToken}`,
+              },
+              body: JSON.stringify({
+                user_id: authUserId,
+                full_name: fullName,
+                role: 'client',
+                shop_id: resolvedShopId,
+                is_platform_admin: false,
+              })
+            });
+
+            if (createProfileRes.ok) {
+              const newProfile = await createProfileRes.json();
+              profile = newProfile[0] || {
+                id: authUserId,
+                user_id: authUserId,
+                full_name: fullName,
+                role: 'client' as UserRole,
+                shop_id: resolvedShopId,
+                is_platform_admin: false,
+              };
+            } else {
+              // Se la creazione fallisce, usa dati di base
+              profile = {
+                id: authUserId,
+                email: userEmail,
+                full_name: fullName,
+                role: 'client',
+                shop_id: resolvedShopId,
+                is_platform_admin: false,
+                created_at: new Date().toISOString(),
+              };
+            }
+
+          }
+
+          // Crea o aggiorna il record client (sia per nuovo che esistente)
+          try {
+            await apiService.getOrCreateClientFromUser(
+              {
+                id: authUserId,
+                email: userEmail,
+                full_name: fullName,
+                phone: undefined, // Telefono opzionale per OAuth
+              },
+              { accessToken }
+            );
+            
+            // Se c'è una foto profilo da Google, aggiorna il cliente
+            if (avatarUrl) {
+              try {
+                await apiService.updateClientByEmail(userEmail, {
+                  first_name: fullName.split(' ')[0] || 'Cliente',
+                  last_name: fullName.split(' ').slice(1).join(' ') || null,
+                  photo_url: avatarUrl,
+                });
+              } catch (photoError) {
+                console.warn('⚠️ Errore aggiornamento foto profilo:', photoError);
+              }
+            }
+          } catch (clientError) {
+            console.warn('⚠️ Errore nella creazione/aggiornamento del record client OAuth:', clientError);
+          }
+
+          // Salva il consenso privacy per utenti OAuth
+          const privacyConsent = {
+            accepted: true,
+            acceptedAt: new Date().toISOString(),
+            version: '2.0',
+          };
+
+          // Salva nel localStorage come RegisteredClient
+          const registeredClient = {
+            id: authUserId,
+            full_name: fullName,
+            email: userEmail,
+            phone: undefined,
+            role: 'client' as UserRole,
+            created_at: new Date().toISOString(),
+            privacyConsent,
+          };
+
+          // Salva nel localStorage (compatibile con useClientRegistration)
+          try {
+            const existingClients = localStorage.getItem('registered_clients');
+            const clients: any[] = existingClients ? JSON.parse(existingClients) : [];
+            const existingIndex = clients.findIndex(c => c.email?.toLowerCase() === userEmail?.toLowerCase());
+            if (existingIndex >= 0) {
+              clients[existingIndex] = registeredClient;
+            } else {
+              clients.push(registeredClient);
+            }
+            localStorage.setItem('registered_clients', JSON.stringify(clients));
+          } catch (storageError) {
+            console.warn('⚠️ Errore salvataggio consenso privacy:', storageError);
+          }
+
+          // Crea l'oggetto User per lo stato
+          const user: User = {
+            id: authUserId,
+            email: userEmail,
+            full_name: profile?.full_name || fullName,
+            role: (profile?.role as UserRole) || 'client',
+            shop_id: profile?.shop_id || resolvedShopId,
+            is_platform_admin: profile?.is_platform_admin || false,
+            created_at: profile?.created_at || new Date().toISOString(),
+          };
+
+          // Aggiorna lo stato
+          setAuthState({ user, isAuthenticated: true, isLoading: false });
+          localStorage.setItem('auth_user', JSON.stringify(user));
+          localStorage.setItem('auth_token', accessToken);
+          localStorage.setItem('refresh_token', refreshToken);
+          
+          if (user.shop_id) {
+            localStorage.setItem('current_shop_id', user.shop_id);
+          }
+
+          // Rimuovi i parametri OAuth dall'URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+
+          // Invia email di benvenuto se necessario
+          try {
+            const shop = await apiService.getShop();
+            if (shop && userEmail) {
+              const portalUrl = typeof window !== 'undefined' && window.location?.origin
+                ? buildShopUrl(shop?.slug || '')
+                : undefined;
+
+              await emailNotificationService.sendClientWelcomeEmail({
+                clientName: fullName,
+                clientEmail: userEmail,
+                shopName: shop?.name || 'Abruzzo.AI',
+                portalUrl,
+                supportEmail: shop?.notification_email || 'info@abruzzo.ai',
+              });
+            }
+          } catch (emailError) {
+            console.warn('⚠️ Errore invio email benvenuto OAuth:', emailError);
+          }
+
+          console.log('✅ Autenticazione Google completata:', userEmail);
+        } catch (error) {
+          console.error('❌ Errore durante il callback OAuth:', error);
+          setAuthState(prev => ({ ...prev, isLoading: false }));
+          // Rimuovi i parametri dall'URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      }
+    };
+
+    handleOAuthCallback();
+  }, []);
 
   useEffect(() => {
     // Check for stored auth on mount and verify/refresh token
@@ -561,6 +802,43 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const signInWithGoogle = async (): Promise<void> => {
+    setAuthState(prev => ({ ...prev, isLoading: true }));
+
+    if (!isSupabaseConfigured()) {
+      setAuthState(prev => ({ ...prev, isLoading: false }));
+      throw new Error('Supabase non configurato');
+    }
+
+    try {
+      // Risolvi shop slug per passarlo come parametro
+      const effectiveShopSlug = getShopSlugFromUrl() || 'retro-barbershop';
+      
+      // Costruisci l'URL di redirect (dove Google reindirizzerà dopo l'autenticazione)
+      const redirectUrl = `${window.location.origin}${window.location.pathname}`;
+      
+      // URL per iniziare il flusso OAuth con Google
+      // Supabase gestirà il redirect a Google e poi il callback
+      const authUrl = new URL(`${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/authorize`);
+      authUrl.searchParams.set('provider', 'google');
+      authUrl.searchParams.set('redirect_to', redirectUrl);
+      
+      // Aggiungi shop_slug come parametro extra per il callback
+      if (effectiveShopSlug) {
+        authUrl.searchParams.set('data', JSON.stringify({ shop_slug: effectiveShopSlug }));
+      }
+
+      // Reindirizza a Google OAuth
+      window.location.href = authUrl.toString();
+      
+      // Nota: Il flusso continuerà nel callback OAuth gestito dal useEffect sopra
+      // Non impostiamo isLoading a false qui perché il redirect avviene immediatamente
+    } catch (error) {
+      setAuthState(prev => ({ ...prev, isLoading: false }));
+      throw error instanceof Error ? error : new Error('Errore durante l\'autenticazione Google');
+    }
+  };
+
   const isPlatformAdmin = (): boolean => {
     return authState.user?.is_platform_admin === true;
   };
@@ -610,6 +888,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     logout,
     register,
+    signInWithGoogle,
     hasPermission,
     refreshSession,
     isPlatformAdmin,
