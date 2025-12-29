@@ -23,6 +23,83 @@ const isSupabaseConfigured = (): boolean => {
 
 const getShopSlugFromUrl = (): string | null => extractSlugFromLocation();
 
+// Helper functions per gestire storage in base a rememberMe
+const getStorage = (rememberMe: boolean = true): Storage => {
+  return rememberMe ? localStorage : sessionStorage;
+};
+
+const saveAuthData = (
+  user: User,
+  accessToken: string,
+  refreshToken: string | undefined,
+  rememberMe: boolean = true
+): void => {
+  const storage = getStorage(rememberMe);
+  storage.setItem('auth_user', JSON.stringify(user));
+  storage.setItem('auth_token', accessToken);
+  if (refreshToken) {
+    storage.setItem('refresh_token', refreshToken);
+  }
+  if (user.shop_id) {
+    storage.setItem('current_shop_id', user.shop_id);
+  }
+};
+
+const loadAuthData = (): {
+  user: User | null;
+  accessToken: string | null;
+  refreshToken: string | null;
+  rememberMe: boolean;
+} => {
+  // Controlla prima localStorage (rememberMe = true)
+  const localUser = localStorage.getItem('auth_user');
+  const localToken = localStorage.getItem('auth_token');
+  const localRefreshToken = localStorage.getItem('refresh_token');
+  
+  if (localUser && localToken) {
+    return {
+      user: JSON.parse(localUser),
+      accessToken: localToken,
+      refreshToken: localRefreshToken,
+      rememberMe: true,
+    };
+  }
+  
+  // Se non trovato in localStorage, controlla sessionStorage (rememberMe = false)
+  const sessionUser = sessionStorage.getItem('auth_user');
+  const sessionToken = sessionStorage.getItem('auth_token');
+  const sessionRefreshToken = sessionStorage.getItem('refresh_token');
+  
+  if (sessionUser && sessionToken) {
+    return {
+      user: JSON.parse(sessionUser),
+      accessToken: sessionToken,
+      refreshToken: sessionRefreshToken,
+      rememberMe: false,
+    };
+  }
+  
+  return {
+    user: null,
+    accessToken: null,
+    refreshToken: null,
+    rememberMe: true,
+  };
+};
+
+const clearAuthData = (): void => {
+  // Rimuove da entrambi gli storage
+  localStorage.removeItem('auth_user');
+  localStorage.removeItem('auth_token');
+  localStorage.removeItem('refresh_token');
+  localStorage.removeItem('current_shop_id');
+  
+  sessionStorage.removeItem('auth_user');
+  sessionStorage.removeItem('auth_token');
+  sessionStorage.removeItem('refresh_token');
+  sessionStorage.removeItem('current_shop_id');
+};
+
 interface AuthProviderProps {
   children: ReactNode;
 }
@@ -35,8 +112,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   });
 
   // Funzione per verificare se il token è valido
-  const verifyToken = async (): Promise<boolean> => {
-    const token = localStorage.getItem('auth_token');
+  const verifyToken = async (token: string): Promise<boolean> => {
     if (!token || !isSupabaseConfigured()) return false;
 
     try {
@@ -249,13 +325,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
           // Aggiorna lo stato
           setAuthState({ user, isAuthenticated: true, isLoading: false });
-          localStorage.setItem('auth_user', JSON.stringify(user));
-          localStorage.setItem('auth_token', accessToken);
-          localStorage.setItem('refresh_token', refreshToken);
-          
-          if (user.shop_id) {
-            localStorage.setItem('current_shop_id', user.shop_id);
-          }
+          // OAuth usa sempre localStorage (rememberMe = true) per default
+          saveAuthData(user, accessToken, refreshToken, true);
 
           // Rimuovi i parametri OAuth dall'URL
           window.history.replaceState({}, document.title, window.location.pathname);
@@ -296,16 +367,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     // Check for stored auth on mount and verify/refresh token
     const initAuth = async () => {
-      const storedUser = localStorage.getItem('auth_user');
-      const storedToken = localStorage.getItem('auth_token');
-      const storedRefreshToken = localStorage.getItem('refresh_token');
+      const { user, accessToken, refreshToken, rememberMe } = loadAuthData();
       
-      if (storedUser && storedToken) {
+      if (user && accessToken) {
         try {
-          const user = JSON.parse(storedUser);
-          
           // Verifica se il token è ancora valido
-          const isTokenValid = await verifyToken();
+          const isTokenValid = await verifyToken(accessToken);
           
           if (isTokenValid) {
             // Token valido, procedi normalmente
@@ -314,10 +381,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               isAuthenticated: true,
               isLoading: false,
             });
-            if ((user as any).shop_id) {
-              localStorage.setItem('current_shop_id', (user as any).shop_id as string);
+            const storage = getStorage(rememberMe);
+            if (user.shop_id) {
+              storage.setItem('current_shop_id', user.shop_id);
             }
-          } else if (storedRefreshToken) {
+          } else if (refreshToken) {
             // Token scaduto, prova a refresharlo
             console.log('🔄 Token scaduto, tentativo di refresh...');
             
@@ -328,14 +396,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 'Content-Type': 'application/json',
                 'apikey': API_CONFIG.SUPABASE_ANON_KEY,
               },
-              body: JSON.stringify({ refresh_token: storedRefreshToken })
+              body: JSON.stringify({ refresh_token: refreshToken })
             });
 
             if (refreshRes.ok) {
               const tokenJson = await refreshRes.json();
-              localStorage.setItem('auth_token', tokenJson.access_token);
+              const storage = getStorage(rememberMe);
+              storage.setItem('auth_token', tokenJson.access_token);
               if (tokenJson.refresh_token) {
-                localStorage.setItem('refresh_token', tokenJson.refresh_token);
+                storage.setItem('refresh_token', tokenJson.refresh_token);
               }
               console.log('✅ Sessione rinnovata automaticamente');
               
@@ -344,15 +413,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 isAuthenticated: true,
                 isLoading: false,
               });
-              if ((user as any).shop_id) {
-                localStorage.setItem('current_shop_id', (user as any).shop_id as string);
+              if (user.shop_id) {
+                storage.setItem('current_shop_id', user.shop_id);
               }
             } else {
               // Refresh fallito, forza logout
               console.log('❌ Refresh fallito, sessione terminata');
-              localStorage.removeItem('auth_user');
-              localStorage.removeItem('auth_token');
-              localStorage.removeItem('refresh_token');
+              clearAuthData();
               setAuthState({
                 user: null,
                 isAuthenticated: false,
@@ -362,8 +429,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           } else {
             // Nessun refresh token, forza logout
             console.log('❌ Token scaduto e nessun refresh token');
-            localStorage.removeItem('auth_user');
-            localStorage.removeItem('auth_token');
+            clearAuthData();
             setAuthState({
               user: null,
               isAuthenticated: false,
@@ -371,9 +437,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             });
           }
         } catch (error) {
-          localStorage.removeItem('auth_user');
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('refresh_token');
+          clearAuthData();
           setAuthState({
             user: null,
             isAuthenticated: false,
@@ -394,9 +458,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Listener per sessione scaduta (inviato da api.ts quando il refresh fallisce)
     const handleSessionExpired = () => {
       console.log('🔒 Sessione scaduta, logout forzato');
-      localStorage.removeItem('auth_user');
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('refresh_token');
+      clearAuthData();
       setAuthState({
         user: null,
         isAuthenticated: false,
@@ -528,14 +590,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       };
 
       setAuthState({ user, isAuthenticated: true, isLoading: false });
-      localStorage.setItem('auth_user', JSON.stringify(user));
-      localStorage.setItem('auth_token', accessToken);
-      // Salva anche il refresh token per poter rinnovare la sessione
-      if (tokenJson.refresh_token) {
-        localStorage.setItem('refresh_token', tokenJson.refresh_token);
-      }
+      // Usa rememberMe dalle credenziali (default: true)
+      const rememberMe = credentials.rememberMe !== false;
+      saveAuthData(user, accessToken, tokenJson.refresh_token, rememberMe);
+      
       if (shopId) {
-        localStorage.setItem('current_shop_id', shopId);
         try {
           await apiService.getShopById(shopId);
         } catch (shopErr) {
@@ -554,17 +613,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       isAuthenticated: false,
       isLoading: false,
     });
-    localStorage.removeItem('auth_user');
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('refresh_token');
+    clearAuthData();
   };
 
   // Funzione per refreshare la sessione usando il refresh token
   const refreshSession = async (): Promise<boolean> => {
-    const refreshToken = localStorage.getItem('refresh_token');
-    const storedUser = localStorage.getItem('auth_user');
+    const { user, refreshToken, rememberMe } = loadAuthData();
     
-    if (!refreshToken || !storedUser || !isSupabaseConfigured()) {
+    if (!refreshToken || !user || !isSupabaseConfigured()) {
       console.log('🔄 Refresh session: dati mancanti, logout richiesto');
       return false;
     }
@@ -592,9 +648,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const newRefreshToken = tokenJson.refresh_token;
 
       if (newAccessToken) {
-        localStorage.setItem('auth_token', newAccessToken);
+        const storage = getStorage(rememberMe);
+        storage.setItem('auth_token', newAccessToken);
         if (newRefreshToken) {
-          localStorage.setItem('refresh_token', newRefreshToken);
+          storage.setItem('refresh_token', newRefreshToken);
         }
         console.log('✅ Sessione rinnovata con successo');
         return true;
@@ -848,6 +905,114 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const resetPasswordRequest = async (email: string): Promise<void> => {
+    if (!isSupabaseConfigured()) {
+      throw new Error('Supabase non configurato');
+    }
+
+    try {
+      // Costruisci l'URL di redirect per il reset password
+      const redirectUrl = `${window.location.origin}?token={token}&type=recovery`;
+
+      const response = await fetch(`${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/recover`, {
+        method: 'POST',
+        headers: {
+          'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          redirect_to: redirectUrl,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData?.msg || errorData?.message || 'Errore durante la richiesta di reset password';
+        throw new Error(errorMessage);
+      }
+
+      // Supabase invierà l'email anche se l'email non esiste (per sicurezza)
+      // Non riveliamo se l'email esiste o meno
+      console.log('✅ Email di recupero password inviata');
+    } catch (error) {
+      console.error('❌ Errore richiesta reset password:', error);
+      throw error instanceof Error ? error : new Error('Errore durante la richiesta di reset password');
+    }
+  };
+
+  const resetPasswordConfirm = async (token: string, newPassword: string): Promise<void> => {
+    if (!isSupabaseConfigured()) {
+      throw new Error('Supabase non configurato');
+    }
+
+    try {
+      // Step 1: Verifica il token di recovery
+      const verifyResponse = await fetch(`${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/verify`, {
+        method: 'POST',
+        headers: {
+          'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token,
+          type: 'recovery',
+        }),
+      });
+
+      if (!verifyResponse.ok) {
+        const errorData = await verifyResponse.json().catch(() => ({}));
+        const errorMessage = errorData?.msg || errorData?.message || 'Token non valido o scaduto';
+        throw new Error(errorMessage);
+      }
+
+      const verifyData = await verifyResponse.json();
+      const accessToken = verifyData.access_token;
+
+      if (!accessToken) {
+        throw new Error('Token di accesso non ricevuto');
+      }
+
+      // Step 2: Aggiorna la password usando il token di accesso
+      const updateResponse = await fetch(`${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/user`, {
+        method: 'PUT',
+        headers: {
+          'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          password: newPassword,
+        }),
+      });
+
+      if (!updateResponse.ok) {
+        const errorData = await updateResponse.json().catch(() => ({}));
+        const errorMessage = errorData?.msg || errorData?.message || 'Errore durante l\'aggiornamento della password';
+        throw new Error(errorMessage);
+      }
+
+      // Step 3: Login automatico con le nuove credenziali
+      const userData = await updateResponse.json();
+      const userEmail = userData.email;
+
+      if (!userEmail) {
+        throw new Error('Email non trovata nei dati utente');
+      }
+
+      // Effettua il login con email e nuova password
+      await login({
+        email: userEmail,
+        password: newPassword,
+      });
+
+      console.log('✅ Password reimpostata e login effettuato con successo');
+    } catch (error) {
+      console.error('❌ Errore conferma reset password:', error);
+      throw error instanceof Error ? error : new Error('Errore durante la conferma del reset password');
+    }
+  };
+
   const isPlatformAdmin = (): boolean => {
     return authState.user?.is_platform_admin === true;
   };
@@ -898,6 +1063,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     register,
     signInWithGoogle,
+    resetPasswordRequest,
+    resetPasswordConfirm,
     hasPermission,
     refreshSession,
     isPlatformAdmin,

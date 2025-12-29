@@ -43,6 +43,40 @@ export interface NewAppointmentNotificationData {
   shopName: string;
 }
 
+export interface EmailConfirmationData {
+  clientName: string;
+  clientEmail: string;
+  confirmationUrl: string;
+  shopName: string;
+  supportEmail?: string;
+}
+
+export interface PasswordResetData {
+  clientName: string;
+  clientEmail: string;
+  resetUrl: string;
+  shopName: string;
+  supportEmail?: string;
+  expirationHours?: number;
+}
+
+export interface EmailConfirmationData {
+  clientName: string;
+  clientEmail: string;
+  confirmationUrl: string;
+  shopName: string;
+  supportEmail?: string;
+}
+
+export interface PasswordResetData {
+  clientName: string;
+  clientEmail: string;
+  resetUrl: string;
+  shopName: string;
+  supportEmail?: string;
+  expirationHours?: number;
+}
+
 export interface EmailResponse {
   success: boolean;
   messageId?: string;

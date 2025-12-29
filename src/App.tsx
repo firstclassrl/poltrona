@@ -12,6 +12,7 @@ import { Settings } from './components/Settings';
 import { AppointmentForm } from './components/AppointmentForm';
 import { Login } from './components/Login';
 import { ShopSetup } from './components/ShopSetup';
+import { ResetPassword } from './components/ResetPassword';
 import { ClientProfile } from './components/ClientProfile';
 import { ClientBookings } from './components/ClientBookings';
 import { ClientBookingCalendar } from './components/ClientBookingCalendar';
@@ -45,7 +46,22 @@ const AppContent: React.FC = () => {
     if (typeof window === 'undefined') return null;
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
+    const type = params.get('type');
+    // Se è un token di recovery, non è un setup token
+    if (type === 'recovery') return null;
     return token && token.trim().length > 0 ? token : null;
+  }, []);
+
+  const resetPasswordToken = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    const type = params.get('type');
+    // Verifica che sia un token di recovery
+    if (type === 'recovery' && token && token.trim().length > 0) {
+      return token;
+    }
+    return null;
   }, []);
 
   // Set initial tab based on user role
@@ -210,6 +226,9 @@ const AppContent: React.FC = () => {
   if (!isAuthenticated) {
     if (setupToken) {
       return <ShopSetup />;
+    }
+    if (resetPasswordToken) {
+      return <ResetPassword />;
     }
     return <Login />;
   }

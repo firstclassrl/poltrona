@@ -7,6 +7,7 @@ import { Card } from './ui/Card';
 import { PrivacyPolicy } from './PrivacyPolicy';
 import { Modal } from './ui/Modal';
 import { Toast } from './ui/Toast';
+import { ForgotPassword } from './ForgotPassword';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../hooks/useToast';
 import { useTheme } from '../contexts/ThemeContext';
@@ -42,6 +43,7 @@ export const Login: React.FC = () => {
   const [shop, setShop] = useState<Shop | null>(null);
   const [shopLogoUrl, setShopLogoUrl] = useState<string | null>(null);
   const [isLoadingShop, setIsLoadingShop] = useState(true);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   
   const { login, register, signInWithGoogle, isLoading } = useAuth();
   const { toast, showToast, hideToast } = useToast();
@@ -144,7 +146,7 @@ export const Login: React.FC = () => {
 
     try {
       if (mode === 'login') {
-        await login(credentials);
+        await login({ ...credentials, rememberMe });
       } else {
         await handleRegistration();
         // Se handleRegistration completa senza errori, il modal viene mostrato dentro handleRegistration
@@ -226,6 +228,16 @@ export const Login: React.FC = () => {
     : '#ffffff';
   const patternId = `barbershop-pattern-${palette?.id || 'default'}`;
   
+  // Se mostra forgot password, non renderizzare il resto
+  if (showForgotPassword) {
+    return (
+      <ForgotPassword
+        onBack={() => setShowForgotPassword(false)}
+        onSuccess={() => setShowForgotPassword(false)}
+      />
+    );
+  }
+
   return (
     <div 
       className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden login-liquid"
@@ -392,6 +404,15 @@ export const Login: React.FC = () => {
                     className="absolute right-3 top-8 text-gray-400 hover:text-gray-600"
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                <div className="mt-2 text-right">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-sm text-yellow-300 hover:text-yellow-200 underline font-medium"
+                  >
+                    Password dimenticata?
                   </button>
                 </div>
               </div>
@@ -722,6 +743,30 @@ export const Login: React.FC = () => {
         isVisible={toast.isVisible}
         onClose={hideToast}
       />
+
+      {/* Versione e Copyright */}
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center text-white/70 text-sm z-10">
+        <p>Poltrona v{APP_VERSION}</p>
+        <p>Copyright 2025 abruzzo.ai</p>
+      </div>
+    </div>
+  );
+};
+
+          <PrivacyPolicy 
+            isOpen={showPrivacyPolicy} 
+            onClose={() => setShowPrivacyPolicy(false)} 
+          />
+
+          {/* Toast Notification */}
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            isVisible={toast.isVisible}
+            onClose={hideToast}
+          />
+        </>
+      )}
 
       {/* Versione e Copyright */}
       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center text-white/70 text-sm z-10">
