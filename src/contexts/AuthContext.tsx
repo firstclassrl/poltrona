@@ -815,7 +815,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const effectiveShopSlug = getShopSlugFromUrl() || 'retro-barbershop';
       
       // Costruisci l'URL di redirect (dove Google reindirizzerà dopo l'autenticazione)
-      const redirectUrl = `${window.location.origin}${window.location.pathname}`;
+      // Usa sempre l'URL corrente della pagina per garantire il redirect corretto
+      // In produzione sarà https://poltrona.abruzzo.ai/[path], in sviluppo sarà localhost
+      const currentUrl = window.location.href;
+      // Rimuovi eventuali parametri query o hash esistenti per avere un URL pulito
+      const urlObj = new URL(currentUrl);
+      const redirectUrl = `${urlObj.origin}${urlObj.pathname}`;
+      
+      console.log('🔐 Inizio OAuth Google, redirect URL:', redirectUrl);
       
       // URL per iniziare il flusso OAuth con Google
       // Supabase gestirà il redirect a Google e poi il callback
@@ -827,6 +834,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (effectiveShopSlug) {
         authUrl.searchParams.set('data', JSON.stringify({ shop_slug: effectiveShopSlug }));
       }
+
+      console.log('🔐 Redirect a Supabase OAuth:', authUrl.toString());
 
       // Reindirizza a Google OAuth
       window.location.href = authUrl.toString();

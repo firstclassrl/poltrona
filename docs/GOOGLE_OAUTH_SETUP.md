@@ -77,7 +77,26 @@ Questa guida spiega come configurare l'autenticazione Google OAuth per permetter
 3. **Client Secret (for Google OAuth)**: Incolla il Client Secret copiato da Google Cloud Console
 4. Clicca su **Save**
 
-### 2.3 Verificare Redirect URL
+### 2.3 Configurare Site URL (IMPORTANTE)
+
+**CRITICO**: Devi configurare la Site URL corretta in Supabase per evitare redirect a localhost:
+
+1. Nel menu laterale, vai su **Authentication** > **URL Configuration**
+2. **Site URL**: Imposta l'URL di produzione:
+   ```
+   https://poltrona.abruzzo.ai
+   ```
+   (o il tuo dominio di produzione)
+3. **Redirect URLs**: Aggiungi gli URL autorizzati:
+   ```
+   https://poltrona.abruzzo.ai/**
+   http://localhost:5173/**
+   ```
+   Il `**` permette tutti i path sotto quel dominio
+
+**Nota**: Se la Site URL è configurata su `http://localhost:5173`, Supabase reindirizzerà sempre a localhost anche in produzione. Assicurati di impostare l'URL di produzione come Site URL principale.
+
+### 2.4 Verificare Redirect URL
 
 Supabase dovrebbe già avere configurato automaticamente il redirect URL corretto:
 ```
@@ -158,6 +177,29 @@ Se hai store multipli con URL tipo `https://poltrona.abruzzo.ai/[store-slug]`:
 - Verifica che il localStorage sia abilitato nel browser
 - Controlla la console del browser per errori JavaScript
 - Verifica che la versione della privacy policy sia corretta (attualmente "2.0")
+
+### Redirect a localhost invece che all'URL di produzione
+
+**Questo è il problema più comune!** Se dopo l'autenticazione Google vieni reindirizzato a `http://localhost:5173` invece che a `https://poltrona.abruzzo.ai`:
+
+1. **Verifica Site URL in Supabase:**
+   - Vai su **Authentication** > **URL Configuration**
+   - Assicurati che **Site URL** sia impostato su: `https://poltrona.abruzzo.ai`
+   - **NON** deve essere `http://localhost:5173`
+
+2. **Verifica Redirect URLs:**
+   - Nella stessa pagina, aggiungi in **Redirect URLs**:
+     ```
+     https://poltrona.abruzzo.ai/**
+     ```
+   - Puoi anche aggiungere localhost per sviluppo:
+     ```
+     http://localhost:5173/**
+     ```
+
+3. **Salva le modifiche** e riprova l'autenticazione
+
+4. **Nota**: Se hai già fatto login con Google e sei stato reindirizzato a localhost, fai logout e riprova dopo aver corretto la configurazione
 
 ## Note importanti
 
