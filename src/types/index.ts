@@ -69,6 +69,8 @@ export interface Appointment {
   notes: string | null;
   gcal_event_id: string | null;
   products?: AppointmentProduct[];
+  reminder_sent?: boolean; // Flag per indicare se il reminder WhatsApp è stato inviato
+  reminder_sent_at?: string | null; // Timestamp quando è stato inviato il reminder
   created_at: string;
   updated_at: string;
   clients?: Client;
@@ -119,6 +121,11 @@ export interface Shop {
   extra_afternoon_start?: string | null;
   extra_afternoon_end?: string | null;
   theme_palette?: string | null;
+  // Configurazione reminder WhatsApp
+  whatsapp_reminder_enabled?: boolean; // Abilita/disabilita reminder WhatsApp (default: true)
+  whatsapp_reminder_time?: string; // Orario in cui inviare i reminder (formato HH:MM, default: '20:00')
+  whatsapp_phone_number_id?: string | null; // Phone Number ID di WhatsApp Cloud API (opzionale)
+  whatsapp_access_token?: string | null; // Access Token di WhatsApp Cloud API (opzionale, si consiglia di usare variabili ambiente n8n)
   created_at: string;
   updated_at?: string;
 }

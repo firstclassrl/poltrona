@@ -6,7 +6,8 @@ import { Button } from './ui/Button';
 import { Modal } from './ui/Modal';
 import { CustomerForm } from './CustomerForm';
 import { apiService } from '../services/api';
-import type { Client } from '../types';
+import type { Client, Appointment } from '../types';
+import { formatDate } from '../utils/date';
 
 interface ClientsProps {
   onNavigateToBooking?: () => void;
@@ -41,6 +42,8 @@ export const Clients = ({ onNavigateToBooking }: ClientsProps) => {
   const [isCustomerFormOpen, setIsCustomerFormOpen] = useState(false);
   const [customerFormMode, setCustomerFormMode] = useState<'add' | 'edit'>('add');
   const [editingCustomer, setEditingCustomer] = useState<Client | null>(null);
+  const [clientAppointments, setClientAppointments] = useState<Appointment[]>([]);
+  const [isLoadingAppointments, setIsLoadingAppointments] = useState(false);
 
   useEffect(() => {
     // Filter clients based on search query
@@ -68,9 +71,41 @@ export const Clients = ({ onNavigateToBooking }: ClientsProps) => {
     }
   };
 
+  const loadClientAppointments = useCallback(async (clientId: string) => {
+    setIsLoadingAppointments(true);
+    try {
+      // Carica appuntamenti degli ultimi 2 anni fino a 1 anno nel futuro
+      const today = new Date();
+      const startDate = new Date(today);
+      startDate.setFullYear(today.getFullYear() - 2);
+      startDate.setHours(0, 0, 0, 0);
+      
+      const endDate = new Date(today);
+      endDate.setFullYear(today.getFullYear() + 1);
+      endDate.setHours(23, 59, 59, 999);
+      
+      const appointments = await apiService.getAppointments(
+        startDate.toISOString(),
+        endDate.toISOString()
+      );
+      
+      // Filtra per client_id
+      const clientAppts = appointments.filter(apt => apt.client_id === clientId);
+      setClientAppointments(clientAppts);
+    } catch (error) {
+      console.error('Errore caricamento appuntamenti cliente:', error);
+      setClientAppointments([]);
+    } finally {
+      setIsLoadingAppointments(false);
+    }
+  }, []);
+
   const openClientModal = (client: Client) => {
     setSelectedClient(client);
     setIsModalOpen(true);
+    if (client.id) {
+      loadClientAppointments(client.id);
+    }
   };
 
   const handleNewCustomer = () => {
@@ -184,7 +219,10 @@ export const Clients = ({ onNavigateToBooking }: ClientsProps) => {
         {/* Client Detail Modal */}
         <Modal
           isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
+          onClose={() => {
+            setIsModalOpen(false);
+            setClientAppointments([]);
+          }}
           title="Dettagli Cliente"
         >
           {selectedClient && (
@@ -230,11 +268,31 @@ export const Clients = ({ onNavigateToBooking }: ClientsProps) => {
                   <div className="space-y-2 text-sm text-gray-600">
                     <div className="flex items-center justify-between">
                       <span>Visite totali:</span>
-                      <span className="font-semibold">12</span>
+                      <span className="font-semibold">
+                        {isLoadingAppointments ? '...' : 
+                          clientAppointments.filter(apt => 
+                            apt.status !== 'cancelled' && apt.status !== 'no_show'
+                          ).length}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span>Ultimo appuntamento:</span>
-                      <span className="font-semibold">15/12/2024</span>
+                      <span className="font-semibold">
+                        {isLoadingAppointments ? '...' : (() => {
+                          const completedAppointments = clientAppointments
+                            .filter(apt => 
+                              apt.status !== 'cancelled' && 
+                              apt.status !== 'no_show' &&
+                              new Date(apt.start_at) <= new Date()
+                            )
+                            .sort((a, b) => new Date(b.start_at).getTime() - new Date(a.start_at).getTime());
+                          
+                          if (completedAppointments.length > 0) {
+                            return formatDate(completedAppointments[0].start_at);
+                          }
+                          return 'Nessuno';
+                        })()}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -243,19 +301,34 @@ export const Clients = ({ onNavigateToBooking }: ClientsProps) => {
               <div className="space-y-3">
                 <h3 className="text-lg font-semibold text-gray-900">Storico Visite</h3>
                 <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {/* Mock history data */}
-                  {[
-                    { date: '2024-12-15', service: 'Taglio + Barba', staff: 'Giovanni' },
-                    { date: '2024-11-20', service: 'Taglio Capelli', staff: 'Alessandro' },
-                    { date: '2024-10-25', service: 'Taglio + Barba', staff: 'Giovanni' },
-                  ].map((visit, index) => (
-                    <div key={index} className="flex items-center p-3 bg-gray-50 rounded-lg">
-                      <div>
-                        <div className="font-medium text-gray-900">{visit.service}</div>
-                        <div className="text-sm text-gray-600">{visit.date} - {visit.staff}</div>
-                      </div>
-                    </div>
-                  ))}
+                  {isLoadingAppointments ? (
+                    <div className="text-center py-4 text-gray-500">Caricamento...</div>
+                  ) : clientAppointments.length === 0 ? (
+                    <div className="text-center py-4 text-gray-500">Nessun appuntamento trovato</div>
+                  ) : (
+                    clientAppointments
+                      .filter(apt => apt.status !== 'cancelled')
+                      .sort((a, b) => new Date(b.start_at).getTime() - new Date(a.start_at).getTime())
+                      .slice(0, 10)
+                      .map((appointment) => (
+                        <div key={appointment.id} className="flex items-center p-3 bg-gray-50 rounded-lg">
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900">
+                              {appointment.services?.name || 'Servizio non specificato'}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              {formatDate(appointment.start_at)} - {appointment.staff?.full_name || 'Staff non specificato'}
+                              {appointment.status === 'completed' && (
+                                <span className="ml-2 text-green-600">✓ Completato</span>
+                              )}
+                              {appointment.status === 'cancelled' && (
+                                <span className="ml-2 text-red-600">✗ Cancellato</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                  )}
                 </div>
               </div>
 

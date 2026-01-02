@@ -365,7 +365,7 @@ export const Login: React.FC = () => {
           </>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {mode === 'login' ? (
             // Form Login
             <>
@@ -383,7 +383,7 @@ export const Login: React.FC = () => {
                   value={credentials.email}
                   onChange={(e) => setCredentials(prev => ({ ...prev, email: e.target.value }))}
                   placeholder="Inserisci la tua email"
-                  autoComplete="off"
+                  autoComplete="email"
                   required
                 />
               </div>
@@ -396,7 +396,7 @@ export const Login: React.FC = () => {
                     value={credentials.password}
                     onChange={(e) => setCredentials(prev => ({ ...prev, password: e.target.value }))}
                     placeholder="Inserisci la tua password"
-                  autoComplete="current-password"
+                    autoComplete="current-password"
                     required
                   />
                   <button
@@ -427,6 +427,7 @@ export const Login: React.FC = () => {
                   value={registrationData.firstName}
                   onChange={(e) => setRegistrationData(prev => ({ ...prev, firstName: e.target.value }))}
                   placeholder="Mario"
+                  autoComplete="given-name"
                   required
                 />
                 <Input
@@ -434,6 +435,7 @@ export const Login: React.FC = () => {
                   value={registrationData.lastName}
                   onChange={(e) => setRegistrationData(prev => ({ ...prev, lastName: e.target.value }))}
                   placeholder="Rossi"
+                  autoComplete="family-name"
                   required
                 />
               </div>
@@ -445,6 +447,7 @@ export const Login: React.FC = () => {
                   value={registrationData.phone}
                   onChange={(e) => setRegistrationData(prev => ({ ...prev, phone: e.target.value }))}
                   placeholder="+39 123 456 7890"
+                  autoComplete="tel"
                   required
                 />
               </div>
@@ -456,6 +459,7 @@ export const Login: React.FC = () => {
                   value={registrationData.email}
                   onChange={(e) => setRegistrationData(prev => ({ ...prev, email: e.target.value }))}
                   placeholder="mario.rossi@email.com"
+                  autoComplete="email"
                   required
                 />
               </div>
@@ -468,6 +472,7 @@ export const Login: React.FC = () => {
                     value={registrationData.password}
                     onChange={(e) => setRegistrationData(prev => ({ ...prev, password: e.target.value }))}
                     placeholder="Inserisci una password"
+                    autoComplete="new-password"
                     required
                   />
                   <button
@@ -488,6 +493,7 @@ export const Login: React.FC = () => {
                     value={registrationData.confirmPassword}
                     onChange={(e) => setRegistrationData(prev => ({ ...prev, confirmPassword: e.target.value }))}
                     placeholder="Conferma la password"
+                    autoComplete="new-password"
                     required
                   />
                   <button

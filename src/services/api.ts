@@ -231,8 +231,12 @@ export const apiService = {
         shopId = shop?.id ?? null;
       }
       
+      // Se la query è vuota, carica tutti i clienti senza limite
+      // Altrimenti, applica un limite ragionevole per le ricerche
+      const limit = query.trim() === '' ? 'limit=1000' : 'limit=100';
+      
       // Costruisci URL con filtro shop_id se disponibile
-      let url = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=id,first_name,last_name,phone_e164,email&or=(first_name.ilike.*${query}*,last_name.ilike.*${query}*,phone_e164.ilike.*${query}*)&order=created_at.desc&limit=25`;
+      let url = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=id,first_name,last_name,phone_e164,email&or=(first_name.ilike.*${query}*,last_name.ilike.*${query}*,phone_e164.ilike.*${query}*)&order=created_at.desc&${limit}`;
       if (shopId && shopId !== 'default') {
         url += `&shop_id=eq.${shopId}`;
       }

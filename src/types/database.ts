@@ -144,6 +144,8 @@ export interface Database {
           status: string | null;
           notes: string | null;
           gcal_event_id: string | null;
+          reminder_sent?: boolean | null;
+          reminder_sent_at?: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -159,6 +161,8 @@ export interface Database {
           status?: string | null;
           notes?: string | null;
           gcal_event_id?: string | null;
+          reminder_sent?: boolean | null;
+          reminder_sent_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -174,6 +178,8 @@ export interface Database {
           status?: string | null;
           notes?: string | null;
           gcal_event_id?: string | null;
+          reminder_sent?: boolean | null;
+          reminder_sent_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
