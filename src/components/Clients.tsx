@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Search, Phone, Mail, User, Plus, Calendar } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Input } from './ui/Input';
 import { Button } from './ui/Button';
 import { Modal } from './ui/Modal';
+import { Select } from './ui/Select';
 import { CustomerForm } from './CustomerForm';
 import { apiService } from '../services/api';
 import type { Client, Appointment } from '../types';
@@ -37,6 +38,7 @@ export const Clients = ({ onNavigateToBooking }: ClientsProps) => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredClients, setFilteredClients] = useState<Client[]>(clients);
+  const [sortBy, setSortBy] = useState<'name' | 'created'>('name');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCustomerFormOpen, setIsCustomerFormOpen] = useState(false);
@@ -45,15 +47,37 @@ export const Clients = ({ onNavigateToBooking }: ClientsProps) => {
   const [clientAppointments, setClientAppointments] = useState<Appointment[]>([]);
   const [isLoadingAppointments, setIsLoadingAppointments] = useState(false);
 
-  useEffect(() => {
-    // Filter clients based on search query
-    const filtered = clients.filter(client => 
+  // Memoized sorted and filtered clients
+  const sortedAndFilteredClients = useMemo(() => {
+    // First filter
+    let filtered = clients.filter(client => 
       client.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (client.last_name && client.last_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
       client.phone_e164.includes(searchQuery)
     );
-    setFilteredClients(filtered);
-  }, [searchQuery, clients]);
+
+    // Then sort
+    const sorted = [...filtered].sort((a, b) => {
+      if (sortBy === 'name') {
+        // Ordine alfabetico per nome completo (nome + cognome)
+        const nameA = `${a.first_name} ${a.last_name || ''}`.trim().toLowerCase();
+        const nameB = `${b.first_name} ${b.last_name || ''}`.trim().toLowerCase();
+        return nameA.localeCompare(nameB, 'it');
+      } else if (sortBy === 'created') {
+        // Ordine per data di creazione (più recenti prima)
+        const dateA = new Date(a.created_at || 0).getTime();
+        const dateB = new Date(b.created_at || 0).getTime();
+        return dateB - dateA;
+      }
+      return 0;
+    });
+
+    return sorted;
+  }, [clients, searchQuery, sortBy]);
+
+  useEffect(() => {
+    setFilteredClients(sortedAndFilteredClients);
+  }, [sortedAndFilteredClients]);
 
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
@@ -166,19 +190,31 @@ export const Clients = ({ onNavigateToBooking }: ClientsProps) => {
           </Button>
         </div>
 
-        {/* Search Bar */}
-        <Card className={glassCard}>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
-            <Input
-              type="text"
-              placeholder="Cerca per nome o telefono..."
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="pl-10"
+        {/* Search Bar and Sort */}
+        <div className="flex flex-col md:flex-row gap-4">
+          <Card className={`flex-1 ${glassCard}`}>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+              <Input
+                type="text"
+                placeholder="Cerca per nome o telefono..."
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </Card>
+          <Card className={glassCard}>
+            <Select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as 'name' | 'created')}
+              options={[
+                { value: 'name', label: 'Ordine alfabetico' },
+                { value: 'created', label: 'Più recenti' },
+              ]}
             />
-          </div>
-        </Card>
+          </Card>
+        </div>
 
         {/* Clients List */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
