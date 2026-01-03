@@ -1946,7 +1946,10 @@ export const apiService = {
   // Upload foto prodotto in bucket pubblico (product-photos) con path shops/{shopId}/products/{productId}/image.ext
   async uploadProductPhotoPublic(file: File, shopId: string, productId: string): Promise<{ path: string; publicUrl: string }> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    const accessToken = localStorage.getItem('auth_token');
+    let accessToken: string | null = null;
+    if (typeof window !== 'undefined') {
+      accessToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    }
     if (!accessToken) throw new Error('Token non trovato. Effettua di nuovo il login.');
 
     const bucket = 'product-photos';

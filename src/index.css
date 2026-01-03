@@ -209,6 +209,7 @@ body {
 [data-theme]:not([data-theme='heritage']):not([data-theme='dark-mode']) .glass-sidebar-dark button,
 [data-theme]:not([data-theme='heritage']):not([data-theme='dark-mode']) .glass-sidebar-dark a,
 [data-theme]:not([data-theme='heritage']):not([data-theme='dark-mode']) .glass-sidebar-dark span,
+[data-theme]:not([data-theme='heritage']):not([data-theme='dark-mode']) .glass-sidebar-dark p,
 [data-theme]:not([data-theme='heritage']):not([data-theme='dark-mode']) .glass-sidebar-dark svg {
   color: #ffffff !important;
 }
