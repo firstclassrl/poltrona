@@ -94,10 +94,19 @@ export const ClientBooking: React.FC = () => {
           apiService.getServices(),
           apiService.getStaff()
         ]);
+        console.log('✅ ClientBooking: Servizi caricati:', servicesData.length);
+        console.log('✅ ClientBooking: Staff caricato:', staffData.length);
         setServices(servicesData);
         setStaff(staffData);
+        
+        if (servicesData.length === 0) {
+          console.warn('⚠️ ClientBooking: Nessun servizio trovato! Verifica:');
+          console.warn('  - shop_id nel localStorage:', localStorage.getItem('current_shop_id'));
+          console.warn('  - currentShopId:', currentShopId);
+          console.warn('  - currentShop:', currentShop);
+        }
       } catch (error) {
-        console.error('Error loading booking data:', error);
+        console.error('❌ Error loading booking data:', error);
       } finally {
         setIsLoading(false);
       }
@@ -111,18 +120,31 @@ export const ClientBooking: React.FC = () => {
     const getClientId = async () => {
       if (user?.email) {
         try {
+          // Ottieni il token di accesso da localStorage o sessionStorage
+          const accessToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+          
+          if (!accessToken) {
+            console.warn('⚠️ No access token found. User might not be properly authenticated.');
+            return;
+          }
+          
+          console.log('🔍 Getting/creating client for user:', user.email, 'with token:', accessToken.substring(0, 20) + '...');
+          
           const clientRecord = await apiService.getOrCreateClientFromUser({
             id: user.id,
             email: user.email,
             full_name: user.full_name,
-          });
+          }, { accessToken });
+          
+          console.log('✅ Client record obtained:', clientRecord.id);
           setClientId(clientRecord.id);
           
           // Carica lo stato della waitlist per questo cliente
           const entries = await apiService.getClientWaitlistStatus(clientRecord.id);
           setWaitlistEntries(entries);
         } catch (error) {
-          console.error('Error getting client ID:', error);
+          console.error('❌ Error getting client ID for user:', error);
+          // Non impostare clientId se c'è un errore, così l'utente può vedere il problema
         }
       }
     };
@@ -149,11 +171,55 @@ export const ClientBooking: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!clientId) {
+      console.error('❌ Client ID non disponibile. Assicurati di essere autenticato.');
+      return;
+    }
+
+    if (!selectedDate || !selectedTime || !selectedService || !selectedBarber) {
+      console.error('❌ Dati mancanti per la prenotazione');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Ottieni il servizio e il barbiere selezionati
+      const service = services.find(s => s.id === selectedService);
+      const barber = staff.find(s => s.id === selectedBarber);
+
+      if (!service || !barber) {
+        throw new Error('Servizio o barbiere non trovato');
+      }
+
+      // Crea la data/ora di inizio e fine
+      const startDateTime = new Date(`${selectedDate}T${selectedTime}`);
+      const endDateTime = new Date(startDateTime);
+      endDateTime.setMinutes(endDateTime.getMinutes() + service.duration_min);
+
+      console.log('📅 Creazione appuntamento:', {
+        clientId,
+        service: service.name,
+        barber: barber.full_name,
+        start: startDateTime.toISOString(),
+        end: endDateTime.toISOString(),
+      });
+
+      // Crea l'appuntamento usando l'API
+      // Nota: createAppointmentDirect usa buildHeaders(true) che legge il token da localStorage
+      await apiService.createAppointmentDirect({
+        client_id: clientId,
+        client_name: user?.full_name || 'Cliente',
+        staff_id: selectedBarber,
+        service_id: selectedService,
+        start_at: startDateTime.toISOString(),
+        end_at: endDateTime.toISOString(),
+        notes: '',
+        status: 'confirmed',
+      });
+
+      console.log('✅ Appuntamento creato con successo!');
       
       setIsSuccess(true);
       // Reset form
@@ -165,7 +231,9 @@ export const ClientBooking: React.FC = () => {
       // Hide success message after 3 seconds
       setTimeout(() => setIsSuccess(false), 3000);
     } catch (error) {
-      console.error('Error booking appointment:', error);
+      console.error('❌ Error booking appointment:', error);
+      // Mostra un messaggio di errore all'utente
+      alert('Errore durante la prenotazione. Assicurati di essere autenticato e che tutti i dati siano corretti.');
     } finally {
       setIsSubmitting(false);
     }

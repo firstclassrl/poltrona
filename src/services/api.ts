@@ -641,17 +641,33 @@ export const apiService = {
         email: user.email || null,
       };
 
+      const headers = buildHeaders(true, options?.accessToken);
+      console.log('🔐 Creating client with headers:', {
+        hasAuth: !!headers.Authorization,
+        authPrefix: headers.Authorization?.substring(0, 20) + '...',
+        hasToken: !!options?.accessToken,
+      });
+
       const createResponse = await fetch(API_ENDPOINTS.SEARCH_CLIENTS, {
         method: 'POST',
-        headers: { ...buildHeaders(true, options?.accessToken), Prefer: 'return=representation' },
+        headers: { ...headers, Prefer: 'return=representation' },
         body: JSON.stringify(clientData),
       });
 
       if (createResponse.ok) {
         const created = await createResponse.json();
         const client = created[0];
+        console.log('✅ Client created successfully:', client.id);
         return client;
       } else {
+        const errorText = await createResponse.text();
+        console.error('❌ Failed to create client:', {
+          status: createResponse.status,
+          statusText: createResponse.statusText,
+          error: errorText,
+          clientData,
+        });
+        
         // Se è un errore 401 (non autenticato), non generare ID temporaneo per evitare loop
         if (createResponse.status === 401) {
           throw new Error('Unauthorized: autenticazione richiesta');
@@ -2904,28 +2920,48 @@ export const apiService = {
     try {
       // CRITICO: Aggiungi filtro esplicito shop_id come doppia sicurezza
       let shopId = getStoredShopId();
+      console.log('🔍 getServices: shopId da localStorage:', shopId);
+      
       if (!shopId || shopId === 'default') {
+        console.log('🔍 getServices: shopId non trovato, recupero shop...');
         const shop = await this.getShop();
         shopId = shop?.id ?? null;
+        console.log('🔍 getServices: shopId da getShop():', shopId);
         // Assicurati che lo shop_id sia salvato nel localStorage
         if (shopId && shopId !== 'default' && typeof window !== 'undefined') {
           localStorage.setItem('current_shop_id', shopId);
+          console.log('✅ getServices: shop_id salvato nel localStorage:', shopId);
         }
       }
       
       // Mostra tutti i servizi (attivi e non), ordinati per nome
-      // Usa buildHeaders(true) per autenticazione e filtro RLS per shop_id
-      // Le RLS policies filtrano automaticamente per shop_id tramite current_shop_id()
-      // Aggiungiamo anche filtro esplicito come doppia sicurezza
-      let url = `${API_ENDPOINTS.SERVICES}?select=*&order=name.asc`;
+      // Permetti accesso pubblico (buildHeaders(false)) per permettere ai clienti non autenticati di vedere i servizi
+      // Il filtro shop_id nella query assicura che vedano solo i servizi del negozio corretto
+      let url = `${API_ENDPOINTS.SERVICES}?select=*&order=name.asc&active=eq.true`;
       if (shopId && shopId !== 'default') {
         url += `&shop_id=eq.${shopId}`;
+        console.log('🔍 getServices: URL con shop_id:', url);
+      } else {
+        console.warn('⚠️ getServices: shop_id non disponibile, query senza filtro shop_id');
       }
-      const response = await fetch(url, { headers: buildHeaders(true) });
-      if (!response.ok) throw new Error('Failed to fetch services');
-      return await response.json();
+      
+      // Prova prima con autenticazione, poi fallback a pubblico
+      const hasAuth = localStorage.getItem('auth_token');
+      const headers = hasAuth ? buildHeaders(true) : buildHeaders(false);
+      console.log('🔍 getServices: hasAuth:', !!hasAuth);
+      
+      const response = await fetch(url, { headers });
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ getServices: Errore nella risposta:', response.status, errorText);
+        throw new Error(`Failed to fetch services: ${response.status} ${errorText}`);
+      }
+      
+      const services = await response.json();
+      console.log('✅ getServices: Servizi recuperati:', services.length, services);
+      return services;
     } catch (error) {
-      console.error('Error fetching services:', error);
+      console.error('❌ Error fetching services:', error);
       return [];
     }
   },
@@ -2937,30 +2973,48 @@ export const apiService = {
     try {
       // CRITICO: Aggiungi filtro esplicito shop_id come doppia sicurezza
       let shopId = getStoredShopId();
+      console.log('🔍 getStaff: shopId da localStorage:', shopId);
+      
       if (!shopId || shopId === 'default') {
+        console.log('🔍 getStaff: shopId non trovato, recupero shop...');
         const shop = await this.getShop();
         shopId = shop?.id ?? null;
+        console.log('🔍 getStaff: shopId da getShop():', shopId);
         // Assicurati che lo shop_id sia salvato nel localStorage
         if (shopId && shopId !== 'default' && typeof window !== 'undefined') {
           localStorage.setItem('current_shop_id', shopId);
+          console.log('✅ getStaff: shop_id salvato nel localStorage:', shopId);
         }
       }
       
-      // Usa buildHeaders(true) per autenticazione e filtro RLS per shop_id
-      // Le RLS policies filtrano automaticamente per shop_id tramite current_shop_id()
-      // Aggiungiamo anche filtro esplicito come doppia sicurezza
-      let url = `${API_ENDPOINTS.STAFF}?select=*&order=full_name.asc`;
+      // Permetti accesso pubblico (buildHeaders(false)) per permettere ai clienti non autenticati di vedere lo staff
+      // Il filtro shop_id nella query assicura che vedano solo lo staff del negozio corretto
+      let url = `${API_ENDPOINTS.STAFF}?select=*&order=full_name.asc&active=eq.true`;
       if (shopId && shopId !== 'default') {
         url += `&shop_id=eq.${shopId}`;
+        console.log('🔍 getStaff: URL con shop_id:', url);
+      } else {
+        console.warn('⚠️ getStaff: shop_id non disponibile, query senza filtro shop_id');
       }
-      const response = await fetch(url, { headers: buildHeaders(true) });
+      
+      // Prova prima con autenticazione, poi fallback a pubblico
+      const hasAuth = localStorage.getItem('auth_token');
+      const headers = hasAuth ? buildHeaders(true) : buildHeaders(false);
+      console.log('🔍 getStaff: hasAuth:', !!hasAuth);
+      
+      const response = await fetch(url, { headers });
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ getStaff: Errore nella risposta:', response.status, errorText);
         // Se fallisce, restituisci array vuoto invece di loggare errore
         return [];
       }
-      return await response.json();
+      
+      const staff = await response.json();
+      console.log('✅ getStaff: Staff recuperato:', staff.length, staff);
+      return staff;
     } catch (error) {
-      // Non loggare errori per getStaff quando non autenticato - è normale
+      console.error('❌ Error fetching staff:', error);
       return [];
     }
   },
