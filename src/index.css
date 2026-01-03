@@ -448,8 +448,8 @@ body {
   visibility: visible !important;
   border-top-color: #ffffff !important;
   opacity: 0.8 !important;
-  border-top-width: 3px !important; /* Triplicato da 1px a 3px */
-  height: 3px !important;
+  border-top-width: 5px !important; /* Aumentato a 5px */
+  height: 5px !important;
   margin: 0.75rem 0 !important;
 }
 
@@ -1463,8 +1463,8 @@ body {
   border-top-color: rgba(255, 255, 255, 0.1) !important;
   opacity: 0.5 !important;
   margin: 0.75rem 0 !important;
-  border-top-width: 3px !important; /* Triplicato da 1px a 3px */
-  height: 3px !important;
+  border-top-width: 5px !important; /* Aumentato a 5px */
+  height: 5px !important;
 }
 
 /* Rimuovi il separatore bottom per Aurora */
