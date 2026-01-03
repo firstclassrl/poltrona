@@ -466,7 +466,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           <div className="flex justify-end">
-            <Button variant="secondary" onClick={() => setShowNoShowModal(false)}>
+            <Button 
+              variant="secondary" 
+              onClick={() => setShowNoShowModal(false)}
+              className="touch-target"
+              aria-label="Chiudi modale no-show"
+            >
               Chiudi
             </Button>
           </div>
@@ -560,20 +565,31 @@ export const Dashboard: React.FC<DashboardProps> = ({
             )}
 
             <div className="flex space-x-3">
-              <Button variant="primary" className="flex-1" onClick={() => onEditAppointment(selectedAppointment)}>
+              <Button 
+                variant="primary" 
+                className="flex-1 touch-target" 
+                onClick={() => onEditAppointment(selectedAppointment)}
+                aria-label="Modifica appuntamento"
+              >
                 Modifica Appuntamento
               </Button>
               {selectedAppointment.status !== 'no_show' && selectedAppointment.status !== 'completed' && (
                 <Button 
                   variant="danger" 
                   onClick={handleNoShowClick}
-                  className="bg-red-600 hover:bg-red-700"
+                  className="bg-red-600 hover:bg-red-700 touch-target"
+                  aria-label="Segnala no-show"
                 >
-                  <AlertTriangle className="w-4 h-4 mr-2" />
+                  <AlertTriangle className="w-4 h-4 mr-2" aria-hidden="true" />
                   Segnala No-Show
                 </Button>
               )}
-              <Button variant="secondary" onClick={() => setShowAppointmentModal(false)}>
+              <Button 
+                variant="secondary" 
+                onClick={() => setShowAppointmentModal(false)}
+                className="touch-target"
+                aria-label="Chiudi modale"
+              >
                 Chiudi
               </Button>
             </div>

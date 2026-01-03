@@ -26,7 +26,7 @@ export const Input: React.FC<InputProps> = ({
       )}
       <input
         className={cn(
-          'w-full px-3 py-2 bg-white border border-green-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 aurora-input',
+          'w-full px-3 py-2 bg-white border border-green-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 aurora-input touch-target',
           error && 'border-red-500/50 focus:ring-red-500/50',
           props.type === 'time' && 'time-24h', // Add class for time inputs
           className
@@ -34,10 +34,13 @@ export const Input: React.FC<InputProps> = ({
         lang={props.type === 'time' ? 'it-IT' : props.lang}
         step={props.type === 'time' && props.step === undefined ? 60 : props.step}
         data-format={props.type === 'time' ? '24' : props['data-format']}
+        aria-describedby={error ? `${props.id || 'input'}-error` : undefined}
         {...props}
       />
       {error && (
-        <p className="text-sm text-red-600">{error}</p>
+        <p id={`${props.id || 'input'}-error`} className="text-sm text-red-600" role="alert">
+          {error}
+        </p>
       )}
     </div>
   );

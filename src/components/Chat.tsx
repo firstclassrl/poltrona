@@ -348,7 +348,7 @@ export const Chat: React.FC = () => {
                         setShowChatList(false);
                       }
                     }}
-                    aria-label={`Apri conversazione con ${chat.clientName || 'cliente'}`}
+                    aria-label={`Apri conversazione con ${getChatPartnerInfo(chat).name}`}
                     className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors touch-target focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                       activeChat?.id === chat.id ? 'bg-green-50 border-green-200' : ''
                     }`}

@@ -739,8 +739,10 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
               setSelectedTime('');
               setCurrentView('monthly');
             }}
-            className="w-full px-4 py-3 border-2 border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base bg-white/80 text-gray-900 transition-all hover:border-white shadow-lg backdrop-blur"
+            className="w-full px-4 py-3 border-2 border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base bg-white/80 text-gray-900 transition-all hover:border-white shadow-lg backdrop-blur touch-target"
             disabled={isLoading}
+            aria-label="Seleziona servizio"
+            aria-describedby="service-description"
           >
             <option value="">{isLoading ? 'Caricamento servizi...' : 'Seleziona un servizio'}</option>
             {services
@@ -766,8 +768,10 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
               setSelectedTime('');
               setCurrentView('monthly');
             }}
-            className="w-full px-4 py-3 border-2 border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base bg-white/80 text-gray-900 transition-all hover:border-white shadow-lg backdrop-blur"
+            className="w-full px-4 py-3 border-2 border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base bg-white/80 text-gray-900 transition-all hover:border-white shadow-lg backdrop-blur touch-target"
             disabled={!selectedService || isLoading}
+            aria-label="Seleziona barbiere"
+            aria-describedby="barber-description"
           >
             <option value="">{isLoading ? 'Caricamento barbieri...' : 'Seleziona un barbiere'}</option>
             {availableBarbers.map((barber) => (
@@ -1003,9 +1007,10 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
               <div className="mb-6">
                 <Button
                   onClick={handleAddToCalendar}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center space-x-2"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center space-x-2 touch-target"
+                  aria-label="Aggiungi appuntamento al calendario del dispositivo"
                 >
-                  <Calendar className="w-5 h-5" />
+                  <Calendar className="w-5 h-5" aria-hidden="true" />
                   <span>Aggiungi al calendario</span>
                 </Button>
               </div>
@@ -1069,12 +1074,13 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
 
           {/* Earlier slot waitlist */}
           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <label className="flex items-start gap-3 cursor-pointer">
+            <label className="flex items-start gap-3 cursor-pointer touch-target">
               <input
                 type="checkbox"
-                className="mt-1 h-4 w-4"
+                className="mt-1 h-4 w-4 touch-target"
                 checked={notifyIfEarlierSlot}
                 onChange={(e) => setNotifyIfEarlierSlot(e.target.checked)}
+                aria-label="Avvisami se si libera uno slot prima"
               />
               <div>
                 <div className="text-sm font-semibold text-gray-900">
@@ -1092,6 +1098,8 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
             <Button
               variant="secondary"
               onClick={() => setShowBookingModal(false)}
+              className="touch-target"
+              aria-label="Annulla prenotazione"
             >
               Annulla
             </Button>

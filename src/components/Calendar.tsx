@@ -346,18 +346,22 @@ export const Calendar = () => {
                 variant={timePeriod === 'morning' ? 'primary' : 'ghost'}
                 size="sm"
                 onClick={() => setTimePeriod('morning')}
-                className="flex items-center space-x-1"
+                className="flex items-center space-x-1 touch-target"
+                aria-label="Mostra appuntamenti del mattino"
+                aria-pressed={timePeriod === 'morning'}
               >
-                <Sun className="w-4 h-4" />
+                <Sun className="w-4 h-4" aria-hidden="true" />
                 <span>Mattina</span>
               </Button>
               <Button
                 variant={timePeriod === 'afternoon' ? 'primary' : 'ghost'}
                 size="sm"
                 onClick={() => setTimePeriod('afternoon')}
-                className="flex items-center space-x-1"
+                className="flex items-center space-x-1 touch-target"
+                aria-label="Mostra appuntamenti del pomeriggio"
+                aria-pressed={timePeriod === 'afternoon'}
               >
-                <Moon className="w-4 h-4" />
+                <Moon className="w-4 h-4" aria-hidden="true" />
                 <span>Pomeriggio</span>
               </Button>
             </div>
@@ -562,9 +566,10 @@ export const Calendar = () => {
               variant="ghost"
               size="lg"
               onClick={() => navigateDay('next')}
-              className="flex items-center space-x-2"
+              className="flex items-center space-x-2 touch-target"
+              aria-label="Giorno successivo"
             >
-              <ChevronRight className="w-6 h-6" />
+              <ChevronRight className="w-6 h-6" aria-hidden="true" />
             </Button>
           </div>
 
@@ -577,18 +582,22 @@ export const Calendar = () => {
                   variant={timePeriod === 'morning' ? 'primary' : 'ghost'}
                   size="lg"
                   onClick={() => setTimePeriod('morning')}
-                  className="flex items-center space-x-2 flex-1"
+                  className="flex items-center space-x-2 flex-1 touch-target"
+                  aria-label="Mostra appuntamenti del mattino"
+                  aria-pressed={timePeriod === 'morning'}
                 >
-                  <Sun className="w-5 h-5" />
+                  <Sun className="w-5 h-5" aria-hidden="true" />
                   <span>Mattina</span>
                 </Button>
                 <Button
                   variant={timePeriod === 'afternoon' ? 'primary' : 'ghost'}
                   size="lg"
                   onClick={() => setTimePeriod('afternoon')}
-                  className="flex items-center space-x-2 flex-1"
+                  className="flex items-center space-x-2 flex-1 touch-target"
+                  aria-label="Mostra appuntamenti del pomeriggio"
+                  aria-pressed={timePeriod === 'afternoon'}
                 >
-                  <Moon className="w-5 h-5" />
+                  <Moon className="w-5 h-5" aria-hidden="true" />
                   <span>Pomeriggio</span>
                 </Button>
               </div>
@@ -913,7 +922,8 @@ export const Calendar = () => {
               <Button 
                 variant="secondary" 
                 onClick={() => setShowAppointmentDetails(false)}
-                className="flex-1"
+                className="flex-1 touch-target"
+                aria-label="Chiudi dettagli appuntamento"
               >
                 Chiudi
               </Button>
@@ -927,9 +937,10 @@ export const Calendar = () => {
                     setShowDeleteConfirmation(true);
                   }, 100);
                 }}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white border-red-600"
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white border-red-600 touch-target"
+                aria-label="Elimina appuntamento"
               >
-                <Trash2 className="w-4 h-4 mr-2" />
+                <Trash2 className="w-4 h-4 mr-2" aria-hidden="true" />
                 Elimina
               </Button>
             </div>
