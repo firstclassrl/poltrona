@@ -115,7 +115,6 @@ export const Products: React.FC = () => {
   const [addImageUrl, setAddImageUrl] = useState(''); // Mantenuto per compatibilità ma non più usato nel form
   const [addInStock, setAddInStock] = useState(true);
   const [addStockQty, setAddStockQty] = useState<number>(0);
-  const [addActive, setAddActive] = useState(true);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [qaName, setQaName] = useState('');
   const [qaPrice, setQaPrice] = useState<number | ''>('');
@@ -124,6 +123,7 @@ export const Products: React.FC = () => {
   // State per gestione upload immagini
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string>('');
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [imageRemoved, setImageRemoved] = useState<boolean>(false);
   // State per modale conferma cancellazione
   const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<{ id: string; name: string } | null>(null);
@@ -165,9 +165,9 @@ export const Products: React.FC = () => {
     setAddImageUrl('');
     setUploadedImageUrl('');
     setSelectedImageFile(null);
+    setImageRemoved(false);
     setAddInStock(true);
     setAddStockQty(0);
-    setAddActive(true);
   };
 
   // Gestione upload immagine
@@ -192,6 +192,7 @@ export const Products: React.FC = () => {
         
         const { publicUrl } = await apiService.uploadProductPhotoPublic(file, shopId, editingProduct.id);
         setUploadedImageUrl(publicUrl);
+        setImageRemoved(false); // Nuova immagine caricata, reset flag rimozione
         return publicUrl;
       } catch (error) {
         console.error('Error uploading image:', error);
@@ -200,6 +201,7 @@ export const Products: React.FC = () => {
     } else {
       // Nuovo prodotto: salva file in state per caricarlo dopo la creazione
       setSelectedImageFile(file);
+      setImageRemoved(false); // Nuovo file selezionato, reset flag rimozione
       // Crea preview locale
       const previewUrl = URL.createObjectURL(file);
       setUploadedImageUrl(previewUrl);
@@ -208,11 +210,13 @@ export const Products: React.FC = () => {
   };
 
   const handleRemoveImage = () => {
+    const currentUrl = uploadedImageUrl;
     setUploadedImageUrl('');
     setSelectedImageFile(null);
+    setImageRemoved(true); // Segna che l'immagine è stata rimossa
     // Se c'era un URL preview locale, revocalo
-    if (uploadedImageUrl && uploadedImageUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(uploadedImageUrl);
+    if (currentUrl && currentUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(currentUrl);
     }
   };
 
@@ -251,9 +255,9 @@ export const Products: React.FC = () => {
     setAddImageUrl(product.imageUrl);
     setUploadedImageUrl(product.imageUrl); // Pre-carica immagine esistente
     setSelectedImageFile(null); // Reset file selezionato
+    setImageRemoved(false); // Reset flag rimozione
     setAddInStock(product.inStock);
     setAddStockQty(product.stockQuantity);
-    setAddActive(true);
   };
 
   const handleDeleteProduct = (productId: string) => {
@@ -526,39 +530,44 @@ export const Products: React.FC = () => {
                   <span className="text-white font-semibold">Esaurito</span>
                 </div>
               )}
-              <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => openProductModal(product)}
-                >
-                  <Eye className="w-4 h-4" />
-                </Button>
-                {isAdmin && (
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEditProduct(product)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteProduct(product.id)}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </>
-                )}
-              </div>
             </div>
 
             <div className="space-y-3">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">{product.name}</h3>
-                <p className="text-sm text-gray-600">{product.brand}</p>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900">{product.name}</h3>
+                  <p className="text-sm text-gray-600">{product.brand}</p>
+                </div>
+                <div className="flex space-x-1 ml-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => openProductModal(product)}
+                    className="opacity-70 hover:opacity-100"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                  {isAdmin && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditProduct(product)}
+                        className="opacity-70 hover:opacity-100"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteProduct(product.id)}
+                        className="opacity-70 hover:opacity-100"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
 
               <p className="text-gray-700 text-sm line-clamp-2">{product.description}</p>
@@ -821,12 +830,28 @@ export const Products: React.FC = () => {
         <div className="space-y-3">
           <Input label="Nome" value={addName} onChange={(e) => setAddName(e.target.value)} required />
           <Input label="Marca" value={addBrand} onChange={(e) => setAddBrand(e.target.value)} />
-          <Input label="Prezzo (€)" type="number" value={addPrice} onChange={(e) => setAddPrice(e.target.value)} />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Prezzo (€)</label>
+            <input
+              type="text"
+              inputMode="decimal"
+              pattern="[0-9]+([.,][0-9]{1,2})?"
+              value={addPrice}
+              onChange={(e) => {
+                const value = e.target.value.replace(',', '.');
+                if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
+                  setAddPrice(value);
+                }
+              }}
+              placeholder="11.99"
+              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Immagine Prodotto</label>
             <PhotoUpload
               onUpload={handleImageUpload}
-              currentImageUrl={uploadedImageUrl || (editingProduct?.imageUrl)}
+              currentImageUrl={imageRemoved ? '' : (uploadedImageUrl || (editingProduct?.imageUrl || ''))}
               onRemove={handleRemoveImage}
               maxSize={5}
             />
@@ -843,10 +868,6 @@ export const Products: React.FC = () => {
             <div className="w-40">
               <Input label="Quantità" type="number" value={String(addStockQty)} onChange={(e) => setAddStockQty(parseInt(e.target.value) || 0)} />
             </div>
-            <label className="inline-flex items-center space-x-2">
-              <input type="checkbox" checked={addActive} onChange={(e) => setAddActive(e.target.checked)} />
-              <span>Attivo</span>
-            </label>
           </div>
           <div className="flex space-x-3 pt-2">
             <Button className="flex-1" onClick={async () => {
@@ -856,16 +877,18 @@ export const Products: React.FC = () => {
 
                 if (editingProduct) {
                   // UPDATE: Prodotto esistente
+                  // Se imageRemoved è true, usa stringa vuota, altrimenti usa uploadedImageUrl se presente, altrimenti l'immagine esistente
+                  const finalImageUrl = imageRemoved ? '' : (uploadedImageUrl || editingProduct.imageUrl);
                   const payload = convertUIToDatabase({
                     name: addName,
                     description: addDescription,
                     brand: addBrand,
                     price: Number(addPrice),
-                    imageUrl: uploadedImageUrl || editingProduct.imageUrl,
+                    imageUrl: finalImageUrl,
                     inStock: addInStock,
                     stockQuantity: addStockQty,
                   } as any);
-                  (payload as any).active = addActive;
+                  (payload as any).active = true; // Sempre attivo, gestito da inStock
                   const updated = await apiService.updateProduct(editingProduct.id, payload as any);
                   const ui = convertDatabaseToUI(updated as any);
                   setProducts(prev => prev.map(p => p.id === editingProduct.id ? ui : p));
@@ -883,7 +906,7 @@ export const Products: React.FC = () => {
                     inStock: addInStock,
                     stockQuantity: addStockQty,
                   } as any);
-                  (payload as any).active = addActive;
+                  (payload as any).active = true; // Sempre attivo, gestito da inStock
                   const created = await apiService.createProduct(payload as any);
                   const createdProduct = created as any;
                   
