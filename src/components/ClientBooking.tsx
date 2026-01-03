@@ -50,7 +50,7 @@ const formatDateDisplay = (date: Date): string => {
 };
 
 export const ClientBooking: React.FC = () => {
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { currentShop, currentShopId, isLoading: shopLoading } = useShop();
   const { getAvailableTimeSlots, isDateOpen, shopHoursLoaded } = useDailyShopHours();
   const [selectedDate, setSelectedDate] = useState('');
@@ -172,8 +172,24 @@ export const ClientBooking: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Verifica autenticazione
+    if (!isAuthenticated || !user) {
+      alert('Devi essere autenticato per prenotare un appuntamento. Vai al login.');
+      window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+      return;
+    }
+    
+    // Verifica token
+    const accessToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    if (!accessToken) {
+      alert('Token di autenticazione non trovato. Effettua il login di nuovo.');
+      window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+      return;
+    }
+    
     if (!clientId) {
       console.error('❌ Client ID non disponibile. Assicurati di essere autenticato.');
+      alert('Errore: Client ID non disponibile. Ricarica la pagina e riprova.');
       return;
     }
 
@@ -307,6 +323,47 @@ export const ClientBooking: React.FC = () => {
   };
 
   const isFormValid = shopHoursLoaded && selectedDate && selectedTime && selectedService && selectedBarber;
+
+  // Mostra messaggio se l'utente non è autenticato
+  if (!authLoading && !isAuthenticated) {
+    return (
+      <div className="space-y-8">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-900">Prenota Appuntamento</h1>
+          <p className="text-gray-600 mt-2">Scegli il servizio e prenota il tuo appuntamento</p>
+        </div>
+        <Card className="max-w-2xl mx-auto">
+          <div className="p-6 text-center">
+            <AlertCircle className="w-12 h-12 text-amber-600 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Autenticazione Richiesta</h2>
+            <p className="text-gray-600 mb-4">
+              Devi effettuare il login per prenotare un appuntamento.
+            </p>
+            <Button
+              onClick={() => {
+                // Reindirizza alla pagina di login mantenendo l'URL corrente per il redirect
+                window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+              }}
+            >
+              Vai al Login
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // Mostra loading se l'autenticazione è in corso
+  if (authLoading) {
+    return (
+      <div className="space-y-8">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-900">Prenota Appuntamento</h1>
+          <p className="text-gray-600 mt-2">Caricamento...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
