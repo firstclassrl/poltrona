@@ -890,3 +890,134 @@ body {
     background-color: color-mix(in srgb, var(--theme-accent) 10%, transparent);
   }
 }
+
+/* ============================================
+   AURORA THEME: Modern UI Style
+   ============================================ */
+
+/* Aurora: Card con angoli molto arrotondati e ombre sottili */
+[data-theme='aurora'] .aurora-card,
+[data-theme='aurora'] .surface-card,
+[data-theme='aurora'] .bg-white:not(.glass-sidebar-dark):not(.login-card-glass) {
+  border-radius: 1.5rem !important; /* rounded-2xl */
+  box-shadow: 0 4px 20px rgba(91, 124, 255, 0.08) !important;
+  border: 1px solid color-mix(in srgb, var(--theme-border) 20%, transparent) !important;
+  transition: all 0.2s ease !important;
+}
+
+[data-theme='aurora'] .aurora-card:hover,
+[data-theme='aurora'] .surface-card:hover {
+  box-shadow: 0 6px 24px rgba(91, 124, 255, 0.12) !important;
+  transform: translateY(-2px);
+}
+
+/* Aurora: Ombre più leggere e consistenti */
+[data-theme='aurora'] .shadow-lg,
+[data-theme='aurora'] .shadow-md {
+  box-shadow: 0 4px 20px rgba(91, 124, 255, 0.1) !important;
+}
+
+[data-theme='aurora'] .shadow-sm {
+  box-shadow: 0 2px 8px rgba(91, 124, 255, 0.06) !important;
+}
+
+/* Aurora: Bottoni con border-radius generoso */
+[data-theme='aurora'] .aurora-button,
+[data-theme='aurora'] button:not(.glass-sidebar-dark button) {
+  border-radius: 0.75rem !important; /* rounded-xl */
+  box-shadow: 0 2px 8px rgba(91, 124, 255, 0.1) !important;
+  transition: all 0.2s ease !important;
+}
+
+[data-theme='aurora'] .aurora-button:hover,
+[data-theme='aurora'] button:not(.glass-sidebar-dark button):hover {
+  box-shadow: 0 4px 12px rgba(91, 124, 255, 0.15) !important;
+  transform: translateY(-1px);
+}
+
+/* Aurora: Input con border-radius aumentato e ombre leggere */
+[data-theme='aurora'] .aurora-input,
+[data-theme='aurora'] input:not([type="checkbox"]):not([type="radio"]),
+[data-theme='aurora'] textarea,
+[data-theme='aurora'] select {
+  border-radius: 0.75rem !important; /* rounded-xl */
+  box-shadow: 0 2px 8px rgba(91, 124, 255, 0.05) !important;
+  border: 1px solid color-mix(in srgb, var(--theme-border) 40%, transparent) !important;
+  transition: all 0.2s ease !important;
+}
+
+[data-theme='aurora'] .aurora-input:focus,
+[data-theme='aurora'] input:not([type="checkbox"]):not([type="radio"]):focus,
+[data-theme='aurora'] textarea:focus,
+[data-theme='aurora'] select:focus {
+  box-shadow: 0 4px 12px rgba(91, 124, 255, 0.15) !important;
+  border-color: var(--theme-primary) !important;
+}
+
+/* Aurora: Badge con border-radius generoso */
+[data-theme='aurora'] .aurora-badge,
+[data-theme='aurora'] .rounded-full {
+  border-radius: 9999px !important;
+  box-shadow: 0 2px 6px rgba(91, 124, 255, 0.1) !important;
+}
+
+/* Aurora: Modal con border-radius aumentato e ombre morbide */
+[data-theme='aurora'] .aurora-modal {
+  border-radius: 1.5rem !important; /* rounded-2xl */
+  box-shadow: 0 20px 60px rgba(91, 124, 255, 0.15) !important;
+}
+
+[data-theme='aurora'] .aurora-modal + div {
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* Aurora: Avatar con ombre leggere */
+[data-theme='aurora'] .aurora-avatar {
+  box-shadow: 0 4px 12px rgba(91, 124, 255, 0.15) !important;
+}
+
+/* Aurora: Gradienti sottili per card KPI */
+[data-theme='aurora'] .kpi-card {
+  background: linear-gradient(135deg, var(--theme-surface) 0%, var(--theme-surface-alt) 100%) !important;
+  border-radius: 1.5rem !important;
+  box-shadow: 0 4px 20px rgba(91, 124, 255, 0.1) !important;
+}
+
+/* Aurora: Pattern a strisce diagonali per stati pending */
+[data-theme='aurora'] .pattern-diagonal {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(91, 124, 255, 0.03) 10px,
+    rgba(91, 124, 255, 0.03) 20px
+  ) !important;
+}
+
+/* Aurora: Miglioramenti generali per contenitori */
+[data-theme='aurora'] .rounded-xl {
+  border-radius: 1rem !important;
+}
+
+[data-theme='aurora'] .rounded-2xl {
+  border-radius: 1.5rem !important;
+}
+
+[data-theme='aurora'] .rounded-3xl {
+  border-radius: 2rem !important;
+}
+
+/* Aurora: List items e card di appuntamenti */
+[data-theme='aurora'] .dashboard-appointment-card {
+  border-radius: 1rem !important;
+  box-shadow: 0 2px 12px rgba(91, 124, 255, 0.08) !important;
+  border: 1px solid color-mix(in srgb, var(--theme-border) 20%, transparent) !important;
+  transition: all 0.2s ease !important;
+}
+
+[data-theme='aurora'] .dashboard-appointment-card:hover {
+  box-shadow: 0 4px 16px rgba(91, 124, 255, 0.12) !important;
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--theme-primary) 30%, transparent) !important;
+}

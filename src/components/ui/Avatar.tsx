@@ -60,7 +60,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   const sizeClass = sizeClasses[size];
 
   return (
-    <div className={`${sizeClass} ${colorClass} rounded-full flex items-center justify-center text-white font-semibold overflow-hidden ${className}`}>
+    <div className={`${sizeClass} ${colorClass} rounded-full flex items-center justify-center text-white font-semibold overflow-hidden aurora-avatar ${className}`}>
       {imageUrl ? (
         <img
           src={imageUrl}

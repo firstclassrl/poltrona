@@ -276,7 +276,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card 
-          className="cursor-pointer hover:scale-105 transition-transform bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl"
+          className="cursor-pointer hover:scale-105 transition-transform bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl kpi-card"
           onClick={onNavigateToCalendar}
         >
           <div className="flex items-center justify-between">
@@ -296,7 +296,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </Card>
 
         <Card 
-          className="cursor-pointer hover:scale-105 transition-transform bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl"
+          className="cursor-pointer hover:scale-105 transition-transform bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl kpi-card"
           onClick={onNavigateToCalendar}
         >
           <div className="flex items-center justify-between">
@@ -309,7 +309,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </Card>
 
         <Card 
-          className="cursor-pointer hover:scale-105 transition-transform bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl"
+          className="cursor-pointer hover:scale-105 transition-transform bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl kpi-card"
           onClick={() => setShowNoShowModal(true)}
         >
           <div className="flex items-center justify-between">

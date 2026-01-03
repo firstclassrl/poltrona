@@ -19,7 +19,7 @@ export const Badge: React.FC<BadgeProps> = ({ children, variant = 'default', cla
   return (
     <span
       className={cn(
-        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border',
+        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border aurora-badge',
         variantClasses[variant],
         className
       )}

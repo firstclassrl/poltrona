@@ -12,6 +12,7 @@ export const Card: React.FC<CardProps> = ({ children, className, onClick }) => {
     <div
       className={cn(
         'bg-white border border-gray-200 rounded-xl p-6 shadow-lg transition-all duration-200 hover:shadow-xl',
+        'aurora-card',
         onClick && 'cursor-pointer',
         className
       )}
