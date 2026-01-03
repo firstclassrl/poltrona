@@ -641,11 +641,48 @@ export const apiService = {
         email: user.email || null,
       };
 
+      // Verifica che il token sia valido prima di procedere
+      const tokenToUse = options?.accessToken || localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      if (!tokenToUse) {
+        throw new Error('Unauthorized: token di autenticazione mancante');
+      }
+
+      // Verifica che il token sia valido chiamando l'endpoint auth
+      try {
+        const verifyResponse = await fetch(`${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/user`, {
+          headers: {
+            'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${tokenToUse}`,
+          }
+        });
+        
+        if (!verifyResponse.ok) {
+          console.error('❌ Token non valido:', verifyResponse.status);
+          // Prova a fare refresh del token
+          const refreshed = await tryRefreshToken();
+          if (!refreshed) {
+            throw new Error('Unauthorized: token non valido e refresh fallito. Effettua il login di nuovo.');
+          }
+          // Se il refresh ha funzionato, usa il nuovo token
+          const newToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+          if (newToken) {
+            console.log('✅ Token aggiornato dopo refresh');
+          }
+        } else {
+          const userData = await verifyResponse.json();
+          console.log('✅ Token valido per utente:', userData.email);
+        }
+      } catch (verifyError) {
+        console.warn('⚠️ Errore verifica token:', verifyError);
+        // Continua comunque, potrebbe essere un problema temporaneo
+      }
+
       const headers = buildHeaders(true, options?.accessToken);
       console.log('🔐 Creating client with headers:', {
         hasAuth: !!headers.Authorization,
         authPrefix: headers.Authorization?.substring(0, 20) + '...',
         hasToken: !!options?.accessToken,
+        tokenFromStorage: !!(localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')),
       });
 
       const createResponse = await fetch(API_ENDPOINTS.SEARCH_CLIENTS, {

@@ -324,8 +324,14 @@ export const ClientBooking: React.FC = () => {
 
   const isFormValid = shopHoursLoaded && selectedDate && selectedTime && selectedService && selectedBarber;
 
-  // Mostra messaggio se l'utente non è autenticato
-  if (!authLoading && !isAuthenticated) {
+  // Verifica anche direttamente il token per essere sicuri
+  const hasToken = typeof window !== 'undefined' && (
+    localStorage.getItem('auth_token') || 
+    sessionStorage.getItem('auth_token')
+  );
+
+  // Mostra messaggio se l'utente non è autenticato O se non c'è token
+  if ((!authLoading && !isAuthenticated) || (!authLoading && !hasToken && !user)) {
     return (
       <div className="space-y-8">
         <div className="text-center">
