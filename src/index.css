@@ -443,12 +443,20 @@ body {
 }
 
 /* Aurora: barre bianche - FORZA VISIBILITÀ */
-[data-theme='aurora'] .theme-separator-top,
-[data-theme='aurora'] .theme-separator-bottom {
+[data-theme='aurora'] .theme-separator-top {
   display: block !important;
   visibility: visible !important;
   border-top-color: #ffffff !important;
   opacity: 0.8 !important;
+  border-top-width: 3px !important; /* Triplicato da 1px a 3px */
+  height: 3px !important;
+  margin: 0.75rem 0 !important;
+}
+
+/* Rimuovi il separatore bottom per Aurora */
+[data-theme='aurora'] .theme-separator-bottom {
+  display: none !important;
+  visibility: hidden !important;
 }
 
 /* Sunset Neon: barre bianche - FORZA VISIBILITÀ */
@@ -1451,11 +1459,18 @@ body {
 }
 
 /* Aurora: Separatori più sottili e moderni */
-[data-theme='aurora'] .theme-separator-top,
-[data-theme='aurora'] .theme-separator-bottom {
+[data-theme='aurora'] .theme-separator-top {
   border-top-color: rgba(255, 255, 255, 0.1) !important;
   opacity: 0.5 !important;
   margin: 0.75rem 0 !important;
+  border-top-width: 3px !important; /* Triplicato da 1px a 3px */
+  height: 3px !important;
+}
+
+/* Rimuovi il separatore bottom per Aurora */
+[data-theme='aurora'] .theme-separator-bottom {
+  display: none !important;
+  visibility: hidden !important;
 }
 
 /* Aurora: User info section con stile moderno */

@@ -253,8 +253,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
               </div>
             )}
             
-            {/* Separator Line Above User Info - per tutti i temi */}
-            <div className="mx-4 mt-4 mb-4 theme-separator-bottom"></div>
+            {/* Separator Line Above User Info - per tutti i temi - RIMOSSA per Aurora */}
             
             {/* User Info and Logout */}
             <div className="mt-auto px-4 pb-4">
