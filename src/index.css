@@ -1210,19 +1210,17 @@ body {
 }
 
 /* Aurora: Main content area senza sfondo bianco - gradiente sempre visibile */
-[data-theme='aurora'] .md\:pl-64 {
+[data-theme='aurora'] .md\:ml-64 {
   background: linear-gradient(135deg, #f7fbff 0%, #c8e4ff 40%, #c7c5ff 100%) !important;
   background-attachment: fixed !important;
   position: relative !important;
   min-height: auto !important;
   display: block !important;
-  width: 100% !important;
+  width: calc(100% - 16rem) !important; /* 100% - 64 (sidebar width) */
   margin: 0 !important;
   margin-top: 0 !important;
   padding: 0 !important;
   padding-top: 0 !important;
-  /* NON rimuovere padding-left! È necessario per posizionare il contenuto accanto alla sidebar */
-  /* Ma il padding-left viene gestito dalla classe Tailwind md:pl-64, non qui */
   top: 0 !important;
 }
 

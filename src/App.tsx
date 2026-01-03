@@ -242,7 +242,7 @@ const AppContent: React.FC = () => {
 
       {/* Banner aggiornamento versione */}
       {isUpdateAvailable && (
-        <div className="md:pl-64">
+        <div className="md:ml-64">
           <div className="bg-yellow-500 text-black px-4 py-2 text-sm flex items-center justify-between shadow-md">
             <span>
               È disponibile una nuova versione di Poltrona
@@ -263,7 +263,7 @@ const AppContent: React.FC = () => {
       )}
 
       {/* Main Content */}
-      <div className="md:pl-64 pb-20 md:pb-0">
+      <div className="md:ml-64 pb-20 md:pb-0">
         <main className="text-[var(--theme-text)]">
           {renderActiveTab()}
         </main>
