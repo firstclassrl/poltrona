@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { User, Scissors, Check, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Calendar, X } from 'lucide-react';
+import { User, Scissors, Check, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Calendar, X, AlertCircle } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Modal } from './ui/Modal';
 import { ProductUpsell } from './ProductUpsell';
@@ -26,7 +26,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   const { getAvailableTimeSlots, isDateOpen, shopHoursLoaded } = useDailyShopHours();
   const { availableStaff } = useChairAssignment();
   const { refreshUnreadCount } = useNotifications();
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { currentShop, currentShopId, isLoading: shopLoading } = useShop();
   const { getUserProfile } = useUserProfile();
   const { appointments, createAppointment } = useAppointments();
@@ -403,7 +403,18 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       const service = services.find(s => s.id === selectedService);
       const barber = staff.find(b => b.id === selectedBarber);
       
-      if (!selectedDate || !selectedTime || !selectedService || !selectedBarber || !user) {
+      // Verifica autenticazione
+      if (!isAuthenticated || !user) {
+        throw new Error('Devi essere autenticato per prenotare un appuntamento. Vai al login.');
+      }
+
+      // Verifica token
+      const accessToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      if (!accessToken) {
+        throw new Error('Token di autenticazione mancante. Effettua il login di nuovo.');
+      }
+
+      if (!selectedDate || !selectedTime || !selectedService || !selectedBarber) {
         throw new Error('Dati mancanti per la prenotazione');
       }
       
@@ -632,6 +643,51 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
            date.getMonth() === today.getMonth() &&
            date.getFullYear() === today.getFullYear();
   };
+
+  // Verifica anche direttamente il token per essere sicuri
+  const hasToken = typeof window !== 'undefined' && (
+    localStorage.getItem('auth_token') || 
+    sessionStorage.getItem('auth_token')
+  );
+
+  // Mostra messaggio se l'utente non è autenticato O se non c'è token
+  if ((!authLoading && !isAuthenticated) || (!authLoading && !hasToken && !user)) {
+    return (
+      <div className="space-y-8 rounded-3xl p-6 md:p-10" style={{ background: 'var(--theme-page-gradient)' }}>
+        <div className="text-center mb-6 md:mb-10 glass-panel">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Prenota Appuntamento</h1>
+        </div>
+        <div className="glass-panel max-w-2xl mx-auto">
+          <div className="p-6 text-center">
+            <AlertCircle className="w-12 h-12 text-amber-600 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Autenticazione Richiesta</h2>
+            <p className="text-gray-600 mb-4">
+              Devi effettuare il login per prenotare un appuntamento.
+            </p>
+            <Button
+              onClick={() => {
+                window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+              }}
+            >
+              Vai al Login
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Mostra loading se l'autenticazione è in corso
+  if (authLoading) {
+    return (
+      <div className="space-y-8 rounded-3xl p-6 md:p-10" style={{ background: 'var(--theme-page-gradient)' }}>
+        <div className="text-center mb-6 md:mb-10 glass-panel">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Prenota Appuntamento</h1>
+          <p className="text-gray-600">Caricamento...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Get user profile for welcome message
   const userProfile = user ? getUserProfile(user) : null;
