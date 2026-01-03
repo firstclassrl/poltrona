@@ -261,9 +261,9 @@ export const Chat: React.FC = () => {
 
   const isClient = user?.role === 'client';
   return (
-    <div className="min-h-screen p-0" style={{ background: 'var(--theme-page-gradient)' }}>
+    <div className="min-h-screen p-0 page-container-chat-style">
       <div className="w-full h-full rounded-3xl p-4 md:p-6">
-      <div className="h-full flex flex-col bg-white/60 backdrop-blur-2xl border border-white/30 shadow-2xl rounded-2xl">
+      <div className="h-full flex flex-col page-card-chat-style">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div className="flex items-center space-x-3">

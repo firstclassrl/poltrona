@@ -112,11 +112,11 @@ export const ClientShop = () => {
 
   return (
     <div
-      className="space-y-6 max-w-4xl mx-auto rounded-3xl p-6 md:p-10"
-      style={{
-        background: 'var(--theme-page-gradient)',
-      }}
+      className="min-h-screen p-0 page-container-chat-style"
     >
+      <div className="w-full h-full rounded-3xl p-4 md:p-6">
+      <div className="h-full flex flex-col page-card-chat-style p-6">
+      <div className="space-y-6 max-w-4xl mx-auto">
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold text-gray-900 mb-2">Il tuo Barbiere</h1>
@@ -323,6 +323,9 @@ export const ClientShop = () => {
           </div>
         </Card>
       )}
+      </div>
+      </div>
+      </div>
     </div>
   );
 };

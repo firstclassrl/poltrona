@@ -367,11 +367,11 @@ export const ClientProfile: React.FC = () => {
 
   return (
     <div
-      className="space-y-8 rounded-3xl p-6 md:p-10"
-      style={{
-        background: 'var(--theme-page-gradient)',
-      }}
+      className="min-h-screen p-0 page-container-chat-style"
     >
+      <div className="w-full h-full rounded-3xl p-4 md:p-6">
+      <div className="h-full flex flex-col page-card-chat-style p-6">
+      <div className="space-y-8">
       <div className="flex items-center justify-between glass-panel pb-2">
         <h1 className="text-3xl font-bold text-gray-900">Il Mio Profilo</h1>
         {!isEditing ? (
@@ -736,6 +736,9 @@ export const ClientProfile: React.FC = () => {
           </div>
         </div>
       )}
+      </div>
+      </div>
+      </div>
     </div>
   );
 };

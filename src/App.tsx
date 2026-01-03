@@ -263,8 +263,8 @@ const AppContent: React.FC = () => {
       )}
 
       {/* Main Content */}
-      <div className="md:pl-64 pb-20 md:pb-0 bg-[var(--theme-background)]">
-        <main className="p-6 max-w-7xl mx-auto bg-[var(--theme-surface)] text-[var(--theme-text)] min-h-screen">
+      <div className="md:pl-64 pb-20 md:pb-0">
+        <main className="p-6 max-w-7xl mx-auto text-[var(--theme-text)] min-h-screen">
           {renderActiveTab()}
         </main>
       </div>

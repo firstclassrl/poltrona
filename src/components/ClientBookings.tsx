@@ -502,11 +502,11 @@ export const ClientBookings: React.FC = () => {
 
   return (
     <div
-      className="space-y-8 rounded-3xl p-6 md:p-10"
-      style={{
-        background: 'var(--theme-page-gradient)',
-      }}
+      className="min-h-screen p-0 page-container-chat-style"
     >
+      <div className="w-full h-full rounded-3xl p-4 md:p-6">
+      <div className="h-full flex flex-col page-card-chat-style p-6">
+      <div className="space-y-8">
       <div className="text-center glass-panel pb-2">
         <h1 className="text-3xl font-bold text-gray-900">Le Mie Prenotazioni</h1>
         <p className="text-gray-700 mt-2">Gestisci e controlla i tuoi appuntamenti</p>
@@ -736,6 +736,9 @@ export const ClientBookings: React.FC = () => {
           setMessage({ type: 'success', text: 'Prenotazione anticipata con successo.' });
         }}
       />
+      </div>
+      </div>
+      </div>
     </div>
   );
 };

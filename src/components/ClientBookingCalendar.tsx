@@ -653,7 +653,10 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   // Mostra messaggio se l'utente non è autenticato O se non c'è token
   if ((!authLoading && !isAuthenticated) || (!authLoading && !hasToken && !user)) {
     return (
-      <div className="space-y-8 rounded-3xl p-6 md:p-10" style={{ background: 'var(--theme-page-gradient)' }}>
+      <div className="min-h-screen p-0 page-container-chat-style">
+      <div className="w-full h-full rounded-3xl p-4 md:p-6">
+      <div className="h-full flex flex-col page-card-chat-style p-6">
+      <div className="space-y-8">
         <div className="text-center mb-6 md:mb-10 glass-panel">
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Prenota Appuntamento</h1>
         </div>
@@ -674,16 +677,25 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
           </div>
         </div>
       </div>
+      </div>
+      </div>
+    </div>
     );
   }
 
   // Mostra loading se l'autenticazione è in corso
   if (authLoading) {
     return (
-      <div className="space-y-8 rounded-3xl p-6 md:p-10" style={{ background: 'var(--theme-page-gradient)' }}>
-        <div className="text-center mb-6 md:mb-10 glass-panel">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Prenota Appuntamento</h1>
-          <p className="text-gray-600">Caricamento...</p>
+      <div className="min-h-screen p-0 page-container-chat-style">
+        <div className="w-full h-full rounded-3xl p-4 md:p-6">
+        <div className="h-full flex flex-col page-card-chat-style p-6">
+        <div className="space-y-8">
+          <div className="text-center mb-6 md:mb-10 glass-panel">
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Prenota Appuntamento</h1>
+            <p className="text-gray-600">Caricamento...</p>
+          </div>
+        </div>
+        </div>
         </div>
       </div>
     );
@@ -694,12 +706,10 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   const userName = userProfile?.full_name || user?.full_name || 'Cliente';
 
   return (
-    <div
-      className="space-y-8 rounded-3xl p-6 md:p-10"
-      style={{
-        background: 'var(--theme-page-gradient)',
-      }}
-    >
+    <div className="min-h-screen p-0 page-container-chat-style">
+      <div className="w-full h-full rounded-3xl p-4 md:p-6">
+      <div className="h-full flex flex-col page-card-chat-style p-6">
+      <div className="space-y-8">
       {/* Welcome Section */}
       <div className="text-center mb-6 md:mb-10 glass-panel">
         <div className="mb-3">
@@ -1091,6 +1101,9 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
           isSubmitting={isSubmitting}
         />
       )}
+      </div>
+      </div>
+      </div>
     </div>
   );
 };

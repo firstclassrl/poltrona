@@ -380,7 +380,10 @@ export const ShopManagement = () => {
   const isAdmin = user?.role === 'admin';
 
   return (
-    <div className="space-y-4 max-w-7xl mx-auto">
+    <div className="min-h-screen p-0 page-container-chat-style">
+      <div className="w-full h-full rounded-3xl p-4 md:p-6">
+      <div className="h-full flex flex-col page-card-chat-style p-6">
+      <div className="space-y-4 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold text-gray-900">
           {isClient ? 'Informazioni Negozio' : 'Gestione Negozio'}
@@ -867,6 +870,9 @@ export const ShopManagement = () => {
           </div>
         </Card>
       )}
+      </div>
+      </div>
+      </div>
     </div>
   );
 };

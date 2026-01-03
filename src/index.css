@@ -32,6 +32,19 @@ body {
   color: var(--theme-text);
 }
 
+/* Aurora: Gradiente a tutto schermo sempre presente */
+[data-theme='aurora'] body,
+[data-theme='aurora'] html {
+  background: linear-gradient(135deg, #f7fbff 0%, #c8e4ff 40%, #c7c5ff 100%) !important;
+  background-attachment: fixed !important;
+  min-height: 100vh !important;
+}
+
+[data-theme='aurora'] .app-theme-bg {
+  background: linear-gradient(135deg, #f7fbff 0%, #c8e4ff 40%, #c7c5ff 100%) !important;
+  color: var(--theme-text);
+}
+
 .app-theme-bg {
   background: var(--theme-page-gradient);
   color: var(--theme-text);
@@ -1030,7 +1043,7 @@ body {
 [data-theme='aurora'] .page-container-chat-style {
   min-height: 100vh;
   padding: 0;
-  background: var(--theme-page-gradient);
+  background: linear-gradient(135deg, #f7fbff 0%, #c8e4ff 40%, #c7c5ff 100%) !important;
 }
 
 [data-theme='aurora'] .page-container-chat-style > div:first-child {
@@ -1056,6 +1069,85 @@ body {
   border-radius: 1rem !important; /* rounded-2xl */
 }
 
+/* Aurora: Rimuovi tutti gli sfondi bianchi e applica gradiente ovunque */
+[data-theme='aurora'] body,
+[data-theme='aurora'] html,
+[data-theme='aurora'] #root {
+  background: linear-gradient(135deg, #f7fbff 0%, #c8e4ff 40%, #c7c5ff 100%) !important;
+  background-attachment: fixed !important;
+  min-height: 100vh !important;
+}
+
+[data-theme='aurora'] .min-h-screen:not(.page-container-chat-style) {
+  background: transparent !important;
+}
+
+/* Aurora: Main content area senza sfondo bianco - gradiente sempre visibile */
+[data-theme='aurora'] .md\:pl-64 {
+  background: linear-gradient(135deg, #f7fbff 0%, #c8e4ff 40%, #c7c5ff 100%) !important;
+  background-attachment: fixed !important;
+  min-height: 100vh !important;
+}
+
+/* Aurora: Assicura che il gradiente sia visibile anche sotto la sidebar - fix per sidebar */
+[data-theme='aurora'] .hidden.md\:flex.md\:w-64 {
+  background: transparent !important;
+}
+
+/* Aurora: Il gradiente deve essere sempre visibile anche dietro la sidebar */
+[data-theme='aurora'] .hidden.md\:flex.md\:w-64::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #f7fbff 0%, #c8e4ff 40%, #c7c5ff 100%);
+  z-index: -1;
+  background-attachment: fixed;
+}
+
+[data-theme='aurora'] main {
+  background: transparent !important;
+}
+
+/* Aurora: Assicura che il gradiente sia visibile anche sotto la sidebar */
+[data-theme='aurora'] .hidden.md\:flex {
+  position: relative;
+  z-index: 10;
+}
+
+/* Aurora: Rimuovi sfondi bianchi da tutti i contenitori */
+[data-theme='aurora'] .bg-\[var\(--theme-background\)\] {
+  background: transparent !important;
+}
+
+[data-theme='aurora'] .bg-\[var\(--theme-surface\)\] {
+  background: transparent !important;
+}
+
+/* Aurora: Rimuovi sfondi bianchi da elementi comuni */
+[data-theme='aurora'] .bg-white:not(.page-card-chat-style):not(.aurora-card):not(.glass-panel):not(.login-card-glass) {
+  background: rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(40px) !important;
+  -webkit-backdrop-filter: blur(40px) !important;
+}
+
+/* Aurora: Rimuovi sfondi bianchi da contenitori principali */
+[data-theme='aurora'] .bg-white:not(.page-card-chat-style):not(.aurora-card):not(.glass-panel):not(.login-card-glass):not(.aurora-sidebar) {
+  background: rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(40px) !important;
+  -webkit-backdrop-filter: blur(40px) !important;
+}
+
+/* Aurora: Assicura che il gradiente sia sempre visibile - override per elementi specifici */
+[data-theme='aurora'] .page-container-chat-style,
+[data-theme='aurora'] .page-card-chat-style,
+[data-theme='aurora'] .aurora-card,
+[data-theme='aurora'] .glass-panel,
+[data-theme='aurora'] .aurora-sidebar,
+[data-theme='aurora'] .login-card-glass {
+  background-color: initial !important;
+  background-image: initial !important;
+}
+
 /* Aurora: Override per tutte le card nelle pagine */
 [data-theme='aurora'] .page-card-chat-style .aurora-card,
 [data-theme='aurora'] .page-card-chat-style .bg-white,
@@ -1072,7 +1164,7 @@ body {
    AURORA THEME: Sidebar Modern Style (Pill-shaped)
    ============================================ */
 
-/* Aurora: Sidebar principale con angoli molto arrotondati e ombre sottili */
+/* Aurora: Sidebar principale con angoli molto arrotondati e ombre sottili - semi-trasparente per vedere gradiente */
 [data-theme='aurora'] .aurora-sidebar.glass-sidebar-dark {
   border-top-right-radius: 2rem !important; /* rounded-3xl */
   border-bottom-right-radius: 2rem !important; /* rounded-3xl */
@@ -1082,6 +1174,8 @@ body {
   backdrop-filter: blur(30px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(30px) saturate(180%) !important;
   margin: 1rem 0 1rem 1rem !important;
+  background: rgba(91, 124, 255, 0.12) !important; /* Semi-trasparente per vedere il gradiente sotto */
+  border: 1px solid rgba(91, 124, 255, 0.2) !important;
 }
 
 /* Aurora: Logo container con padding generoso */

@@ -611,24 +611,33 @@ export const Settings = () => {
 
   if (user?.role !== 'admin') {
     return (
-      <div className="space-y-4 max-w-7xl mx-auto">
-        <Card>
-          <div className="p-4 text-center">
-            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <SettingsIcon className="w-6 h-6 text-gray-400" />
+      <div className="min-h-screen p-0 page-container-chat-style">
+        <div className="w-full h-full rounded-3xl p-4 md:p-6">
+        <div className="h-full flex flex-col page-card-chat-style p-6">
+        <div className="space-y-4 max-w-7xl mx-auto">
+          <Card>
+            <div className="p-4 text-center">
+              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <SettingsIcon className="w-6 h-6 text-gray-400" />
+              </div>
+              <h3 className="text-base font-semibold text-gray-900 mb-1">Opzioni</h3>
+              <p className="text-sm text-gray-600">
+                Solo l'amministratore può accedere alle opzioni.
+              </p>
             </div>
-            <h3 className="text-base font-semibold text-gray-900 mb-1">Opzioni</h3>
-            <p className="text-sm text-gray-600">
-              Solo l'amministratore può accedere alle opzioni.
-            </p>
-          </div>
-        </Card>
+          </Card>
+        </div>
+        </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="min-h-screen p-0 page-container-chat-style">
+      <div className="w-full h-full rounded-3xl p-4 md:p-6">
+      <div className="h-full flex flex-col page-card-chat-style p-6">
+      <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
           <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-green-900">
@@ -1593,6 +1602,9 @@ export const Settings = () => {
           </Button>
         </div>
       </Modal>
+      </div>
+      </div>
+      </div>
     </div>
   );
 };
