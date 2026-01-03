@@ -160,6 +160,12 @@ const buildHeaders = (authRequired: boolean = false, overrideToken?: string) => 
 
 const DEFAULT_SHOP_SLUG = 'retro-barbershop';
 
+// Helper per ottenere il token di autenticazione da localStorage o sessionStorage
+const getAuthToken = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+};
+
 const getStoredShopId = (): string | null => {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem('current_shop_id');
@@ -1697,7 +1703,7 @@ export const apiService = {
   // Upload profilo cliente su bucket privato e restituisce path + signed URL
   async uploadProfilePhotoSecure(file: File, userId: string): Promise<{ path: string; signedUrl: string }> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    const accessToken = localStorage.getItem('auth_token');
+    const accessToken = getAuthToken();
     if (!accessToken) throw new Error('Token non trovato. Effettua di nuovo il login.');
 
     const bucket = 'profile-photos-private';
@@ -1765,7 +1771,7 @@ export const apiService = {
 
   async getSignedProfilePhotoUrl(path: string): Promise<string> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    const accessToken = localStorage.getItem('auth_token');
+    const accessToken = getAuthToken();
     if (!accessToken) throw new Error('Token non trovato. Effettua di nuovo il login.');
     const bucket = 'profile-photos-private';
     const signUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/sign/${bucket}/${path}`;
@@ -1789,7 +1795,7 @@ export const apiService = {
   // Upload foto cliente su bucket pubblico in lettura (client-photos) con path deterministico clients/<userId>/profile.ext
   async uploadClientPhotoPublic(file: File, userId: string): Promise<{ path: string; publicUrl: string }> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    const accessToken = localStorage.getItem('auth_token');
+    const accessToken = getAuthToken();
     if (!accessToken) throw new Error('Token non trovato. Effettua di nuovo il login.');
 
     const bucket = 'client-photos';
@@ -1844,7 +1850,7 @@ export const apiService = {
   // Upload foto staff in bucket pubblico in lettura (staff-photos) con path deterministico staff/<staffId>/profile.ext
   async uploadStaffPhotoPublic(file: File, staffId: string): Promise<{ path: string; publicUrl: string }> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    const accessToken = localStorage.getItem('auth_token');
+    const accessToken = getAuthToken();
     if (!accessToken) throw new Error('Token non trovato. Effettua di nuovo il login.');
 
     const bucket = 'staff-photos';
@@ -1946,10 +1952,7 @@ export const apiService = {
   // Upload foto prodotto in bucket pubblico (product-photos) con path shops/{shopId}/products/{productId}/image.ext
   async uploadProductPhotoPublic(file: File, shopId: string, productId: string): Promise<{ path: string; publicUrl: string }> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    let accessToken: string | null = null;
-    if (typeof window !== 'undefined') {
-      accessToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-    }
+    const accessToken = getAuthToken();
     if (!accessToken) throw new Error('Token non trovato. Effettua di nuovo il login.');
 
     const bucket = 'product-photos';
@@ -2000,7 +2003,7 @@ export const apiService = {
   // Upload logo negozio (bucket protetto, accesso autenticato)
   async uploadShopLogo(file: File, shopId: string): Promise<{ path: string; signedUrl: string }> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    const accessToken = localStorage.getItem('auth_token');
+    const accessToken = getAuthToken();
     if (!accessToken) throw new Error('Token non trovato. Effettua di nuovo il login.');
 
     const bucket = 'shop-logos';
@@ -2067,7 +2070,7 @@ export const apiService = {
 
   async getSignedShopLogoUrl(path: string): Promise<string> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    const accessToken = localStorage.getItem('auth_token');
+    const accessToken = getAuthToken();
     if (!accessToken) throw new Error('Token non trovato. Effettua di nuovo il login.');
 
     const bucket = 'shop-logos';

@@ -116,12 +116,12 @@ export const ClientProducts: React.FC<ClientProductsProps> = ({ onNavigateToBook
           <Card key={product.id} className="overflow-hidden hover:shadow-2xl transition-shadow bg-white/70 backdrop-blur-xl border border-white/30">
             <div className="relative">
               {/* Product Image */}
-              <div className="w-full h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
+              <div className="w-full h-72 bg-gray-100 flex items-center justify-center overflow-hidden">
                 {product.image_url ? (
                   <img
                     src={product.image_url}
                     alt={product.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain p-4"
                   />
                 ) : (
                   <Package className="w-16 h-16 text-gray-400" />
