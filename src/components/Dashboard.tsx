@@ -178,59 +178,38 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       {/* Mobile Optimized View */}
       {isMobile && (
-        <div className="md:hidden space-y-4">
-          {/* Quick Actions */}
-          <div className="grid grid-cols-2 gap-3">
-            <Button 
-              variant="secondary" 
-              onClick={onNavigateToCalendar}
-              className="flex items-center justify-center py-4 touch-target"
-              aria-label="Vai al calendario"
-            >
-              <Calendar className="w-5 h-5 mr-2" aria-hidden="true" />
-              <span>Calendario</span>
-            </Button>
-            <Button 
-              variant="secondary" 
-              onClick={onNavigateToClients || (() => {})}
-              className="flex items-center justify-center py-4 touch-target"
-              aria-label="Vai ai clienti"
-            >
-              <Users className="w-5 h-5 mr-2" aria-hidden="true" />
-              <span>Clienti</span>
-            </Button>
-          </div>
-
+        <div className="md:hidden space-y-5">
           {/* Today's Summary */}
           <Card className="p-4 bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Oggi</h3>
-              <Clock className="w-5 h-5 text-gray-500" />
+              <Clock className="w-5 h-5 text-gray-500" aria-hidden="true" />
             </div>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Appuntamenti:</span>
-                  <span className="font-semibold">{todayActiveAppointments.length}</span>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 text-sm">Appuntamenti:</span>
+                <span className="font-semibold text-gray-900 text-base">{todayActiveAppointments.length}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Completati:</span>
-                  <span className="font-semibold text-green-600">{todayCompletedAppointments.length}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 text-sm">Completati:</span>
+                <span className="font-semibold text-green-600 text-base">{todayCompletedAppointments.length}</span>
               </div>
             </div>
           </Card>
 
           {/* Upcoming Appointments - Mobile */}
           <div>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Prossimi Appuntamenti</h3>
               <Button 
                 variant="ghost" 
                 size="sm"
                 onClick={onNavigateToCalendar}
-                className="flex items-center"
+                className="flex items-center touch-target"
+                aria-label="Vedi tutti gli appuntamenti"
               >
                 <span className="text-sm">Vedi tutto</span>
-                <ChevronRight className="w-4 h-4 ml-1" />
+                <ChevronRight className="w-4 h-4 ml-1" aria-hidden="true" />
               </Button>
             </div>
             <div className="space-y-3">
@@ -240,7 +219,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   role="button"
                   tabIndex={0}
                   aria-label={`Appuntamento con ${getAppointmentClientLabel(appointment)} alle ${formatTime(appointment.start_at)}`}
-                  className="dashboard-appointment-card p-3 cursor-pointer transition-colors bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl hover:border-green-100 touch-target focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="dashboard-appointment-card min-h-[80px] p-4 cursor-pointer transition-colors bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl hover:border-green-100 touch-target focus:outline-none focus:ring-2 focus:ring-green-500"
                   onClick={() => handleAppointmentClick(appointment)}
                   onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
                     if (e.key === 'Enter' || e.key === ' ') {
@@ -249,25 +228,23 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     }
                   }}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                          <span className="text-white font-semibold text-xs">
-                            {getAppointmentClientInitials(appointment)}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900 text-sm">
-                            {getAppointmentClientLabel(appointment)}
-                          </p>
-                          <p className="text-xs text-gray-600">
-                            {formatTime(appointment.start_at)} - {appointment.services?.name}
-                          </p>
-                        </div>
+                  <div className="flex items-center justify-between h-full">
+                    <div className="flex items-center space-x-3 flex-1 min-w-0">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-white font-semibold text-xs">
+                          {getAppointmentClientInitials(appointment)}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 text-sm leading-tight mb-1 truncate">
+                          {getAppointmentClientLabel(appointment)}
+                        </p>
+                        <p className="text-xs text-gray-600 leading-tight truncate">
+                          {formatTime(appointment.start_at)} - {appointment.services?.name || 'Servizio'}
+                        </p>
                       </div>
                     </div>
-                    <div className="text-right">
+                    <div className="ml-3 flex-shrink-0">
                       {getStatusBadge(appointment.status || 'scheduled')}
                     </div>
                   </div>

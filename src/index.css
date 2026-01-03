@@ -1135,7 +1135,7 @@ body {
 [data-theme='aurora'] .page-container-chat-style {
   padding: 0 !important;
   padding-top: 0 !important;
-  background: linear-gradient(135deg, #f7fbff 0%, #c8e4ff 40%, #c7c5ff 100%) !important;
+  background: transparent !important; /* Rimosso gradiente - è già sul parent */
   width: 100% !important;
   display: block !important;
   position: relative !important;
@@ -1216,12 +1216,19 @@ body {
   position: relative !important;
   min-height: auto !important;
   display: block !important;
-  width: calc(100% - 16rem) !important; /* 100% - 64 (sidebar width) */
-  margin: 0 !important;
   margin-top: 0 !important;
   padding: 0 !important;
   padding-top: 0 !important;
   top: 0 !important;
+  /* Assicura che il margin-left sia applicato correttamente */
+  margin-left: 16rem !important; /* 64 * 0.25rem = 16rem */
+}
+
+/* Assicura che su desktop il contenuto sia spostato a destra della sidebar */
+@media (min-width: 768px) {
+  [data-theme='aurora'] .md\:ml-64 {
+    margin-left: 16rem !important; /* Forza margin-left su desktop */
+  }
 }
 
 /* Aurora: Assicura che il gradiente sia visibile anche sotto la sidebar - fix per sidebar */
@@ -1241,15 +1248,14 @@ body {
 
 [data-theme='aurora'] main {
   background: transparent !important;
-  padding: 0 !important;
-  padding-top: 0 !important;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-  padding-bottom: 0 !important;
+  padding: 1.5rem !important;
+  padding-top: 1.5rem !important;
   margin: 0 !important;
   margin-top: 0 !important;
   position: relative !important;
   top: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
 /* Aurora: Assicura che il gradiente sia visibile anche sotto la sidebar */
