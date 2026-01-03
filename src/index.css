@@ -1177,8 +1177,9 @@ body {
   bottom: auto !important;
   visibility: visible !important;
   opacity: 1 !important;
-  margin: 0 !important;
+  margin: 0 auto !important; /* Centrato su mobile */
   margin-top: 0 !important;
+  max-width: 100% !important;
 }
 
 @media (min-width: 768px) {
@@ -1257,7 +1258,8 @@ body {
   flex-direction: column !important;
   margin: 0 !important;
   margin-top: 0 !important;
-  margin-left: 16rem !important; /* 64 * 0.25rem = 16rem */
+  /* Su mobile: nessun margin-left, contenuto centrato */
+  margin-left: 0 !important;
   padding: 0 !important;
   padding-top: 0 !important;
   top: 0 !important;
