@@ -135,14 +135,14 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
     <>
       {/* Desktop Sidebar */}
       <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
-        <div className="flex-1 flex flex-col min-h-0 glass-sidebar-dark">
+        <div className="flex-1 flex flex-col min-h-0 glass-sidebar-dark aurora-sidebar">
           <div className="flex-1 flex flex-col pt-3 pb-4 overflow-y-auto">
             {/* Logo Section */}
-            <div className="flex items-center justify-center flex-shrink-0 px-4 mb-6">
+            <div className="flex items-center justify-center flex-shrink-0 px-4 mb-6 aurora-logo-container">
               <img 
                 src={shopLogoUrl || DEFAULT_LOGO} 
                 alt="Logo negozio" 
-                className="w-32 h-32 object-contain filter brightness-110"
+                className="w-32 h-32 object-contain filter brightness-110 aurora-logo"
               />
             </div>
             
@@ -163,7 +163,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                     key={item.id}
                     onClick={() => onTabChange(item.id)}
                     className={cn(
-                      'group flex items-center h-11 px-3 text-sm font-medium rounded-lg w-full text-left transition-all duration-150 relative',
+                      'group flex items-center h-11 px-3 text-sm font-medium rounded-lg w-full text-left transition-all duration-150 relative aurora-nav-item',
                       activeTab === item.id
                         ? item.id === 'settings'
                           ? 'text-yellow-400 border-l-2 border-yellow-400/60 bg-yellow-500/5'
@@ -174,12 +174,12 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                     <Icon className="mr-3 h-5 w-5" />
                     {displayLabel}
                     {showChatBadge && (
-                      <span className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center min-w-[20px] h-[20px] px-1.5 text-xs font-bold text-white bg-red-500 rounded-full animate-pulse">
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center min-w-[20px] h-[20px] px-1.5 text-xs font-bold text-white bg-red-500 rounded-full animate-pulse aurora-badge-nav">
                         {chatBadgeCount > 99 ? '99+' : chatBadgeCount}
                       </span>
                     )}
                     {showClientBookingsBadge && (
-                      <span className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center min-w-[20px] h-[20px] px-1.5 text-xs font-bold text-white bg-red-500 rounded-full animate-pulse">
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center min-w-[20px] h-[20px] px-1.5 text-xs font-bold text-white bg-red-500 rounded-full animate-pulse aurora-badge-nav">
                         {unreadEarlierOffers > 99 ? '99+' : unreadEarlierOffers}
                       </span>
                     )}
@@ -205,7 +205,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                     <span>Notifiche</span>
                   </div>
                   {notificationUnreadCount > 0 && (
-                    <span className="flex items-center justify-center min-w-[22px] h-[22px] px-1.5 text-xs font-bold text-white bg-red-500 rounded-full animate-pulse">
+                    <span className="flex items-center justify-center min-w-[22px] h-[22px] px-1.5 text-xs font-bold text-white bg-red-500 rounded-full animate-pulse aurora-badge-nav">
                       {notificationUnreadCount > 99 ? '99+' : notificationUnreadCount}
                     </span>
                   )}
@@ -227,7 +227,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                 </div>
                 <button
                   onClick={logout}
-                  className="w-full flex items-center justify-center px-3 py-2 text-sm font-medium text-yellow-300 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-md transition-all duration-200"
+                  className="w-full flex items-center justify-center px-3 py-2 text-sm font-medium text-yellow-300 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-all duration-200 aurora-nav-item"
                 >
                   <LogOut className="w-4 h-4 mr-2" />
                   Logout

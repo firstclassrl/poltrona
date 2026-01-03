@@ -1021,3 +1021,128 @@ body {
   transform: translateY(-2px);
   border-color: color-mix(in srgb, var(--theme-primary) 30%, transparent) !important;
 }
+
+/* ============================================
+   AURORA THEME: Sidebar Modern Style
+   ============================================ */
+
+/* Aurora: Sidebar principale con angoli arrotondati */
+[data-theme='aurora'] .aurora-sidebar.glass-sidebar-dark {
+  border-top-right-radius: 1.5rem !important;
+  border-bottom-right-radius: 1.5rem !important;
+  box-shadow: 
+    0 8px 32px rgba(91, 124, 255, 0.12),
+    0 0 0 1px rgba(91, 124, 255, 0.08) !important;
+  backdrop-filter: blur(30px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(180%) !important;
+}
+
+/* Aurora: Logo container con ombra leggera */
+[data-theme='aurora'] .aurora-logo-container {
+  padding-top: 1.5rem;
+  padding-bottom: 1rem;
+}
+
+[data-theme='aurora'] .aurora-logo {
+  filter: brightness(1.1) drop-shadow(0 4px 12px rgba(91, 124, 255, 0.15)) !important;
+  transition: transform 0.2s ease !important;
+}
+
+[data-theme='aurora'] .aurora-logo:hover {
+  transform: scale(1.05);
+}
+
+/* Aurora: Bottoni di navigazione con stile moderno */
+[data-theme='aurora'] .aurora-nav-item {
+  border-radius: 0.75rem !important; /* rounded-xl */
+  transition: all 0.2s ease !important;
+  margin-bottom: 0.25rem;
+}
+
+[data-theme='aurora'] .aurora-nav-item:hover {
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px rgba(91, 124, 255, 0.15) !important;
+}
+
+[data-theme='aurora'] .aurora-nav-item.bg-yellow-500\/15 {
+  background: rgba(91, 124, 255, 0.12) !important;
+  border-left: 4px solid rgba(91, 124, 255, 0.4) !important;
+  box-shadow: 0 2px 8px rgba(91, 124, 255, 0.15) !important;
+}
+
+[data-theme='aurora'] .aurora-nav-item:hover:not(.bg-yellow-500\/15) {
+  background: rgba(91, 124, 255, 0.08) !important;
+  border-left-color: rgba(91, 124, 255, 0.3) !important;
+}
+
+/* Aurora: Badge di notifica con stile moderno */
+[data-theme='aurora'] .aurora-badge-nav {
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3) !important;
+  border: 2px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Aurora: Separatori più sottili e moderni */
+[data-theme='aurora'] .theme-separator-top,
+[data-theme='aurora'] .theme-separator-bottom {
+  border-top-color: rgba(255, 255, 255, 0.15) !important;
+  opacity: 0.6 !important;
+}
+
+/* Aurora: User info section con stile moderno */
+[data-theme='aurora'] .aurora-sidebar .mt-auto {
+  padding-top: 1rem;
+  padding-bottom: 1.5rem;
+}
+
+[data-theme='aurora'] .aurora-sidebar .theme-user-email {
+  font-weight: 600;
+  letter-spacing: 0.025em;
+}
+
+/* Aurora: Bottoni nella sidebar con border-radius aumentato */
+[data-theme='aurora'] .aurora-sidebar button.aurora-nav-item {
+  border-radius: 0.75rem !important;
+}
+
+/* Aurora: Mobile navigation con stile moderno */
+[data-theme='aurora'] .md\:hidden .glass-sidebar-dark {
+  border-top-left-radius: 1.5rem !important;
+  border-top-right-radius: 1.5rem !important;
+  box-shadow: 0 -4px 24px rgba(91, 124, 255, 0.12) !important;
+}
+
+[data-theme='aurora'] .md\:hidden .glass-sidebar-dark button {
+  border-radius: 0.5rem !important;
+  transition: all 0.2s ease !important;
+}
+
+[data-theme='aurora'] .md\:hidden .glass-sidebar-dark button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(91, 124, 255, 0.15) !important;
+}
+
+/* Aurora: Miglioramenti generali sidebar - spacing e padding */
+[data-theme='aurora'] .aurora-sidebar nav {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+[data-theme='aurora'] .aurora-sidebar .space-y-2 > * + * {
+  margin-top: 0.5rem;
+}
+
+/* Aurora: Icone nella sidebar con leggero effetto glow */
+[data-theme='aurora'] .aurora-nav-item svg {
+  transition: all 0.2s ease !important;
+  filter: drop-shadow(0 1px 2px rgba(91, 124, 255, 0.2));
+}
+
+[data-theme='aurora'] .aurora-nav-item:hover svg {
+  filter: drop-shadow(0 2px 4px rgba(91, 124, 255, 0.3));
+  transform: scale(1.05);
+}
+
+/* Aurora: Active state migliorato per nav items */
+[data-theme='aurora'] .aurora-nav-item.bg-yellow-500\/15 svg {
+  filter: drop-shadow(0 2px 4px rgba(91, 124, 255, 0.4));
+}
