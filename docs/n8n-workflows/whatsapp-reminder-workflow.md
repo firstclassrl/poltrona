@@ -85,10 +85,13 @@ return {
 ```
 select=*,clients(*),services(*),staff(*),shops(*)
 status=in.(scheduled,confirmed,rescheduled)
-reminder_sent=eq.false
 start_at=gte.{{$json.start}}
 start_at=lt.{{$json.end}}
 ```
+
+**Note**:
+- Non filtriamo più per `reminder_sent=eq.false` perché usiamo `whatsapp_outbox`
+- Il filtro per reminder già inviati viene fatto nel nodo 4b-4c
 
 **Headers**:
 ```
@@ -129,6 +132,38 @@ Prefer: return=representation
 
 ---
 
+#### 4b. Check Existing Outbox Entry (Nuovo)
+
+**Tipo**: HTTP Request
+
+**Configurazione**:
+- **Method**: `GET`
+- **URL**: `https://{{$env.SUPABASE_PROJECT}}.supabase.co/rest/v1/whatsapp_outbox?appointment_id=eq.{{$json.id}}&reminder_type=eq.daily&select=id,status`
+- **Authentication**: Stessa del nodo 3
+
+**Note**:
+- Verifica se esiste già un record in `whatsapp_outbox` per questo appuntamento con `reminder_type='daily'`
+- Se esiste e `status='sent'`, salta l'invio (già inviato)
+- Se esiste e `status='pending'` o `status='failed'`, procedi con retry
+
+---
+
+#### 4c. Filter Already Sent (Nuovo)
+
+**Tipo**: IF (Conditional Node)
+
+**Condizione**:
+- Se la query precedente ha trovato un record con `status='sent'`, salta
+
+**Espressione**:
+```
+{{!$json || $json.length === 0 || $json[0].status !== 'sent'}}
+```
+
+**Output**: Solo appuntamenti che non hanno ancora ricevuto reminder inviato con successo
+
+---
+
 #### 5. Split In Batches
 
 **Tipo**: Split In Batches
@@ -145,7 +180,55 @@ Prefer: return=representation
 
 ---
 
-#### 6. Format Message
+#### 6. Create Outbox Entry (Nuovo)
+
+**Tipo**: HTTP Request
+
+**Configurazione**:
+- **Method**: `POST`
+- **URL**: `https://{{$env.SUPABASE_PROJECT}}.supabase.co/rest/v1/whatsapp_outbox`
+- **Authentication**: Stessa del nodo 3
+
+**Headers**:
+```
+apikey: {{$env.SUPABASE_SERVICE_ROLE_KEY}}
+Authorization: Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}
+Content-Type: application/json
+Prefer: return=representation
+```
+
+**Body (JSON)**:
+```json
+{
+  "appointment_id": "{{$json.id}}",
+  "shop_id": "{{$json.shop_id}}",
+  "client_id": "{{$json.client_id}}",
+  "to_phone": "{{$json.clients.phone_e164}}",
+  "reminder_type": "daily",
+  "status": "pending",
+  "attempts": 0
+}
+```
+
+**Note**:
+- Crea un record in `whatsapp_outbox` con status 'pending'
+- L'indice unico `uq_whatsapp_outbox_appt_type` previene duplicati
+- Se il record esiste già, questa chiamata fallirà (usa `ON CONFLICT` o verifica prima)
+
+**Alternativa con ON CONFLICT** (se supportato da Supabase):
+```sql
+INSERT INTO whatsapp_outbox (appointment_id, shop_id, client_id, to_phone, reminder_type, status, attempts)
+VALUES (...)
+ON CONFLICT (appointment_id, reminder_type) 
+DO UPDATE SET 
+  status = 'pending',
+  attempts = whatsapp_outbox.attempts + 1,
+  last_error = NULL;
+```
+
+---
+
+#### 7. Format Message Data
 
 **Tipo**: Code (Function Node)
 
@@ -157,7 +240,7 @@ const service = appointment.services || {};
 const staff = appointment.staff || {};
 const shop = appointment.shops || {};
 
-// Formatta data e ora
+// Formatta data e ora per template WhatsApp
 const startDate = new Date(appointment.start_at);
 const dateStr = startDate.toLocaleDateString('it-IT', {
   weekday: 'long',
@@ -170,35 +253,38 @@ const timeStr = startDate.toLocaleTimeString('it-IT', {
   minute: '2-digit'
 });
 
-// Costruisci messaggio
-const message = `Ciao ${client.first_name || 'Cliente'}! 👋
-
-Ti ricordiamo che hai un appuntamento domani:
-
-📅 Data: ${dateStr}
-🕐 Ora: ${timeStr}
-💇 Servizio: ${service.name || 'N/A'}
-👨‍💼 Barbiere: ${staff.full_name || 'N/A'}
-🏪 Negozio: ${shop.name || 'N/A'}
-
-Ti aspettiamo! 🎉
-
-Per modifiche o cancellazioni, rispondi a questo messaggio.`;
+// Formatta data semplice (DD/MM/YYYY) per template
+const dateSimple = startDate.toLocaleDateString('it-IT', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric'
+});
 
 return {
   ...appointment,
-  formatted_message: message,
   phone_number: client.phone_e164,
   phone_number_id: shop.whatsapp_phone_number_id || $env.WHATSAPP_PHONE_NUMBER_ID,
-  access_token: shop.whatsapp_access_token || $env.WHATSAPP_ACCESS_TOKEN
+  access_token: shop.whatsapp_access_token || $env.WHATSAPP_ACCESS_TOKEN,
+  outbox_id: appointment.outbox_id || null,
+  // Dati formattati per template WhatsApp
+  appointment_date_formatted: dateSimple, // Es: "15/01/2024"
+  appointment_time_formatted: timeStr, // Es: "14:30"
+  appointment_date_full: dateStr, // Es: "lunedì, 15 gennaio 2024"
+  client_first_name: client.first_name || 'Cliente',
+  service_name: service.name || 'N/A',
+  staff_name: staff.full_name || 'N/A',
+  shop_name: shop.name || 'N/A'
 };
 ```
 
-**Output**: Appuntamento con messaggio formattato e credenziali WhatsApp
+**Output**: Appuntamento con dati formattati per template WhatsApp e credenziali
 
 ---
 
-#### 7. Send WhatsApp Message
+#### 8. Send WhatsApp Message
+
+**⚠️ REGOLA FONDAMENTALE WHATSAPP**: 
+Se il cliente non ti ha scritto nelle ultime 24 ore, WhatsApp richiede TEMPLATE approvati. Devi usare `type=template` (NON `type=text`). Punto.
 
 **Tipo**: HTTP Request
 
@@ -216,30 +302,67 @@ Authorization: Bearer {{$json.access_token}}
 Content-Type: application/json
 ```
 
-**Body (JSON)**:
+**Body (JSON) - USARE SEMPRE TEMPLATE**:
 ```json
 {
   "messaging_product": "whatsapp",
   "to": "{{$json.phone_number}}",
-  "type": "text",
-  "text": {
-    "body": "{{$json.formatted_message}}"
+  "type": "template",
+  "template": {
+    "name": "appointment_reminder",
+    "language": {
+      "code": "it"
+    },
+    "components": [
+      {
+        "type": "body",
+        "parameters": [
+          {
+            "type": "text",
+            "text": "{{$json.clients.first_name}}"
+          },
+          {
+            "type": "text",
+            "text": "{{$json.appointment_date_formatted}}"
+          },
+          {
+            "type": "text",
+            "text": "{{$json.appointment_time_formatted}}"
+          },
+          {
+            "type": "text",
+            "text": "{{$json.services.name}}"
+          },
+          {
+            "type": "text",
+            "text": "{{$json.staff.full_name}}"
+          },
+          {
+            "type": "text",
+            "text": "{{$json.shops.name}}"
+          }
+        ]
+      }
+    ]
   }
 }
 ```
 
-**Note**:
-- Usa WhatsApp Cloud API v18.0 (verifica versione più recente)
+**Note IMPORTANTI**:
+- ⚠️ **SEMPRE usare `type=template`** per reminder (il cliente non ha scritto nelle ultime 24h)
+- Il template `appointment_reminder` deve essere **approvato da Meta** prima dell'uso
 - Il numero deve essere in formato E.164 (es. +393491234567)
-- Per messaggi fuori dalla finestra 24h, devi usare template approvati da Meta
+- Usa WhatsApp Cloud API v18.0 (verifica versione più recente)
+- Il template deve essere creato e approvato in Meta Business Manager
 
 **Gestione Errori**:
-- Se l'invio fallisce, il workflow continua ma NON aggiorna `reminder_sent`
+- Se l'invio fallisce, il workflow continua ma NON aggiorna lo status in `whatsapp_outbox`
 - Questo permette retry automatico al prossimo run
+- Se ricevi errore "template not found", il template non è ancora approvato
 
 ---
 
-#### 8. Check Send Success
+#### 9. Check Send Success
 
 **Tipo**: IF (Conditional Node)
 
@@ -258,13 +381,13 @@ Content-Type: application/json
 
 ---
 
-#### 9. Update Reminder Sent
+#### 10. Update Outbox on Success
 
 **Tipo**: HTTP Request
 
 **Configurazione**:
 - **Method**: `PATCH`
-- **URL**: `https://{{$env.SUPABASE_PROJECT}}.supabase.co/rest/v1/appointments?id=eq.{{$json.id}}`
+- **URL**: `https://{{$env.SUPABASE_PROJECT}}.supabase.co/rest/v1/whatsapp_outbox?id=eq.{{$json.outbox_id}}`
 - **Authentication**: Stessa del nodo 3
 
 **Headers**:
@@ -278,18 +401,75 @@ Prefer: return=minimal
 **Body (JSON)**:
 ```json
 {
+  "status": "sent",
+  "sent_at": "{{$now}}",
+  "provider_message_id": "{{$json.messages[0].id}}",
+  "attempts": "{{$json.attempts || 0}} + 1"
+}
+```
+
+**Note**:
+- Aggiorna lo status a 'sent' solo se l'invio WhatsApp ha avuto successo
+- Salva il `provider_message_id` restituito da WhatsApp Cloud API
+- Incrementa il contatore `attempts`
+- Usa `return=minimal` per risparmiare bandwidth
+
+**Alternativa**: Se non hai `outbox_id` nel JSON, usa:
+```
+https://{{$env.SUPABASE_PROJECT}}.supabase.co/rest/v1/whatsapp_outbox?appointment_id=eq.{{$json.id}}&reminder_type=eq.daily
+```
+
+---
+
+#### 10b. Update Appointments Flag (Opzionale - Retrocompatibilità)
+
+**Tipo**: HTTP Request
+
+**Configurazione**:
+- **Method**: `PATCH`
+- **URL**: `https://{{$env.SUPABASE_PROJECT}}.supabase.co/rest/v1/appointments?id=eq.{{$json.id}}`
+- **Authentication**: Stessa del nodo 3
+
+**Body (JSON)**:
+```json
+{
   "reminder_sent": true,
   "reminder_sent_at": "{{$now}}"
 }
 ```
 
 **Note**:
-- Aggiorna solo se l'invio WhatsApp ha avuto successo
-- Usa `return=minimal` per risparmiare bandwidth
+- Questo nodo è opzionale e serve solo per retrocompatibilità
+- Se usi solo `whatsapp_outbox`, puoi rimuovere questo nodo
 
 ---
 
-#### 10. Log Error (Opzionale)
+#### 11. Update Outbox on Failure
+
+**Tipo**: HTTP Request
+
+**Configurazione**:
+- **Method**: `PATCH`
+- **URL**: `https://{{$env.SUPABASE_PROJECT}}.supabase.co/rest/v1/whatsapp_outbox?appointment_id=eq.{{$json.id}}&reminder_type=eq.daily`
+- **Authentication**: Stessa del nodo 3
+
+**Body (JSON)**:
+```json
+{
+  "status": "failed",
+  "last_error": "{{JSON.stringify($json.error || $json.body)}}",
+  "attempts": "{{($json.attempts || 0) + 1}}"
+}
+```
+
+**Note**:
+- Aggiorna lo status a 'failed' se l'invio è fallito
+- Salva l'errore in `last_error` per debugging
+- Incrementa il contatore `attempts` per tracciare i tentativi
+
+---
+
+#### 12. Log Error (Opzionale)
 
 **Tipo**: Code (Function Node) o Webhook per logging esterno
 

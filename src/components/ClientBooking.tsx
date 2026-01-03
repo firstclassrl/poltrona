@@ -6,6 +6,7 @@ import { Card } from './ui/Card';
 import { useDailyShopHours } from '../hooks/useDailyShopHours';
 import { apiService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useShop } from '../contexts/ShopContext';
 import type { Service, Staff, WaitlistEntry } from '../types';
 
 // Helper per ottenere i prossimi 7 giorni (oggi + 6 giorni successivi)
@@ -50,6 +51,7 @@ const formatDateDisplay = (date: Date): string => {
 
 export const ClientBooking: React.FC = () => {
   const { user } = useAuth();
+  const { currentShop, currentShopId, isLoading: shopLoading } = useShop();
   const { getAvailableTimeSlots, isDateOpen, shopHoursLoaded } = useDailyShopHours();
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
@@ -71,11 +73,23 @@ export const ClientBooking: React.FC = () => {
   const [waitlistService, setWaitlistService] = useState('');
   const [waitlistBarber, setWaitlistBarber] = useState('');
 
-  // Load services and staff from API
+  // Load services and staff from API - wait for shop to be loaded first
   useEffect(() => {
+    // Don't load services until shop is loaded and we have a shop_id
+    if (shopLoading || (!currentShopId && !currentShop)) {
+      return;
+    }
+
     const loadData = async () => {
       try {
         setIsLoading(true);
+        // Ensure shop_id is in localStorage before calling getServices
+        if (currentShopId && currentShopId !== 'default') {
+          localStorage.setItem('current_shop_id', currentShopId);
+        } else if (currentShop?.id && currentShop.id !== 'default') {
+          localStorage.setItem('current_shop_id', currentShop.id);
+        }
+        
         const [servicesData, staffData] = await Promise.all([
           apiService.getServices(),
           apiService.getStaff()
@@ -90,7 +104,7 @@ export const ClientBooking: React.FC = () => {
     };
 
     loadData();
-  }, []);
+  }, [shopLoading, currentShopId, currentShop]);
 
   // Ottieni il client_id dall'utente autenticato
   useEffect(() => {

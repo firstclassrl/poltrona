@@ -1,8 +1,14 @@
 # Template Messaggi WhatsApp - Reminder Appuntamenti
 
+## ⚠️ REGOLA FONDAMENTALE WHATSAPP
+
+**Se il cliente non ti ha scritto nelle ultime 24 ore, WhatsApp richiede TEMPLATE approvati. Devi usare `type=template` (NON `type=text`). Punto.**
+
+Per i reminder automatici, il cliente NON ha scritto nelle ultime 24h, quindi **DEVI SEMPRE usare template approvati**.
+
 ## Panoramica
 
-Questi template sono utilizzati dal workflow n8n per inviare reminder WhatsApp ai clienti per i loro appuntamenti del giorno successivo.
+Questi template sono utilizzati dal workflow n8n per inviare reminder WhatsApp ai clienti per i loro appuntamenti del giorno successivo. **Tutti i messaggi devono usare template approvati da Meta**.
 
 ## Template Principale
 
@@ -138,22 +144,93 @@ return {
 
 ## Template per WhatsApp Cloud API
 
-### Formato JSON per API
+### ⚠️ IMPORTANTE: Usare SEMPRE Template
+
+**Per reminder automatici, DEVI SEMPRE usare `type=template`** perché il cliente non ha scritto nelle ultime 24h.
+
+### Formato JSON per API con Template
 
 ```json
 {
   "messaging_product": "whatsapp",
   "to": "+393491234567",
-  "type": "text",
-  "text": {
-    "body": "Ciao Mario! 👋\n\nTi ricordiamo che hai un appuntamento domani:\n\n📅 Data: lunedì, 15 gennaio 2024\n🕐 Ora: 14:30\n💇 Servizio: Taglio + Barba\n👨‍💼 Barbiere: Giuseppe Rossi\n🏪 Negozio: Barber Shop Roma\n\nTi aspettiamo! 🎉\n\nPer modifiche o cancellazioni, rispondi a questo messaggio."
+  "type": "template",
+  "template": {
+    "name": "appointment_reminder",
+    "language": {
+      "code": "it"
+    },
+    "components": [
+      {
+        "type": "body",
+        "parameters": [
+          {
+            "type": "text",
+            "text": "Mario"
+          },
+          {
+            "type": "text",
+            "text": "15/01/2024"
+          },
+          {
+            "type": "text",
+            "text": "14:30"
+          },
+          {
+            "type": "text",
+            "text": "Taglio + Barba"
+          },
+          {
+            "type": "text",
+            "text": "Giuseppe Rossi"
+          },
+          {
+            "type": "text",
+            "text": "Barber Shop Roma"
+          }
+        ]
+      }
+    ]
   }
 }
 ```
 
-### Template Approvati (per Messaggi Fuori 24h)
+### Template da Creare in Meta Business Manager
 
-Se vuoi inviare messaggi fuori dalla finestra 24h, devi usare template approvati da Meta. Esempio:
+**Nome Template**: `appointment_reminder`  
+**Linguaggio**: `it` (Italiano)  
+**Categoria**: `UTILITY` o `MARKETING`
+
+**Corpo Template**:
+```
+Ciao {{1}}! 👋
+
+Ti ricordiamo che hai un appuntamento domani:
+
+📅 Data: {{2}}
+🕐 Ora: {{3}}
+💇 Servizio: {{4}}
+👨‍💼 Barbiere: {{5}}
+🏪 Negozio: {{6}}
+
+Ti aspettiamo! 🎉
+
+Per modifiche o cancellazioni, rispondi a questo messaggio.
+```
+
+**Parametri**:
+1. `{{1}}` - Nome cliente (es. "Mario")
+2. `{{2}}` - Data appuntamento (es. "15/01/2024")
+3. `{{3}}` - Ora appuntamento (es. "14:30")
+4. `{{4}}` - Nome servizio (es. "Taglio + Barba")
+5. `{{5}}` - Nome barbiere (es. "Giuseppe Rossi")
+6. `{{6}}` - Nome negozio (es. "Barber Shop Roma")
+
+**Nota**: Il template deve essere **approvato da Meta** prima di poter essere usato. Il processo di approvazione può richiedere 24-48 ore.
+
+### Template Approvati (OBBLIGATORIO per Reminder)
+
+⚠️ **Per reminder automatici, devi SEMPRE usare template approvati**. Esempio:
 
 ```json
 {

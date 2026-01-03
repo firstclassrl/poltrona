@@ -2904,9 +2904,13 @@ export const apiService = {
     try {
       // CRITICO: Aggiungi filtro esplicito shop_id come doppia sicurezza
       let shopId = getStoredShopId();
-      if (!shopId) {
+      if (!shopId || shopId === 'default') {
         const shop = await this.getShop();
         shopId = shop?.id ?? null;
+        // Assicurati che lo shop_id sia salvato nel localStorage
+        if (shopId && shopId !== 'default' && typeof window !== 'undefined') {
+          localStorage.setItem('current_shop_id', shopId);
+        }
       }
       
       // Mostra tutti i servizi (attivi e non), ordinati per nome
@@ -2933,9 +2937,13 @@ export const apiService = {
     try {
       // CRITICO: Aggiungi filtro esplicito shop_id come doppia sicurezza
       let shopId = getStoredShopId();
-      if (!shopId) {
+      if (!shopId || shopId === 'default') {
         const shop = await this.getShop();
         shopId = shop?.id ?? null;
+        // Assicurati che lo shop_id sia salvato nel localStorage
+        if (shopId && shopId !== 'default' && typeof window !== 'undefined') {
+          localStorage.setItem('current_shop_id', shopId);
+        }
       }
       
       // Usa buildHeaders(true) per autenticazione e filtro RLS per shop_id

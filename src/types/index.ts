@@ -312,3 +312,29 @@ export interface JoinWaitlistRequest {
   expires_at?: string;
   notes?: string;
 }
+
+// ============================================
+// WhatsApp Outbox - Tracciamento messaggi
+// ============================================
+
+export type WhatsAppReminderType = '24h' | '2h' | '15m' | 'daily';
+export type WhatsAppOutboxStatus = 'pending' | 'sent' | 'failed';
+
+export interface WhatsAppOutbox {
+  id: string;
+  appointment_id: string;
+  shop_id: string | null;
+  client_id: string | null;
+  to_phone: string;
+  reminder_type: WhatsAppReminderType;
+  status: WhatsAppOutboxStatus;
+  attempts: number;
+  last_error?: string | null;
+  provider_message_id?: string | null;
+  created_at: string;
+  sent_at?: string | null;
+  // Relazioni opzionali (quando join)
+  appointments?: Appointment;
+  clients?: Client;
+  shops?: Shop;
+}

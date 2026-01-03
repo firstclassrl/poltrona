@@ -7,6 +7,7 @@ import { useDailyShopHours } from '../hooks/useDailyShopHours';
 import { useChairAssignment } from '../hooks/useChairAssignment';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useShop } from '../contexts/ShopContext';
 import { useAppointments } from '../hooks/useAppointments';
 import { useVacationMode } from '../hooks/useVacationMode';
 import { useUserProfile } from '../hooks/useUserProfile';
@@ -26,6 +27,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   const { availableStaff } = useChairAssignment();
   const { refreshUnreadCount } = useNotifications();
   const { user } = useAuth();
+  const { currentShop, currentShopId, isLoading: shopLoading } = useShop();
   const { getUserProfile } = useUserProfile();
   const { appointments, createAppointment } = useAppointments();
   const { isDateInVacation, vacationPeriod, getVacationPeriod } = useVacationMode();
@@ -94,7 +96,6 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   const [selectedProducts, setSelectedProducts] = useState<{ productId: string; quantity: number }[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
-  const [shop, setShop] = useState<Shop | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [lastAppointmentData, setLastAppointmentData] = useState<{
     service: Service | null;
@@ -102,7 +103,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     startDateTime: Date;
     endDateTime: Date;
   } | null>(null);
-  const areProductsEnabled = shop?.products_enabled === true;
+  const areProductsEnabled = currentShop?.products_enabled === true;
 
   // Apply initial params from notification (if any)
   useEffect(() => {
@@ -123,19 +124,29 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     }
   }, [initialParams, services, staff]);
 
-  // Load services, staff, and shop data from API
+  // Load services and staff from API - wait for shop to be loaded first
   useEffect(() => {
+    // Don't load services until shop is loaded and we have a shop_id
+    if (shopLoading || (!currentShopId && !currentShop)) {
+      return;
+    }
+
     const loadData = async () => {
       try {
         setIsLoading(true);
-        const [servicesData, staffData, shopData] = await Promise.all([
+        // Ensure shop_id is in localStorage before calling getServices
+        if (currentShopId && currentShopId !== 'default') {
+          localStorage.setItem('current_shop_id', currentShopId);
+        } else if (currentShop?.id && currentShop.id !== 'default') {
+          localStorage.setItem('current_shop_id', currentShop.id);
+        }
+        
+        const [servicesData, staffData] = await Promise.all([
           apiService.getServices(),
-          apiService.getStaff(),
-          apiService.getShop()
+          apiService.getStaff()
         ]);
         setServices(servicesData);
         setStaff(staffData);
-        setShop(shopData);
       } catch (error) {
         console.error('Error loading booking data:', error);
       } finally {
@@ -434,7 +445,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       // Optional: enable earlier-slot waitlist for this appointment
       if (notifyIfEarlierSlot) {
         try {
-          const resolvedShopId = shop?.id || (await apiService.getShop())?.id;
+          const resolvedShopId = currentShop?.id || currentShopId;
           if (resolvedShopId) {
             const already = await apiService.isClientInWaitlist(clientId, savedAppointment.id);
             if (!already) {
@@ -554,25 +565,25 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     
     // Build location string
     const locationParts: string[] = [];
-    if (shop?.name) {
-      locationParts.push(shop.name);
+    if (currentShop?.name) {
+      locationParts.push(currentShop.name);
     }
-    if (shop?.address) {
-      locationParts.push(shop.address);
+    if (currentShop?.address) {
+      locationParts.push(currentShop.address);
     }
-    if (shop?.city) {
-      locationParts.push(shop.city);
+    if (currentShop?.city) {
+      locationParts.push(currentShop.city);
     }
     const location = locationParts.join(', ');
 
     // Build description
     const descriptionParts: string[] = [];
     descriptionParts.push(`Barbiere: ${barber.full_name}`);
-    if (shop?.name) {
-      descriptionParts.push(`Negozio: ${shop.name}`);
+    if (currentShop?.name) {
+      descriptionParts.push(`Negozio: ${currentShop.name}`);
     }
-    if (shop?.phone) {
-      descriptionParts.push(`Telefono: ${shop.phone}`);
+    if (currentShop?.phone) {
+      descriptionParts.push(`Telefono: ${currentShop.phone}`);
     }
     const description = descriptionParts.join('\n');
 
