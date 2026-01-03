@@ -300,7 +300,8 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
           'md:hidden fixed bottom-0 left-0 right-0 z-50',
           'glass-sidebar-dark border-t',
           'backdrop-blur-xl shadow-2xl',
-          'pb-safe-area-inset-bottom'
+          'pb-safe-area-inset-bottom',
+          'rounded-t-3xl'
         )}
         style={{
           borderTopColor: 'var(--theme-sidebar-border, rgba(238, 207, 84, 0.3))',

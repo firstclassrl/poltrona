@@ -1151,20 +1151,23 @@ body {
   width: 100% !important;
   border-radius: 1.5rem !important; /* rounded-3xl */
   padding: 1rem !important;
+  padding-top: 1rem !important;
   display: block !important;
   position: relative !important;
-  top: auto !important;
+  top: 0 !important;
   left: auto !important;
   right: auto !important;
   bottom: auto !important;
   visibility: visible !important;
   opacity: 1 !important;
   margin: 0 !important;
+  margin-top: 0 !important;
 }
 
 @media (min-width: 768px) {
   [data-theme='aurora'] .page-container-chat-style > div:first-child {
-    padding: 1.5rem;
+    padding: 1.5rem !important;
+    padding-top: 1.5rem !important;
   }
 }
 
@@ -1209,6 +1212,9 @@ body {
   min-height: auto !important;
   display: block !important;
   width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  top: 0 !important;
 }
 
 /* Aurora: Assicura che il gradiente sia visibile anche sotto la sidebar - fix per sidebar */
@@ -1228,6 +1234,12 @@ body {
 
 [data-theme='aurora'] main {
   background: transparent !important;
+  padding: 0 !important;
+  padding-top: 0 !important;
+  margin: 0 !important;
+  margin-top: 0 !important;
+  position: relative !important;
+  top: 0 !important;
 }
 
 /* Aurora: Assicura che il gradiente sia visibile anche sotto la sidebar */
