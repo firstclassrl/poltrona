@@ -686,9 +686,9 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   // Mostra loading se l'autenticazione è in corso
   if (authLoading) {
     return (
-      <div className="min-h-screen p-0 page-container-chat-style">
-        <div className="w-full h-full rounded-3xl p-4 md:p-6">
-        <div className="h-full flex flex-col page-card-chat-style p-6">
+      <div className="p-0 page-container-chat-style">
+        <div className="w-full rounded-3xl p-4 md:p-6">
+        <div className="flex flex-col page-card-chat-style p-6">
         <div className="space-y-8">
           <div className="text-center mb-6 md:mb-10 glass-panel">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Prenota Appuntamento</h1>
@@ -706,9 +706,9 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   const userName = userProfile?.full_name || user?.full_name || 'Cliente';
 
   return (
-    <div className="min-h-screen p-0 page-container-chat-style">
-      <div className="w-full h-full rounded-3xl p-4 md:p-6">
-      <div className="h-full flex flex-col page-card-chat-style p-6">
+    <div className="p-0 page-container-chat-style">
+      <div className="w-full rounded-3xl p-4 md:p-6">
+      <div className="flex flex-col page-card-chat-style p-6">
       <div className="space-y-8">
       {/* Welcome Section */}
       <div className="text-center mb-6 md:mb-10 glass-panel">

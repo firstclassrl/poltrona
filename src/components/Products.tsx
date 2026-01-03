@@ -421,9 +421,9 @@ export const Products: React.FC = () => {
   const glassCard = 'bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl';
 
   return (
-    <div className="min-h-screen p-0 page-container-chat-style">
-      <div className="w-full h-full rounded-3xl p-4 md:p-6">
-      <div className="h-full flex flex-col page-card-chat-style p-6">
+    <div className="p-0 page-container-chat-style">
+      <div className="w-full rounded-3xl p-4 md:p-6">
+      <div className="flex flex-col page-card-chat-style p-6">
       <div className="space-y-6">
       <Toast message={toast.message} type={toast.type} isVisible={toast.isVisible} onClose={hideToast} />
       <div className="flex items-center justify-between">

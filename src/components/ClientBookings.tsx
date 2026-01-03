@@ -502,10 +502,10 @@ export const ClientBookings: React.FC = () => {
 
   return (
     <div
-      className="min-h-screen p-0 page-container-chat-style"
+      className="p-0 page-container-chat-style"
     >
-      <div className="w-full h-full rounded-3xl p-4 md:p-6">
-      <div className="h-full flex flex-col page-card-chat-style p-6">
+      <div className="w-full rounded-3xl p-4 md:p-6">
+      <div className="flex flex-col page-card-chat-style p-6">
       <div className="space-y-8">
       <div className="text-center glass-panel pb-2">
         <h1 className="text-3xl font-bold text-gray-900">Le Mie Prenotazioni</h1>
