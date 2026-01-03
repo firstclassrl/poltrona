@@ -1043,12 +1043,25 @@ body {
 [data-theme='aurora'] .page-container-chat-style {
   padding: 0;
   background: linear-gradient(135deg, #f7fbff 0%, #c8e4ff 40%, #c7c5ff 100%) !important;
+  width: 100%;
+  display: block;
+  position: static !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
 }
 
 [data-theme='aurora'] .page-container-chat-style > div:first-child {
   width: 100%;
   border-radius: 1.5rem; /* rounded-3xl */
   padding: 1rem;
+  display: block;
+  position: static !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
 }
 
 @media (min-width: 768px) {
@@ -1065,6 +1078,14 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.3) !important;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
   border-radius: 1rem !important; /* rounded-2xl */
+  width: 100%;
+  display: block;
+  position: static !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  margin: 0 !important;
 }
 
 /* Aurora: Rimuovi tutti gli sfondi bianchi e applica gradiente ovunque */
@@ -1084,7 +1105,6 @@ body {
 [data-theme='aurora'] .md\:pl-64 {
   background: linear-gradient(135deg, #f7fbff 0%, #c8e4ff 40%, #c7c5ff 100%) !important;
   background-attachment: fixed !important;
-  min-height: 100vh !important;
 }
 
 /* Aurora: Assicura che il gradiente sia visibile anche sotto la sidebar - fix per sidebar */
