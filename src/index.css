@@ -1157,10 +1157,22 @@ body {
   margin-top: 0.375rem;
 }
 
-/* Aurora: Notification button con stile pill */
-[data-theme='aurora'] .aurora-sidebar .dark-mode-notification-button {
-  border: none !important;
+/* Aurora: Notification button con stile pill e bordo sempre visibile */
+[data-theme='aurora'] .aurora-sidebar .aurora-notification-button {
   border-radius: 9999px !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme='aurora'] .aurora-sidebar .aurora-notification-button.aurora-nav-item-active {
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+[data-theme='aurora'] .aurora-sidebar .aurora-notification-button.aurora-nav-item-inactive {
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme='aurora'] .aurora-sidebar .aurora-notification-button.aurora-nav-item-inactive:hover {
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
 }
 
 /* Aurora: Mobile navigation con stile moderno */

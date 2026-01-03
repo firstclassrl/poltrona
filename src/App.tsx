@@ -22,6 +22,8 @@ import { Notifications } from './components/Notifications';
 import { WaitlistDashboard } from './components/WaitlistDashboard';
 import { Toast } from './components/ui/Toast';
 import { useToast } from './hooks/useToast';
+import { PWAInstallPrompt } from './components/PWAInstallPrompt';
+import { PWAUpdateNotification } from './components/PWAUpdateNotification';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { ShopProvider, useShop } from './contexts/ShopContext';
@@ -284,6 +286,11 @@ const AppContent: React.FC = () => {
         isVisible={toast.isVisible}
         onClose={hideToast}
       />
+
+      {/* PWA Components */}
+      <PWAInstallPrompt />
+      <PWAUpdateNotification />
+      <OfflineIndicator />
     </div>
   );
 };

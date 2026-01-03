@@ -192,10 +192,10 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                 <button
                   onClick={() => onTabChange('notifications')}
                   className={cn(
-                    'w-full flex items-center justify-between h-11 px-3 text-sm font-medium rounded-lg transition-all duration-150 border border-yellow-400/40 dark-mode-notification-button',
+                    'w-full flex items-center justify-between h-11 px-4 text-sm font-medium transition-all duration-200 dark-mode-notification-button aurora-notification-button',
                     activeTab === 'notifications'
-                      ? 'bg-yellow-500/15 text-yellow-400 border-l-4 border-yellow-400/50 shadow-md'
-                      : 'text-yellow-300 hover:bg-yellow-500/10 hover:text-yellow-400 border-l-2 border-transparent hover:border-yellow-400/30'
+                      ? 'aurora-nav-item-active'
+                      : 'aurora-nav-item-inactive'
                   )}
                 >
                   <div className="flex items-center">
