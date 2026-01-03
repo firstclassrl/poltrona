@@ -7,6 +7,8 @@ import { Badge } from './ui/Badge';
 import { Modal } from './ui/Modal';
 import { Select } from './ui/Select';
 import { ProductForm } from './ProductForm';
+import { PhotoUpload } from './PhotoUpload';
+import { DeleteConfirmation } from './DeleteConfirmation';
 import { apiService } from '../services/api';
 import type { Service, Profile } from '../types';
 import { useAuth } from '../contexts/AuthContext';
@@ -110,7 +112,7 @@ export const Products: React.FC = () => {
   const [addBrand, setAddBrand] = useState('');
   const [addPrice, setAddPrice] = useState<string>('');
   const [addDescription, setAddDescription] = useState('');
-  const [addImageUrl, setAddImageUrl] = useState('');
+  const [addImageUrl, setAddImageUrl] = useState(''); // Mantenuto per compatibilità ma non più usato nel form
   const [addInStock, setAddInStock] = useState(true);
   const [addStockQty, setAddStockQty] = useState<number>(0);
   const [addActive, setAddActive] = useState(true);
@@ -119,6 +121,12 @@ export const Products: React.FC = () => {
   const [qaPrice, setQaPrice] = useState<number | ''>('');
   const [qaBrand, setQaBrand] = useState('');
   const [qaDesc, setQaDesc] = useState('');
+  // State per gestione upload immagini
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string>('');
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  // State per modale conferma cancellazione
+  const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     setIsAdmin(user?.role === 'admin' || (user as any)?.role === 'manager');
@@ -146,6 +154,67 @@ export const Products: React.FC = () => {
   const [sortBy, setSortBy] = useState('name');
 
   // Gestione servizi rimossa
+
+  // Funzione per resettare tutti gli state del modale
+  const resetModalState = () => {
+    setEditingProduct(null);
+    setAddName('');
+    setAddBrand('');
+    setAddPrice('');
+    setAddDescription('');
+    setAddImageUrl('');
+    setUploadedImageUrl('');
+    setSelectedImageFile(null);
+    setAddInStock(true);
+    setAddStockQty(0);
+    setAddActive(true);
+  };
+
+  // Gestione upload immagine
+  const handleImageUpload = async (file: File): Promise<string> => {
+    if (editingProduct) {
+      // Prodotto esistente: carica immediatamente
+      try {
+        // Ottieni shopId dal prodotto o fallback
+        let shopId = (editingProduct as any).shop_id;
+        if (!shopId) {
+          try {
+            const shop = await apiService.getShop();
+            shopId = shop?.id;
+          } catch (error) {
+            console.warn('Errore ottenendo shop, uso shop_id dal prodotto:', error);
+          }
+        }
+        
+        if (!shopId) {
+          throw new Error('Shop ID non disponibile');
+        }
+        
+        const { publicUrl } = await apiService.uploadProductPhotoPublic(file, shopId, editingProduct.id);
+        setUploadedImageUrl(publicUrl);
+        return publicUrl;
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        throw error;
+      }
+    } else {
+      // Nuovo prodotto: salva file in state per caricarlo dopo la creazione
+      setSelectedImageFile(file);
+      // Crea preview locale
+      const previewUrl = URL.createObjectURL(file);
+      setUploadedImageUrl(previewUrl);
+      return previewUrl;
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setUploadedImageUrl('');
+    setSelectedImageFile(null);
+    // Se c'era un URL preview locale, revocalo
+    if (uploadedImageUrl && uploadedImageUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(uploadedImageUrl);
+    }
+  };
 
   const handleSaveProduct = async (productData: Partial<Product>) => {
     try {
@@ -180,17 +249,35 @@ export const Products: React.FC = () => {
     setAddPrice(String(product.price));
     setAddDescription(product.description);
     setAddImageUrl(product.imageUrl);
+    setUploadedImageUrl(product.imageUrl); // Pre-carica immagine esistente
+    setSelectedImageFile(null); // Reset file selezionato
     setAddInStock(product.inStock);
     setAddStockQty(product.stockQuantity);
     setAddActive(true);
   };
 
-  const handleDeleteProduct = async (productId: string) => {
+  const handleDeleteProduct = (productId: string) => {
+    const product = products.find(p => p.id === productId);
+    if (product) {
+      setProductToDelete({ id: productId, name: product.name });
+      setDeleteConfirmModalOpen(true);
+    }
+  };
+
+  const confirmDeleteProduct = async () => {
+    if (!productToDelete) return;
+    
     try {
-      await apiService.deleteProduct(productId);
-      setProducts(prev => prev.filter(p => p.id !== productId));
+      await apiService.deleteProduct(productToDelete.id);
+      setProducts(prev => prev.filter(p => p.id !== productToDelete.id));
+      showToast('Prodotto eliminato con successo', 'success');
+      setDeleteConfirmModalOpen(false);
+      setProductToDelete(null);
+      setDeleteConfirmModalOpen(false);
+      setProductToDelete(null);
     } catch (error) {
       console.error('Error deleting product:', error);
+      showToast(error instanceof Error ? error.message : 'Errore durante l\'eliminazione del prodotto', 'error');
     }
   };
 
@@ -730,12 +817,20 @@ export const Products: React.FC = () => {
 
       {/* Product Form Modal (basic) */}
       {/* Add Product Modal aligned to DB schema */}
-      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Nuovo Prodotto">
+      <Modal isOpen={isAddModalOpen} onClose={() => { resetModalState(); setIsAddModalOpen(false); }} title={editingProduct ? "Modifica Prodotto" : "Nuovo Prodotto"}>
         <div className="space-y-3">
           <Input label="Nome" value={addName} onChange={(e) => setAddName(e.target.value)} required />
           <Input label="Marca" value={addBrand} onChange={(e) => setAddBrand(e.target.value)} />
           <Input label="Prezzo (€)" type="number" value={addPrice} onChange={(e) => setAddPrice(e.target.value)} />
-          <Input label="Immagine URL" value={addImageUrl} onChange={(e) => setAddImageUrl(e.target.value)} />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Immagine Prodotto</label>
+            <PhotoUpload
+              onUpload={handleImageUpload}
+              currentImageUrl={uploadedImageUrl || (editingProduct?.imageUrl)}
+              onRemove={handleRemoveImage}
+              maxSize={5}
+            />
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Descrizione</label>
             <textarea className="w-full border border-gray-300 rounded px-3 py-2" rows={3} value={addDescription} onChange={(e) => setAddDescription(e.target.value)} />
@@ -758,31 +853,90 @@ export const Products: React.FC = () => {
               try {
                 if (!addName || !addPrice) { showToast('Nome e Prezzo obbligatori', 'error'); return; }
                 showToast('Salvataggio in corso…', 'info');
-                const payload = convertUIToDatabase({
-                  name: addName,
-                  description: addDescription,
-                  brand: addBrand,
-                  price: Number(addPrice),
-                  imageUrl: addImageUrl,
-                  inStock: addInStock,
-                  stockQuantity: addStockQty,
-                } as any);
-                (payload as any).active = addActive;
-                const created = await apiService.createProduct(payload as any);
-                const ui = convertDatabaseToUI(created as any);
-                setProducts(prev => [ui, ...prev]);
-                setIsAddModalOpen(false);
-                setAddName(''); setAddBrand(''); setAddPrice(''); setAddDescription(''); setAddImageUrl(''); setAddInStock(true); setAddStockQty(0); setAddActive(true);
-                showToast('Prodotto creato', 'success');
+
+                if (editingProduct) {
+                  // UPDATE: Prodotto esistente
+                  const payload = convertUIToDatabase({
+                    name: addName,
+                    description: addDescription,
+                    brand: addBrand,
+                    price: Number(addPrice),
+                    imageUrl: uploadedImageUrl || editingProduct.imageUrl,
+                    inStock: addInStock,
+                    stockQuantity: addStockQty,
+                  } as any);
+                  (payload as any).active = addActive;
+                  const updated = await apiService.updateProduct(editingProduct.id, payload as any);
+                  const ui = convertDatabaseToUI(updated as any);
+                  setProducts(prev => prev.map(p => p.id === editingProduct.id ? ui : p));
+                  resetModalState();
+                  setIsAddModalOpen(false);
+                  showToast('Prodotto aggiornato con successo', 'success');
+                } else {
+                  // CREATE: Nuovo prodotto
+                  const payload = convertUIToDatabase({
+                    name: addName,
+                    description: addDescription,
+                    brand: addBrand,
+                    price: Number(addPrice),
+                    imageUrl: '', // Senza immagine per ora
+                    inStock: addInStock,
+                    stockQuantity: addStockQty,
+                  } as any);
+                  (payload as any).active = addActive;
+                  const created = await apiService.createProduct(payload as any);
+                  const createdProduct = created as any;
+                  
+                  // Se c'è un file selezionato, caricalo dopo la creazione
+                  if (selectedImageFile) {
+                    try {
+                      let shopId = createdProduct.shop_id;
+                      if (!shopId) {
+                        try {
+                          const shop = await apiService.getShop();
+                          shopId = shop?.id;
+                        } catch (shopError) {
+                          console.warn('Errore ottenendo shop per upload:', shopError);
+                        }
+                      }
+                      
+                      if (shopId) {
+                        const { publicUrl } = await apiService.uploadProductPhotoPublic(selectedImageFile, shopId, createdProduct.id);
+                        // Aggiorna il prodotto con l'URL dell'immagine
+                        await apiService.updateProduct(createdProduct.id, { imageurl: publicUrl } as any);
+                        createdProduct.imageurl = publicUrl;
+                      }
+                    } catch (uploadError) {
+                      console.error('Errore upload immagine:', uploadError);
+                      showToast('Prodotto creato ma errore nel caricamento immagine', 'error');
+                    }
+                  }
+                  
+                  const ui = convertDatabaseToUI(createdProduct);
+                  setProducts(prev => [ui, ...prev]);
+                  resetModalState();
+                  setIsAddModalOpen(false);
+                  showToast('Prodotto creato con successo', 'success');
+                }
               } catch (e) {
-                console.error('Create product failed', e);
+                console.error('Save product failed', e);
                 showToast(e instanceof Error ? e.message : 'Errore salvataggio', 'error');
               }
             }}>Salva</Button>
-            <Button variant="secondary" className="flex-1" onClick={() => setIsAddModalOpen(false)}>Annulla</Button>
+            <Button variant="secondary" className="flex-1" onClick={() => { resetModalState(); setIsAddModalOpen(false); }}>Annulla</Button>
           </div>
         </div>
       </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmation
+        isOpen={deleteConfirmModalOpen}
+        onClose={() => { setDeleteConfirmModalOpen(false); setProductToDelete(null); }}
+        onConfirm={confirmDeleteProduct}
+        title="Elimina Prodotto"
+        message="Sei sicuro di voler eliminare questo prodotto? Questa azione non può essere annullata."
+        itemName={productToDelete?.name || ''}
+      />
 
       {/* Quick Add Modal */}
       <Modal
