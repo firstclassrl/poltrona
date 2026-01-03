@@ -138,18 +138,18 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
         <div className="flex-1 flex flex-col min-h-0 glass-sidebar-dark aurora-sidebar">
           <div className="flex-1 flex flex-col pt-3 pb-4 overflow-y-auto">
             {/* Logo Section */}
-            <div className="flex items-center justify-center flex-shrink-0 px-4 mb-6 aurora-logo-container">
+            <div className="flex items-center justify-center flex-shrink-0 px-6 py-6 mb-2 aurora-logo-container">
               <img 
                 src={shopLogoUrl || DEFAULT_LOGO} 
                 alt="Logo negozio" 
-                className="w-32 h-32 object-contain filter brightness-110 aurora-logo"
+                className="w-28 h-28 object-contain filter brightness-110 aurora-logo"
               />
             </div>
             
             {/* Separator Line Below Logo (tra logo e menu) - per tutti i temi */}
             <div className="mx-4 mb-2 theme-separator-top"></div>
             
-            <nav className="mt-1 flex-1 px-3 space-y-2">
+            <nav className="mt-1 flex-1 px-4 space-y-1.5">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const showChatBadge = item.id === 'chat' && chatBadgeCount > 0;
@@ -163,12 +163,10 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                     key={item.id}
                     onClick={() => onTabChange(item.id)}
                     className={cn(
-                      'group flex items-center h-11 px-3 text-sm font-medium rounded-lg w-full text-left transition-all duration-150 relative aurora-nav-item',
+                      'group flex items-center h-11 px-4 text-sm font-medium w-full text-left transition-all duration-200 relative aurora-nav-item',
                       activeTab === item.id
-                        ? item.id === 'settings'
-                          ? 'text-yellow-400 border-l-2 border-yellow-400/60 bg-yellow-500/5'
-                          : 'bg-yellow-500/15 text-yellow-400 border-l-4 border-yellow-400/50 shadow-md glass-nav-item'
-                        : 'text-yellow-300 hover:bg-yellow-500/10 hover:text-yellow-400 hover:border-l-2 hover:border-yellow-400/30 hover:glass-nav-item border-l-2 border-transparent'
+                        ? 'aurora-nav-item-active'
+                        : 'aurora-nav-item-inactive'
                     )}
                   >
                     <Icon className="mr-3 h-5 w-5" />
@@ -190,7 +188,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
             
             {/* Notification Button - Only for staff/admin */}
             {(user?.role === 'admin' || user?.role === 'barber') && (
-              <div className="px-3 mt-3 mb-4">
+              <div className="px-4 mt-4 mb-4">
                 <button
                   onClick={() => onTabChange('notifications')}
                   className={cn(
@@ -227,7 +225,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                 </div>
                 <button
                   onClick={logout}
-                  className="w-full flex items-center justify-center px-3 py-2 text-sm font-medium text-yellow-300 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-all duration-200 aurora-nav-item"
+                  className="w-full flex items-center justify-center px-4 py-2.5 text-sm font-medium transition-all duration-200 aurora-nav-item-inactive"
                 >
                   <LogOut className="w-4 h-4 mr-2" />
                   Logout
