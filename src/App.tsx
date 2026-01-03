@@ -24,6 +24,7 @@ import { Toast } from './components/ui/Toast';
 import { useToast } from './hooks/useToast';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { PWAUpdateNotification } from './components/PWAUpdateNotification';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { ShopProvider, useShop } from './contexts/ShopContext';
