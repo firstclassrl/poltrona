@@ -129,6 +129,15 @@ body {
   position: relative !important;
   margin: 0 !important;
   padding: 0 !important;
+  /* Assicura che il contenuto parta dall'alto */
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Assicura che la Navigation fixed non occupi spazio nel flusso */
+[data-theme='aurora'] .hidden.md\:flex.md\:fixed {
+  position: fixed !important;
+  z-index: 50 !important;
 }
 
 .app-theme-bg {
@@ -1218,7 +1227,7 @@ body {
   background: linear-gradient(135deg, #f7fbff 0%, #c8e4ff 40%, #c7c5ff 100%) !important;
   background-attachment: fixed !important;
   position: relative !important;
-  min-height: auto !important;
+  min-height: 100vh !important;
   display: flex !important;
   flex-direction: column !important;
   margin: 0 !important;
@@ -1228,7 +1237,7 @@ body {
   padding-top: 0 !important;
   top: 0 !important;
   left: 0 !important;
-  align-items: flex-start !important;
+  align-items: stretch !important;
   align-content: flex-start !important;
 }
 
