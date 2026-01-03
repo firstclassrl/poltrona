@@ -378,6 +378,7 @@ export const BarberProfile = () => {
 
       {/* Sezione statistiche rimossa su richiesta */}
       </div>
+      </div>
 
       {/* Gestione Poltrone e Barbieri */}
       <ChairAssignment />

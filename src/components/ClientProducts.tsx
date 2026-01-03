@@ -216,6 +216,7 @@ export const ClientProducts: React.FC<ClientProductsProps> = ({ onNavigateToBook
         </div>
       </div>
       </div>
+      </div>
     </div>
   );
 };
