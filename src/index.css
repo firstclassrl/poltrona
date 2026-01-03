@@ -1213,7 +1213,9 @@ body {
   display: block !important;
   width: 100% !important;
   margin: 0 !important;
-  padding: 0 !important;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  /* NON rimuovere padding-left! È necessario per posizionare il contenuto accanto alla sidebar */
   top: 0 !important;
 }
 
@@ -1234,8 +1236,8 @@ body {
 
 [data-theme='aurora'] main {
   background: transparent !important;
-  padding: 0 !important;
-  padding-top: 0 !important;
+  padding: 1.5rem !important;
+  padding-top: 1.5rem !important;
   margin: 0 !important;
   margin-top: 0 !important;
   position: relative !important;
