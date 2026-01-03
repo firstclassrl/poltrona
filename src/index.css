@@ -1134,15 +1134,17 @@ body {
 /* Aurora: Container principale delle pagine (stile Chat) */
 [data-theme='aurora'] .page-container-chat-style {
   padding: 0 !important;
+  padding-top: 0 !important;
   background: linear-gradient(135deg, #f7fbff 0%, #c8e4ff 40%, #c7c5ff 100%) !important;
   width: 100% !important;
   display: block !important;
   position: relative !important;
-  top: auto !important;
+  top: 0 !important;
   left: auto !important;
   right: auto !important;
   bottom: auto !important;
   margin: 0 !important;
+  margin-top: 0 !important;
   min-height: auto !important;
   height: auto !important;
 }
@@ -1151,7 +1153,7 @@ body {
   width: 100% !important;
   border-radius: 1.5rem !important; /* rounded-3xl */
   padding: 1rem !important;
-  padding-top: 1rem !important;
+  padding-top: 0 !important;
   display: block !important;
   position: relative !important;
   top: 0 !important;
@@ -1167,7 +1169,8 @@ body {
 @media (min-width: 768px) {
   [data-theme='aurora'] .page-container-chat-style > div:first-child {
     padding: 1.5rem !important;
-    padding-top: 1.5rem !important;
+    padding-top: 0 !important;
+    margin-top: 0 !important;
   }
 }
 
@@ -1182,11 +1185,13 @@ body {
   width: 100% !important;
   display: block !important;
   position: relative !important;
-  top: auto !important;
+  top: 0 !important;
   left: auto !important;
   right: auto !important;
   bottom: auto !important;
   margin: 0 !important;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
   visibility: visible !important;
   opacity: 1 !important;
 }
@@ -1214,8 +1219,10 @@ body {
   width: 100% !important;
   margin: 0 !important;
   margin-top: 0 !important;
+  padding: 0 !important;
   padding-top: 0 !important;
   /* NON rimuovere padding-left! È necessario per posizionare il contenuto accanto alla sidebar */
+  /* Ma il padding-left viene gestito dalla classe Tailwind md:pl-64, non qui */
   top: 0 !important;
 }
 
@@ -1236,8 +1243,11 @@ body {
 
 [data-theme='aurora'] main {
   background: transparent !important;
-  padding: 1.5rem !important;
-  padding-top: 1.5rem !important;
+  padding: 0 !important;
+  padding-top: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  padding-bottom: 0 !important;
   margin: 0 !important;
   margin-top: 0 !important;
   position: relative !important;
