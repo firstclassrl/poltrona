@@ -262,8 +262,8 @@ export const Chat: React.FC = () => {
   const isClient = user?.role === 'client';
   return (
     <div className="p-0 page-container-chat-style">
-      <div className="w-full rounded-3xl p-4 md:p-6">
-      <div className="flex flex-col page-card-chat-style">
+      <div className="w-full">
+      <div className="flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div className="flex items-center space-x-3">

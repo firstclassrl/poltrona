@@ -77,8 +77,8 @@ export const ClientProducts: React.FC<ClientProductsProps> = ({ onNavigateToBook
 
   return (
     <div className="p-0 page-container-chat-style">
-      <div className="w-full rounded-3xl p-4 md:p-6">
-      <div className="flex flex-col page-card-chat-style p-6">
+      <div className="w-full">
+      <div className="flex flex-col space-y-6">
       {/* Header */}
       <div className="text-center glass-panel pb-2">
         <h1 className="text-3xl font-bold text-gray-900">Catalogo Prodotti</h1>

@@ -160,8 +160,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
   return (
     <div className="p-0 page-container-chat-style">
-      <div className="w-full rounded-3xl p-4 md:p-6">
-      <div className="flex flex-col page-card-chat-style p-6">
+      <div className="w-full max-w-full">
+      <div className="flex flex-col space-y-6">
       {/* Header - Responsive */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
         <div>

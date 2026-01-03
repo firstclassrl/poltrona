@@ -175,8 +175,8 @@ export const Clients = ({ onNavigateToBooking }: ClientsProps) => {
 
   return (
     <div className="p-0 page-container-chat-style">
-      <div className="w-full rounded-3xl p-4 md:p-6">
-      <div className="flex flex-col page-card-chat-style p-6">
+      <div className="w-full">
+      <div className="flex flex-col space-y-6">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-900">Clienti</h1>
