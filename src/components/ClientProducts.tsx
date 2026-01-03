@@ -76,14 +76,9 @@ export const ClientProducts: React.FC<ClientProductsProps> = ({ onNavigateToBook
   };
 
   return (
-    <div
-      className="space-y-8 rounded-3xl p-6 md:p-10"
-      style={{
-        backgroundImage:
-          'linear-gradient(135deg, rgba(16,185,129,0.22), rgba(34,197,94,0.28) 40%, rgba(22,163,74,0.25) 70%, rgba(5,150,105,0.28))',
-        backgroundColor: 'rgba(236,253,245,0.6)',
-      }}
-    >
+    <div className="min-h-screen p-0 page-container-chat-style">
+      <div className="w-full h-full rounded-3xl p-4 md:p-6">
+      <div className="h-full flex flex-col page-card-chat-style p-6">
       {/* Header */}
       <div className="text-center glass-panel pb-2">
         <h1 className="text-3xl font-bold text-gray-900">Catalogo Prodotti</h1>
@@ -219,6 +214,7 @@ export const ClientProducts: React.FC<ClientProductsProps> = ({ onNavigateToBook
             )}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

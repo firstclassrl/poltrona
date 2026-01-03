@@ -308,13 +308,9 @@ export const Calendar = () => {
   const glassCard = 'bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl';
 
   return (
-    <div className="min-h-screen p-0">
-      <div
-        className="w-full space-y-6 rounded-3xl p-4 md:p-6"
-        style={{
-          background: 'var(--theme-page-gradient)',
-        }}
-      >
+    <div className="min-h-screen p-0 page-container-chat-style">
+      <div className="w-full h-full rounded-3xl p-4 md:p-6">
+      <div className="h-full flex flex-col page-card-chat-style p-6">
       <div className="space-y-6">
       {/* Header - Both Mobile and Desktop */}
       <div className="flex items-center justify-between">
@@ -916,6 +912,7 @@ export const Calendar = () => {
         )}
       </Modal>
 
+      </div>
       </div>
       </div>
     </div>

@@ -1023,6 +1023,52 @@ body {
 }
 
 /* ============================================
+   AURORA THEME: Page Container Style (Chat-like)
+   ============================================ */
+
+/* Aurora: Container principale delle pagine (stile Chat) */
+[data-theme='aurora'] .page-container-chat-style {
+  min-height: 100vh;
+  padding: 0;
+  background: var(--theme-page-gradient);
+}
+
+[data-theme='aurora'] .page-container-chat-style > div:first-child {
+  width: 100%;
+  height: 100%;
+  border-radius: 1.5rem; /* rounded-3xl */
+  padding: 1rem;
+}
+
+@media (min-width: 768px) {
+  [data-theme='aurora'] .page-container-chat-style > div:first-child {
+    padding: 1.5rem;
+  }
+}
+
+/* Aurora: Card principale delle pagine (stile Chat) */
+[data-theme='aurora'] .page-card-chat-style {
+  background: rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(40px) !important;
+  -webkit-backdrop-filter: blur(40px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+  border-radius: 1rem !important; /* rounded-2xl */
+}
+
+/* Aurora: Override per tutte le card nelle pagine */
+[data-theme='aurora'] .page-card-chat-style .aurora-card,
+[data-theme='aurora'] .page-card-chat-style .bg-white,
+[data-theme='aurora'] .page-card-chat-style [class*="bg-white"] {
+  background: rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(40px) !important;
+  -webkit-backdrop-filter: blur(40px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+  border-radius: 1rem !important;
+}
+
+/* ============================================
    AURORA THEME: Sidebar Modern Style (Pill-shaped)
    ============================================ */
 
