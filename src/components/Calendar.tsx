@@ -393,8 +393,10 @@ export const Calendar = () => {
                 newDate.setDate(currentDate.getDate() + 7);
                 setCurrentDate(newDate);
               }}
+              className="touch-target"
+              aria-label="Settimana successiva"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-4 h-4" aria-hidden="true" />
             </Button>
           </div>
           <div className="text-2xl font-bold text-gray-900">
@@ -448,11 +450,15 @@ export const Calendar = () => {
                       return (
                         <div
                           key={`${time}-${dayIndex}`}
-                          className={`calendar-time-slot min-h-[60px] max-h-[60px] p-1 border border-gray-100 transition-colors relative ${
+                          role={isTimeSlotAvailable ? "button" : undefined}
+                          tabIndex={isTimeSlotAvailable ? 0 : -1}
+                          aria-label={isTimeSlotAvailable ? `Slot disponibile ${time} del ${day.toLocaleDateString('it-IT')}` : `Slot non disponibile ${time}`}
+                          aria-disabled={!isTimeSlotAvailable}
+                          className={`calendar-time-slot min-h-[60px] max-h-[60px] p-1 border border-gray-100 transition-colors relative touch-target ${
                             appointmentAtSlot ? 'overflow-visible' : 'overflow-hidden'
                           } ${
                             isTimeSlotAvailable 
-                              ? 'hover:bg-gray-50 cursor-pointer' 
+                              ? 'hover:bg-gray-50 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500' 
                               : 'bg-gray-200 text-gray-600 cursor-not-allowed'
                           }`}
                           onClick={(e) => {
@@ -470,7 +476,10 @@ export const Calendar = () => {
                           {/* Render appointment only if it starts at this slot */}
                           {appointmentAtSlot && (
                             <div
-                              className={`appointment-block p-1 rounded text-xs border w-full overflow-hidden ${getStatusColor(appointmentAtSlot.status || 'scheduled')} cursor-pointer hover:opacity-80 transition-opacity absolute top-1 left-1 right-1 z-10`}
+                              role="button"
+                              tabIndex={0}
+                              aria-label={`Appuntamento con ${getAppointmentClientLabel(appointmentAtSlot)} alle ${formatTime(appointmentAtSlot.start_at)}`}
+                              className={`appointment-block p-1 rounded text-xs border w-full overflow-hidden ${getStatusColor(appointmentAtSlot.status || 'scheduled')} cursor-pointer hover:opacity-80 transition-opacity absolute top-1 left-1 right-1 z-10 touch-target focus:outline-none focus:ring-2 focus:ring-blue-500`}
                               style={{
                                 height: `${slotCount * 60 - 8}px`,
                                 minHeight: `${slotCount * 60 - 8}px`,
@@ -480,6 +489,13 @@ export const Calendar = () => {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleAppointmentClick(appointmentAtSlot);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleAppointmentClick(appointmentAtSlot);
+                                }
                               }}
                               title={`${getAppointmentClientLabel(appointmentAtSlot)} - ${appointmentAtSlot.services?.name || 'Servizio'} - ${appointmentAtSlot.staff?.full_name}`}
                             >
@@ -652,8 +668,17 @@ export const Calendar = () => {
                 ).map((appointment) => (
                   <Card 
                     key={appointment.id} 
-                    className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${glassCard}`}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Appuntamento con ${getAppointmentClientLabel(appointment)} alle ${formatTime(appointment.start_at)}`}
+                    className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${glassCard} touch-target focus:outline-none focus:ring-2 focus:ring-blue-500`}
                     onClick={() => handleAppointmentClick(appointment)}
+                    onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleAppointmentClick(appointment);
+                      }
+                    }}
                   >
                     <div className="space-y-3">
                       {/* Header with time and status */}

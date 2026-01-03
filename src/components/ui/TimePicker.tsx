@@ -78,8 +78,11 @@ export const TimePicker: React.FC<TimePickerProps> = ({
           type="button"
           onClick={() => !disabled && setIsOpen(!isOpen)}
           disabled={disabled}
+          aria-label={label ? `${label}: ${currentDisplayValue}` : `Seleziona orario: ${currentDisplayValue}`}
+          aria-expanded={isOpen}
+          aria-haspopup="listbox"
           className={cn(
-            'w-full px-3 py-2 bg-white border border-green-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 flex items-center justify-between',
+            'w-full px-3 py-2 bg-white border border-green-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 flex items-center justify-between touch-target',
             disabled && 'opacity-50 cursor-not-allowed',
             isOpen && 'ring-2 ring-green-500 border-transparent'
           )}
@@ -136,8 +139,9 @@ export const TimePicker: React.FC<TimePickerProps> = ({
                       key={minute}
                       type="button"
                       onClick={() => handleTimeChange(hours, minute)}
+                      aria-label={`Seleziona ${minute} minuti`}
                       className={cn(
-                        'w-full px-2 py-1 text-sm text-left hover:bg-green-50 transition-colors',
+                        'w-full px-2 py-1 text-sm text-left hover:bg-green-50 transition-colors touch-target',
                         minutes === minute && 'bg-green-100 text-green-700 font-medium'
                       )}
                     >

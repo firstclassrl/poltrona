@@ -264,7 +264,7 @@ const AppContent: React.FC = () => {
 
       {/* Main Content */}
       <div className="md:pl-64 pb-20 md:pb-0">
-        <main className="p-6 max-w-7xl mx-auto text-[var(--theme-text)]">
+        <main className="text-[var(--theme-text)]">
           {renderActiveTab()}
         </main>
       </div>

@@ -21,13 +21,25 @@ export default defineConfig({
         name: 'Poltrona - Barbershop Management',
         short_name: 'Poltrona',
         description: 'Gestione completa del tuo barbershop',
-        theme_color: '#000000',
-        background_color: '#000000',
+        theme_color: '#25401c', // Usa colore primary del tema heritage
+        background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
         start_url: '/',
         icons: [
+          {
+            src: '/logo Poltrona 2025.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: '/logo Poltrona 2025.png',
+            sizes: '384x384',
+            type: 'image/png',
+            purpose: 'any'
+          },
           {
             src: '/logo Poltrona 2025.png',
             sizes: '512x512',

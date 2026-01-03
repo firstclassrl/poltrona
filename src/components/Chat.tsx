@@ -293,16 +293,18 @@ export const Chat: React.FC = () => {
           <div className="flex items-center space-x-2">
             <Button
               onClick={() => setShowNewMessageModal(true)}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 touch-target"
+              aria-label="Crea nuovo messaggio"
             >
-              <UserPlus className="w-4 h-4" />
+              <UserPlus className="w-4 h-4" aria-hidden="true" />
               <span>Nuovo Messaggio</span>
             </Button>
             <Button
               onClick={() => setShowBroadcastModal(true)}
-              className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
+              className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 touch-target"
+              aria-label="Invia messaggio broadcast"
             >
-              <Megaphone className="w-4 h-4" />
+              <Megaphone className="w-4 h-4" aria-hidden="true" />
               <span>Broadcast</span>
             </Button>
           </div>
@@ -333,11 +335,21 @@ export const Chat: React.FC = () => {
                 chats.map((chat) => (
                   <div
                     key={chat.id}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => {
                       setActiveChat(chat);
                       setShowChatList(false);
                     }}
-                    className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setActiveChat(chat);
+                        setShowChatList(false);
+                      }
+                    }}
+                    aria-label={`Apri conversazione con ${chat.clientName || 'cliente'}`}
+                    className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors touch-target focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                       activeChat?.id === chat.id ? 'bg-green-50 border-green-200' : ''
                     }`}
                   >

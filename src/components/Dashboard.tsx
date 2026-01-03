@@ -184,17 +184,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <Button 
               variant="secondary" 
               onClick={onNavigateToCalendar}
-              className="flex items-center justify-center py-4"
+              className="flex items-center justify-center py-4 touch-target"
+              aria-label="Vai al calendario"
             >
-              <Calendar className="w-5 h-5 mr-2" />
+              <Calendar className="w-5 h-5 mr-2" aria-hidden="true" />
               <span>Calendario</span>
             </Button>
             <Button 
               variant="secondary" 
               onClick={onNavigateToClients || (() => {})}
-              className="flex items-center justify-center py-4"
+              className="flex items-center justify-center py-4 touch-target"
+              aria-label="Vai ai clienti"
             >
-              <Users className="w-5 h-5 mr-2" />
+              <Users className="w-5 h-5 mr-2" aria-hidden="true" />
               <span>Clienti</span>
             </Button>
           </div>
@@ -235,8 +237,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
               {upcomingAppointments.slice(0, 3).map((appointment) => (
                 <Card 
                   key={appointment.id} 
-                  className="dashboard-appointment-card p-3 cursor-pointer transition-colors bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl hover:border-green-100"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Appuntamento con ${getAppointmentClientLabel(appointment)} alle ${formatTime(appointment.start_at)}`}
+                  className="dashboard-appointment-card p-3 cursor-pointer transition-colors bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl hover:border-green-100 touch-target focus:outline-none focus:ring-2 focus:ring-green-500"
                   onClick={() => handleAppointmentClick(appointment)}
+                  onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleAppointmentClick(appointment);
+                    }
+                  }}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
@@ -329,8 +340,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
           {upcomingAppointments.map((appointment) => (
             <div
               key={appointment.id}
-              className="dashboard-appointment-card flex items-center justify-between p-4 bg-white/60 backdrop-blur-xl rounded-lg border border-white/30 cursor-pointer hover:border-green-200 transition-colors shadow"
+              role="button"
+              tabIndex={0}
+              aria-label={`Appuntamento con ${getAppointmentClientLabel(appointment)} alle ${formatTime(appointment.start_at)}`}
+              className="dashboard-appointment-card flex items-center justify-between p-4 bg-white/60 backdrop-blur-xl rounded-lg border border-white/30 cursor-pointer hover:border-green-200 transition-colors shadow touch-target focus:outline-none focus:ring-2 focus:ring-green-500"
               onClick={() => handleAppointmentClick(appointment)}
+              onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleAppointmentClick(appointment);
+                }
+              }}
             >
               <div className="flex items-center space-x-4">
                 {/* Orario in grande e colorato */}

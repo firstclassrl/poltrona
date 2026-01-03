@@ -1,13 +1,12 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 
-interface CardProps {
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   className?: string;
-  onClick?: () => void;
 }
 
-export const Card: React.FC<CardProps> = ({ children, className, onClick }) => {
+export const Card: React.FC<CardProps> = ({ children, className, onClick, ...props }) => {
   return (
     <div
       className={cn(
@@ -17,6 +16,7 @@ export const Card: React.FC<CardProps> = ({ children, className, onClick }) => {
         className
       )}
       onClick={onClick}
+      {...props}
     >
       {children}
     </div>

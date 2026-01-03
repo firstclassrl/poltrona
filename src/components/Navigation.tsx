@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Home, ShoppingBag, User, Building2, LogOut, UserCheck, MessageCircle, Scissors, Bell, ListChecks, Settings, Clock } from 'lucide-react';
+import { Calendar, Users, Home, ShoppingBag, User, Building2, LogOut, UserCheck, MessageCircle, Scissors, Bell, ListChecks, Settings, Clock, MoreVertical } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../contexts/NotificationContext';
@@ -8,6 +8,7 @@ import { useShop } from '../contexts/ShopContext';
 import { apiService } from '../services/api';
 import { APP_VERSION } from '../config/version';
 import { API_CONFIG } from '../config/api';
+import { MobileNavMenu } from './MobileNavMenu';
 
 const DEFAULT_LOGO = '/logo Poltrona 2025.png';
 
@@ -22,6 +23,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
   const { unreadCount: chatUnreadCount } = useChat();
   const { currentShop: shop } = useShop();
   const [shopLogoUrl, setShopLogoUrl] = useState<string | null>(null);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   // Load signed logo when shop changes
   useEffect(() => {
@@ -119,7 +121,43 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
     return hasPermission(item.permission);
   });
 
-  // Reorder items for client users
+  // Helper functions to separate primary and secondary nav items for mobile
+  const getPrimaryNavItems = (role: string, items: typeof navItems, productsEnabled: boolean) => {
+    if (role === 'client') {
+      // Cliente: mostra sempre questi 3 + Prodotti (se abilitati) + "Altro"
+      const baseItems = ['client_booking', 'client_bookings', 'chat'];
+      if (productsEnabled) {
+        baseItems.push('products');
+      }
+      return items.filter(item => baseItems.includes(item.id));
+    } else {
+      // Staff/Admin: mostra sempre questi 4 + "Altro"
+      return items.filter(item => 
+        ['dashboard', 'calendar', 'clients', 'chat'].includes(item.id)
+      );
+    }
+  };
+
+  const getSecondaryNavItems = (role: string, items: typeof navItems, productsEnabled: boolean) => {
+    if (role === 'client') {
+      // Cliente: menu "Altro" contiene shop, client_profile
+      const primaryIds = ['client_booking', 'client_bookings', 'chat'];
+      if (productsEnabled) {
+        primaryIds.push('products');
+      }
+      return items.filter(item => 
+        !primaryIds.includes(item.id) && 
+        ['shop', 'client_profile'].includes(item.id)
+      );
+    } else {
+      // Staff/Admin: menu "Altro" contiene tutto tranne i 4 principali e notifiche
+      return items.filter(item => 
+        !['dashboard', 'calendar', 'clients', 'chat', 'notifications'].includes(item.id)
+      );
+    }
+  };
+
+  // Reorder items for client users (for desktop sidebar)
   if (user?.role === 'client') {
     // Build client order dynamically based on products enabled status
     const clientOrder = areProductsEnabled 
@@ -130,6 +168,10 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
       .map(id => navItems.find(item => item.id === id))
       .filter(Boolean) as typeof navItems;
   }
+
+  // Get primary and secondary items for mobile navigation
+  const primaryNavItems = getPrimaryNavItems(user?.role || '', navItems, areProductsEnabled);
+  const secondaryNavItems = getSecondaryNavItems(user?.role || '', navItems, areProductsEnabled);
 
   return (
     <>
@@ -252,71 +294,102 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
         </div>
       </div>
 
-      {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 glass-sidebar-dark border-t border-yellow-400/30 z-50 shadow-2xl">
-        <div className="grid grid-cols-6 py-2">
-          {navItems.map((item) => {
+      {/* Mobile Bottom Navigation - Redesigned */}
+      <div 
+        className={cn(
+          'md:hidden fixed bottom-0 left-0 right-0 z-50',
+          'glass-sidebar-dark border-t',
+          'backdrop-blur-xl shadow-2xl',
+          'pb-safe-area-inset-bottom'
+        )}
+        style={{
+          borderTopColor: 'var(--theme-sidebar-border, rgba(238, 207, 84, 0.3))',
+          paddingBottom: `max(0.75rem, env(safe-area-inset-bottom, 0.75rem))`,
+        }}
+      >
+        <div className="flex items-center justify-around px-2 py-3">
+          {primaryNavItems.map((item) => {
             const Icon = item.icon;
             const showChatBadge = item.id === 'chat' && chatBadgeCount > 0;
             const showClientBookingsBadge = item.id === 'client_bookings' && user?.role === 'client' && unreadEarlierOffers > 0;
-            // Mostra "Il Mio Barbiere" per i clienti, altrimenti la label originale
-            const displayLabel = item.id === 'shop' && user?.role === 'client' 
-              ? 'Il Mio Barbiere' 
-              : item.label;
+            const isActive = activeTab === item.id;
+            
             return (
               <button
                 key={item.id}
                 onClick={() => onTabChange(item.id)}
                 className={cn(
-                  'flex flex-col items-center py-2 px-1 transition-all duration-200 relative',
-                  activeTab === item.id 
-                    ? item.id === 'settings'
-                      ? 'text-yellow-400 border-b-2 border-yellow-400/50'
-                      : 'text-yellow-400 border-b-2 border-yellow-400/70'
-                    : 'text-yellow-300 hover:text-yellow-400'
+                  'flex flex-col items-center justify-center min-h-[56px] min-w-[56px] px-3 py-2 rounded-xl',
+                  'transition-all duration-200 relative touch-target',
+                  'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--theme-accent)]',
+                  isActive
+                    ? 'bg-[var(--theme-accent)]/15 text-[var(--theme-accent)]'
+                    : 'text-[var(--theme-sidebar-text)]/70 hover:text-[var(--theme-sidebar-text)] hover:bg-[var(--theme-accent)]/10'
                 )}
+                aria-label={item.label}
+                aria-current={isActive ? 'page' : undefined}
               >
                 <div className="relative">
-                  <Icon className="h-5 w-5 mb-1" />
+                  <Icon className={cn(
+                    'w-6 h-6 mb-1 transition-transform duration-200',
+                    isActive && 'scale-110'
+                  )} />
                   {showChatBadge && (
-                    <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-red-500 rounded-full animate-pulse">
+                    <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[20px] h-[20px] px-1.5 text-[10px] font-bold text-white bg-red-500 rounded-full animate-pulse shadow-lg">
                       {chatBadgeCount > 99 ? '99+' : chatBadgeCount}
                     </span>
                   )}
                   {showClientBookingsBadge && (
-                    <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-red-500 rounded-full animate-pulse">
+                    <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[20px] h-[20px] px-1.5 text-[10px] font-bold text-white bg-red-500 rounded-full animate-pulse shadow-lg">
                       {unreadEarlierOffers > 99 ? '99+' : unreadEarlierOffers}
                     </span>
                   )}
                 </div>
-                <span className="text-xs font-medium">{displayLabel}</span>
+                <span className={cn(
+                  'text-[10px] font-medium mt-0.5 text-center leading-tight',
+                  isActive && 'font-semibold'
+                )}>
+                  {item.label}
+                </span>
               </button>
             );
           })}
-          {/* Mobile Logout Button */}
+          
+          {/* Menu "Altro" Button */}
           <button
-            onClick={logout}
-            className="flex flex-col items-center py-2 px-1 transition-all duration-200 text-yellow-300 hover:text-red-400"
+            onClick={() => setShowMobileMenu(true)}
+            className={cn(
+              'flex flex-col items-center justify-center min-h-[56px] min-w-[56px] px-3 py-2 rounded-xl',
+              'transition-all duration-200 touch-target',
+              'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--theme-accent)]',
+              showMobileMenu
+                ? 'bg-[var(--theme-accent)]/15 text-[var(--theme-accent)]'
+                : 'text-[var(--theme-sidebar-text)]/70 hover:text-[var(--theme-sidebar-text)] hover:bg-[var(--theme-accent)]/10'
+            )}
+            aria-label="Altro"
+            aria-expanded={showMobileMenu}
           >
-            <LogOut className="h-5 w-5 mb-1" />
-            <span className="text-xs font-medium">Logout</span>
+            <MoreVertical className="w-6 h-6 mb-1" />
+            <span className="text-[10px] font-medium mt-0.5">Altro</span>
           </button>
         </div>
-        {/* Mobile Version Info */}
-        <div className="text-center py-1 border-t border-yellow-400/20">
-          <p className="text-xs text-yellow-300/70">
-            v{APP_VERSION} | © 2025{' '}
-            <a
-              href="https://www.abruzzo.ai"
-              target="_blank"
-              rel="noreferrer"
-              className="hover:text-yellow-200 underline"
-            >
-              abruzzo.ai
-            </a>
-          </p>
-        </div>
       </div>
+
+      {/* Mobile Nav Menu (Bottom Sheet) */}
+      <MobileNavMenu
+        isOpen={showMobileMenu}
+        onClose={() => setShowMobileMenu(false)}
+        items={secondaryNavItems.map(item => ({
+          id: item.id,
+          label: item.id === 'shop' && user?.role === 'client' ? 'Il Mio Barbiere' : item.label,
+          icon: item.icon,
+        }))}
+        activeTab={activeTab}
+        onTabChange={onTabChange}
+        onLogout={logout}
+        showVersion={true}
+        version={APP_VERSION}
+      />
     </>
   );
 };

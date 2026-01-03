@@ -11,6 +11,62 @@ interface ModalProps {
 }
 
 export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 'medium' }) => {
+  const modalRef = React.useRef<HTMLDivElement>(null);
+  const previousActiveElement = React.useRef<HTMLElement | null>(null);
+
+  // Focus management: trap focus inside modal
+  React.useEffect(() => {
+    if (isOpen) {
+      // Save previous active element
+      previousActiveElement.current = document.activeElement as HTMLElement;
+      
+      // Focus modal on open
+      setTimeout(() => {
+        modalRef.current?.focus();
+      }, 100);
+
+      // Handle Escape key
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          onClose();
+        }
+      };
+
+      document.addEventListener('keydown', handleEscape);
+      return () => {
+        document.removeEventListener('keydown', handleEscape);
+        // Restore focus to previous element
+        previousActiveElement.current?.focus();
+      };
+    }
+  }, [isOpen, onClose]);
+
+  // Focus trap: keep focus inside modal
+  const handleTabKey = (e: React.KeyboardEvent) => {
+    if (e.key !== 'Tab') return;
+    
+    const modal = modalRef.current;
+    if (!modal) return;
+
+    const focusableElements = modal.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    if (e.shiftKey) {
+      if (document.activeElement === firstElement) {
+        lastElement?.focus();
+        e.preventDefault();
+      }
+    } else {
+      if (document.activeElement === lastElement) {
+        firstElement?.focus();
+        e.preventDefault();
+      }
+    }
+  };
+
   if (!isOpen) return null;
 
   const sizeClasses = {
@@ -20,11 +76,26 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/50 backdrop-blur-sm">
-      <div className={`w-full ${sizeClasses[size]} bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden aurora-modal`}>
-        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
-          <Button variant="ghost" size="sm" onClick={onClose}>
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/50 backdrop-blur-sm"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+    >
+      <div 
+        ref={modalRef}
+        className={`w-full ${sizeClasses[size]} bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden aurora-modal max-h-[90vh] overflow-y-auto`}
+        tabIndex={-1}
+        onKeyDown={handleTabKey}
+      >
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 sticky top-0 bg-white z-10">
+          <h2 id="modal-title" className="text-xl font-semibold text-gray-900">{title}</h2>
+          <Button variant="ghost" size="sm" onClick={onClose} aria-label="Chiudi modale">
             <X className="w-5 h-5" />
           </Button>
         </div>

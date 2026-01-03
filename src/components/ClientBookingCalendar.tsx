@@ -807,9 +807,10 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
               variant="ghost"
               size="lg"
               onClick={() => navigateMonth('prev')}
-              className="flex items-center space-x-2"
+              className="flex items-center space-x-2 touch-target"
+              aria-label="Mese precedente"
             >
-              <ChevronLeft className="w-6 h-6" />
+              <ChevronLeft className="w-6 h-6" aria-hidden="true" />
             </Button>
             
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
@@ -820,9 +821,10 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
               variant="ghost"
               size="lg"
               onClick={() => navigateMonth('next')}
-              className="flex items-center space-x-2"
+              className="flex items-center space-x-2 touch-target"
+              aria-label="Mese successivo"
             >
-              <ChevronRight className="w-6 h-6" />
+              <ChevronRight className="w-6 h-6" aria-hidden="true" />
             </Button>
           </div>
 
@@ -858,12 +860,22 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
               return (
                 <div
                   key={index}
+                  role={isClickable ? "button" : undefined}
+                  tabIndex={isClickable ? 0 : -1}
                   onClick={() => isClickable && handleDayClick(date)}
+                  onKeyDown={(e) => {
+                    if ((e.key === 'Enter' || e.key === ' ') && isClickable) {
+                      e.preventDefault();
+                      handleDayClick(date);
+                    }
+                  }}
+                  aria-label={isClickable ? `Giorno ${date.getDate()} ${date.toLocaleDateString('it-IT', { month: 'long' })} - ${hasAvailability ? `${availability.available} slot disponibili` : 'Nessuno slot disponibile'}` : `Giorno ${date.getDate()} - non disponibile`}
+                  aria-disabled={!isClickable}
                   className={`
-                    aspect-square p-1.5 border rounded-lg transition-all overflow-hidden
+                    aspect-square p-1.5 border rounded-lg transition-all overflow-hidden touch-target
                     ${isCurrentMonthDay ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100'}
                     ${isTodayDate ? 'ring-2 ring-blue-500 ring-offset-1' : ''}
-                    ${isClickable ? 'cursor-pointer hover:bg-blue-50 hover:border-blue-300' : 'cursor-not-allowed opacity-60'}
+                    ${isClickable ? 'cursor-pointer hover:bg-blue-50 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500' : 'cursor-not-allowed opacity-60'}
                   `}
                 >
                   {/* Day Number */}
@@ -915,9 +927,10 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
               <Button
                 variant="ghost"
                 onClick={() => setCurrentView('monthly')}
-                className="flex items-center space-x-2"
+                className="flex items-center space-x-2 touch-target"
+                aria-label="Torna al calendario mensile"
               >
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowLeft className="w-5 h-5" aria-hidden="true" />
                 <span>Torna al calendario</span>
               </Button>
               
@@ -954,7 +967,8 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
                   <button
                     key={time}
                     onClick={() => handleTimeSlotClick(selectedDayForDetail, time)}
-                    className="py-3 px-4 rounded-lg text-center transition-colors bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer border border-green-200 font-medium client-time-slot"
+                    className="py-3 px-4 rounded-lg text-center transition-colors bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer border border-green-200 font-medium client-time-slot touch-target focus:outline-none focus:ring-2 focus:ring-green-500"
+                    aria-label={`Prenota alle ${time}`}
                   >
                     {time}
                   </button>
@@ -1084,6 +1098,8 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
             <Button
               onClick={handleBookingSubmit}
               disabled={!selectedService || !selectedBarber || isSubmitting}
+              className="touch-target"
+              aria-label={isSubmitting ? 'Prenotazione in corso' : 'Conferma prenotazione'}
             >
               {isSubmitting ? 'Prenotazione in corso...' : 'Conferma Prenotazione'}
             </Button>

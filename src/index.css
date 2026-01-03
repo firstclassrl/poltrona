@@ -2,6 +2,88 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================
+   MOBILE OPTIMIZATIONS & ACCESSIBILITY
+   ============================================ */
+
+/* Touch Targets - Minimum 44x44px for iOS/Android guidelines */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Font Sizes - Minimum 16px to prevent iOS auto-zoom */
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="tel"],
+input[type="password"],
+input[type="search"],
+input[type="url"],
+select,
+textarea {
+  font-size: 16px !important; /* Prevents iOS auto-zoom on focus */
+}
+
+@media (min-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="password"],
+  input[type="search"],
+  input[type="url"],
+  select,
+  textarea {
+    font-size: 14px; /* Smaller on desktop is fine */
+  }
+}
+
+/* Safe Area Insets for iPhone notch/home indicator */
+.pb-safe-area-inset-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 1rem));
+}
+
+.pt-safe-area-inset-top {
+  padding-top: max(1rem, env(safe-area-inset-top, 1rem));
+}
+
+/* Animations for mobile interactions */
+@keyframes slide-in-from-bottom {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-in {
+  animation-fill-mode: both;
+}
+
+.slide-in-from-bottom {
+  animation: slide-in-from-bottom 0.3s ease-out;
+}
+
+.fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
 :root {
   --theme-background: #ffffff;
   --theme-surface: #ffffff;
@@ -557,6 +639,16 @@ body {
   border-color: var(--theme-accent) !important;
 }
 
+/* Touch targets per time slots - minimo 44x44px */
+.client-time-slot,
+.calendar-time-slot {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Dark Mode: card prossimi appuntamenti nere con bordo arancione */
 [data-theme='dark-mode'] .dashboard-appointment-card {
   background-color: #0a0a0a !important;
@@ -1041,27 +1133,33 @@ body {
 
 /* Aurora: Container principale delle pagine (stile Chat) */
 [data-theme='aurora'] .page-container-chat-style {
-  padding: 0;
+  padding: 0 !important;
   background: linear-gradient(135deg, #f7fbff 0%, #c8e4ff 40%, #c7c5ff 100%) !important;
-  width: 100%;
-  display: block;
-  position: static !important;
+  width: 100% !important;
+  display: block !important;
+  position: relative !important;
   top: auto !important;
   left: auto !important;
   right: auto !important;
   bottom: auto !important;
+  margin: 0 !important;
+  min-height: auto !important;
+  height: auto !important;
 }
 
 [data-theme='aurora'] .page-container-chat-style > div:first-child {
-  width: 100%;
-  border-radius: 1.5rem; /* rounded-3xl */
-  padding: 1rem;
-  display: block;
-  position: static !important;
+  width: 100% !important;
+  border-radius: 1.5rem !important; /* rounded-3xl */
+  padding: 1rem !important;
+  display: block !important;
+  position: relative !important;
   top: auto !important;
   left: auto !important;
   right: auto !important;
   bottom: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  margin: 0 !important;
 }
 
 @media (min-width: 768px) {
@@ -1078,14 +1176,16 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.3) !important;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
   border-radius: 1rem !important; /* rounded-2xl */
-  width: 100%;
-  display: block;
-  position: static !important;
+  width: 100% !important;
+  display: block !important;
+  position: relative !important;
   top: auto !important;
   left: auto !important;
   right: auto !important;
   bottom: auto !important;
   margin: 0 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 /* Aurora: Rimuovi tutti gli sfondi bianchi e applica gradiente ovunque */
@@ -1105,6 +1205,10 @@ body {
 [data-theme='aurora'] .md\:pl-64 {
   background: linear-gradient(135deg, #f7fbff 0%, #c8e4ff 40%, #c7c5ff 100%) !important;
   background-attachment: fixed !important;
+  position: relative !important;
+  min-height: auto !important;
+  display: block !important;
+  width: 100% !important;
 }
 
 /* Aurora: Assicura che il gradiente sia visibile anche sotto la sidebar - fix per sidebar */
@@ -1392,4 +1496,64 @@ body {
 
 [data-theme='aurora'] .aurora-sidebar a:hover {
   color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* ============================================
+   MOBILE BOTTOM NAVIGATION - MODERN DESIGN
+   ============================================ */
+
+/* Mobile bottom nav glass effect enhancement */
+@media (max-width: 767px) {
+  .mobile-bottom-nav {
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
+  
+  /* Active state with glow */
+  .mobile-bottom-nav button[aria-current="page"] {
+    position: relative;
+  }
+  
+  .mobile-bottom-nav button[aria-current="page"]::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 0.75rem;
+    background: var(--theme-accent);
+    opacity: 0.1;
+    filter: blur(8px);
+    z-index: -1;
+  }
+  
+  /* Tap feedback */
+  .mobile-bottom-nav button:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+  }
+}
+
+/* Mobile spacing improvements */
+@media (max-width: 767px) {
+  /* Increase line height for better readability */
+  p, span, div {
+    line-height: 1.6;
+  }
+  
+  /* Better spacing for cards on mobile */
+  .surface-card,
+  .bg-white {
+    padding: 1rem;
+  }
+  
+  /* Increase tap target size for interactive elements */
+  a, button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Better spacing for form elements */
+  input, select, textarea {
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+  }
 }
