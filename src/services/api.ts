@@ -140,10 +140,16 @@ const fetchWithTokenRefresh = async (
 };
 
 const buildHeaders = (authRequired: boolean = false, overrideToken?: string) => {
-  const storedToken = (typeof window !== 'undefined') ? localStorage.getItem('auth_token') : null;
+  // Leggi il token da localStorage O sessionStorage (come fa AuthContext)
+  let storedToken: string | null = null;
+  if (typeof window !== 'undefined') {
+    storedToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+  }
+  
   const bearer = authRequired 
     ? (overrideToken || storedToken || API_CONFIG.SUPABASE_ANON_KEY)
     : API_CONFIG.SUPABASE_ANON_KEY;
+  
   return {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -683,6 +689,15 @@ export const apiService = {
         authPrefix: headers.Authorization?.substring(0, 20) + '...',
         hasToken: !!options?.accessToken,
         tokenFromStorage: !!(localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')),
+      });
+
+      // Log dettagliato degli header per debug
+      console.log('🔍 Headers completi per POST clients:', {
+        'Content-Type': headers['Content-Type'],
+        'Accept': headers['Accept'],
+        'apikey': headers['apikey'] ? 'Presente' : 'Mancante',
+        'Authorization': headers['Authorization'] ? headers['Authorization'].substring(0, 30) + '...' : 'Mancante',
+        'Prefer': 'return=representation',
       });
 
       const createResponse = await fetch(API_ENDPOINTS.SEARCH_CLIENTS, {
