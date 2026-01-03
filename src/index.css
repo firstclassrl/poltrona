@@ -125,6 +125,10 @@ body {
 [data-theme='aurora'] .app-theme-bg {
   background: linear-gradient(135deg, #f7fbff 0%, #c8e4ff 40%, #c7c5ff 100%) !important;
   color: var(--theme-text);
+  min-height: 100vh !important;
+  position: relative !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .app-theme-bg {
@@ -1215,19 +1219,27 @@ body {
   background-attachment: fixed !important;
   position: relative !important;
   min-height: auto !important;
-  display: block !important;
+  display: flex !important;
+  flex-direction: column !important;
+  margin: 0 !important;
   margin-top: 0 !important;
+  margin-left: 16rem !important; /* 64 * 0.25rem = 16rem */
   padding: 0 !important;
   padding-top: 0 !important;
   top: 0 !important;
-  /* Assicura che il margin-left sia applicato correttamente */
-  margin-left: 16rem !important; /* 64 * 0.25rem = 16rem */
+  left: 0 !important;
+  align-items: flex-start !important;
+  align-content: flex-start !important;
 }
 
 /* Assicura che su desktop il contenuto sia spostato a destra della sidebar */
 @media (min-width: 768px) {
   [data-theme='aurora'] .md\:ml-64 {
     margin-left: 16rem !important; /* Forza margin-left su desktop */
+    margin-top: 0 !important;
+    top: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
 }
 
@@ -1256,6 +1268,8 @@ body {
   top: 0 !important;
   width: 100% !important;
   max-width: 100% !important;
+  /* Assicura che il main parta dall'alto del viewport, non dall'inizio del documento */
+  align-self: flex-start !important;
 }
 
 /* Aurora: Assicura che il gradiente sia visibile anche sotto la sidebar */
