@@ -571,26 +571,25 @@ export const apiService = {
         
         // Cliente non esiste o appartiene a shop diverso - crealo (usa accesso pubblico)
         // shopId già ottenuto sopra
-          const createData = {
-            shop_id: shopId && shopId !== 'default' ? shopId : null,
-            first_name: data.first_name || 'Cliente',
-            last_name: data.last_name || null,
-            phone_e164: data.phone_e164 || '+39000000000',
-            email: email,
-          };
-          
-          const createResponse = await fetch(API_ENDPOINTS.SEARCH_CLIENTS, {
-            method: 'POST',
-            headers: { ...buildHeaders(true), Prefer: 'return=representation' },
-            body: JSON.stringify(createData),
-          });
-          
-          if (createResponse.ok) {
-            // Client created successfully
-          } else {
-            // Se fallisce, non loggare come errore - potrebbe essere un problema di RLS
-            // Non bloccare il flusso
-          }
+        const createData = {
+          shop_id: shopId && shopId !== 'default' ? shopId : null,
+          first_name: data.first_name || 'Cliente',
+          last_name: data.last_name || null,
+          phone_e164: data.phone_e164 || '+39000000000',
+          email: email,
+        };
+        
+        const createResponse = await fetch(API_ENDPOINTS.SEARCH_CLIENTS, {
+          method: 'POST',
+          headers: { ...buildHeaders(true), Prefer: 'return=representation' },
+          body: JSON.stringify(createData),
+        });
+        
+        if (createResponse.ok) {
+          // Client created successfully
+        } else {
+          // Se fallisce, non loggare come errore - potrebbe essere un problema di RLS
+          // Non bloccare il flusso
         }
       } else {
         // Se la ricerca fallisce (401, etc.), non loggare come errore
