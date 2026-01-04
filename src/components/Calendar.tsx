@@ -483,10 +483,10 @@ export const Calendar = () => {
                               role="button"
                               tabIndex={0}
                               aria-label={`Appuntamento con ${getAppointmentClientLabel(appointmentAtSlot)} alle ${formatTime(appointmentAtSlot.start_at)}`}
-                              className={`appointment-block p-1 rounded text-xs border w-full overflow-hidden ${getStatusColor(appointmentAtSlot.status || 'scheduled')} cursor-pointer hover:opacity-80 transition-opacity absolute top-1 left-1 right-1 z-10 touch-target focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                              className={`appointment-block rounded text-xs border w-full ${getStatusColor(appointmentAtSlot.status || 'scheduled')} cursor-pointer hover:opacity-90 transition-opacity z-10 touch-target focus:outline-none focus:ring-2 focus:ring-blue-500`}
                               style={{
-                                height: `${slotCount * 60 - 8}px`,
-                                minHeight: `${slotCount * 60 - 8}px`,
+                                height: `${slotCount * 60}px`,
+                                minHeight: `${slotCount * 60}px`,
                               }}
                               draggable
                               onDragStart={(e) => e.dataTransfer.setData('appointmentId', appointmentAtSlot.id || '')}
