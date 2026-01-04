@@ -3286,7 +3286,18 @@ export const apiService = {
         throw new Error('Failed to fetch products');
       }
       const products = await response.json();
-      console.log('🛍️ getProducts: Loaded products:', products.length, products);
+      console.log('🛍️ getProducts: Loaded products:', products.length);
+      console.log('🛍️ getProducts: Products details:', products.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        shop_id: p.shop_id,
+        price: p.price,
+        price_cents: p.price_cents,
+        active: p.active
+      })));
+      
+      // Il database usa 'price' in euro, quindi restituiamo i prodotti così come sono
+      // Non serve normalizzazione perché il database reale usa 'price', non 'price_cents'
       return products;
     } catch (error) {
       console.error('Error fetching products:', error);

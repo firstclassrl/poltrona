@@ -42,7 +42,8 @@ export interface Product {
   shop_id: string | null;
   name: string;
   description?: string | null;
-  price_cents: number | null;
+  price?: number | null; // Prezzo in euro (database reale)
+  price_cents?: number | null; // Prezzo in centesimi (per compatibilità)
   image_url?: string | null;
   active: boolean | null;
   created_at: string;

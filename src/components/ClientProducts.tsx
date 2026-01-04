@@ -70,8 +70,10 @@ export const ClientProducts: React.FC<ClientProductsProps> = ({ onNavigateToBook
     }
   });
 
-  const formatPrice = (cents: number) => {
-    return `€${(cents / 100).toFixed(2)}`;
+  const formatPrice = (priceOrCents: number | null | undefined) => {
+    if (!priceOrCents) return '€0.00';
+    // Il database usa 'price' in euro, quindi mostriamo direttamente
+    return `€${priceOrCents.toFixed(2)}`;
   };
 
   const getCategoryIcon = (category: string) => {
@@ -149,7 +151,7 @@ export const ClientProducts: React.FC<ClientProductsProps> = ({ onNavigateToBook
                   <div className="flex items-center space-x-2">
                     <Euro className="w-5 h-5 text-green-600" />
                     <span className="text-2xl font-bold text-green-600">
-                      {formatPrice(product.price_cents || 0)}
+                      {formatPrice(product.price || product.price_cents || 0)}
                     </span>
                   </div>
                 </div>
