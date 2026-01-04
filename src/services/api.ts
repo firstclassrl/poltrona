@@ -3185,7 +3185,39 @@ export const apiService = {
       }
       
       const created = await response.json();
-      return created[0] as Staff;
+      const createdStaff = created[0] as Staff;
+      
+      // Se lo staff è stato creato con un user_id, aggiorna profiles.role a 'barber'
+      if ((staffData as any).user_id) {
+        try {
+          // Verifica se il profilo esiste e non è già 'admin' (mantieni gli admin)
+          const profileCheckRes = await fetch(`${API_ENDPOINTS.PROFILES}?user_id=eq.${(staffData as any).user_id}&select=role&limit=1`, {
+            headers: { ...buildHeaders(true) },
+          });
+          
+          if (profileCheckRes.ok) {
+            const profiles = await profileCheckRes.json();
+            const existingProfile = profiles[0];
+            
+            // Aggiorna solo se il ruolo non è già 'barber' o 'admin'
+            if (existingProfile && existingProfile.role !== 'barber' && existingProfile.role !== 'admin') {
+              await fetch(`${API_ENDPOINTS.PROFILES}?user_id=eq.${(staffData as any).user_id}`, {
+                method: 'PATCH',
+                headers: { ...buildHeaders(true), Prefer: 'return=minimal' },
+                body: JSON.stringify({
+                  role: 'barber',
+                  updated_at: new Date().toISOString(),
+                }),
+              });
+            }
+          }
+        } catch (profileError) {
+          // Non bloccare la creazione dello staff se l'aggiornamento del profilo fallisce
+          console.warn('⚠️ Impossibile aggiornare profiles.role per staff creato:', profileError);
+        }
+      }
+      
+      return createdStaff;
     } catch (error) {
       console.error('Error creating staff:', error);
       throw error;
@@ -3197,6 +3229,26 @@ export const apiService = {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
     
     try {
+      // Recupera lo staff esistente per verificare se user_id è cambiato
+      let oldUserId: string | null = null;
+      const newUserId = (staffData as any).user_id;
+      
+      if (newUserId !== undefined) {
+        try {
+          const existingStaffRes = await fetch(`${API_ENDPOINTS.STAFF}?id=eq.${id}&select=user_id&limit=1`, {
+            headers: { ...buildHeaders(true) },
+          });
+          if (existingStaffRes.ok) {
+            const existingStaff = await existingStaffRes.json();
+            if (existingStaff[0]) {
+              oldUserId = existingStaff[0].user_id || null;
+            }
+          }
+        } catch (e) {
+          // Ignora errori nel recupero dello staff esistente
+        }
+      }
+      
       // Filtra solo i campi che esistono nel DB (incluso chair_id per assegnazione poltrone)
       const dbFields = ['shop_id', 'full_name', 'role', 'calendar_id', 'active', 'email', 'phone', 'chair_id', 'profile_photo_url', 'specialties', 'bio'];
       const payload: Record<string, any> = {};
@@ -3205,6 +3257,11 @@ export const apiService = {
         if (key in staffData) {
           payload[key] = (staffData as any)[key];
         }
+      }
+      
+      // Aggiungi user_id se presente
+      if (newUserId !== undefined) {
+        payload.user_id = newUserId;
       }
       
       // Se non ci sono campi da aggiornare nel DB, ritorna
@@ -3224,7 +3281,39 @@ export const apiService = {
       }
       
       const updated = await response.json();
-      return { ...updated[0], ...staffData } as Staff;
+      const updatedStaff = { ...updated[0], ...staffData } as Staff;
+      
+      // Se user_id è stato aggiunto o modificato, aggiorna profiles.role a 'barber'
+      if (newUserId !== undefined && newUserId !== null && newUserId !== oldUserId) {
+        try {
+          // Verifica se il profilo esiste e non è già 'admin' (mantieni gli admin)
+          const profileCheckRes = await fetch(`${API_ENDPOINTS.PROFILES}?user_id=eq.${newUserId}&select=role&limit=1`, {
+            headers: { ...buildHeaders(true) },
+          });
+          
+          if (profileCheckRes.ok) {
+            const profiles = await profileCheckRes.json();
+            const existingProfile = profiles[0];
+            
+            // Aggiorna solo se il ruolo non è già 'barber' o 'admin'
+            if (existingProfile && existingProfile.role !== 'barber' && existingProfile.role !== 'admin') {
+              await fetch(`${API_ENDPOINTS.PROFILES}?user_id=eq.${newUserId}`, {
+                method: 'PATCH',
+                headers: { ...buildHeaders(true), Prefer: 'return=minimal' },
+                body: JSON.stringify({
+                  role: 'barber',
+                  updated_at: new Date().toISOString(),
+                }),
+              });
+            }
+          }
+        } catch (profileError) {
+          // Non bloccare l'aggiornamento dello staff se l'aggiornamento del profilo fallisce
+          console.warn('⚠️ Impossibile aggiornare profiles.role per staff aggiornato:', profileError);
+        }
+      }
+      
+      return updatedStaff;
     } catch (error) {
       console.error('Error updating staff:', error);
       throw error;

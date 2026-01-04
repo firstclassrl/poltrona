@@ -71,7 +71,7 @@ export const ProductUpsell: React.FC<ProductUpsellProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-4xl max-h-[95vh] bg-white border border-gray-200 rounded-xl shadow-2xl flex flex-col">
+      <div className="w-full max-w-4xl max-h-[95vh] bg-white border border-gray-200 rounded-xl shadow-2xl flex flex-col aurora-modal">
         {/* Header */}
         <div className="flex items-center justify-between p-3 border-b border-gray-200">
           <div className="flex items-center space-x-3">
@@ -145,7 +145,7 @@ export const ProductUpsell: React.FC<ProductUpsellProps> = ({
               return (
                 <Card
                   key={product.id}
-                  className={`p-2 transition-all duration-200 ${
+                  className={`p-2 transition-all duration-200 aurora-modal-bg-white ${
                     isSelected ? 'ring-2 ring-green-500 bg-green-50' : 'hover:shadow-md'
                   }`}
                 >
@@ -230,9 +230,9 @@ export const ProductUpsell: React.FC<ProductUpsellProps> = ({
           )}
 
           {/* Info Box */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 mb-2">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 mb-2 aurora-modal-bg-white">
             <div className="flex items-start space-x-1">
-              <div className="w-3 h-3 bg-blue-100 rounded-full flex items-center justify-center mt-0.5">
+              <div className="w-3 h-3 bg-blue-100 rounded-full flex items-center justify-center mt-0.5 aurora-modal-bg-white">
                 <Package className="w-2 h-2 text-blue-600" />
               </div>
               <div>

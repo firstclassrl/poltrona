@@ -1189,6 +1189,19 @@ body {
   background-color: #ffffff !important;
 }
 
+/* Aurora: Forza background bianco anche su bg-blue-50 e bg-green-50 nelle modali (eccetto bottoni) */
+[data-theme='aurora'] .aurora-modal [class*="bg-blue-50"]:not(button):not([role="button"]),
+[data-theme='aurora'] .aurora-modal [class*="bg-green-50"]:not(button):not([role="button"]):not(.ring-2),
+[data-theme='aurora'] div[class*="fixed"][class*="inset"][class*="z-50"] [class*="bg-blue-50"]:not(button):not([role="button"]),
+[data-theme='aurora'] div[class*="fixed"][class*="inset"][class*="z-50"] [class*="bg-green-50"]:not(button):not([role="button"]):not(.ring-2) {
+  background-color: #ffffff !important;
+}
+
+/* Aurora: Card selezionate nelle modali - mantieni solo il bordo verde, background bianco */
+[data-theme='aurora'] .aurora-modal .ring-2.ring-green-500.bg-green-50 {
+  background-color: #ffffff !important;
+}
+
 [data-theme='aurora'] .aurora-modal + div {
   backdrop-filter: blur(8px) !important;
   -webkit-backdrop-filter: blur(8px) !important;

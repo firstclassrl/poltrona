@@ -207,8 +207,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             if (stored) resolvedShopId = stored;
           }
 
-          // Se il profilo non esiste, crealo
+          // Se il profilo non esiste, verifica se esiste staff collegato prima di crearlo
           if (!profile) {
+            // Verifica se esiste uno staff con questo user_id
+            let initialRole: UserRole = 'client';
+            try {
+              const staffCheckRes = await fetch(`${API_ENDPOINTS.STAFF}?user_id=eq.${authUserId}&select=id&limit=1`, {
+                headers: {
+                  'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+                  'Authorization': `Bearer ${accessToken}`,
+                }
+              });
+              
+              if (staffCheckRes.ok) {
+                const staffRecords = await staffCheckRes.json();
+                if (staffRecords && staffRecords.length > 0) {
+                  // Esiste uno staff collegato, crea il profilo come 'barber'
+                  initialRole = 'barber';
+                }
+              }
+            } catch (staffError) {
+              // Se la verifica fallisce, usa 'client' come default
+              console.warn('⚠️ Impossibile verificare staff esistente durante OAuth:', staffError);
+            }
 
             // Crea il profilo tramite API
             const createProfileRes = await fetch(API_ENDPOINTS.PROFILES, {
@@ -221,7 +242,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               body: JSON.stringify({
                 user_id: authUserId,
                 full_name: fullName,
-                role: 'client',
+                role: initialRole,
                 shop_id: resolvedShopId,
                 is_platform_admin: false,
               })
@@ -233,7 +254,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 id: authUserId,
                 user_id: authUserId,
                 full_name: fullName,
-                role: 'client' as UserRole,
+                role: initialRole,
                 shop_id: resolvedShopId,
                 is_platform_admin: false,
               };
@@ -243,7 +264,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 id: authUserId,
                 email: userEmail,
                 full_name: fullName,
-                role: 'client',
+                role: initialRole,
                 shop_id: resolvedShopId,
                 is_platform_admin: false,
                 created_at: new Date().toISOString(),
@@ -371,15 +392,80 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const isTokenValid = await verifyToken(accessToken);
           
           if (isTokenValid) {
-            // Token valido, procedi normalmente
-            setAuthState({
-              user,
-              isAuthenticated: true,
-              isLoading: false,
-            });
-            const storage = getStorage(rememberMe);
-            if (user.shop_id) {
-              storage.setItem('current_shop_id', user.shop_id);
+            // Token valido, ricarica il profilo dal database per avere il ruolo aggiornato
+            try {
+              const profileRes = await fetch(`${API_ENDPOINTS.PROFILES}?select=*&user_id=eq.${user.id}`, {
+                headers: {
+                  'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+                  'Authorization': `Bearer ${accessToken}`,
+                }
+              });
+
+              if (profileRes.ok) {
+                const profiles = await profileRes.json();
+                const profile = profiles[0] as User | undefined;
+                
+                if (profile) {
+                  // Aggiorna l'utente con i dati freschi dal database
+                  const updatedUser: User = {
+                    id: user.id,
+                    email: user.email,
+                    full_name: (profile as any).full_name ?? user.full_name,
+                    role: (profile as any).role ?? user.role,
+                    shop_id: (profile as any).shop_id ?? user.shop_id,
+                    is_platform_admin: (profile as any).is_platform_admin ?? user.is_platform_admin,
+                    created_at: (profile as any).created_at ?? user.created_at,
+                  };
+                  
+                  // Salva l'utente aggiornato nello storage
+                  const storage = getStorage(rememberMe);
+                  storage.setItem('auth_user', JSON.stringify(updatedUser));
+                  
+                  setAuthState({
+                    user: updatedUser,
+                    isAuthenticated: true,
+                    isLoading: false,
+                  });
+                  
+                  if (updatedUser.shop_id) {
+                    storage.setItem('current_shop_id', updatedUser.shop_id);
+                  }
+                } else {
+                  // Profilo non trovato, usa i dati salvati
+                  setAuthState({
+                    user,
+                    isAuthenticated: true,
+                    isLoading: false,
+                  });
+                  const storage = getStorage(rememberMe);
+                  if (user.shop_id) {
+                    storage.setItem('current_shop_id', user.shop_id);
+                  }
+                }
+              } else {
+                // Errore nel caricamento profilo, usa i dati salvati
+                setAuthState({
+                  user,
+                  isAuthenticated: true,
+                  isLoading: false,
+                });
+                const storage = getStorage(rememberMe);
+                if (user.shop_id) {
+                  storage.setItem('current_shop_id', user.shop_id);
+                }
+              }
+            } catch (profileError) {
+              // Errore nel caricamento profilo, usa i dati salvati
+              console.warn('⚠️ Impossibile ricaricare profilo dal database, uso dati salvati:', profileError);
+              setAuthState({
+                user,
+                isAuthenticated: true,
+                isLoading: false,
+              });
+              const storage = getStorage(rememberMe);
+              if (user.shop_id) {
+                storage.setItem('current_shop_id', user.shop_id);
+              }
             }
           } else if (refreshToken) {
             // Token scaduto, prova a refresharlo
@@ -396,19 +482,78 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
             if (refreshRes.ok) {
               const tokenJson = await refreshRes.json();
+              const newAccessToken = tokenJson.access_token;
               const storage = getStorage(rememberMe);
-              storage.setItem('auth_token', tokenJson.access_token);
+              storage.setItem('auth_token', newAccessToken);
               if (tokenJson.refresh_token) {
                 storage.setItem('refresh_token', tokenJson.refresh_token);
               }
               
-              setAuthState({
-                user,
-                isAuthenticated: true,
-                isLoading: false,
-              });
-              if (user.shop_id) {
-                storage.setItem('current_shop_id', user.shop_id);
+              // Ricarica il profilo dal database con il nuovo token
+              try {
+                const profileRes = await fetch(`${API_ENDPOINTS.PROFILES}?select=*&user_id=eq.${user.id}`, {
+                  headers: {
+                    'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${newAccessToken}`,
+                  }
+                });
+
+                if (profileRes.ok) {
+                  const profiles = await profileRes.json();
+                  const profile = profiles[0] as User | undefined;
+                  
+                  if (profile) {
+                    const updatedUser: User = {
+                      id: user.id,
+                      email: user.email,
+                      full_name: (profile as any).full_name ?? user.full_name,
+                      role: (profile as any).role ?? user.role,
+                      shop_id: (profile as any).shop_id ?? user.shop_id,
+                      is_platform_admin: (profile as any).is_platform_admin ?? user.is_platform_admin,
+                      created_at: (profile as any).created_at ?? user.created_at,
+                    };
+                    
+                    storage.setItem('auth_user', JSON.stringify(updatedUser));
+                    
+                    setAuthState({
+                      user: updatedUser,
+                      isAuthenticated: true,
+                      isLoading: false,
+                    });
+                    
+                    if (updatedUser.shop_id) {
+                      storage.setItem('current_shop_id', updatedUser.shop_id);
+                    }
+                  } else {
+                    setAuthState({
+                      user,
+                      isAuthenticated: true,
+                      isLoading: false,
+                    });
+                    if (user.shop_id) {
+                      storage.setItem('current_shop_id', user.shop_id);
+                    }
+                  }
+                } else {
+                  setAuthState({
+                    user,
+                    isAuthenticated: true,
+                    isLoading: false,
+                  });
+                  if (user.shop_id) {
+                    storage.setItem('current_shop_id', user.shop_id);
+                  }
+                }
+              } catch (profileError) {
+                console.warn('⚠️ Impossibile ricaricare profilo dopo refresh token:', profileError);
+                setAuthState({
+                  user,
+                  isAuthenticated: true,
+                  isLoading: false,
+                });
+                if (user.shop_id) {
+                  storage.setItem('current_shop_id', user.shop_id);
+                }
               }
             } else {
               // Refresh fallito, forza logout
