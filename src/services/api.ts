@@ -1268,6 +1268,12 @@ export const apiService = {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ Error fetching appointments:', response.status, errorText);
+        // Se è un errore di rete (ERR_INSUFFICIENT_RESOURCES), non lanciare errore
+        // per evitare loop infiniti
+        if (response.status === 0 || errorText.includes('ERR_INSUFFICIENT_RESOURCES')) {
+          console.warn('⚠️ Network error detected in getAppointments, returning empty array to avoid loop');
+          return [];
+        }
         throw new Error(`Failed to fetch appointments: ${response.status}`);
       }
       const data = await response.json();
@@ -1275,6 +1281,12 @@ export const apiService = {
       }
       return data;
     } catch (error) {
+      // Se l'errore è di tipo network (ERR_INSUFFICIENT_RESOURCES), non loggare
+      // per evitare spam nella console
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.warn('⚠️ Network error in getAppointments (likely ERR_INSUFFICIENT_RESOURCES), returning empty array');
+        return [];
+      }
       console.error('❌ Error fetching appointments:', error);
       return [];
     }
@@ -3027,6 +3039,12 @@ export const apiService = {
       const services = await response.json();
       return services;
     } catch (error) {
+      // Se l'errore è di tipo network (ERR_INSUFFICIENT_RESOURCES), non loggare
+      // per evitare spam nella console
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.warn('⚠️ Network error in getServices (likely ERR_INSUFFICIENT_RESOURCES), returning empty array');
+        return [];
+      }
       console.error('❌ Error fetching services:', error);
       return [];
     }
@@ -3087,6 +3105,12 @@ export const apiService = {
       const staff = await response.json();
       return staff;
     } catch (error) {
+      // Se l'errore è di tipo network (ERR_INSUFFICIENT_RESOURCES), non loggare
+      // per evitare spam nella console
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.warn('⚠️ Network error in getStaff (likely ERR_INSUFFICIENT_RESOURCES), returning empty array');
+        return [];
+      }
       console.error('❌ Error fetching staff:', error);
       return [];
     }

@@ -10,6 +10,7 @@ import { useDailyShopHours } from '../hooks/useDailyShopHours';
 import { useChairAssignment } from '../hooks/useChairAssignment';
 import { useAppointments } from '../hooks/useAppointments';
 import { useVacationMode } from '../hooks/useVacationMode';
+import { useShop } from '../contexts/ShopContext';
 import { AppointmentForm } from './AppointmentForm';
 import { DeleteConfirmation } from './DeleteConfirmation';
 import { apiService } from '../services/api';
@@ -24,6 +25,8 @@ export const Calendar = () => {
   const { getAssignedChairs } = useChairAssignment();
   const { appointments, createAppointment, deleteAppointment, loadAppointments } = useAppointments();
   const { isDateInVacation } = useVacationMode();
+  const { currentShop } = useShop();
+  const areProductsEnabled = currentShop?.products_enabled === true;
   
   // Mobile-specific states
   const [isMobile, setIsMobile] = useState(false);
@@ -507,9 +510,13 @@ export const Calendar = () => {
                               <div className="font-medium truncate whitespace-nowrap overflow-hidden text-ellipsis">
                                 {getAppointmentClientLabel(appointmentAtSlot)}
                               </div>
-                              {slotCount > 1 && (
-                                <div className="text-xs text-gray-600 mt-1 truncate">
-                                  {appointmentAtSlot.services?.name || 'Servizio'}
+                              <div className="text-xs text-gray-600 mt-0.5 truncate">
+                                {appointmentAtSlot.services?.name || 'Servizio'}
+                              </div>
+                              {areProductsEnabled && appointmentAtSlot.products && appointmentAtSlot.products.length > 0 && (
+                                <div className="text-xs text-orange-700 mt-0.5 truncate flex items-center gap-1">
+                                  <Package className="w-3 h-3 flex-shrink-0" />
+                                  <span>{appointmentAtSlot.products.length} prodotto{appointmentAtSlot.products.length > 1 ? 'i' : ''}</span>
                                 </div>
                               )}
                             </div>

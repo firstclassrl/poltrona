@@ -109,6 +109,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     let globalTimeoutId: NodeJS.Timeout | null = null;
     let isMounted = true;
     let hasLoaded = false;
+    let isLoadingData = false; // Flag per prevenire caricamenti simultanei
 
     // Timeout globale di sicurezza: dopo 5 secondi, imposta sempre loading a false
     globalTimeoutId = setTimeout(() => {
@@ -119,7 +120,13 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     }, 5000);
 
     const loadData = async (shopIdToUse: string | null) => {
-      if (hasLoaded) return; // Evita caricamenti duplicati
+      // Prevenire caricamenti duplicati o simultanei
+      if (hasLoaded || isLoadingData) {
+        console.log('⏭️ ClientBookingCalendar: Skipping duplicate load request');
+        return;
+      }
+      
+      isLoadingData = true;
       hasLoaded = true;
 
       try {
@@ -161,11 +168,21 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
         }
       } catch (error) {
         console.error('❌ ClientBookingCalendar: Error loading booking data:', error);
+        // Se l'errore è ERR_INSUFFICIENT_RESOURCES, non riprovare immediatamente
+        if (error instanceof Error && error.message.includes('ERR_INSUFFICIENT_RESOURCES')) {
+          console.warn('⚠️ Too many requests, will not retry immediately');
+          // Reset hasLoaded dopo un delay per permettere un retry futuro
+          setTimeout(() => {
+            hasLoaded = false;
+            isLoadingData = false;
+          }, 5000);
+        }
         if (isMounted) {
           setServices([]);
           setStaff([]);
         }
       } finally {
+        isLoadingData = false;
         if (isMounted) {
           setIsLoading(false);
         }
@@ -199,7 +216,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       // Se non abbiamo shop_id, aspetta al massimo 1.5 secondi per il caricamento del negozio
       if (shopLoading) {
         timeoutId = setTimeout(() => {
-          if (isMounted && !hasLoaded) {
+          if (isMounted && !hasLoaded && !isLoadingData) {
             const finalShopId = currentShopId || currentShop?.id || fallbackShopId;
             if (finalShopId && finalShopId !== 'default') {
               loadData(finalShopId);
@@ -210,7 +227,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
           }
         }, 1500);
       } else {
-        if (!hasLoaded) {
+        if (!hasLoaded && !isLoadingData) {
           loadData(effectiveShopId);
         }
       }
@@ -221,8 +238,9 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       if (globalTimeoutId) clearTimeout(globalTimeoutId);
       isMounted = false;
       hasLoaded = false;
+      isLoadingData = false;
     };
-  }, [shopLoading, currentShopId, currentShop, isAuthenticated, user]);
+  }, [shopLoading, currentShopId, currentShop?.id, isAuthenticated, user?.id]);
     
   // Force reload vacation period after component mounts
   // This ensures we get the latest vacation period even if it was set before this component mounted

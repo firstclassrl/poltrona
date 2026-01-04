@@ -670,7 +670,9 @@ body {
   justify-content: center;
 }
 
-/* Appointment blocks nel calendario - stile migliorato e preciso */
+/* Appointment blocks nel calendario - stile migliorato e preciso
+   NOTA: L'altezza è gestita inline nel componente Calendar.tsx (46px per slot)
+   e si applica automaticamente a tutti i temi disponibili */
 .appointment-block {
   padding: 0.25rem 0.5rem !important;
   margin: 0 !important;

@@ -20,9 +20,19 @@ export interface CreateAppointmentData {
 export const useAppointments = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [lastError, setLastError] = useState<Error | null>(null);
+  const [isLoadingInProgress, setIsLoadingInProgress] = useState(false);
 
   // Carica gli appuntamenti dal database
   const loadAppointments = useCallback(async () => {
+    // Prevenire caricamenti simultanei
+    if (isLoadingInProgress) {
+      console.log('⏭️ useAppointments: Skipping duplicate load request');
+      return;
+    }
+
+    setIsLoadingInProgress(true);
+    
     try {
       setIsLoading(true);
       // Carica appuntamenti per un range ampio (1 settimana fa fino a 2 anni nel futuro)
@@ -46,15 +56,30 @@ export const useAppointments = () => {
       
       if (dbAppointments && dbAppointments.length > 0) {
         setAppointments(dbAppointments);
+        setLastError(null); // Reset error on success
         // Log delle date degli appuntamenti per debug
         dbAppointments.forEach((apt: Appointment) => {
         });
       } else {
         setAppointments([]);
+        setLastError(null);
       }
     } catch (error) {
       console.error('Errore nel caricamento degli appuntamenti:', error);
-      // Fallback al localStorage in caso di errore
+      setLastError(error instanceof Error ? error : new Error(String(error)));
+      
+      // Se l'errore è ERR_INSUFFICIENT_RESOURCES, non fare fallback al localStorage
+      // per evitare loop infiniti
+      if (error instanceof Error && (
+        error.message.includes('ERR_INSUFFICIENT_RESOURCES') ||
+        error.message.includes('Failed to fetch')
+      )) {
+        console.warn('⚠️ Network error detected, keeping current appointments to avoid loop');
+        // Mantieni gli appuntamenti esistenti invece di resettarli
+        return;
+      }
+      
+      // Fallback al localStorage solo per altri tipi di errori
       try {
         const savedAppointments = localStorage.getItem('appointments');
         if (savedAppointments) {
@@ -67,8 +92,9 @@ export const useAppointments = () => {
       }
     } finally {
       setIsLoading(false);
+      setIsLoadingInProgress(false);
     }
-  }, []);
+  }, [isLoadingInProgress]);
 
   // Crea un nuovo appuntamento
   const createAppointment = async (appointmentData: CreateAppointmentData): Promise<Appointment> => {
@@ -87,8 +113,26 @@ export const useAppointments = () => {
         status: 'confirmed',
       });
       
-      // Ricarica gli appuntamenti dal database per avere i dati completi
-      await loadAppointments();
+      // Aggiungi l'appuntamento creato alla lista locale immediatamente
+      // per evitare di dover ricaricare tutto e causare loop
+      setAppointments(prev => {
+        // Evita duplicati
+        const exists = prev.some(apt => apt.id === created.id);
+        if (exists) return prev;
+        return [...prev, created].sort((a, b) => 
+          new Date(a.start_at).getTime() - new Date(b.start_at).getTime()
+        );
+      });
+      
+      // Ricarica gli appuntamenti dal database in background con un delay
+      // per evitare richieste simultanee che causano ERR_INSUFFICIENT_RESOURCES
+      setTimeout(() => {
+        if (!isLoadingInProgress) {
+          loadAppointments().catch(err => {
+            console.warn('⚠️ Background reload of appointments failed:', err);
+          });
+        }
+      }, 1000);
       
       return created;
       
