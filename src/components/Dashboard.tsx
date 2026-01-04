@@ -7,6 +7,7 @@ import { Modal } from './ui/Modal';
 import { formatTime, formatDate } from '../utils/date';
 import { useAppointments } from '../hooks/useAppointments';
 import { useAuth } from '../contexts/AuthContext';
+import { useShop } from '../contexts/ShopContext';
 import type { Appointment } from '../types';
 
 interface DashboardProps {
@@ -21,8 +22,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onNavigateToClients
 }) => {
   const { user } = useAuth();
+  const { currentShop } = useShop();
   const [greeting, setGreeting] = useState('Buongiorno');
   const [isMobile, setIsMobile] = useState(false);
+  const areProductsEnabled = currentShop?.products_enabled === true;
   
   const { appointments } = useAppointments();
   const upcomingAppointments = appointments.slice(0, 6);
@@ -227,25 +230,38 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     }
                   }}
                 >
-                  <div className="flex items-center justify-between h-full">
-                    <div className="flex items-center space-x-3 flex-1 min-w-0">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-white font-semibold text-xs">
-                          {getAppointmentClientInitials(appointment)}
-                        </span>
+                  <div className="flex flex-col space-y-2">
+                    <div className="flex items-center justify-between h-full">
+                      <div className="flex items-center space-x-3 flex-1 min-w-0">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                          <span className="text-white font-semibold text-xs">
+                            {getAppointmentClientInitials(appointment)}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 text-sm leading-tight mb-1 truncate">
+                            {getAppointmentClientLabel(appointment)}
+                          </p>
+                          <p className="text-xs text-gray-600 leading-tight truncate">
+                            {formatTime(appointment.start_at)} - {appointment.services?.name || 'Servizio'}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-900 text-sm leading-tight mb-1 truncate">
-                          {getAppointmentClientLabel(appointment)}
-                        </p>
-                        <p className="text-xs text-gray-600 leading-tight truncate">
-                          {formatTime(appointment.start_at)} - {appointment.services?.name || 'Servizio'}
-                        </p>
+                      <div className="ml-3 flex-shrink-0">
+                        {getStatusBadge(appointment.status || 'scheduled')}
                       </div>
                     </div>
-                    <div className="ml-3 flex-shrink-0">
-                      {getStatusBadge(appointment.status || 'scheduled')}
-                    </div>
+                    {/* Prodotti da preparare */}
+                    {areProductsEnabled && appointment.products && appointment.products.length > 0 && (
+                      <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-1 bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
+                          <Package className="w-3 h-3" />
+                          <span className="text-xs font-medium">
+                            {appointment.products.length} prodotto{appointment.products.length > 1 ? 'i' : ''} da preparare
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </Card>
               ))}
@@ -365,7 +381,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
               
               {/* Avviso Prodotti da Preparare */}
-              {appointment.products && appointment.products.length > 0 && (
+              {areProductsEnabled && appointment.products && appointment.products.length > 0 && (
                 <div className="flex items-center space-x-2 mt-2">
                   <div className="flex items-center space-x-1 bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
                     <ShoppingBag className="w-3 h-3" />
@@ -483,7 +499,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             {/* Prodotti da Preparare */}
-            {selectedAppointment.products && selectedAppointment.products.length > 0 && (
+            {areProductsEnabled && selectedAppointment.products && selectedAppointment.products.length > 0 && (
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                 <h4 className="font-semibold text-green-800 mb-3 flex items-center">
                   <ShoppingBag className="w-4 h-4 mr-2" />
@@ -531,7 +547,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
             )}
 
-            {(!selectedAppointment.products || selectedAppointment.products.length === 0) && (
+            {areProductsEnabled && (!selectedAppointment.products || selectedAppointment.products.length === 0) && (
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center space-x-2 text-gray-600">
                   <Package className="w-4 h-4" />

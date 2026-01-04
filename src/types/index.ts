@@ -149,6 +149,7 @@ export interface CreateAppointmentRequest {
   end_at: string;
   notes?: string;
   status?: string;
+  products?: AppointmentProduct[];
 }
 
 export interface UpdateAppointmentRequest extends Partial<CreateAppointmentRequest> {

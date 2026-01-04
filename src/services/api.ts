@@ -1305,6 +1305,7 @@ export const apiService = {
         end_at: data.end_at,
         notes: data.notes,
         status: data.status || 'scheduled',
+        products: data.products,
       });
       return;
     }
@@ -1330,6 +1331,7 @@ export const apiService = {
         end_at: data.end_at,
         notes: data.notes,
         status: data.status || 'scheduled',
+        products: data.products,
       });
     }
   },
@@ -1344,6 +1346,12 @@ export const apiService = {
     end_at: string;
     notes?: string;
     status?: string;
+    products?: Array<{
+      productId: string;
+      quantity: number;
+      productName?: string;
+      productPrice?: number;
+    }>;
   }): Promise<any> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
     
@@ -1408,9 +1416,17 @@ export const apiService = {
       
       // Resolve shop_id with multiple fallbacks to satisfy RLS
       let shopId = getStoredShopId();
+      let shop: Shop | null = null;
       if (!shopId) {
-        const shop = await this.getShop();
+        shop = await this.getShop();
         shopId = shop?.id ?? null;
+      } else {
+        // Get shop to check products_enabled even if we already have shopId
+        try {
+          shop = await this.getShop();
+        } catch (e) {
+          // If getShop fails, continue without shop - products will be filtered out
+        }
       }
       if (!shopId || shopId === 'default') {
         try {
@@ -1425,7 +1441,20 @@ export const apiService = {
         throw new Error('Impossibile creare l\'appuntamento: shop non impostato per questo utente');
       }
 
-      const payload = {
+      // Check if products are enabled for this shop
+      const areProductsEnabled = shop?.products_enabled === true;
+
+      // Format products for JSONB storage - only if products_enabled is true
+      const productsArray = (areProductsEnabled && data.products && data.products.length > 0)
+        ? data.products.map(p => ({
+            productId: p.productId,
+            quantity: p.quantity,
+            productName: p.productName,
+            productPrice: p.productPrice,
+          }))
+        : [];
+
+      const payload: any = {
         shop_id: resolvedShopId,
         client_id: normalizedClientId,
         client_name: normalizedClientName,
@@ -1436,6 +1465,11 @@ export const apiService = {
         notes: data.notes || '',
         status: data.status || 'confirmed',
       };
+
+      // Add products only if provided, not empty, and products_enabled is true
+      if (productsArray.length > 0) {
+        payload.products = productsArray;
+      }
       
       // Usa fetchWithTokenRefresh per gestire automaticamente il refresh del token
       const response = await fetchWithTokenRefresh(
@@ -1549,6 +1583,27 @@ export const apiService = {
         throw new Error('Slot non disponibile: conflitto con un altro appuntamento');
       }
 
+      // Check if products are enabled for this shop
+      let shop: Shop | null = null;
+      try {
+        shop = await this.getShop();
+      } catch (e) {
+        // If getShop fails, continue without shop - products will be filtered out
+      }
+      const areProductsEnabled = shop?.products_enabled === true;
+
+      // Format products for JSONB storage - only if products_enabled is true
+      const productsArray = (areProductsEnabled && data.products && data.products.length > 0)
+        ? data.products.map(p => ({
+            productId: p.productId,
+            quantity: p.quantity,
+            productName: p.productName,
+            productPrice: p.productPrice,
+          }))
+        : (data.products === null || data.products === undefined) 
+          ? undefined 
+          : []; // If products is explicitly set to empty array, clear it
+
       const payload: Record<string, unknown> = {
         start_at: startAt,
         end_at: endAt,
@@ -1557,6 +1612,16 @@ export const apiService = {
       if (data.notes !== undefined) payload.notes = data.notes;
       if (serviceId) payload.service_id = serviceId;
       if (staffId) payload.staff_id = staffId;
+      
+      // Handle products update - only if products_enabled is true
+      if (productsArray !== undefined) {
+        if (areProductsEnabled && productsArray.length > 0) {
+          payload.products = productsArray;
+        } else if (productsArray.length === 0) {
+          // Explicitly clear products if empty array is provided
+          payload.products = [];
+        }
+      }
 
       const response = await fetchWithTokenRefresh(
         `${API_ENDPOINTS.APPOINTMENTS_FEED}?id=eq.${data.id}`,

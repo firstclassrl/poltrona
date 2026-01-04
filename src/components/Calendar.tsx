@@ -736,7 +736,7 @@ export const Calendar = () => {
                           </span>
                         </div>
                         
-                        {appointment.products && appointment.products.length > 0 && (
+                        {areProductsEnabled && appointment.products && appointment.products.length > 0 && (
                           <div className="flex items-center space-x-2">
                             <Package className="w-4 h-4 text-orange-500" />
                             <span className="text-orange-700 text-sm font-medium">

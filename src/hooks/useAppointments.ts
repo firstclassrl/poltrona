@@ -111,6 +111,7 @@ export const useAppointments = () => {
         end_at: appointmentData.end_at,
         notes: appointmentData.notes || '',
         status: 'confirmed',
+        products: appointmentData.products,
       });
       
       // Aggiungi l'appuntamento creato alla lista locale immediatamente
