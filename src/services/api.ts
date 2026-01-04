@@ -3292,12 +3292,26 @@ export const apiService = {
         shop_id: p.shop_id,
         price: p.price,
         price_cents: p.price_cents,
+        image_url: p.image_url,
+        imageurl: p.imageurl,
         active: p.active
       })));
       
-      // Il database usa 'price' in euro, quindi restituiamo i prodotti così come sono
-      // Non serve normalizzazione perché il database reale usa 'price', non 'price_cents'
-      return products;
+      // Normalizza i prodotti: gestisci sia image_url che imageurl
+      const normalizedProducts = products.map((p: any) => {
+        const normalized: any = { ...p };
+        // Se ha imageurl ma non image_url, copia in image_url
+        if (p.imageurl && !p.image_url) {
+          normalized.image_url = p.imageurl;
+        }
+        // Se ha image_url ma non imageurl, copia in imageurl per compatibilità
+        if (p.image_url && !p.imageurl) {
+          normalized.imageurl = p.image_url;
+        }
+        return normalized;
+      });
+      
+      return normalizedProducts;
     } catch (error) {
       console.error('Error fetching products:', error);
       return [];

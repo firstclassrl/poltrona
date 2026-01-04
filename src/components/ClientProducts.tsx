@@ -71,9 +71,9 @@ export const ClientProducts: React.FC<ClientProductsProps> = ({ onNavigateToBook
   });
 
   const formatPrice = (priceOrCents: number | null | undefined) => {
-    if (!priceOrCents) return '€0.00';
-    // Il database usa 'price' in euro, quindi mostriamo direttamente
-    return `€${priceOrCents.toFixed(2)}`;
+    if (!priceOrCents) return '0.00';
+    // Il database usa 'price' in euro, quindi mostriamo direttamente (senza simbolo € perché c'è già l'icona)
+    return priceOrCents.toFixed(2);
   };
 
   const getCategoryIcon = (category: string) => {
@@ -123,15 +123,23 @@ export const ClientProducts: React.FC<ClientProductsProps> = ({ onNavigateToBook
             <div className="relative">
               {/* Product Image */}
               <div className="w-full h-72 bg-gray-100 flex items-center justify-center overflow-hidden">
-                {product.image_url ? (
-                  <img
-                    src={product.image_url}
-                    alt={product.name}
-                    className="w-full h-full object-contain p-4"
-                  />
-                ) : (
-                  <Package className="w-16 h-16 text-gray-400" />
-                )}
+                {(() => {
+                  const imageUrl = product.image_url || (product as any).imageurl;
+                  if (imageUrl) {
+                    return (
+                      <img
+                        src={imageUrl}
+                        alt={product.name}
+                        className="w-full h-full object-contain p-4"
+                        onError={(e) => {
+                          // Se l'immagine non carica, nascondi e mostra placeholder
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    );
+                  }
+                  return <Package className="w-16 h-16 text-gray-400" />;
+                })()}
               </div>
 
               {/* Product Info */}
