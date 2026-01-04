@@ -21,7 +21,14 @@ export const ClientProducts: React.FC<ClientProductsProps> = ({ onNavigateToBook
         setIsLoading(true);
         console.log('🛍️ ClientProducts: Loading products...');
         const productsData = await apiService.getProducts();
-        console.log('🛍️ ClientProducts: Loaded products:', productsData.length, productsData);
+        console.log('🛍️ ClientProducts: Loaded products:', productsData.length);
+        console.log('🛍️ ClientProducts: Products details:', productsData.map(p => ({
+          id: p.id,
+          name: p.name,
+          shop_id: p.shop_id,
+          price_cents: p.price_cents,
+          active: p.active
+        })));
         setProducts(productsData);
       } catch (error) {
         console.error('❌ ClientProducts: Error loading products:', error);

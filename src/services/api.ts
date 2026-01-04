@@ -525,35 +525,52 @@ export const apiService = {
     }
     
     try {
+      // CRITICO: Ottieni shop_id prima di cercare il cliente
+      let shopId = getStoredShopId();
+      if (!shopId) {
+        const shop = await this.getShop();
+        shopId = shop?.id ?? null;
+      }
+      
       // Prima cerca se il cliente esiste (usa accesso pubblico)
-      const searchUrl = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=id&email=eq.${encodeURIComponent(email)}&limit=1`;
+      // CRITICO: Filtra per shop_id per evitare cross-shop
+      let searchUrl = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=id,shop_id&email=eq.${encodeURIComponent(email)}&limit=1`;
+      if (shopId && shopId !== 'default') {
+        searchUrl += `&shop_id=eq.${shopId}`;
+      }
       const searchResponse = await fetch(searchUrl, { headers: buildHeaders(true) });
       
       if (searchResponse.ok) {
         const clients = await searchResponse.json();
         
         if (clients && clients.length > 0) {
-          // Cliente esiste - aggiorna (usa accesso pubblico)
-          const clientId = clients[0].id;
-          const updateResponse = await fetch(`${API_ENDPOINTS.SEARCH_CLIENTS}?id=eq.${clientId}`, {
-            method: 'PATCH',
-            headers: { ...buildHeaders(true), Prefer: 'return=minimal' },
-            body: JSON.stringify(data),
-          });
+          const foundClient = clients[0];
           
-          if (updateResponse.ok) {
-            // Client updated successfully
+          // CRITICO: Verifica che il cliente appartenga allo shop corretto
+          if (shopId && shopId !== 'default' && foundClient.shop_id && foundClient.shop_id !== shopId) {
+            // Cliente trovato ma appartiene a un altro shop - crea nuovo cliente per questo shop
+            console.warn('⚠️ upsertClientByEmail: Cliente trovato ma appartiene a shop diverso, creo nuovo cliente');
           } else {
-            // Se fallisce, non loggare come errore - potrebbe essere un problema di RLS
-            // Non bloccare il flusso
+            // Cliente esiste e appartiene allo shop corretto - aggiorna (usa accesso pubblico)
+            const clientId = foundClient.id;
+            const updateResponse = await fetch(`${API_ENDPOINTS.SEARCH_CLIENTS}?id=eq.${clientId}`, {
+              method: 'PATCH',
+              headers: { ...buildHeaders(true), Prefer: 'return=minimal' },
+              body: JSON.stringify(data),
+            });
+            
+            if (updateResponse.ok) {
+              // Client updated successfully
+              return; // Esci dalla funzione dopo l'aggiornamento
+            } else {
+              // Se fallisce, non loggare come errore - potrebbe essere un problema di RLS
+              // Non bloccare il flusso
+            }
           }
-        } else {
-          // Cliente non esiste - crealo (usa accesso pubblico)
-          let shopId = getStoredShopId();
-          if (!shopId) {
-            const shop = await this.getShop();
-            shopId = shop?.id ?? null;
-          }
+        }
+        
+        // Cliente non esiste o appartiene a shop diverso - crealo (usa accesso pubblico)
+        // shopId già ottenuto sopra
           const createData = {
             shop_id: shopId && shopId !== 'default' ? shopId : null,
             first_name: data.first_name || 'Cliente',
@@ -589,7 +606,17 @@ export const apiService = {
   async getClientByEmailExact(email: string): Promise<Client | null> {
     if (!isSupabaseConfigured()) return null;
     try {
-      const url = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=*&email=eq.${encodeURIComponent(email)}&limit=1`;
+      // CRITICO: Filtra per shop_id per evitare cross-shop
+      let shopId = getStoredShopId();
+      if (!shopId) {
+        const shop = await this.getShop();
+        shopId = shop?.id ?? null;
+      }
+      
+      let url = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=*&email=eq.${encodeURIComponent(email)}&limit=1`;
+      if (shopId && shopId !== 'default') {
+        url += `&shop_id=eq.${shopId}`;
+      }
       const response = await fetch(url, { headers: buildHeaders(true) });
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) return null;
@@ -614,9 +641,20 @@ export const apiService = {
     }
     
     try {
+      // CRITICO: Ottieni shop_id prima di cercare il cliente
+      let shopId = getStoredShopId();
+      if (!shopId) {
+        const shop = await this.getShop();
+        shopId = shop?.id ?? null;
+      }
+      
       // Cerca se esiste già un cliente con questa email (usa accesso pubblico)
+      // CRITICO: Filtra per shop_id per evitare cross-shop
       if (user.email) {
-        const searchUrl = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=id,email,phone_e164&email=eq.${encodeURIComponent(user.email)}&limit=1`;
+        let searchUrl = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=id,email,phone_e164,shop_id&email=eq.${encodeURIComponent(user.email)}&limit=1`;
+        if (shopId && shopId !== 'default') {
+          searchUrl += `&shop_id=eq.${shopId}`;
+        }
         const searchResponse = await fetch(searchUrl, { headers: buildHeaders(true, options?.accessToken) });
         
         if (searchResponse.ok) {
@@ -624,20 +662,28 @@ export const apiService = {
           if (existingClients && existingClients.length > 0) {
             const existingClient = existingClients[0];
             
-            // Aggiorna il numero se manca e l'utente lo ha fornito
-            if ((!existingClient.phone_e164 || existingClient.phone_e164 === '+39000000000') && user.phone) {
-              try {
-                await fetch(`${API_ENDPOINTS.SEARCH_CLIENTS}?id=eq.${existingClient.id}`, {
-                  method: 'PATCH',
-                  headers: { ...buildHeaders(true, options?.accessToken), Prefer: 'return=representation' },
-                  body: JSON.stringify({ phone_e164: user.phone }),
-                });
-                existingClient.phone_e164 = user.phone;
-              } catch (updateError) {
-              }
-            }
+            // CRITICO: Verifica che il cliente appartenga allo shop corretto
+            if (shopId && shopId !== 'default' && existingClient.shop_id && existingClient.shop_id !== shopId) {
+              // Cliente trovato ma appartiene a un altro shop - non restituirlo
+              console.warn('⚠️ Cliente trovato ma appartiene a shop diverso:', existingClient.shop_id, 'vs', shopId);
+              // Continua a creare un nuovo cliente per questo shop
+            } else {
             
-            return existingClient;
+              // Aggiorna il numero se manca e l'utente lo ha fornito
+              if ((!existingClient.phone_e164 || existingClient.phone_e164 === '+39000000000') && user.phone) {
+                try {
+                  await fetch(`${API_ENDPOINTS.SEARCH_CLIENTS}?id=eq.${existingClient.id}`, {
+                    method: 'PATCH',
+                    headers: { ...buildHeaders(true, options?.accessToken), Prefer: 'return=representation' },
+                    body: JSON.stringify({ phone_e164: user.phone }),
+                  });
+                  existingClient.phone_e164 = user.phone;
+                } catch (updateError) {
+                }
+              }
+              
+              return existingClient;
+            }
           }
         } else if (searchResponse.status === 401) {
           // Se è un errore 401, non continuare - l'utente non è autenticato
@@ -645,12 +691,8 @@ export const apiService = {
         }
       }
 
-      // Se non esiste, crea un nuovo cliente (usa accesso pubblico)
-      let shopId = getStoredShopId();
-      if (!shopId) {
-        const shop = await this.getShop();
-        shopId = shop?.id ?? null;
-      }
+      // Se non esiste o appartiene a shop diverso, crea un nuovo cliente (usa accesso pubblico)
+      // shopId già ottenuto sopra
       const fullName = user.full_name || 'Cliente';
       const nameParts = fullName.split(' ');
       const firstName = nameParts[0] || 'Cliente';
@@ -2016,7 +2058,17 @@ export const apiService = {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
     
     try {
-      const url = `${API_ENDPOINTS.STAFF}?select=*&limit=1`;
+      // CRITICO: Filtra per shop_id per evitare cross-shop
+      let shopId = getStoredShopId();
+      if (!shopId) {
+        const shop = await this.getShop();
+        shopId = shop?.id ?? null;
+      }
+      
+      let url = `${API_ENDPOINTS.STAFF}?select=*&limit=1`;
+      if (shopId && shopId !== 'default') {
+        url += `&shop_id=eq.${shopId}`;
+      }
       const response = await fetch(url, { headers: buildHeaders(false) }); // Use false for now to avoid auth issues
       if (!response.ok) {
         const errorText = await response.text();
@@ -2646,11 +2698,15 @@ export const apiService = {
       const staffIds = [...new Set(chats.map((c: any) => c.staff_id).filter(Boolean))];
       
       // Carica tutti i clienti in una sola query
+      // CRITICO: Filtra per shop_id per evitare cross-shop anche se gli ID sono già filtrati dalle chat
       let clientsMap = new Map();
       let clientProfilesMap = new Map();
       if (clientIds.length > 0) {
         try {
-          const clientsUrl = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=id,first_name,last_name,photo_url,email,user_id&id=in.(${clientIds.join(',')})`;
+          let clientsUrl = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=id,first_name,last_name,photo_url,email,user_id,shop_id&id=in.(${clientIds.join(',')})`;
+          if (shopId && shopId !== 'default') {
+            clientsUrl += `&shop_id=eq.${shopId}`;
+          }
           const clientsResponse = await fetch(clientsUrl, { headers: buildHeaders(true) });
           if (clientsResponse.ok) {
             const clients = await clientsResponse.json();
@@ -2659,10 +2715,14 @@ export const apiService = {
             });
             
             // Se alcuni clienti hanno user_id, recupera le foto profilo dalla tabella profiles
+            // CRITICO: Filtra per shop_id anche per i profili per evitare cross-shop
             const clientUserIds = [...new Set(clients.map((c: any) => c.user_id).filter(Boolean))];
             if (clientUserIds.length > 0) {
               try {
-                const profilesUrl = `${API_ENDPOINTS.PROFILES}?select=user_id,profile_photo_url&user_id=in.(${clientUserIds.join(',')})`;
+                let profilesUrl = `${API_ENDPOINTS.PROFILES}?select=user_id,profile_photo_url,shop_id&user_id=in.(${clientUserIds.join(',')})`;
+                if (shopId && shopId !== 'default') {
+                  profilesUrl += `&shop_id=eq.${shopId}`;
+                }
                 const profilesResponse = await fetch(profilesUrl, { headers: buildHeaders(true) });
                 if (profilesResponse.ok) {
                   const profiles = await profilesResponse.json();
@@ -2683,10 +2743,14 @@ export const apiService = {
       }
       
       // Carica tutti gli staff in una sola query
+      // CRITICO: Filtra per shop_id per evitare cross-shop anche se gli ID sono già filtrati dalle chat
       let staffMap = new Map();
       if (staffIds.length > 0) {
         try {
-          const staffUrl = `${API_ENDPOINTS.STAFF}?select=id,full_name,profile_photo_url&id=in.(${staffIds.join(',')})`;
+          let staffUrl = `${API_ENDPOINTS.STAFF}?select=id,full_name,profile_photo_url,shop_id&id=in.(${staffIds.join(',')})`;
+          if (shopId && shopId !== 'default') {
+            staffUrl += `&shop_id=eq.${shopId}`;
+          }
           const staffResponse = await fetch(staffUrl, { headers: buildHeaders(true) });
           if (staffResponse.ok) {
             const staffList = await staffResponse.json();
@@ -2829,7 +2893,17 @@ export const apiService = {
     }
     
     try {
-      const url = `${API_ENDPOINTS.CHATS}?select=*&client_id=eq.${clientId}&staff_id=eq.${staffId}&limit=1`;
+      // CRITICO: Filtra per shop_id per evitare cross-shop
+      let shopId = getStoredShopId();
+      if (!shopId) {
+        const shop = await this.getShop();
+        shopId = shop?.id ?? null;
+      }
+      
+      let url = `${API_ENDPOINTS.CHATS}?select=*&client_id=eq.${clientId}&staff_id=eq.${staffId}&limit=1`;
+      if (shopId && shopId !== 'default') {
+        url += `&shop_id=eq.${shopId}`;
+      }
       const response = await fetch(url, { headers: buildHeaders(true) });
       if (!response.ok) {
         return null;

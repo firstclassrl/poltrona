@@ -1,99 +1,121 @@
 -- =====================================================
--- FIX: RLS Policies per shop_daily_hours con shop_id
+-- FIX: RLS shop_daily_hours e shop_daily_time_slots
 -- =====================================================
--- Questo script rimuove le policy pubbliche e assicura
--- che tutte le operazioni filtrino per shop_id
+-- Questo script corregge le RLS policies troppo permissive
+-- che permettono di vedere gli orari di tutti i negozi
 -- =====================================================
 
--- 1) VERIFICA CHE LE POLICY CORRETTE ESISTANO
+-- 1) RIMUOVI POLICY PERMISSIVE ESISTENTI
+-- =====================================================
+DROP POLICY IF EXISTS shop_daily_hours_select ON public.shop_daily_hours;
+DROP POLICY IF EXISTS shop_daily_time_slots_select ON public.shop_daily_time_slots;
+DROP POLICY IF EXISTS shop_daily_hours_modify ON public.shop_daily_hours;
+DROP POLICY IF EXISTS shop_daily_time_slots_modify ON public.shop_daily_time_slots;
+
+-- 2) CREA POLICY STRICT PER shop_daily_hours
+-- =====================================================
+-- SELECT: Solo il proprio shop o platform admin o service_role
+CREATE POLICY shop_daily_hours_select_shop ON public.shop_daily_hours
+  FOR SELECT
+  USING (
+    auth.role() = 'service_role'
+    OR shop_id = public.current_shop_id()
+    OR public.is_platform_admin()
+  );
+
+-- INSERT/UPDATE/DELETE: Solo il proprio shop o platform admin o service_role
+CREATE POLICY shop_daily_hours_modify_shop ON public.shop_daily_hours
+  FOR ALL
+  USING (
+    auth.role() = 'service_role'
+    OR shop_id = public.current_shop_id()
+    OR public.is_platform_admin()
+  )
+  WITH CHECK (
+    auth.role() = 'service_role'
+    OR shop_id = public.current_shop_id()
+    OR public.is_platform_admin()
+  );
+
+-- 3) CREA POLICY STRICT PER shop_daily_time_slots
+-- =====================================================
+-- SELECT: Solo time slots del proprio shop (tramite join con shop_daily_hours)
+CREATE POLICY shop_daily_time_slots_select_shop ON public.shop_daily_time_slots
+  FOR SELECT
+  USING (
+    auth.role() = 'service_role'
+    OR EXISTS (
+      SELECT 1 FROM public.shop_daily_hours h
+      WHERE h.id = shop_daily_time_slots.daily_hours_id
+        AND (
+          h.shop_id = public.current_shop_id()
+          OR public.is_platform_admin()
+        )
+    )
+  );
+
+-- INSERT/UPDATE/DELETE: Solo time slots del proprio shop
+CREATE POLICY shop_daily_time_slots_modify_shop ON public.shop_daily_time_slots
+  FOR ALL
+  USING (
+    auth.role() = 'service_role'
+    OR EXISTS (
+      SELECT 1 FROM public.shop_daily_hours h
+      WHERE h.id = shop_daily_time_slots.daily_hours_id
+        AND (
+          h.shop_id = public.current_shop_id()
+          OR public.is_platform_admin()
+        )
+    )
+  )
+  WITH CHECK (
+    auth.role() = 'service_role'
+    OR EXISTS (
+      SELECT 1 FROM public.shop_daily_hours h
+      WHERE h.id = shop_daily_time_slots.daily_hours_id
+        AND (
+          h.shop_id = public.current_shop_id()
+          OR public.is_platform_admin()
+        )
+    )
+  );
+
+-- 4) VERIFICA
 -- =====================================================
 DO $$
 DECLARE
-  v_has_select_shop BOOLEAN;
-  v_has_insert_shop BOOLEAN;
-  v_has_update_shop BOOLEAN;
-  v_has_delete_shop BOOLEAN;
+  v_policy_count INTEGER;
 BEGIN
-  RAISE NOTICE '=== VERIFICA POLICY shop_daily_hours ===';
+  RAISE NOTICE '=== VERIFICA RLS POLICIES ===';
   
-  -- Verifica SELECT
-  SELECT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE schemaname = 'public'
-      AND tablename = 'shop_daily_hours'
-      AND policyname = 'shop_daily_hours_select_shop'
-      AND qual::text LIKE '%shop_id%'
-  ) INTO v_has_select_shop;
+  SELECT COUNT(*) INTO v_policy_count
+  FROM pg_policies
+  WHERE schemaname = 'public'
+    AND tablename IN ('shop_daily_hours', 'shop_daily_time_slots')
+    AND (qual::text LIKE '%current_shop_id%' OR qual::text LIKE '%is_platform_admin%' OR qual::text LIKE '%service_role%');
   
-  -- Verifica INSERT
-  SELECT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE schemaname = 'public'
-      AND tablename = 'shop_daily_hours'
-      AND policyname = 'shop_daily_hours_insert_shop'
-      AND with_check::text LIKE '%shop_id%'
-  ) INTO v_has_insert_shop;
+  RAISE NOTICE 'Policies con filtro shop_id: %', v_policy_count;
   
-  -- Verifica UPDATE
-  SELECT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE schemaname = 'public'
-      AND tablename = 'shop_daily_hours'
-      AND policyname = 'shop_daily_hours_update_shop'
-      AND qual::text LIKE '%shop_id%'
-  ) INTO v_has_update_shop;
-  
-  -- Verifica DELETE
-  SELECT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE schemaname = 'public'
-      AND tablename = 'shop_daily_hours'
-      AND policyname = 'shop_daily_hours_delete_shop'
-      AND qual::text LIKE '%shop_id%'
-  ) INTO v_has_delete_shop;
-  
-  IF NOT v_has_select_shop THEN
-    RAISE WARNING '⚠️ shop_daily_hours: Policy SELECT con shop_id non trovata!';
+  IF v_policy_count >= 4 THEN
+    RAISE NOTICE '✅ Tutte le policies hanno filtro shop_id';
   ELSE
-    RAISE NOTICE '✅ shop_daily_hours: Policy SELECT corretta presente';
-  END IF;
-  
-  IF NOT v_has_insert_shop THEN
-    RAISE WARNING '⚠️ shop_daily_hours: Policy INSERT con shop_id non trovata!';
-  ELSE
-    RAISE NOTICE '✅ shop_daily_hours: Policy INSERT corretta presente';
-  END IF;
-  
-  IF NOT v_has_update_shop THEN
-    RAISE WARNING '⚠️ shop_daily_hours: Policy UPDATE con shop_id non trovata!';
-  ELSE
-    RAISE NOTICE '✅ shop_daily_hours: Policy UPDATE corretta presente';
-  END IF;
-  
-  IF NOT v_has_delete_shop THEN
-    RAISE WARNING '⚠️ shop_daily_hours: Policy DELETE con shop_id non trovata!';
-  ELSE
-    RAISE NOTICE '✅ shop_daily_hours: Policy DELETE corretta presente';
+    RAISE WARNING '⚠️ Alcune policies potrebbero non avere filtro shop_id';
   END IF;
   
   RAISE NOTICE '';
 END $$;
 
--- 2) RIEPILOGO
+-- 5) RIEPILOGO
 -- =====================================================
 DO $$
 BEGIN
   RAISE NOTICE '=== RIEPILOGO ===';
   RAISE NOTICE '';
-  RAISE NOTICE '✅ Le policy pubbliche sono state rimosse da fix_rls_remove_permissive_policies.sql';
-  RAISE NOTICE '✅ Verifica che le policy corrette con shop_id siano attive';
+  RAISE NOTICE '✅ Policy shop_daily_hours_select_shop creata';
+  RAISE NOTICE '✅ Policy shop_daily_hours_modify_shop creata';
+  RAISE NOTICE '✅ Policy shop_daily_time_slots_select_shop creata';
+  RAISE NOTICE '✅ Policy shop_daily_time_slots_modify_shop creata';
   RAISE NOTICE '';
-  RAISE NOTICE 'NOTA: shop_daily_hours può essere letto pubblicamente per il calendario clienti,';
-  RAISE NOTICE 'ma le modifiche devono essere filtrate per shop_id.';
+  RAISE NOTICE 'Ora gli orari sono isolati per shop!';
   RAISE NOTICE '';
 END $$;
-
-
-
-
-
