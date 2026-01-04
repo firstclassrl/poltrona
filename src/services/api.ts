@@ -3170,8 +3170,28 @@ export const apiService = {
       if (shopId && shopId !== 'default') {
         url += `&shop_id=eq.${shopId}`;
       }
-      const response = await fetch(url, { headers: buildHeaders(true) });
-      if (!response.ok) throw new Error('Failed to fetch products');
+      
+      // Usa fetchWithTokenRefresh per gestire automaticamente il refresh del token se scaduto
+      const hasAuth = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      let response: Response;
+      if (hasAuth) {
+        response = await fetchWithTokenRefresh(url, { headers: buildHeaders(true) }, true);
+      } else {
+        // Accesso pubblico senza autenticazione
+        response = await fetch(url, { headers: buildHeaders(false) });
+      }
+      
+      if (!response.ok) {
+        // Se è un errore 401 anche dopo il refresh, prova con accesso pubblico
+        if (response.status === 401 && hasAuth) {
+          console.warn('⚠️ getProducts: 401 dopo refresh, provo con accesso pubblico');
+          const publicResponse = await fetch(url, { headers: buildHeaders(false) });
+          if (publicResponse.ok) {
+            return await publicResponse.json();
+          }
+        }
+        throw new Error('Failed to fetch products');
+      }
       return await response.json();
     } catch (error) {
       console.error('Error fetching products:', error);

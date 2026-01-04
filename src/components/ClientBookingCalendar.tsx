@@ -105,35 +105,124 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
 
   // Load services and staff from API - wait for shop to be loaded first
   useEffect(() => {
-    // Don't load services until shop is loaded and we have a shop_id
-    if (shopLoading || (!currentShopId && !currentShop)) {
-      return;
-    }
+    let timeoutId: NodeJS.Timeout | null = null;
+    let globalTimeoutId: NodeJS.Timeout | null = null;
+    let isMounted = true;
+    let hasLoaded = false;
 
-    const loadData = async () => {
+    // Timeout globale di sicurezza: dopo 5 secondi, imposta sempre loading a false
+    globalTimeoutId = setTimeout(() => {
+      if (isMounted && !hasLoaded) {
+        console.warn('⚠️ Global timeout: forcing loading to false');
+        setIsLoading(false);
+      }
+    }, 5000);
+
+    const loadData = async (shopIdToUse: string | null) => {
+      if (hasLoaded) return; // Evita caricamenti duplicati
+      hasLoaded = true;
+
       try {
         setIsLoading(true);
+        
+        // Verifica che il token sia disponibile
+        const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+        console.log('🔄 ClientBookingCalendar: Loading services and staff', {
+          shopId: shopIdToUse,
+          hasToken: !!token,
+          tokenLocation: localStorage.getItem('auth_token') ? 'localStorage' : (sessionStorage.getItem('auth_token') ? 'sessionStorage' : 'none'),
+          isAuthenticated,
+          user: user?.email
+        });
+        
         // Ensure shop_id is in localStorage before calling getServices
-        if (currentShopId && currentShopId !== 'default') {
-          localStorage.setItem('current_shop_id', currentShopId);
-        } else if (currentShop?.id && currentShop.id !== 'default') {
-          localStorage.setItem('current_shop_id', currentShop.id);
+        if (shopIdToUse && shopIdToUse !== 'default') {
+          localStorage.setItem('current_shop_id', shopIdToUse);
         }
         
-        const [servicesData, staffData] = await Promise.all([
-          apiService.getServices(),
-          apiService.getStaff()
-        ]);
-        setServices(servicesData);
-        setStaff(staffData);
+        // Timeout per le chiamate API (8 secondi)
+        const apiTimeout = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('API timeout')), 8000);
+        });
+
+        const [servicesData, staffData] = await Promise.race([
+          Promise.all([
+            apiService.getServices(),
+            apiService.getStaff()
+          ]),
+          apiTimeout
+        ]) as [Service[], Staff[]];
+        
+        console.log('✅ ClientBookingCalendar: Loaded services:', servicesData.length, 'staff:', staffData.length);
+        
+        if (isMounted) {
+          setServices(servicesData);
+          setStaff(staffData);
+        }
       } catch (error) {
-        console.error('Error loading booking data:', error);
+        console.error('❌ ClientBookingCalendar: Error loading booking data:', error);
+        if (isMounted) {
+          setServices([]);
+          setStaff([]);
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
+        if (globalTimeoutId) {
+          clearTimeout(globalTimeoutId);
+        }
       }
     };
 
-    loadData();
+    // Determina quale shop_id usare (priorità: currentShopId > currentShop.id > localStorage)
+    const shopIdToUse = currentShopId || currentShop?.id || null;
+    const fallbackShopId = typeof window !== 'undefined' 
+      ? localStorage.getItem('current_shop_id') 
+      : null;
+    
+    const effectiveShopId = shopIdToUse || (fallbackShopId && fallbackShopId !== 'default' ? fallbackShopId : null);
+
+    console.log('📊 ClientBookingCalendar: Shop loading state:', {
+      shopLoading,
+      currentShopId,
+      currentShop: currentShop?.id,
+      fallbackShopId,
+      effectiveShopId
+    });
+
+    // Se abbiamo un shop_id valido (da qualsiasi fonte), carica i dati immediatamente
+    if (effectiveShopId) {
+      // Carica immediatamente se abbiamo shop_id, anche se shopLoading è true
+      loadData(effectiveShopId);
+    } else {
+      // Se non abbiamo shop_id, aspetta al massimo 1.5 secondi per il caricamento del negozio
+      if (shopLoading) {
+        timeoutId = setTimeout(() => {
+          if (isMounted && !hasLoaded) {
+            const finalShopId = currentShopId || currentShop?.id || fallbackShopId;
+            if (finalShopId && finalShopId !== 'default') {
+              loadData(finalShopId);
+            } else {
+              console.warn('⚠️ ClientBookingCalendar: No shop_id available, attempting to load anyway');
+              loadData(null);
+            }
+          }
+        }, 1500);
+      } else {
+        if (!hasLoaded) {
+          loadData(effectiveShopId);
+        }
+      }
+    }
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (globalTimeoutId) clearTimeout(globalTimeoutId);
+      isMounted = false;
+      hasLoaded = false;
+    };
+  }, [shopLoading, currentShopId, currentShop, isAuthenticated, user]);
     
     // Force reload vacation period after component mounts
     // This ensures we get the latest vacation period even if it was set before this component mounted

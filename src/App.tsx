@@ -263,8 +263,8 @@ const AppContent: React.FC = () => {
       )}
 
       {/* Main Content */}
-      <div className="md:ml-64 pb-20 md:pb-0" style={{ marginTop: 0, paddingTop: 0 }}>
-        <main className="text-[var(--theme-text)]" style={{ marginTop: 0, paddingTop: 0 }}>
+      <div className="md:ml-64 pb-20 md:pb-4" style={{ marginTop: 0, paddingTop: 0, minHeight: 'calc(100vh - 0px)' }}>
+        <main className="text-[var(--theme-text)]" style={{ marginTop: 0, paddingTop: 0, paddingBottom: '2rem' }}>
           {renderActiveTab()}
         </main>
       </div>
