@@ -807,15 +807,6 @@ export const apiService = {
       };
 
       // Load shop hours from database
-      rows.forEach((row) => { 
-          day: r.day_of_week, 
-          is_open: r.is_open, 
-          slotsCount: r.shop_daily_time_slots?.length || 0,
-          slotsRaw: r.shop_daily_time_slots,
-          allKeys: Object.keys(r)
-        }))
-      });
-
       rows.forEach((row) => {
         if (row.day_of_week < 0 || row.day_of_week > 6) {
           return;
@@ -3696,6 +3687,7 @@ export const apiService = {
       start_at: params.earlierStartAt,
       end_at: params.earlierEndAt,
       status: 'rescheduled',
+    });
   },
 
   async declineEarlierSlotOffer(waitlistId: string): Promise<void> {

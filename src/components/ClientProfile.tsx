@@ -211,6 +211,7 @@ export const ClientProfile: React.FC = () => {
           phone_e164: formData.phone || '',
           photo_url: publicUrl,
           profile_photo_path: path,
+        });
       }
       setPhotoMessage('Foto caricata con successo');
       setTimeout(() => setPhotoMessage(null), 2000);

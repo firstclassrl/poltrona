@@ -730,8 +730,7 @@ export const Chat: React.FC = () => {
             </div>
           </div>
         </div>
-        )}
-      </div>
+      )}
       </div>
       </div>
       </div>
