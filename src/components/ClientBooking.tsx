@@ -96,7 +96,20 @@ export const ClientBooking: React.FC = () => {
 
       try {
         setIsLoading(true);
-        console.log('🔄 Loading services and staff, shopId:', shopIdToUse);
+        
+        // Verifica che il token sia disponibile
+        const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+        console.log('🔄 Loading services and staff', {
+          shopId: shopIdToUse,
+          hasToken: !!token,
+          tokenLocation: localStorage.getItem('auth_token') ? 'localStorage' : (sessionStorage.getItem('auth_token') ? 'sessionStorage' : 'none'),
+          isAuthenticated,
+          user: user?.email
+        });
+        
+        if (!token && isAuthenticated) {
+          console.warn('⚠️ Utente autenticato ma token non trovato! Potrebbe essere un problema di timing.');
+        }
         
         // Ensure shop_id is in localStorage before calling getServices
         if (shopIdToUse && shopIdToUse !== 'default') {
@@ -129,9 +142,25 @@ export const ClientBooking: React.FC = () => {
         if (isMounted) {
           setServices([]);
           setStaff([]);
-          const errorMessage = error instanceof Error && error.message === 'API timeout'
-            ? 'Il caricamento sta impiegando troppo tempo. Controlla la connessione internet e riprova.'
-            : 'Errore nel caricamento dei dati. Ricarica la pagina o riprova più tardi.';
+          
+          let errorMessage = 'Errore nel caricamento dei dati.';
+          
+          if (error instanceof Error) {
+            if (error.message === 'API timeout') {
+              errorMessage = 'Il caricamento sta impiegando troppo tempo. Controlla la connessione internet e riprova.';
+            } else if (error.message.includes('401') || error.message.includes('Unauthorized') || error.message.includes('JWT expired')) {
+              errorMessage = 'La sessione è scaduta. Ricarica la pagina per effettuare nuovamente il login.';
+              // Prova a fare refresh della pagina dopo 2 secondi per permettere il re-login
+              setTimeout(() => {
+                if (isMounted) {
+                  window.location.reload();
+                }
+              }, 2000);
+            } else {
+              errorMessage = 'Errore nel caricamento dei dati. Ricarica la pagina o riprova più tardi.';
+            }
+          }
+          
           setLoadError(errorMessage);
         }
       } finally {

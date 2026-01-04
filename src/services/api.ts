@@ -51,10 +51,15 @@ const isAuthError = (error: any): boolean => {
 
 // Helper per tentare il refresh del token
 const tryRefreshToken = async (): Promise<boolean> => {
-  const refreshToken = localStorage.getItem('refresh_token');
+  // Cerca il refresh_token in entrambi gli storage (come fa buildHeaders per auth_token)
+  const refreshToken = localStorage.getItem('refresh_token') || sessionStorage.getItem('refresh_token');
   if (!refreshToken || !isSupabaseConfigured()) {
     return false;
   }
+
+  // Determina quale storage usare (stesso storage dove è stato trovato il refresh_token)
+  const useLocalStorage = localStorage.getItem('refresh_token') !== null;
+  const storage = useLocalStorage ? localStorage : sessionStorage;
 
   try {
     const refreshUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/token?grant_type=refresh_token`;
@@ -69,9 +74,23 @@ const tryRefreshToken = async (): Promise<boolean> => {
 
     if (refreshRes.ok) {
       const tokenJson = await refreshRes.json();
-      localStorage.setItem('auth_token', tokenJson.access_token);
+      // Salva il nuovo token nello stesso storage da cui è stato letto il refresh_token
+      storage.setItem('auth_token', tokenJson.access_token);
       if (tokenJson.refresh_token) {
-        localStorage.setItem('refresh_token', tokenJson.refresh_token);
+        storage.setItem('refresh_token', tokenJson.refresh_token);
+      }
+      // Assicurati che anche l'altro storage sia aggiornato se necessario
+      // (per mantenere coerenza se il token era già presente in entrambi)
+      if (useLocalStorage && sessionStorage.getItem('auth_token')) {
+        sessionStorage.setItem('auth_token', tokenJson.access_token);
+        if (tokenJson.refresh_token) {
+          sessionStorage.setItem('refresh_token', tokenJson.refresh_token);
+        }
+      } else if (!useLocalStorage && localStorage.getItem('auth_token')) {
+        localStorage.setItem('auth_token', tokenJson.access_token);
+        if (tokenJson.refresh_token) {
+          localStorage.setItem('refresh_token', tokenJson.refresh_token);
+        }
       }
       return true;
     }
@@ -117,12 +136,15 @@ const fetchWithTokenRefresh = async (
       const refreshed = await tryRefreshToken();
       
       if (refreshed) {
-        // Ricostruisci gli headers con il nuovo token
+        // Ricostruisci gli headers con il nuovo token (cerca in entrambi gli storage)
+        const newToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
         const newHeaders = { ...buildHeaders(true) };
         if (options.headers) {
           Object.assign(newHeaders, options.headers);
         }
-        newHeaders['Authorization'] = `Bearer ${localStorage.getItem('auth_token')}`;
+        if (newToken) {
+          newHeaders['Authorization'] = `Bearer ${newToken}`;
+        }
         
         // Riprova la chiamata
         response = await fetch(url, { ...options, headers: newHeaders });
@@ -2190,9 +2212,17 @@ export const apiService = {
 
     // Usa buildHeaders(true) se l'utente è autenticato per rispettare RLS
     // Fallback a buildHeaders(false) solo se non c'è token (es. pagina login)
-    const hasAuth = localStorage.getItem('auth_token');
+    const hasAuth = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
     const url = `${API_ENDPOINTS.SHOPS}?select=*&id=eq.${id}&limit=1`;
-    const response = await fetch(url, { headers: buildHeaders(!!hasAuth) });
+    
+    let response: Response;
+    if (hasAuth) {
+      // Usa fetchWithTokenRefresh per gestire automaticamente il refresh del token se scaduto
+      response = await fetchWithTokenRefresh(url, { headers: buildHeaders(true) }, true);
+    } else {
+      // Accesso pubblico senza autenticazione
+      response = await fetch(url, { headers: buildHeaders(false) });
+    }
     if (!response.ok) {
       throw new Error(`Impossibile caricare shop con id ${id}`);
     }
@@ -2237,12 +2267,34 @@ export const apiService = {
       const slugToUse = slugOverride || getEffectiveSlug();
       // Usa buildHeaders(true) se l'utente è autenticato per rispettare RLS
       // Fallback a buildHeaders(false) solo se non c'è token (es. pagina login)
-      const hasAuth = localStorage.getItem('auth_token');
+      const hasAuth = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       const url = `${API_ENDPOINTS.SHOPS}?select=*&slug=eq.${encodeURIComponent(slugToUse)}&limit=1`;
-      const response = await fetch(url, { headers: buildHeaders(!!hasAuth) });
+      
+      let response: Response;
+      if (hasAuth) {
+        // Usa fetchWithTokenRefresh per gestire automaticamente il refresh del token se scaduto
+        response = await fetchWithTokenRefresh(url, { headers: buildHeaders(true) }, true);
+      } else {
+        // Accesso pubblico senza autenticazione
+        response = await fetch(url, { headers: buildHeaders(false) });
+      }
+      
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ getShop error:', response.status, errorText);
+        // Se è un errore 401 anche dopo il refresh, prova con accesso pubblico
+        if (response.status === 401 && hasAuth) {
+          console.warn('⚠️ getShop: 401 dopo refresh, provo con accesso pubblico');
+          const publicResponse = await fetch(url, { headers: buildHeaders(false) });
+          if (publicResponse.ok) {
+            const shops = await publicResponse.json();
+            if (shops && shops.length > 0) {
+              const shop = shops[0];
+              persistShopLocally(shop);
+              return shop;
+            }
+          }
+        }
         // Se fallisce, restituisci shop di default invece di lanciare errore
         return {
           id: 'default',
@@ -2874,12 +2926,27 @@ export const apiService = {
       }
       
       // Prova prima con autenticazione, poi fallback a pubblico
-      const hasAuth = localStorage.getItem('auth_token');
-      const headers = hasAuth ? buildHeaders(true) : buildHeaders(false);
+      const hasAuth = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       
-      const response = await fetch(url, { headers });
+      let response: Response;
+      if (hasAuth) {
+        // Usa fetchWithTokenRefresh per gestire automaticamente il refresh del token se scaduto
+        response = await fetchWithTokenRefresh(url, { headers: buildHeaders(true) }, true);
+      } else {
+        // Accesso pubblico senza autenticazione
+        response = await fetch(url, { headers: buildHeaders(false) });
+      }
+      
       if (!response.ok) {
         const errorText = await response.text();
+        // Se è un errore 401 anche dopo il refresh, prova con accesso pubblico
+        if (response.status === 401 && hasAuth) {
+          console.warn('⚠️ getServices: 401 dopo refresh, provo con accesso pubblico');
+          const publicResponse = await fetch(url, { headers: buildHeaders(false) });
+          if (publicResponse.ok) {
+            return await publicResponse.json();
+          }
+        }
         console.error('❌ getServices: Errore nella risposta:', response.status, errorText);
         throw new Error(`Failed to fetch services: ${response.status} ${errorText}`);
       }
@@ -2918,12 +2985,27 @@ export const apiService = {
       }
       
       // Prova prima con autenticazione, poi fallback a pubblico
-      const hasAuth = localStorage.getItem('auth_token');
-      const headers = hasAuth ? buildHeaders(true) : buildHeaders(false);
+      const hasAuth = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       
-      const response = await fetch(url, { headers });
+      let response: Response;
+      if (hasAuth) {
+        // Usa fetchWithTokenRefresh per gestire automaticamente il refresh del token se scaduto
+        response = await fetchWithTokenRefresh(url, { headers: buildHeaders(true) }, true);
+      } else {
+        // Accesso pubblico senza autenticazione
+        response = await fetch(url, { headers: buildHeaders(false) });
+      }
+      
       if (!response.ok) {
         const errorText = await response.text();
+        // Se è un errore 401 anche dopo il refresh, prova con accesso pubblico
+        if (response.status === 401 && hasAuth) {
+          console.warn('⚠️ getStaff: 401 dopo refresh, provo con accesso pubblico');
+          const publicResponse = await fetch(url, { headers: buildHeaders(false) });
+          if (publicResponse.ok) {
+            return await publicResponse.json();
+          }
+        }
         console.error('❌ getStaff: Errore nella risposta:', response.status, errorText);
         // Se fallisce, restituisci array vuoto invece di loggare errore
         return [];
