@@ -263,6 +263,7 @@ export const Chat: React.FC = () => {
   return (
     <div className="p-0 page-container-chat-style">
       <div className="w-full">
+      <div className="bg-white rounded-3xl shadow-lg aurora-card">
       <div className="flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
@@ -527,7 +528,7 @@ export const Chat: React.FC = () => {
 
         {/* No Chat Selected */}
         {!activeChat && !showChatList && (
-          <div className="flex-1 flex items-center justify-center">
+          <div className="flex-1 flex items-center justify-center bg-white rounded-b-xl">
             <div className="text-center">
               <MessageCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -729,7 +730,9 @@ export const Chat: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
+        )}
+      </div>
+      </div>
       </div>
       </div>
     </div>
