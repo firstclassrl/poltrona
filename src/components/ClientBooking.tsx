@@ -75,38 +75,95 @@ export const ClientBooking: React.FC = () => {
 
   // Load services and staff from API - wait for shop to be loaded first
   useEffect(() => {
-    // Don't load services until shop is loaded and we have a shop_id
-    if (shopLoading || (!currentShopId && !currentShop)) {
-      return;
-    }
+    let timeoutId: NodeJS.Timeout | null = null;
+    let isMounted = true;
 
-    const loadData = async () => {
+    const loadData = async (shopIdToUse: string | null) => {
       try {
         setIsLoading(true);
         // Ensure shop_id is in localStorage before calling getServices
-        if (currentShopId && currentShopId !== 'default') {
-          localStorage.setItem('current_shop_id', currentShopId);
-        } else if (currentShop?.id && currentShop.id !== 'default') {
-          localStorage.setItem('current_shop_id', currentShop.id);
+        if (shopIdToUse && shopIdToUse !== 'default') {
+          localStorage.setItem('current_shop_id', shopIdToUse);
         }
         
         const [servicesData, staffData] = await Promise.all([
           apiService.getServices(),
           apiService.getStaff()
         ]);
-        setServices(servicesData);
-        setStaff(staffData);
+        if (isMounted) {
+          setServices(servicesData);
+          setStaff(staffData);
+        }
         
         if (servicesData.length === 0) {
         }
       } catch (error) {
         console.error('❌ Error loading booking data:', error);
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
-    loadData();
+    // Determina quale shop_id usare
+    const shopIdToUse = currentShopId || currentShop?.id || null;
+    const fallbackShopId = typeof window !== 'undefined' 
+      ? localStorage.getItem('current_shop_id') 
+      : null;
+
+    // Se il negozio è ancora in caricamento, aspetta al massimo 3 secondi
+    if (shopLoading) {
+      // Se abbiamo un shop_id valido (da contesto o localStorage), aspetta un po' e poi carica
+      if (shopIdToUse || (fallbackShopId && fallbackShopId !== 'default')) {
+        timeoutId = setTimeout(() => {
+          if (isMounted) {
+            loadData(shopIdToUse || fallbackShopId);
+          }
+        }, 2000); // Aspetta 2 secondi per il caricamento del negozio
+      } else {
+        // Se non abbiamo neanche un fallback, imposta loading a false dopo un timeout
+        timeoutId = setTimeout(() => {
+          if (isMounted) {
+            setIsLoading(false);
+          }
+        }, 3000);
+      }
+      return () => {
+        if (timeoutId) clearTimeout(timeoutId);
+        isMounted = false;
+      };
+    }
+
+    // Se non c'è shop_id dal contesto, prova a usare quello in localStorage
+    if (!shopIdToUse) {
+      if (fallbackShopId && fallbackShopId !== 'default') {
+        // Usa il fallback dopo un breve delay per dare tempo al contesto di caricare
+        timeoutId = setTimeout(() => {
+          if (isMounted) {
+            loadData(fallbackShopId);
+          }
+        }, 1000);
+        return () => {
+          if (timeoutId) clearTimeout(timeoutId);
+          isMounted = false;
+        };
+      } else {
+        // Se non c'è neanche un fallback, imposta loading a false
+        setIsLoading(false);
+        return () => {
+          isMounted = false;
+        };
+      }
+    }
+
+    // Condizioni soddisfatte: carica i dati normalmente
+    loadData(shopIdToUse);
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      isMounted = false;
+    };
   }, [shopLoading, currentShopId, currentShop]);
 
   // Ottieni il client_id dall'utente autenticato
