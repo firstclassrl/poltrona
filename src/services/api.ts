@@ -3161,15 +3161,32 @@ export const apiService = {
     try {
       // CRITICO: Aggiungi filtro esplicito shop_id come doppia sicurezza
       let shopId = getStoredShopId();
-      if (!shopId) {
+      if (!shopId || shopId === 'default') {
         const shop = await this.getShop();
         shopId = shop?.id ?? null;
+        // Assicurati che lo shop_id sia salvato nel localStorage
+        if (shopId && shopId !== 'default' && typeof window !== 'undefined') {
+          localStorage.setItem('current_shop_id', shopId);
+        }
       }
       
-      let url = `${API_ENDPOINTS.PRODUCTS}?select=*&order=name.asc`;
+      // Filtra sempre per prodotti attivi
+      // IMPORTANTE: Filtra SOLO per shop_id specifico per evitare di mostrare prodotti di altri negozi
+      let url = `${API_ENDPOINTS.PRODUCTS}?select=*&order=name.asc&active=eq.true`;
       if (shopId && shopId !== 'default') {
+        // Mostra SOLO prodotti del negozio specifico
         url += `&shop_id=eq.${shopId}`;
+      } else {
+        // Se non c'è shop_id, mostra solo prodotti senza shop_id (prodotti globali)
+        // Questo evita di mostrare prodotti di altri negozi
+        url += `&shop_id=is.null`;
       }
+      
+      console.log('🛍️ getProducts: Fetching products', {
+        shopId,
+        url,
+        hasShopIdFilter: shopId && shopId !== 'default'
+      });
       
       // Usa fetchWithTokenRefresh per gestire automaticamente il refresh del token se scaduto
       const hasAuth = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
@@ -3187,12 +3204,16 @@ export const apiService = {
           console.warn('⚠️ getProducts: 401 dopo refresh, provo con accesso pubblico');
           const publicResponse = await fetch(url, { headers: buildHeaders(false) });
           if (publicResponse.ok) {
-            return await publicResponse.json();
+            const products = await publicResponse.json();
+            console.log('🛍️ getProducts: Loaded products (public):', products.length, products);
+            return products;
           }
         }
         throw new Error('Failed to fetch products');
       }
-      return await response.json();
+      const products = await response.json();
+      console.log('🛍️ getProducts: Loaded products:', products.length, products);
+      return products;
     } catch (error) {
       console.error('Error fetching products:', error);
       return [];

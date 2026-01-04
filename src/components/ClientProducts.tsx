@@ -19,10 +19,12 @@ export const ClientProducts: React.FC<ClientProductsProps> = ({ onNavigateToBook
     const loadProducts = async () => {
       try {
         setIsLoading(true);
+        console.log('🛍️ ClientProducts: Loading products...');
         const productsData = await apiService.getProducts();
+        console.log('🛍️ ClientProducts: Loaded products:', productsData.length, productsData);
         setProducts(productsData);
       } catch (error) {
-        console.error('Error loading products:', error);
+        console.error('❌ ClientProducts: Error loading products:', error);
         // Fallback to empty array if API fails
         setProducts([]);
       } finally {
