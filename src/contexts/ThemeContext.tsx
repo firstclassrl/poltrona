@@ -87,14 +87,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const stored = localStorage.getItem(shopKey) as ThemePaletteId | null;
     const resolved = shopTheme || stored || DEFAULT_THEME_ID;
     
-    console.log('🎨 ThemeContext: Risoluzione tema iniziale:', {
-      shopTheme,
-      stored,
-      defaultTheme: DEFAULT_THEME_ID,
-      resolved,
-      shopId: currentShop?.id,
-      shopKey
-    });
     
     return resolved;
   };
@@ -106,7 +98,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Se shopKey cambia dopo, verrà aggiornato dall'useEffect
     const stored = localStorage.getItem(shopKey) as ThemePaletteId | null;
     const initial = stored || DEFAULT_THEME_ID;
-    console.log('🎨 ThemeContext: Inizializzazione tema:', { stored, initial, shopKey, shopIdForKey });
     return initial;
   });
   
@@ -116,7 +107,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (typeof window === 'undefined' || initialisedRef.current) return;
     const stored = localStorage.getItem(shopKey) as ThemePaletteId | null;
     if (stored && stored !== themeId) {
-      console.log('🎨 ThemeContext: shopKey cambiato, aggiorno tema da localStorage:', { from: themeId, to: stored, shopKey });
       setThemeId(stored);
     }
   }, [shopKey]);
@@ -129,7 +119,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Salva sempre in localStorage per persistenza tra refresh
     if (typeof window !== 'undefined') {
       localStorage.setItem(shopKey, palette.id);
-      console.log('🎨 ThemeContext: Tema applicato e salvato in localStorage:', { themeId: palette.id, shopKey });
     }
   }, [palette, shopKey]);
 
@@ -137,7 +126,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     // Se il shop non è ancora caricato, aspetta
     if (!currentShop) {
-      console.log('🎨 ThemeContext: Shop non ancora caricato, aspetto...');
       return;
     }
     
@@ -148,7 +136,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       initialisedRef.current = true;
       // Se c'è un tema nel database, usalo SEMPRE (ha priorità assoluta su localStorage)
       if (shopTheme) {
-        console.log('🎨 ThemeContext: Shop caricato per la prima volta, applico tema da database:', { from: themeId, to: shopTheme });
         setThemeId(shopTheme);
         if (typeof window !== 'undefined') {
           localStorage.setItem(shopKey, shopTheme);
@@ -158,20 +145,12 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         applyPaletteToDocument(paletteToApply);
       } else {
         // Se non c'è tema nel database, mantieni quello corrente (da localStorage o default)
-        console.log('🎨 ThemeContext: Shop caricato, nessun tema nel database, mantengo:', themeId);
       }
       return;
     }
     
     // Dopo l'inizializzazione, verifica se il tema nel database è diverso
     const next = resolveInitialTheme();
-    console.log('🎨 ThemeContext: Shop già caricato, verifica tema:', {
-      currentTheme: themeId,
-      newTheme: next,
-      shopTheme: currentShop?.theme_palette,
-      shopId: currentShop?.id,
-      manualChange: manualThemeChangeRef.current
-    });
     
     // Se il tema è stato cambiato manualmente, non resettarlo finché non corrisponde al database
     if (manualThemeChangeRef.current) {
@@ -186,7 +165,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Se il tema dal database è diverso da quello corrente, aggiornalo
     // Questo gestisce il caso in cui il tema è stato salvato nel database ma non ancora applicato
     if (next !== themeId) {
-      console.log('🎨 ThemeContext: Aggiornamento tema da database:', { from: themeId, to: next });
       setThemeId(next);
       // Salva anche in localStorage per persistenza
       if (typeof window !== 'undefined') {

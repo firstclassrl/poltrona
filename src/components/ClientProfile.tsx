@@ -211,7 +211,6 @@ export const ClientProfile: React.FC = () => {
           phone_e164: formData.phone || '',
           photo_url: publicUrl,
           profile_photo_path: path,
-        }).catch((err) => console.warn('Non sono riuscito ad aggiornare la foto cliente:', err));
       }
       setPhotoMessage('Foto caricata con successo');
       setTimeout(() => setPhotoMessage(null), 2000);
@@ -328,7 +327,6 @@ export const ClientProfile: React.FC = () => {
               staff_id: appointmentToCancel.staff_id,
             }
           });
-          console.log('✅ Notifica annullamento creata. user_id:', barberUserId, 'staff_id:', appointmentToCancel.staff_id);
         } catch (notifError) {
           console.error('❌ Errore creazione notifica annullamento:', notifError);
         }

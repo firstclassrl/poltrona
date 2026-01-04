@@ -38,7 +38,6 @@ export const useAppointments = () => {
       const startISO = startDate.toISOString();
       const endISO = endDate.toISOString();
       
-      console.log('📅 Caricamento appuntamenti dal', startISO, 'al', endISO);
       
       const dbAppointments = await apiService.getAppointments(
         startISO,
@@ -47,13 +46,10 @@ export const useAppointments = () => {
       
       if (dbAppointments && dbAppointments.length > 0) {
         setAppointments(dbAppointments);
-        console.log('✅ Appuntamenti caricati dal database:', dbAppointments.length);
         // Log delle date degli appuntamenti per debug
         dbAppointments.forEach((apt: Appointment) => {
-          console.log(`  - ${apt.start_at} (status: ${apt.status})`);
         });
       } else {
-        console.log('⚠️ Nessun appuntamento trovato nel range specificato');
         setAppointments([]);
       }
     } catch (error) {
@@ -94,7 +90,6 @@ export const useAppointments = () => {
       // Ricarica gli appuntamenti dal database per avere i dati completi
       await loadAppointments();
       
-      console.log('✅ Appuntamento creato nel database:', created);
       return created;
       
     } catch (error) {
@@ -137,7 +132,6 @@ export const useAppointments = () => {
       // Usa deleteAppointmentDirect per eliminare completamente l'appuntamento
       await apiService.deleteAppointmentDirect(appointmentId);
       await loadAppointments();
-      console.log('✅ Appuntamento eliminato dal database:', appointmentId);
     } catch (error) {
       console.error('❌ Errore nell\'eliminazione dal database:', error);
       throw error;
@@ -162,7 +156,6 @@ export const useAppointments = () => {
       // Prova ad aggiornare nel database
       await apiService.updateAppointment({ id: appointmentId, ...cleanUpdates });
       await loadAppointments();
-      console.log('✅ Appuntamento aggiornato nel database:', appointmentId);
     } catch (error) {
       console.error('❌ Errore nell\'aggiornamento nel database:', error);
       throw error;

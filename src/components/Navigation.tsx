@@ -32,7 +32,6 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
       if (shop?.logo_url) {
         const logoUrl = shop.logo_url.trim();
         if (logoUrl && logoUrl !== 'null' && logoUrl !== 'undefined' && logoUrl.length > 0) {
-          console.log('📷 Usando logo_url salvato:', logoUrl);
           setShopLogoUrl(logoUrl);
           return;
         }
@@ -41,34 +40,35 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
       // Priorità 2: Costruisci URL pubblico da logo_path (se bucket è pubblico)
       if (shop?.logo_path) {
         const publicUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/shop-logos/${shop.logo_path}`;
-        console.log('📷 Provo URL pubblico da logo_path:', publicUrl);
         setShopLogoUrl(publicUrl);
         
-        // Verifica se l'URL funziona (opzionale, solo per debug)
+        // Verifica se l'URL funziona, altrimenti prova signed URL
         try {
           const testRes = await fetch(publicUrl, { method: 'HEAD' });
           if (!testRes.ok) {
-            console.warn('⚠️ URL pubblico non accessibile, provo signed URL');
             // Se URL pubblico non funziona, prova signed URL
             try {
               const signed = await apiService.getSignedShopLogoUrl(shop.logo_path);
-              console.log('📷 Usando signed URL:', signed);
               setShopLogoUrl(signed);
               return;
             } catch (e) {
-              console.error('❌ Error loading shop logo (signed URL):', e);
+              console.error('Error loading shop logo (signed URL):', e);
             }
-          } else {
-            console.log('✅ URL pubblico funziona');
           }
         } catch (e) {
-          console.warn('⚠️ Errore verifica URL pubblico:', e);
+          // Silently fallback to signed URL
+          try {
+            const signed = await apiService.getSignedShopLogoUrl(shop.logo_path);
+            setShopLogoUrl(signed);
+            return;
+          } catch (signedError) {
+            console.error('Error loading shop logo:', signedError);
+          }
         }
         return;
       }
       
       // Priorità 3: Fallback su logo di default
-      console.log('📷 Usando logo di default');
       setShopLogoUrl(DEFAULT_LOGO);
     };
     fetchLogo();

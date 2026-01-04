@@ -36,19 +36,15 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   useEffect(() => {
     // Check if vacation period is loaded
     const currentPeriod = getVacationPeriod();
-    console.log('🔄 ClientBookingCalendar mounted - current vacationPeriod from hook:', currentPeriod);
     
     // Always check localStorage directly and compare with hook state
     try {
       const saved = localStorage.getItem('vacationPeriod');
-      console.log('🔍 Direct localStorage check on mount:', saved);
       
       if (saved && !currentPeriod) {
-        console.log('⚠️ Found vacation period in localStorage but not in hook state, forcing reload');
         // Parse and manually set if hook didn't load it
         try {
-          const parsed = JSON.parse(saved);
-          console.log('📅 Parsed vacation period from localStorage:', parsed);
+          JSON.parse(saved);
           // Force reload by dispatching event multiple times
           window.dispatchEvent(new CustomEvent('vacation-period-updated'));
           setTimeout(() => window.dispatchEvent(new CustomEvent('vacation-period-updated')), 100);
@@ -56,28 +52,11 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
         } catch (e) {
           console.error('Error parsing vacation period from localStorage:', e);
         }
-      } else if (!saved && !currentPeriod) {
-        console.log('⚠️ No vacation period in localStorage or hook state');
-      } else if (saved && currentPeriod) {
-        console.log('✅ Vacation period found in both localStorage and hook state');
       }
     } catch (e) {
       console.error('Error reading localStorage:', e);
     }
   }, []); // Only run once on mount
-  
-  // Debug: log vacation period when it changes
-  useEffect(() => {
-    console.log('🔄 ClientBookingCalendar - vacationPeriod changed:', vacationPeriod);
-    if (vacationPeriod) {
-      console.log('📅 Active vacation period:', {
-        start: vacationPeriod.start_date,
-        end: vacationPeriod.end_date
-      });
-    } else {
-      console.log('📅 No active vacation period in ClientBookingCalendar');
-    }
-  }, [vacationPeriod]);
   // View state: 'monthly' | 'day_detail'
   const [currentView, setCurrentView] = useState<'monthly' | 'day_detail'>('monthly');
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -163,10 +142,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       try {
         const saved = localStorage.getItem('vacationPeriod');
         if (saved) {
-          console.log('✅ Found vacation period in localStorage during mount check:', saved);
           window.dispatchEvent(new CustomEvent('vacation-period-updated'));
-        } else {
-          console.log('⚠️ No vacation period in localStorage during mount check');
         }
       } catch (e) {
         console.error('Error checking localStorage:', e);
@@ -237,14 +213,6 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     const dateStr = date.toISOString().split('T')[0];
     const inVacation = isDateInVacation(date);
     
-    // Debug log for specific dates
-    if (dateStr === '2026-01-02' || dateStr === '2026-01-03') {
-      console.log('📊 getDayAvailabilityPreview for', dateStr, {
-        inVacation,
-        vacationPeriod,
-        isDateInVacation: isDateInVacation(date)
-      });
-    }
     
     if (inVacation) {
       return { available: 0, total: 0 };
@@ -451,7 +419,6 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       };
       
       const savedAppointment = await createAppointment(appointmentData);
-      console.log('✅ Appuntamento salvato con successo:', savedAppointment);
 
       // Optional: enable earlier-slot waitlist for this appointment
       if (notifyIfEarlierSlot) {
@@ -473,7 +440,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
             }
           }
         } catch (e) {
-          console.warn('⚠️ Impossibile attivare avviso posto prima:', e);
+          // Failed to enable earlier slot notification
         }
       }
       

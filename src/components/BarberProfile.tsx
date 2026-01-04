@@ -102,7 +102,6 @@ export const BarberProfile = () => {
       return;
     }
     
-    console.log('Saving profile for staff:', staffData.id, formData);
     
     try {
       // Prepara i dati del profilo con l'immagine aggiornata
@@ -111,7 +110,6 @@ export const BarberProfile = () => {
         profile_photo_url: profileImageUrl,
       };
 
-      console.log('Profile data to save:', profileData);
 
       // Salva il profilo barbiere
       const success = await updateBarberProfile(staffData.id, profileData);

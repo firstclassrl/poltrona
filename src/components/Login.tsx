@@ -80,14 +80,12 @@ export const Login: React.FC = () => {
                   setShopLogoUrl(publicUrl);
                 }
               } catch (e) {
-                console.warn('Errore caricamento logo:', e);
                 // Fallback su URL pubblico
                 const publicUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/shop-logos/${shopData.logo_path}`;
                 setShopLogoUrl(publicUrl);
               }
             }
           } catch (error) {
-            console.warn('Shop non trovato per slug:', shopSlug, error);
             // Fallback: prova a caricare il negozio di default
             try {
               const defaultShop = await apiService.getShop();
@@ -99,7 +97,6 @@ export const Login: React.FC = () => {
                 setShopLogoUrl(publicUrl);
               }
             } catch (e) {
-              console.warn('Errore caricamento shop di default:', e);
             }
           }
         } else {
@@ -114,7 +111,6 @@ export const Login: React.FC = () => {
               setShopLogoUrl(publicUrl);
             }
           } catch (e) {
-            console.warn('Errore caricamento shop di default:', e);
           }
         }
       } catch (error) {
@@ -184,7 +180,6 @@ export const Login: React.FC = () => {
     // Registra il nuovo utente in Supabase
     const registrationEmail = registrationData.email;
     
-    console.log('🔄 Inizio registrazione...');
     
     await register({
       email: registrationData.email,
@@ -195,7 +190,6 @@ export const Login: React.FC = () => {
     });
     
     // Se arriviamo qui, la registrazione è andata a buon fine
-    console.log('✅ Registrazione completata con successo - mostro modal');
     
     // Imposta l'email e mostra il modal IMMEDIATAMENTE
     // Usa flushSync per forzare un aggiornamento sincrono dello stato
@@ -204,8 +198,6 @@ export const Login: React.FC = () => {
       setShowRegistrationSuccess(true);
     });
     
-    console.log('🎯 Stato aggiornato - showRegistrationSuccess:', true);
-    console.log('📧 Email registrata:', registrationEmail);
   };
 
   const handleDemoLogin = (role: 'admin' | 'barber' | 'client') => {
@@ -288,7 +280,6 @@ export const Login: React.FC = () => {
                   alt={`Logo ${shop?.name || 'negozio'}`} 
                   className="w-full h-full object-contain filter brightness-110 rounded-lg"
                   onError={(e) => {
-                    console.warn('Errore caricamento logo shop, uso logo default');
                     const target = e.target as HTMLImageElement;
                     target.src = '/logo Poltrona 2025.png';
                   }}
@@ -656,7 +647,6 @@ export const Login: React.FC = () => {
 
       {/* Modale successo registrazione - FORZATO IN PRIMO PIANO */}
       {(() => {
-        console.log('🔍 Render modal - showRegistrationSuccess:', showRegistrationSuccess);
         return null;
       })()}
       {showRegistrationSuccess && (

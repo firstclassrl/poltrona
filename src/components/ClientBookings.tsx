@@ -124,7 +124,6 @@ export const ClientBookings: React.FC = () => {
       if (!n.read_at) await markAsRead(n.id);
       await deleteNotification(n.id);
     } catch (e) {
-      console.warn('Decline earlier offer failed:', e);
       setMessage({ type: 'error', text: 'Impossibile aggiornare la richiesta. Riprova.' });
     }
   };
@@ -295,7 +294,6 @@ export const ClientBookings: React.FC = () => {
           end_at: endDateTime.toISOString(),
           status: 'rescheduled',
         })
-        .catch((e) => console.warn('appointment_modified_hook failed:', e));
 
       // Notifica barbiere (recupera user_id certo dal profilo staff)
       let staffUserId: string | null = null;
@@ -305,7 +303,6 @@ export const ClientBookings: React.FC = () => {
           staffUserId = staffDetails?.user_id || staffDetails?.id || appointmentToReschedule.staff_id;
         }
       } catch (e) {
-        console.warn('Errore recupero staff per notifica riprogrammazione:', e);
       }
 
       if (staffUserId) {
@@ -342,7 +339,6 @@ export const ClientBookings: React.FC = () => {
             },
           });
         } catch (notifErr) {
-          console.warn('Errore creazione notifica riprogrammazione (appointment_rescheduled):', notifErr);
         }
       }
 
@@ -409,9 +405,7 @@ export const ClientBookings: React.FC = () => {
               staff_id: selectedAppointment.staff_id,
             }
           });
-          console.log('✅ Notifica annullamento creata. user_id:', notificationUserId);
         } catch (notifError) {
-          console.warn('⚠️ Errore creazione notifica annullamento:', notifError);
           // Non bloccare l'annullamento se la notifica fallisce
         }
       }

@@ -29,14 +29,12 @@ export const useVacationMode = (): UseVacationModeReturn => {
         if (period && typeof period === 'string') {
           try {
             period = JSON.parse(period);
-            console.log('📅 Parsed vacation period from string:', period);
           } catch (parseError) {
             console.error('Error parsing vacation_period string:', parseError);
             period = null;
           }
         }
         
-        console.log('📅 Loading vacation period from database:', period);
         setVacationPeriod(period);
         
         // Also sync to localStorage for backward compatibility
@@ -54,7 +52,6 @@ export const useVacationMode = (): UseVacationModeReturn => {
           const savedVacation = localStorage.getItem(VACATION_STORAGE_KEY);
           if (savedVacation) {
             const parsed = JSON.parse(savedVacation);
-            console.log('📅 Fallback: Loading vacation period from localStorage:', parsed);
             setVacationPeriod(parsed);
             return parsed;
           }
@@ -73,7 +70,6 @@ export const useVacationMode = (): UseVacationModeReturn => {
     
     // Listen for custom events (sync within same tab)
     const handleCustomEvent = () => {
-      console.log('📅 Custom event detected, reloading vacation period from database');
       loadVacationPeriod();
     };
     
@@ -102,7 +98,6 @@ export const useVacationMode = (): UseVacationModeReturn => {
     
     // Ensure period has required fields
     if (!period || !period.start_date || !period.end_date) {
-      console.warn('Invalid vacation period structure:', period);
       return false;
     }
     
@@ -115,12 +110,10 @@ export const useVacationMode = (): UseVacationModeReturn => {
       if (!dateStr) return new Date(0);
       const parts = dateStr.split('-');
       if (parts.length !== 3) {
-        console.warn('Invalid date format in vacation period:', dateStr);
         return new Date(0);
       }
       const [year, month, day] = parts.map(Number);
       if (isNaN(year) || isNaN(month) || isNaN(day)) {
-        console.warn('Invalid date values in vacation period:', dateStr);
         return new Date(0);
       }
       return new Date(year, month - 1, day, 0, 0, 0, 0);
@@ -135,16 +128,6 @@ export const useVacationMode = (): UseVacationModeReturn => {
     // Debug log for specific dates (2 and 3 January 2026)
     const checkDateStr = checkDate.toISOString().split('T')[0];
     if (checkDateStr === '2026-01-02' || checkDateStr === '2026-01-03') {
-      console.log('🔍 Checking vacation for date:', {
-        checkDate: checkDateStr,
-        checkDateObj: checkDate,
-        startDate: period.start_date,
-        endDate: period.end_date,
-        startDateObj: startDate.toISOString().split('T')[0],
-        endDateObj: endDate.toISOString().split('T')[0],
-        isInVacation,
-        vacationPeriod: period
-      });
     }
     
     return isInVacation;
@@ -161,12 +144,10 @@ export const useVacationMode = (): UseVacationModeReturn => {
       created_at: new Date().toISOString()
     };
     
-    console.log('💾 setVacationPeriodData called with:', { startDate, endDate, newVacationPeriod });
     
     try {
       // Save to database
       await apiService.updateShopVacationPeriod(newVacationPeriod);
-      console.log('✅ Vacation period saved to database');
       
       // Update local state
       setVacationPeriod(newVacationPeriod);
@@ -175,7 +156,6 @@ export const useVacationMode = (): UseVacationModeReturn => {
       localStorage.setItem(VACATION_STORAGE_KEY, JSON.stringify(newVacationPeriod));
       
       // Dispatch custom event to sync across components in same tab
-      console.log('📢 Dispatching vacation-period-updated event');
       window.dispatchEvent(new CustomEvent('vacation-period-updated'));
     } catch (error) {
       console.error('❌ Error saving vacation period to database:', error);
@@ -191,7 +171,6 @@ export const useVacationMode = (): UseVacationModeReturn => {
     try {
       // Clear from database
       await apiService.updateShopVacationPeriod(null);
-      console.log('✅ Vacation period cleared from database');
       
       // Update local state
       setVacationPeriod(null);

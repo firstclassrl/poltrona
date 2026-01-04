@@ -25,16 +25,7 @@ const getTokenFromUrl = (): string | null => {
   
   // Log per debug
   if (result) {
-    console.log('🔍 getTokenFromUrl: Token trovato nell\'URL:', {
-      tokenLength: result.length,
-      tokenPreview: result.substring(0, 8) + '...',
-      fullUrl: window.location.href
-    });
   } else {
-    console.warn('⚠️ getTokenFromUrl: Nessun token trovato nell\'URL:', {
-      search: window.location.search,
-      fullUrl: window.location.href
-    });
   }
   
   return result;
@@ -100,7 +91,6 @@ export const ShopSetup: React.FC = () => {
 
   useEffect(() => {
     const validate = async () => {
-      console.log('🔍 ShopSetup: Inizio validazione token...');
       
       if (!inviteToken) {
         console.error('❌ ShopSetup: Token mancante nell\'URL');
@@ -109,10 +99,6 @@ export const ShopSetup: React.FC = () => {
         return;
       }
       
-      console.log('🔍 ShopSetup: Token trovato, validazione in corso...', {
-        tokenLength: inviteToken.length,
-        tokenPreview: inviteToken.substring(0, 8) + '...'
-      });
       
       try {
         const valid = await apiService.validateShopInvite(inviteToken);
@@ -122,10 +108,6 @@ export const ShopSetup: React.FC = () => {
           setError('Link di invito non valido o scaduto. Verifica che il token sia corretto e non sia già stato usato.');
           setTokenValid(false);
         } else {
-          console.log('✅ ShopSetup: Token valido!', {
-            inviteId: valid.id,
-            hasAdminUserId: !!valid.admin_user_id
-          });
           
           setTokenValid(true);
           setError(null);
@@ -134,9 +116,7 @@ export const ShopSetup: React.FC = () => {
           // Se non presente, permetteremo a qualsiasi admin di usare il token
           if (valid.admin_user_id) {
             setInviteAdminUserId(valid.admin_user_id);
-            console.log('✅ ShopSetup: Token associato a admin specifico:', valid.admin_user_id);
           } else {
-            console.log('ℹ️ ShopSetup: Token valido ma senza admin_user_id - qualsiasi admin può usarlo');
             setInviteAdminUserId(null);
             // Non impostare errore - il token può essere usato da qualsiasi admin
           }
@@ -331,12 +311,6 @@ export const ShopSetup: React.FC = () => {
     try {
       const tokenUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/token?grant_type=password`;
       
-      console.log('🔍 handleLogin: Tentativo login...', {
-        email: adminEmail.trim().toLowerCase(),
-        url: tokenUrl.substring(0, 80) + '...',
-        hasAnonKey: !!API_CONFIG.SUPABASE_ANON_KEY,
-        edgeUrl: API_CONFIG.SUPABASE_EDGE_URL
-      });
       
       // Crea un AbortController per timeout
       const controller = new AbortController();
@@ -373,7 +347,6 @@ export const ShopSetup: React.FC = () => {
         throw new Error(`Errore di connessione: ${fetchError.message || 'Impossibile connettersi al server'}`);
       }
 
-      console.log('🔍 handleLogin: Response status:', tokenRes.status, tokenRes.statusText);
       
       if (!tokenRes.ok) {
         let errorMessage = 'Credenziali non valide';
@@ -412,7 +385,6 @@ export const ShopSetup: React.FC = () => {
           const payload = JSON.parse(atob(accessToken.split('.')[1]));
           userId = payload.sub;
         } catch {
-          console.warn('⚠️ Impossibile decodificare JWT per user_id');
         }
       }
 
@@ -456,7 +428,6 @@ export const ShopSetup: React.FC = () => {
         if (profileError instanceof Error && profileError.message.includes('già associato')) {
           throw profileError;
         }
-        console.warn('⚠️ Impossibile verificare il profilo admin:', profileError);
         // Continua comunque, ma avvisa
       }
 
@@ -471,7 +442,6 @@ export const ShopSetup: React.FC = () => {
         localStorage.setItem('refresh_token', tokenJson.refresh_token);
       }
       
-      console.log('✅ Login riuscito, user_id:', userId);
       
       // Vai alla slide successiva
       nextSlide();
@@ -623,7 +593,6 @@ export const ShopSetup: React.FC = () => {
           });
 
           if (!updateShopRes.ok) {
-            console.warn('Errore aggiornamento logo nel negozio:', await updateShopRes.text());
           }
         } catch (logoError) {
           console.error('Errore caricamento logo:', logoError);
@@ -633,14 +602,12 @@ export const ShopSetup: React.FC = () => {
           setIsUploadingLogo(false);
         }
       } else if (logoFile && shop.id && !adminAccessToken) {
-        console.warn('Logo non caricato: token admin non disponibile');
         setError('Negozio creato con successo, ma impossibile caricare il logo (account admin non creato correttamente). Puoi caricare il logo successivamente dalle impostazioni.');
       }
 
       try {
         await apiService.markShopInviteUsed(inviteToken, shop.id);
       } catch (markError) {
-        console.warn('Impossibile marcare il token come usato:', markError);
       }
 
       const link = buildShopUrl(shop.slug || autoSlug);
@@ -649,18 +616,10 @@ export const ShopSetup: React.FC = () => {
       // Priorità: tema salvato nel negozio > tema scelto nel form > default
       const themeToApply = (shop.theme_palette as ThemePaletteId) || form.theme_palette || DEFAULT_THEME_ID;
       
-      console.log('🎨 ShopSetup: Applicando tema dopo creazione negozio:', {
-        shopTheme: shop.theme_palette,
-        formTheme: form.theme_palette,
-        defaultTheme: DEFAULT_THEME_ID,
-        themeToApply: themeToApply,
-        shopId: shop.id
-      });
       
       // Se il tema non è stato salvato nel negozio, aggiornalo nel database
       if (!shop.theme_palette && form.theme_palette && shop.id) {
         try {
-          console.log('🎨 ShopSetup: Tema non salvato nel negozio, aggiorno nel database...');
           const updateShopUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/shops?id=eq.${shop.id}`;
           const updateShopRes = await fetch(updateShopUrl, {
             method: 'PATCH',
@@ -678,12 +637,10 @@ export const ShopSetup: React.FC = () => {
           if (updateShopRes.ok) {
             const updated = await updateShopRes.json();
             if (updated && updated[0]) {
-              console.log('✅ ShopSetup: Tema aggiornato nel database:', updated[0].theme_palette);
               // Aggiorna shop locale con il tema salvato
               shop.theme_palette = updated[0].theme_palette;
             }
           } else {
-            console.warn('⚠️ ShopSetup: Impossibile aggiornare tema nel database:', await updateShopRes.text());
           }
         } catch (updateError) {
           console.error('❌ ShopSetup: Errore aggiornamento tema:', updateError);
@@ -696,11 +653,9 @@ export const ShopSetup: React.FC = () => {
       // STEP 4: Salva gli orari del negozio
       if (shop.id && adminAccessToken) {
         try {
-          console.log('🕐 ShopSetup: Salvataggio orari negozio...');
           // Assicurati che shop_id sia salvato nel localStorage per l'API
           localStorage.setItem('current_shop_id', shop.id);
           await apiService.saveDailyShopHours(shopHours);
-          console.log('✅ ShopSetup: Orari salvati con successo');
         } catch (hoursError) {
           console.error('❌ ShopSetup: Errore salvataggio orari:', hoursError);
           // Non bloccare la creazione se gli orari falliscono
@@ -711,11 +666,6 @@ export const ShopSetup: React.FC = () => {
       // STEP 5: Crea il barbiere
       if (shop.id && adminAccessToken && barberData.full_name && barberData.email && barberData.role) {
         try {
-          console.log('👨 ShopSetup: Creazione barbiere...', {
-            shop_id: shop.id,
-            shop_name: shop.name,
-            barber_name: barberData.full_name
-          });
           await apiService.createStaff({
             shop_id: shop.id, // Usa l'ID del negozio appena creato, non quello di default
             full_name: barberData.full_name,
@@ -723,7 +673,6 @@ export const ShopSetup: React.FC = () => {
             role: barberData.role,
             active: barberData.active ?? true,
           } as Omit<Staff, 'id' | 'created_at'>);
-          console.log('✅ ShopSetup: Barbiere creato con successo per il negozio:', shop.id);
         } catch (barberError) {
           console.error('❌ ShopSetup: Errore creazione barbiere:', barberError);
           // Non bloccare la creazione se il barbiere fallisce
@@ -735,7 +684,6 @@ export const ShopSetup: React.FC = () => {
       // STEP 6: Crea il servizio
       if (shop.id && adminAccessToken && serviceData.name && serviceData.duration_min && serviceData.price_cents !== undefined) {
         try {
-          console.log('✨ ShopSetup: Creazione servizio...');
           await apiService.createService({
             shop_id: shop.id,
             name: serviceData.name,
@@ -743,7 +691,6 @@ export const ShopSetup: React.FC = () => {
             price_cents: serviceData.price_cents,
             active: serviceData.active ?? true,
           });
-          console.log('✅ ShopSetup: Servizio creato con successo');
         } catch (serviceError) {
           console.error('❌ ShopSetup: Errore creazione servizio:', serviceError);
           // Non bloccare la creazione se il servizio fallisce

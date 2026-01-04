@@ -84,7 +84,6 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const loadShop = useCallback(async () => {
     // Se siamo in setup mode (token nell'URL), non caricare negozi
     if (setupMode) {
-      console.log('🔍 ShopProvider: Setup mode attivo, salto caricamento negozio');
       setIsLoading(false);
       setCurrentShop(null);
       setError(null);

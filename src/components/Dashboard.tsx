@@ -138,7 +138,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const handleConfirmNoShow = () => {
     if (selectedAppointment) {
       // In una app reale, qui faresti una chiamata API per aggiornare lo stato
-      console.log('No-show segnalato per appuntamento:', selectedAppointment.id);
       
       // Simula l'aggiornamento dello stato
       selectedAppointment.status = 'no_show';

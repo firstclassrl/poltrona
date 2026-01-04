@@ -50,13 +50,11 @@ export const useBarberProfile = () => {
       const isDefaultStaff = staffId.startsWith('default-staff-');
       
       if (isDefaultStaff) {
-        console.log('⚠️ Staff di default - salvataggio solo nel localStorage');
         
         // Per staff di default, salva solo nel localStorage
         const success = saveBarberProfile(staffId, profileData);
         
         if (success) {
-          console.log('✅ Profilo barbiere di default salvato nel localStorage:', profileData);
           
           // Aggiorna anche i dati del barbiere nel localStorage generale
           const allStaff = localStorage.getItem('staff_data');
@@ -102,7 +100,6 @@ export const useBarberProfile = () => {
       const success = saveBarberProfile(staffId, profileData);
       
       if (success) {
-        console.log('✅ Profilo barbiere aggiornato con successo nel database:', profileData);
         
         // Aggiorna anche i dati del barbiere nel localStorage generale
         const allStaff = localStorage.getItem('staff_data');
@@ -130,7 +127,6 @@ export const useBarberProfile = () => {
       // In caso di errore API, prova comunque a salvare nel localStorage
       const fallbackSuccess = saveBarberProfile(staffId, profileData);
       if (fallbackSuccess) {
-        console.log('⚠️ Profilo salvato solo nel localStorage a causa di errore API');
       }
       return fallbackSuccess;
     } finally {
@@ -177,7 +173,6 @@ export const useBarberProfile = () => {
   const deleteBarberProfile = (staffId: string): boolean => {
     try {
       localStorage.removeItem(`barber_profile_${staffId}`);
-      console.log('✅ Profilo barbiere eliminato:', staffId);
       return true;
     } catch (error) {
       console.error('❌ Errore nell\'eliminazione del profilo barbiere:', error);

@@ -88,7 +88,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       // Clients: no in-app bell UX; prefer push/email + badge in "Le Mie Prenotazioni"
       if (!isInitialLoad.current && unread > previousUnreadCount.current && user?.role !== 'client') {
         playNotificationSound();
-        console.log('🔔 Nuova notifica ricevuta!');
       }
       
       previousUnreadCount.current = unread;
@@ -114,7 +113,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       // Play sound if new notifications arrived (no sound for clients)
       if (count > previousUnreadCount.current && user?.role !== 'client') {
         playNotificationSound();
-        console.log('🔔 Nuova notifica ricevuta! Totale non lette:', count);
         setNotifications(filtered);
       } else {
         setNotifications(filtered);
@@ -222,13 +220,9 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     
     try {
       const currentCount = notifications.length;
-      console.log('🗑️ Eliminazione di tutte le notifiche per user:', user.id);
-      console.log('📊 Notifiche prima dell\'eliminazione:', currentCount);
       await apiService.deleteAllNotifications(user.id);
       setNotifications([]);
       setUnreadCount(0);
-      console.log('✅ Tutte le notifiche eliminate per user:', user.id);
-      console.log('📊 Notifiche dopo l\'eliminazione:', 0);
     } catch (error) {
       console.error('❌ Error deleting all notifications:', error);
       throw error;

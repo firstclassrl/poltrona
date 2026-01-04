@@ -58,7 +58,6 @@ export const useUserProfile = () => {
       const success = saveUserProfile(userId, profileData);
       
       if (success) {
-        console.log('✅ Profilo utente aggiornato con successo:', profileData);
         
         // Aggiorna anche i dati dell'utente nel localStorage
         const currentUser = localStorage.getItem('auth_user');
@@ -85,9 +84,7 @@ export const useUserProfile = () => {
             photo_url: profileData.profile_photo_url || null,
             profile_photo_path: profileData.profile_photo_path || null,
           });
-          console.log('✅ Record client aggiornato nel database');
         } catch (dbError) {
-          console.warn('⚠️ Errore aggiornamento client nel DB:', dbError);
           // Non bloccare se il DB fallisce
         }
       }
@@ -138,7 +135,6 @@ export const useUserProfile = () => {
   const deleteUserProfile = (userId: string): boolean => {
     try {
       localStorage.removeItem(`user_profile_${userId}`);
-      console.log('✅ Profilo utente eliminato:', userId);
       return true;
     } catch (error) {
       console.error('❌ Errore nell\'eliminazione del profilo utente:', error);

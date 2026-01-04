@@ -114,11 +114,9 @@ const fetchWithTokenRefresh = async (
     // 2. È un errore 401 (sempre probabilmente autenticazione)
     // 3. È un errore 403 con RLS (potrebbe essere token scaduto)
     if (isJwtIssue || response.status === 401 || (response.status === 403 && isRlsIssue)) {
-      console.log('🔄 Tentativo refresh token per errore:', response.status, isJwtIssue ? 'JWT' : isRlsIssue ? 'RLS' : 'Generico');
       const refreshed = await tryRefreshToken();
       
       if (refreshed) {
-        console.log('✅ Token refreshato, riprovo la chiamata');
         // Ricostruisci gli headers con il nuovo token
         const newHeaders = { ...buildHeaders(true) };
         if (options.headers) {
@@ -130,7 +128,6 @@ const fetchWithTokenRefresh = async (
         response = await fetch(url, { ...options, headers: newHeaders });
       } else {
         // Refresh fallito, forza logout
-        console.log('❌ Refresh fallito, sessione scaduta');
         window.dispatchEvent(new CustomEvent('auth:session-expired'));
       }
     }
@@ -316,7 +313,7 @@ export const apiService = {
               serverMsg.toLowerCase().includes('user already exists') ||
               signupRes.status === 422) {
             // User already exists, we'll create client record without Auth user
-            console.warn('⚠️ Utente già registrato, creo solo record client');
+            // User already exists, create client record only
           } else {
             throw new Error(serverMsg);
           }
@@ -346,7 +343,7 @@ export const apiService = {
                 authAccessToken = tokenJson.access_token;
               }
             } catch (silentLoginError) {
-              console.warn('⚠️ Login silente fallito:', silentLoginError);
+              // Silent login failed, continue without token
             }
           }
         }
@@ -358,14 +355,12 @@ export const apiService = {
     }
     
     let shopId = getStoredShopId();
-    console.log('🔍 createClient: shopId da localStorage:', shopId);
     if (!shopId || shopId === 'default') {
       try {
         const shop = await this.getShop();
         shopId = shop?.id ?? null;
-        console.log('🔍 createClient: shopId da getShop():', shopId);
       } catch (shopError) {
-        console.error('❌ createClient: Errore ottenendo shop:', shopError);
+        console.error('Error getting shop:', shopError);
         // Se getShop() fallisce, prova a ottenere shop_id dal profilo
         const authToken = localStorage.getItem('auth_token');
         if (authToken) {
@@ -380,7 +375,6 @@ export const apiService = {
                 const profiles = await profileRes.json();
                 if (profiles && profiles.length > 0 && profiles[0].shop_id) {
                   shopId = profiles[0].shop_id;
-                  console.log('🔍 createClient: shopId da profilo:', shopId);
                 }
               }
             }
@@ -405,15 +399,11 @@ export const apiService = {
       notes: data.notes || null,
     };
     
-    console.log('📝 createClient: Payload:', payload);
-
     try {
       // Use auth token if available, otherwise use provided token
       const accessToken = authAccessToken || options?.accessToken;
       
       const headers = buildHeaders(true, accessToken);
-      console.log('🔍 createClient: Headers Authorization:', headers.Authorization ? 'Presente' : 'Mancante');
-      console.log('🔍 createClient: Token usato:', accessToken ? 'Override token' : (localStorage.getItem('auth_token') ? 'Token da localStorage' : 'Nessun token'));
       
       // Usa fetchWithTokenRefresh per gestire automaticamente il refresh del token se scaduto
       const response = await fetchWithTokenRefresh(
@@ -451,7 +441,7 @@ export const apiService = {
             { accessToken: authAccessToken }
           );
         } catch (linkError) {
-          console.warn('⚠️ Errore nel collegamento client-utente:', linkError);
+          // Failed to link client-user
           // Don't fail if linking fails, client is already created
         }
       }
@@ -622,7 +612,6 @@ export const apiService = {
                 });
                 existingClient.phone_e164 = user.phone;
               } catch (updateError) {
-                console.warn('Unable to update client phone:', updateError);
               }
             }
             
@@ -678,33 +667,15 @@ export const apiService = {
           // Se il refresh ha funzionato, usa il nuovo token
           const newToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
           if (newToken) {
-            console.log('✅ Token aggiornato dopo refresh');
           }
         } else {
           const userData = await verifyResponse.json();
-          console.log('✅ Token valido per utente:', userData.email);
         }
       } catch (verifyError) {
-        console.warn('⚠️ Errore verifica token:', verifyError);
         // Continua comunque, potrebbe essere un problema temporaneo
       }
 
       const headers = buildHeaders(true, options?.accessToken);
-      console.log('🔐 Creating client with headers:', {
-        hasAuth: !!headers.Authorization,
-        authPrefix: headers.Authorization?.substring(0, 20) + '...',
-        hasToken: !!options?.accessToken,
-        tokenFromStorage: !!(localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')),
-      });
-
-      // Log dettagliato degli header per debug
-      console.log('🔍 Headers completi per POST clients:', {
-        'Content-Type': headers['Content-Type'],
-        'Accept': headers['Accept'],
-        'apikey': headers['apikey'] ? 'Presente' : 'Mancante',
-        'Authorization': headers['Authorization'] ? headers['Authorization'].substring(0, 30) + '...' : 'Mancante',
-        'Prefer': 'return=representation',
-      });
 
       const createResponse = await fetch(API_ENDPOINTS.SEARCH_CLIENTS, {
         method: 'POST',
@@ -715,7 +686,6 @@ export const apiService = {
       if (createResponse.ok) {
         const created = await createResponse.json();
         const client = created[0];
-        console.log('✅ Client created successfully:', client.id);
         return client;
       } else {
         const errorText = await createResponse.text();
@@ -732,7 +702,6 @@ export const apiService = {
         }
         // Per altri errori, genera un ID temporaneo (ma solo una volta)
         const tempId = `temp_client_${Date.now()}`;
-        console.warn('Unable to create client in DB, using temporary ID:', tempId);
         return { id: tempId, email: user.email ?? null, phone_e164: user.phone ?? null };
       }
     } catch (error) {
@@ -742,14 +711,12 @@ export const apiService = {
       }
       // Per altri errori, genera un ID temporaneo (ma solo una volta)
       const tempId = `temp_client_${Date.now()}`;
-      console.warn('Error creating client, using temporary ID:', tempId);
       return { id: tempId, email: user.email ?? null, phone_e164: user.phone ?? null };
     }
   },
 
   async getDailyShopHours(): Promise<ShopHoursConfig> {
     if (!isSupabaseConfigured()) {
-      console.warn('Supabase non configurato - uso configurazione orari di default');
       return createDefaultShopHoursConfig();
     }
 
@@ -789,20 +756,16 @@ export const apiService = {
       
       // Carica sempre i time slots separatamente (più affidabile della relazione embedded)
       if (rows.length > 0) {
-        console.log('📅 Loading time slots separately...');
         const dailyHoursIds = rows.map(r => r.id);
         // PostgREST supporta filtri IN con la sintassi: column=in.(value1,value2,...)
         const idsFilter = dailyHoursIds.join(',');
         const timeSlotsUrl = `${API_ENDPOINTS.SHOP_DAILY_TIME_SLOTS}?select=*&daily_hours_id=in.(${idsFilter})&order=daily_hours_id.asc,position.asc`;
         
-        console.log('📅 Fetching time slots from URL:', timeSlotsUrl);
         // Usa la stessa autenticazione usata per i daily_hours
         const timeSlotsResponse = await fetch(timeSlotsUrl, { headers: buildHeaders(hasAuth) });
         
         if (timeSlotsResponse.ok) {
           const allTimeSlots = await timeSlotsResponse.json() as ShopDailyTimeSlotRow[];
-          console.log('📅 Raw time slots response:', JSON.stringify(allTimeSlots, null, 2));
-          console.log('📅 Total time slots found:', allTimeSlots.length);
           
           // Crea una mappa per raggruppare i time slots per daily_hours_id
           const timeSlotsMap = new Map<string, ShopDailyTimeSlotRow[]>();
@@ -820,21 +783,10 @@ export const apiService = {
             shop_daily_time_slots: timeSlotsMap.get(row.id) || []
           }));
           
-          console.log('✅ Loaded time slots separately:', {
-            totalSlots: allTimeSlots.length,
-            slotsByDay: rows.map(r => ({ 
-              day: r.day_of_week, 
-              daily_hours_id: r.id,
-              count: r.shop_daily_time_slots?.length || 0,
-              slots: r.shop_daily_time_slots
-            }))
-          });
         } else {
           const errorText = await timeSlotsResponse.text().catch(() => 'Unknown error');
-          console.warn('⚠️ Failed to load time slots separately:', timeSlotsResponse.status, errorText);
         }
       } else {
-        console.warn('⚠️ No daily hours records found for shop_id:', shopId);
       }
       
       if (!Array.isArray(rows)) {
@@ -842,8 +794,6 @@ export const apiService = {
         throw new Error('Invalid response format from shop_daily_hours');
       }
       
-      // Debug: log della risposta raw per vedere la struttura
-      console.log('📅 Raw response from database:', JSON.stringify(rows, null, 2));
       
       // Inizializza tutti i giorni come chiusi (non usare il default che ha lunedì aperto)
       const config: ShopHoursConfig = {
@@ -856,10 +806,8 @@ export const apiService = {
         6: { isOpen: false, timeSlots: [] }, // Sabato
       };
 
-      console.log('📅 Loading shop hours from database:', {
-        shopId,
-        rowsCount: rows.length,
-        rows: rows.map(r => ({ 
+      // Load shop hours from database
+      rows.forEach((row) => { 
           day: r.day_of_week, 
           is_open: r.is_open, 
           slotsCount: r.shop_daily_time_slots?.length || 0,
@@ -870,15 +818,12 @@ export const apiService = {
 
       rows.forEach((row) => {
         if (row.day_of_week < 0 || row.day_of_week > 6) {
-          console.warn(`⚠️ Invalid day_of_week: ${row.day_of_week}, skipping`);
           return;
         }
         
         // Debug: verifica se i time slots sono presenti
         if (!row.shop_daily_time_slots) {
-          console.warn(`⚠️ No shop_daily_time_slots found for day ${row.day_of_week}. Available keys:`, Object.keys(row));
         } else {
-          console.log(`✅ Found ${row.shop_daily_time_slots.length} time slots for day ${row.day_of_week}:`, row.shop_daily_time_slots);
         }
         
         const timeSlots = (row.shop_daily_time_slots ?? [])
@@ -892,7 +837,6 @@ export const apiService = {
               const start = formatTimeToHHMM(slot.start_time ?? '');
               const end = formatTimeToHHMM(slot.end_time ?? '');
               if (!start || !end || start === '00:00' && end === '00:00') {
-                console.warn(`⚠️ Invalid time slot for day ${row.day_of_week}:`, { start_time: slot.start_time, end_time: slot.end_time });
                 return null;
               }
               return { start, end };
@@ -903,7 +847,6 @@ export const apiService = {
           })
           .filter((slot): slot is TimeSlot => slot !== null);
         
-        console.log(`📅 Processed ${timeSlots.length} valid time slots for day ${row.day_of_week}:`, timeSlots);
 
         config[row.day_of_week] = {
           isOpen: row.is_open ?? false,
@@ -911,14 +854,10 @@ export const apiService = {
         };
       });
 
-      console.log('📅 Final config after loading:', {
-        config: Object.entries(config).map(([day, data]) => ({ day, isOpen: data.isOpen, slotsCount: data.timeSlots.length }))
-      });
 
       // Verifica che almeno un giorno sia stato caricato correttamente
       const hasLoadedData = rows.length > 0;
       if (!hasLoadedData) {
-        console.warn('⚠️ No shop hours found in database for shop:', shopId);
       }
 
       return config;
@@ -933,7 +872,6 @@ export const apiService = {
 
   async saveDailyShopHours(hoursConfig: ShopHoursConfig): Promise<boolean> {
     if (!isSupabaseConfigured()) {
-      console.warn('Supabase non configurato - impossibile salvare gli orari del negozio');
       return false;
     }
 
@@ -967,52 +905,29 @@ export const apiService = {
       const existingMap = new Map<number, ShopDailyHoursEntity>();
       existingRows.forEach((row) => existingMap.set(row.day_of_week, row));
 
-      console.log('💾 Existing rows in database:', {
-        count: existingRows.length,
-        rows: existingRows.map(r => ({ day: r.day_of_week, is_open: r.is_open }))
-      });
 
       const changedDays: number[] = [];
-      console.log(`💾 Comparing ${existingRows.length} existing rows with config`);
       
       for (let day = 0; day < 7; day += 1) {
         const dayConfig = hoursConfig[day] ?? { isOpen: false, timeSlots: [] };
         const existingDay = existingRows.find(r => r.day_of_week === day);
         
-        console.log(`💾 Checking day ${day}:`, {
-          config: { 
-            isOpen: dayConfig.isOpen, 
-            slotsCount: dayConfig.timeSlots.length,
-            slots: dayConfig.timeSlots
-          },
-          existing: existingDay ? { 
-            is_open: existingDay.is_open, 
-            slotsCount: existingDay.shop_daily_time_slots?.length || 0,
-            slots: existingDay.shop_daily_time_slots
-          } : null,
-          existingRowsLength: existingRows.length,
-          willBeAdded: !existingDay && (dayConfig.isOpen || dayConfig.timeSlots.length > 0),
-          isOpenChanged: existingDay ? existingDay.is_open !== dayConfig.isOpen : false
-        });
         
         // Se il giorno non esiste nel database, deve essere creato o aggiornato
         if (!existingDay) {
           // Se il giorno è aperto o ha time slots, deve essere creato
           // IMPORTANTE: anche se è chiuso ma ha time slots, deve essere creato per mantenere la struttura
           if (dayConfig.isOpen || dayConfig.timeSlots.length > 0) {
-            console.log(`✅ Day ${day} needs to be created (not in database, isOpen=${dayConfig.isOpen}, slots=${dayConfig.timeSlots.length})`);
             changedDays.push(day);
           } else {
             // Se è chiuso e non ha slot, potrebbe non essere necessario crearlo
             // Ma se lo stato locale dice che è chiuso, creiamolo comunque per mantenere la struttura
-            console.log(`ℹ️ Day ${day} is closed with no slots, skipping creation`);
           }
           continue;
         }
         
         // Verifica se is_open è cambiato
         if (existingDay.is_open !== dayConfig.isOpen) {
-          console.log(`✅ Day ${day} is_open changed: ${existingDay.is_open} -> ${dayConfig.isOpen}`);
           changedDays.push(day);
           continue;
         }
@@ -1059,12 +974,10 @@ export const apiService = {
 
       if (changedDays.length === 0) {
         // Nessuna modifica, non salvare
-        console.log('💾 No changes detected, skipping save');
         // Ma se il database è completamente vuoto e lo stato locale ha giorni aperti, 
         // dobbiamo comunque salvare per inizializzare il database
         const hasOpenDays = Object.values(hoursConfig).some(day => day.isOpen || day.timeSlots.length > 0);
         if (existingRows.length === 0 && hasOpenDays) {
-          console.log('⚠️ Database is empty but local state has open days, forcing save of all days');
           // Salva tutti i giorni che sono aperti o hanno slot
           for (let day = 0; day < 7; day += 1) {
             const dayConfig = hoursConfig[day] ?? { isOpen: false, timeSlots: [] };
@@ -1083,8 +996,6 @@ export const apiService = {
             .map(([day, _]) => parseInt(day));
           
           if (openDaysInConfig.length > 0) {
-            console.log('⚠️ No changes detected but config has open days:', openDaysInConfig);
-            console.log('⚠️ This might be a comparison bug, checking each day in detail...');
             
             // Verifica ogni giorno aperto per vedere se c'è davvero una differenza
             for (const day of openDaysInConfig) {
@@ -1092,23 +1003,19 @@ export const apiService = {
               const existingDay = existingRows.find(r => r.day_of_week === day);
               
               if (!existingDay) {
-                console.log(`⚠️ Day ${day} is open in config but missing in DB - adding to changedDays`);
                 changedDays.push(day);
               } else if (existingDay.is_open !== dayConfig.isOpen) {
-                console.log(`⚠️ Day ${day} is_open mismatch: DB=${existingDay.is_open}, Config=${dayConfig.isOpen} - adding to changedDays`);
                 changedDays.push(day);
               } else if (dayConfig.isOpen && dayConfig.timeSlots.length > 0) {
                 // Verifica anche i time slots
                 const existingSlotsCount = existingDay.shop_daily_time_slots?.length || 0;
                 if (existingSlotsCount !== dayConfig.timeSlots.length) {
-                  console.log(`⚠️ Day ${day} slots count mismatch: DB=${existingSlotsCount}, Config=${dayConfig.timeSlots.length} - adding to changedDays`);
                   changedDays.push(day);
                 }
               }
             }
             
             if (changedDays.length === 0) {
-              console.log('⚠️ Still no changes after detailed check - returning false');
               return false;
             }
           } else {
@@ -1117,16 +1024,7 @@ export const apiService = {
         }
       }
       
-      console.log(`💾 Will save ${changedDays.length} days:`, changedDays);
 
-      console.log('💾 Saving shop hours:', {
-        shopId,
-        changedDays,
-        summary: changedDays.map(day => {
-          const dayConfig = hoursConfig[day] ?? { isOpen: false, timeSlots: [] };
-          return { day, isOpen: dayConfig.isOpen, slotsCount: dayConfig.timeSlots.length };
-        })
-      });
 
       // Processa solo i giorni che sono cambiati
       for (const day of changedDays) {
@@ -1167,7 +1065,6 @@ export const apiService = {
             const errorText = await createRes.text();
             // Se è un errore di unique constraint, prova a fare un upsert esplicito
             if (errorText.includes('duplicate') || errorText.includes('unique') || createRes.status === 409) {
-              console.warn(`⚠️ Day ${day} already exists, trying to update instead`);
               // Ricarica i record esistenti e aggiorna
               const retryRes = await fetchWithTokenRefresh(
                 `${API_ENDPOINTS.SHOP_DAILY_HOURS}?shop_id=eq.${shopId}&day_of_week=eq.${day}&select=*&limit=1`,
@@ -1209,16 +1106,13 @@ export const apiService = {
           }
           currentRow = created[0];
           existingMap.set(day, currentRow);
-          console.log(`✅ Successfully created day ${day} with id ${currentRow.id} and is_open=${dayConfig.isOpen}`);
         }
 
         if (!currentRow) {
-          console.warn(`⚠️ No currentRow for day ${day}, skipping time slots`);
           continue;
         }
 
         // Elimina i time slots esistenti prima di inserire quelli nuovi
-        console.log(`🗑️ Deleting existing time slots for day ${day} (daily_hours_id: ${currentRow.id})`);
         const deleteSlotsRes = await fetchWithTokenRefresh(
           `${API_ENDPOINTS.SHOP_DAILY_TIME_SLOTS}?daily_hours_id=eq.${currentRow.id}`,
           {
@@ -1236,19 +1130,16 @@ export const apiService = {
           });
           throw new Error(`Failed to clear time slots (${day}): ${deleteSlotsRes.status} ${errorText}`);
         }
-        console.log(`✅ Deleted existing time slots for day ${day}`);
 
         if (dayConfig.isOpen && dayConfig.timeSlots.length > 0) {
           // Valida i time slots prima di salvarli
           const validSlots = dayConfig.timeSlots.filter(slot => {
             if (!slot.start || !slot.end) {
-              console.warn(`⚠️ Invalid time slot for day ${day}: missing start or end`, slot);
               return false;
             }
             const start = normalizeTimeString(slot.start);
             const end = normalizeTimeString(slot.end);
             if (start >= end) {
-              console.warn(`⚠️ Invalid time slot for day ${day}: start >= end`, slot);
               return false;
             }
             return true;
@@ -1262,7 +1153,6 @@ export const apiService = {
             position: index,
           }));
 
-            console.log(`💾 Inserting ${validSlots.length} time slots for day ${day}:`, payload);
             const insertSlotsRes = await fetchWithTokenRefresh(
               API_ENDPOINTS.SHOP_DAILY_TIME_SLOTS,
               {
@@ -1286,18 +1176,14 @@ export const apiService = {
             // Verifica che i time slots siano stati inseriti
             try {
               const inserted = await insertSlotsRes.json();
-              console.log(`✅ Inserted ${Array.isArray(inserted) ? inserted.length : 1} time slots for day ${day}`);
             } catch (parseError) {
               // Se la risposta è vuota (return=minimal), va bene
-              console.log(`✅ Time slots inserted for day ${day} (minimal response)`);
             }
           } else if (dayConfig.timeSlots.length > 0) {
-            console.warn(`⚠️ All time slots for day ${day} were invalid, skipping insertion`);
           }
         }
       }
       
-      console.log('✅ Shop hours saved successfully');
       return true; // Indica che il salvataggio è stato completato con successo
     } catch (error) {
       console.error('❌ Error saving daily shop hours:', error);
@@ -1323,8 +1209,6 @@ export const apiService = {
       // PostgREST usa operatori di filtro nella sintassi: column.operator.value
       // Per il range, usiamo due filtri separati
       const url = `${API_ENDPOINTS.APPOINTMENTS_FEED}?${params.toString()}&start_at=gte.${encodeURIComponent(start)}&start_at=lte.${encodeURIComponent(end)}`;
-      console.log('🔍 Query appointments:', url);
-      console.log('📅 Range date:', { start, end });
       
       const response = await fetch(url, { headers: buildHeaders(true) });
       if (!response.ok) {
@@ -1333,14 +1217,7 @@ export const apiService = {
         throw new Error(`Failed to fetch appointments: ${response.status}`);
       }
       const data = await response.json();
-      console.log(`📋 Appuntamenti restituiti dalla query: ${data.length}`);
       if (data.length > 0) {
-        console.log('📝 Primi 5 appuntamenti:', data.slice(0, 5).map((apt: Appointment) => ({
-          id: apt.id,
-          start_at: apt.start_at,
-          status: apt.status,
-          client: apt.clients?.first_name,
-        })));
       }
       return data;
     } catch (error) {
@@ -1353,7 +1230,6 @@ export const apiService = {
   async createAppointment(data: CreateAppointmentRequest): Promise<void> {
     // Se N8N non è configurato, usa createAppointmentDirect come fallback
     if (!API_CONFIG.N8N_BASE_URL) {
-      console.log('N8N non configurato, uso creazione diretta in Supabase');
       await this.createAppointmentDirect({
         client_id: data.client_id,
         client_name: (data as any).client_name,
@@ -1454,12 +1330,6 @@ export const apiService = {
         
         // Log for debugging
         if (hasOverlap) {
-          console.log('🔍 Overlap detected:', {
-            newAppointment: { start: data.start_at, end: data.end_at },
-            existingAppointment: { start: apt.start_at, end: apt.end_at },
-            staff_id: data.staff_id,
-            apt_staff_id: apt.staff_id
-          });
         }
         
         return hasOverlap;
@@ -1481,7 +1351,6 @@ export const apiService = {
           const profile = await this.getUserProfile();
           shopId = (profile as any)?.shop_id ?? shopId;
         } catch (e) {
-          console.warn('⚠️ Impossibile recuperare profilo per shop_id fallback', e);
         }
       }
 
@@ -1664,7 +1533,6 @@ export const apiService = {
   // Cancel appointments in date range (for vacation mode)
   async cancelAppointmentsInRange(startDate: string, endDate: string): Promise<void> {
     if (!isSupabaseConfigured() || !API_CONFIG.N8N_BASE_URL) {
-      console.warn('Backend non configurato - la modalità ferie bloccherà le nuove prenotazioni, ma gli appuntamenti esistenti non verranno cancellati automaticamente');
       return; // Permetti l'attivazione della modalità ferie anche senza backend
     }
     
@@ -2126,7 +1994,6 @@ export const apiService = {
       
       return null;
     } catch (error) {
-      console.warn('Errore generazione signed URL pubblico logo:', error);
       return null;
     }
   },
@@ -2186,7 +2053,6 @@ export const apiService = {
           const shop = await this.getShop();
           shopId = shop?.id ?? null;
         } catch (shopError) {
-          console.warn('⚠️ createService: Errore ottenendo shop, il trigger SQL assegnerà shop_id:', shopError);
         }
       }
       
@@ -2248,10 +2114,8 @@ export const apiService = {
   },
 
   async getShopBySlug(slug: string): Promise<Shop> {
-    console.log('🔍 getShopBySlug: slug=', slug);
     
     if (!isSupabaseConfigured()) {
-      console.warn('⚠️ getShopBySlug: Supabase non configurato, uso shop di default');
       return {
         id: 'default',
         slug: slug || DEFAULT_SHOP_SLUG,
@@ -2280,12 +2144,9 @@ export const apiService = {
       const encodedSlug = encodeURIComponent(slug);
       const url = `${API_ENDPOINTS.SHOPS}?select=*&slug=eq.${encodedSlug}&limit=1`;
       
-      console.log('🔍 getShopBySlug: URL=', url.substring(0, 100) + '...');
-      console.log('🔍 getShopBySlug: Usando headers pubblici (anon)');
       
       const response = await fetch(url, { headers: buildHeaders(false) });
       
-      console.log('🔍 getShopBySlug: Response status=', response.status);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -2294,7 +2155,6 @@ export const apiService = {
       }
       
       const shops = await response.json();
-      console.log('🔍 getShopBySlug: Shops trovati:', shops?.length || 0);
       
       if (!shops || shops.length === 0) {
         console.error('❌ getShopBySlug: Nessun shop trovato con slug:', slug);
@@ -2302,11 +2162,6 @@ export const apiService = {
       }
       
       const shop = shops[0];
-      console.log('✅ getShopBySlug: Shop trovato:', {
-        id: shop.id,
-        slug: shop.slug,
-        name: shop.name
-      });
       
       persistShopLocally(shop);
       return shop;
@@ -2346,7 +2201,6 @@ export const apiService = {
     // Fallback a buildHeaders(false) solo se non c'è token (es. pagina login)
     const hasAuth = localStorage.getItem('auth_token');
     const url = `${API_ENDPOINTS.SHOPS}?select=*&id=eq.${id}&limit=1`;
-    console.log('🔍 getShopById: id=', id, 'hasAuth=', !!hasAuth);
     const response = await fetch(url, { headers: buildHeaders(!!hasAuth) });
     if (!response.ok) {
       throw new Error(`Impossibile caricare shop con id ${id}`);
@@ -2394,7 +2248,6 @@ export const apiService = {
       // Fallback a buildHeaders(false) solo se non c'è token (es. pagina login)
       const hasAuth = localStorage.getItem('auth_token');
       const url = `${API_ENDPOINTS.SHOPS}?select=*&slug=eq.${encodeURIComponent(slugToUse)}&limit=1`;
-      console.log('🔍 getShop: slug=', slugToUse, 'hasAuth=', !!hasAuth);
       const response = await fetch(url, { headers: buildHeaders(!!hasAuth) });
       if (!response.ok) {
         const errorText = await response.text();
@@ -2465,15 +2318,12 @@ export const apiService = {
           try {
             const parsed = JSON.parse(shopData.vacation_period);
             shopData.vacation_period = parsed;
-            console.log('📅 Parsed vacation_period from JSONB string:', parsed);
           } catch (e) {
-            console.warn('Error parsing vacation_period from database:', e, shopData.vacation_period);
             shopData.vacation_period = null;
           }
         } else if (typeof shopData.vacation_period === 'object') {
           // Already an object, ensure it has the right structure
           if (!shopData.vacation_period.start_date || !shopData.vacation_period.end_date) {
-            console.warn('Invalid vacation_period structure:', shopData.vacation_period);
             shopData.vacation_period = null;
           }
         }
@@ -2526,11 +2376,6 @@ export const apiService = {
       const encodedToken = encodeURIComponent(token.trim());
       const url = `${API_ENDPOINTS.SHOP_INVITES}?select=*&token=eq.${encodedToken}&limit=1`;
       
-      console.log('🔍 validateShopInvite: Validando token:', {
-        tokenLength: token.length,
-        tokenPreview: token.substring(0, 8) + '...',
-        url: url.substring(0, 100) + '...'
-      });
       
       const response = await fetch(url, { headers: buildHeaders(false) });
       
@@ -2541,31 +2386,20 @@ export const apiService = {
       }
       
       const invites = await response.json();
-      console.log('🔍 validateShopInvite: Risposta API:', {
-        invitesCount: invites?.length || 0,
-        hasInvite: !!invites?.[0]
-      });
       
       const invite = invites?.[0];
       if (!invite) {
-        console.warn('⚠️ validateShopInvite: Nessun invito trovato per questo token');
         return null;
       }
       
       if (invite.used_at) {
-        console.warn('⚠️ validateShopInvite: Token già usato il', invite.used_at);
         return null;
       }
       
       if (invite.expires_at && invite.expires_at <= nowIso) {
-        console.warn('⚠️ validateShopInvite: Token scaduto il', invite.expires_at);
         return null;
       }
       
-      console.log('✅ validateShopInvite: Token valido!', {
-        inviteId: invite.id,
-        hasAdminUserId: !!invite.admin_user_id
-      });
       
       return {
         id: invite.id,
@@ -3029,17 +2863,13 @@ export const apiService = {
     try {
       // CRITICO: Aggiungi filtro esplicito shop_id come doppia sicurezza
       let shopId = getStoredShopId();
-      console.log('🔍 getServices: shopId da localStorage:', shopId);
       
       if (!shopId || shopId === 'default') {
-        console.log('🔍 getServices: shopId non trovato, recupero shop...');
         const shop = await this.getShop();
         shopId = shop?.id ?? null;
-        console.log('🔍 getServices: shopId da getShop():', shopId);
         // Assicurati che lo shop_id sia salvato nel localStorage
         if (shopId && shopId !== 'default' && typeof window !== 'undefined') {
           localStorage.setItem('current_shop_id', shopId);
-          console.log('✅ getServices: shop_id salvato nel localStorage:', shopId);
         }
       }
       
@@ -3049,15 +2879,12 @@ export const apiService = {
       let url = `${API_ENDPOINTS.SERVICES}?select=*&order=name.asc&active=eq.true`;
       if (shopId && shopId !== 'default') {
         url += `&shop_id=eq.${shopId}`;
-        console.log('🔍 getServices: URL con shop_id:', url);
       } else {
-        console.warn('⚠️ getServices: shop_id non disponibile, query senza filtro shop_id');
       }
       
       // Prova prima con autenticazione, poi fallback a pubblico
       const hasAuth = localStorage.getItem('auth_token');
       const headers = hasAuth ? buildHeaders(true) : buildHeaders(false);
-      console.log('🔍 getServices: hasAuth:', !!hasAuth);
       
       const response = await fetch(url, { headers });
       if (!response.ok) {
@@ -3067,7 +2894,6 @@ export const apiService = {
       }
       
       const services = await response.json();
-      console.log('✅ getServices: Servizi recuperati:', services.length, services);
       return services;
     } catch (error) {
       console.error('❌ Error fetching services:', error);
@@ -3082,17 +2908,13 @@ export const apiService = {
     try {
       // CRITICO: Aggiungi filtro esplicito shop_id come doppia sicurezza
       let shopId = getStoredShopId();
-      console.log('🔍 getStaff: shopId da localStorage:', shopId);
       
       if (!shopId || shopId === 'default') {
-        console.log('🔍 getStaff: shopId non trovato, recupero shop...');
         const shop = await this.getShop();
         shopId = shop?.id ?? null;
-        console.log('🔍 getStaff: shopId da getShop():', shopId);
         // Assicurati che lo shop_id sia salvato nel localStorage
         if (shopId && shopId !== 'default' && typeof window !== 'undefined') {
           localStorage.setItem('current_shop_id', shopId);
-          console.log('✅ getStaff: shop_id salvato nel localStorage:', shopId);
         }
       }
       
@@ -3101,15 +2923,12 @@ export const apiService = {
       let url = `${API_ENDPOINTS.STAFF}?select=*&order=full_name.asc&active=eq.true`;
       if (shopId && shopId !== 'default') {
         url += `&shop_id=eq.${shopId}`;
-        console.log('🔍 getStaff: URL con shop_id:', url);
       } else {
-        console.warn('⚠️ getStaff: shop_id non disponibile, query senza filtro shop_id');
       }
       
       // Prova prima con autenticazione, poi fallback a pubblico
       const hasAuth = localStorage.getItem('auth_token');
       const headers = hasAuth ? buildHeaders(true) : buildHeaders(false);
-      console.log('🔍 getStaff: hasAuth:', !!hasAuth);
       
       const response = await fetch(url, { headers });
       if (!response.ok) {
@@ -3120,7 +2939,6 @@ export const apiService = {
       }
       
       const staff = await response.json();
-      console.log('✅ getStaff: Staff recuperato:', staff.length, staff);
       return staff;
     } catch (error) {
       console.error('❌ Error fetching staff:', error);
@@ -3140,21 +2958,17 @@ export const apiService = {
       if (staffData.shop_id !== undefined) {
         // shop_id è stato passato esplicitamente (può essere null o un valore)
         shopId = staffData.shop_id;
-        console.log('📌 createStaff: shop_id passato esplicitamente:', shopId);
       } else {
         // shop_id non è stato passato, prova a ottenerlo dal contesto
         const storedShopId = getStoredShopId();
         if (storedShopId && storedShopId !== '1' && storedShopId !== 'default') {
           shopId = storedShopId;
-          console.log('📌 createStaff: shop_id ottenuto dal localStorage:', shopId);
         } else {
           try {
             const shop = await this.getShop();
             shopId = shop?.id || null;
-            console.log('📌 createStaff: shop_id ottenuto da getShop():', shopId);
           } catch {
             shopId = null; // Se non riesce a ottenere lo shop, lascia null
-            console.log('📌 createStaff: shop_id impostato a null (nessun shop trovato)');
           }
         }
       }
@@ -3173,17 +2987,13 @@ export const apiService = {
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         if (uuidRegex.test(shopId)) {
           payload.shop_id = shopId;
-          console.log('✅ createStaff: shop_id valido aggiunto al payload:', shopId);
         } else {
-          console.warn('⚠️ createStaff: shop_id non è un UUID valido, impostato a null:', shopId);
           payload.shop_id = null;
         }
       } else if (shopId === null) {
         // shop_id è null esplicitamente, aggiungilo come null per essere chiari
         payload.shop_id = null;
-        console.log('📌 createStaff: shop_id impostato a null nel payload');
       } else {
-        console.warn('⚠️ createStaff: shop_id ignorato (valore non valido):', shopId);
       }
       
       // Aggiungi campi opzionali solo se hanno un valore
@@ -3308,7 +3118,6 @@ export const apiService = {
           const shop = await this.getShop();
           shopId = shop?.id ?? null;
         } catch (shopError) {
-          console.warn('⚠️ createProduct: Errore ottenendo shop, il trigger SQL assegnerà shop_id:', shopError);
         }
       }
       
@@ -3601,7 +3410,6 @@ export const apiService = {
     data?: Record<string, unknown>;
   }): Promise<Notification | null> {
     if (!isSupabaseConfigured()) {
-      console.warn('Supabase non configurato - notifica non creata');
       return null;
     }
     
@@ -3716,7 +3524,6 @@ export const apiService = {
   // Enable waitlist for an existing appointment (earlier slot notifications)
   async joinWaitlist(data: JoinWaitlistRequest): Promise<WaitlistEntry | null> {
     if (!isSupabaseConfigured()) {
-      console.warn('Supabase non configurato - impossibile mettersi in coda');
       return null;
     }
     
@@ -3889,7 +3696,6 @@ export const apiService = {
       start_at: params.earlierStartAt,
       end_at: params.earlierEndAt,
       status: 'rescheduled',
-    }).catch((e) => console.warn('appointment_modified_hook failed:', e));
   },
 
   async declineEarlierSlotOffer(waitlistId: string): Promise<void> {

@@ -146,13 +146,6 @@ class EmailNotificationService {
         text: (emailData.text || '').trim(),
       };
 
-      console.log('📧 Invio email via Edge Function:', {
-        to: payload.to,
-        subject: payload.subject,
-        htmlLength: payload.html.length,
-        textLength: payload.text.length,
-        url: edgeFunctionUrl
-      });
 
       const response = await fetch(edgeFunctionUrl, {
         method: 'POST',
@@ -190,7 +183,6 @@ class EmailNotificationService {
       }
 
       const result = await response.json();
-      console.log('✅ Email inviata con successo via Resend (tramite Edge Function):', result);
       
       return { 
         success: true, 
@@ -702,18 +694,9 @@ Il team ${data.shopName}
     cancellationData: AppointmentCancellationData, 
     shopEmail: string
   ): Promise<EmailResponse> {
-    console.log('📧 [EMAIL SERVICE] sendCancellationNotification chiamato');
-    console.log('📧 [EMAIL SERVICE] shopEmail:', shopEmail);
-    console.log('📧 [EMAIL SERVICE] cancellationData:', cancellationData);
-    console.log('📧 [EMAIL SERVICE] Configurazione:', {
-      isConfigured: this.isConfigured,
-      supabaseUrl: this.supabaseUrl ? '✅ Configurato' : '❌ Mancante',
-      supabaseKey: this.supabaseKey ? '✅ Configurato' : '❌ Mancante'
-    });
     
     try {
       this.ensureConfigured();
-      console.log('✅ [EMAIL SERVICE] Servizio configurato correttamente');
     } catch (error) {
       console.error('❌ [EMAIL SERVICE] Servizio non configurato:', error);
       return { 
@@ -722,7 +705,6 @@ Il team ${data.shopName}
       };
     }
 
-    console.log('📧 [EMAIL SERVICE] Invio email via Resend...');
     const result = await this.sendEmailViaResend({
       to: shopEmail,
       subject: `⚠️ Appuntamento Annullato - ${cancellationData.clientName} - ${cancellationData.appointmentDate}`,
@@ -730,7 +712,6 @@ Il team ${data.shopName}
       text: this.generateCancellationNotificationText(cancellationData),
     });
     
-    console.log('📧 [EMAIL SERVICE] Risultato invio:', result);
     return result;
   }
 
@@ -886,7 +867,6 @@ ${data.shopName} - Sistema di Gestione Prenotazioni
       });
 
       if (response.ok) {
-        console.log('✅ Configurazione Edge Function verificata');
         return true;
       } else {
         console.error('❌ Configurazione Edge Function non valida');
@@ -1109,18 +1089,9 @@ ${data.shopName} - Sistema di Gestione Appuntamenti
   async sendClientCancellationEmail(
     data: AppointmentCancellationData
   ): Promise<EmailResponse> {
-    console.log('📧 [EMAIL SERVICE] sendClientCancellationEmail chiamato');
-    console.log('📧 [EMAIL SERVICE] clientEmail:', data.clientEmail);
-    console.log('📧 [EMAIL SERVICE] data:', data);
-    console.log('📧 [EMAIL SERVICE] Configurazione:', {
-      isConfigured: this.isConfigured,
-      supabaseUrl: this.supabaseUrl ? '✅ Configurato' : '❌ Mancante',
-      supabaseKey: this.supabaseKey ? '✅ Configurato' : '❌ Mancante'
-    });
     
     try {
       this.ensureConfigured();
-      console.log('✅ [EMAIL SERVICE] Servizio configurato correttamente');
     } catch (error) {
       console.error('❌ [EMAIL SERVICE] Servizio non configurato:', error);
       return { 
@@ -1137,7 +1108,6 @@ ${data.shopName} - Sistema di Gestione Appuntamenti
       };
     }
 
-    console.log('📧 [EMAIL SERVICE] Invio email via Resend...');
     const result = await this.sendEmailViaResend({
       to: data.clientEmail,
       subject: `❌ Appuntamento Annullato - ${data.shopName} - ${data.appointmentDate}`,
@@ -1145,7 +1115,6 @@ ${data.shopName} - Sistema di Gestione Appuntamenti
       text: this.generateClientCancellationEmailText(data),
     });
     
-    console.log('📧 [EMAIL SERVICE] Risultato invio:', result);
     return result;
   }
 

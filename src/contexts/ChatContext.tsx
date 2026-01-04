@@ -284,7 +284,6 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         oscillator.stop(now + 0.2 + index * 0.05);
       });
     } catch (error) {
-      console.warn('Impossibile riprodurre il suono di notifica:', error);
     }
   };
 

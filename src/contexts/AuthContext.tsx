@@ -199,7 +199,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               const shop = await apiService.getShopBySlug(effectiveShopSlug);
               resolvedShopId = shop.id;
             } catch (e) {
-              console.warn('Shop non trovato per slug durante OAuth:', effectiveShopSlug, e);
             }
           }
           
@@ -274,11 +273,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                   photo_url: avatarUrl,
                 });
               } catch (photoError) {
-                console.warn('⚠️ Errore aggiornamento foto profilo:', photoError);
               }
             }
           } catch (clientError) {
-            console.warn('⚠️ Errore nella creazione/aggiornamento del record client OAuth:', clientError);
           }
 
           // Salva il consenso privacy per utenti OAuth
@@ -311,7 +308,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
             localStorage.setItem('registered_clients', JSON.stringify(clients));
           } catch (storageError) {
-            console.warn('⚠️ Errore salvataggio consenso privacy:', storageError);
           }
 
           // Crea l'oggetto User per lo stato
@@ -350,10 +346,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               });
             }
           } catch (emailError) {
-            console.warn('⚠️ Errore invio email benvenuto OAuth:', emailError);
           }
 
-          console.log('✅ Autenticazione Google completata:', userEmail);
         } catch (error) {
           console.error('❌ Errore durante il callback OAuth:', error);
           setAuthState(prev => ({ ...prev, isLoading: false }));
@@ -389,7 +383,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
           } else if (refreshToken) {
             // Token scaduto, prova a refresharlo
-            console.log('🔄 Token scaduto, tentativo di refresh...');
             
             const refreshUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/token?grant_type=refresh_token`;
             const refreshRes = await fetch(refreshUrl, {
@@ -408,7 +401,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               if (tokenJson.refresh_token) {
                 storage.setItem('refresh_token', tokenJson.refresh_token);
               }
-              console.log('✅ Sessione rinnovata automaticamente');
               
               setAuthState({
                 user,
@@ -420,7 +412,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               }
             } else {
               // Refresh fallito, forza logout
-              console.log('❌ Refresh fallito, sessione terminata');
               clearAuthData();
               setAuthState({
                 user: null,
@@ -430,7 +421,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
           } else {
             // Nessun refresh token, forza logout
-            console.log('❌ Token scaduto e nessun refresh token');
             clearAuthData();
             setAuthState({
               user: null,
@@ -459,7 +449,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Listener per sessione scaduta (inviato da api.ts quando il refresh fallisce)
     const handleSessionExpired = () => {
-      console.log('🔒 Sessione scaduta, logout forzato');
       clearAuthData();
       setAuthState({
         user: null,
@@ -600,7 +589,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         try {
           await apiService.getShopById(shopId);
         } catch (shopErr) {
-          console.warn('Impossibile caricare shop dopo login:', shopErr);
         }
       }
     } catch (error) {
@@ -623,12 +611,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const { user, refreshToken, rememberMe } = loadAuthData();
     
     if (!refreshToken || !user || !isSupabaseConfigured()) {
-      console.log('🔄 Refresh session: dati mancanti, logout richiesto');
       return false;
     }
 
     try {
-      console.log('🔄 Tentativo di refresh della sessione...');
       
       const refreshUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/token?grant_type=refresh_token`;
       const refreshRes = await fetch(refreshUrl, {
@@ -641,7 +627,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
 
       if (!refreshRes.ok) {
-        console.log('❌ Refresh fallito, sessione scaduta');
         return false;
       }
 
@@ -655,7 +640,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (newRefreshToken) {
           storage.setItem('refresh_token', newRefreshToken);
         }
-        console.log('✅ Sessione rinnovata con successo');
         return true;
       }
 
@@ -690,7 +674,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const shop = await apiService.getShopBySlug(effectiveShopSlug);
           resolvedShopId = shop.id;
         } catch (e) {
-          console.warn('Shop non trovato per slug durante registrazione:', effectiveShopSlug, e);
         }
       }
       if (!resolvedShopId) {
@@ -755,7 +738,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             signupAccessToken = tokenJson.access_token;
           }
         } catch (silentLoginError) {
-          console.warn('⚠️ Login silente fallito per creazione client:', silentLoginError);
         }
       }
       
@@ -771,9 +753,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           },
           { accessToken: signupAccessToken }
         );
-        console.log('✅ Record client creato per:', data.email);
       } catch (clientError) {
-        console.warn('⚠️ Errore nella creazione del record client:', clientError);
         // Non bloccare la registrazione se la creazione client fallisce
       }
 
@@ -786,7 +766,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           localStorage.setItem('current_shop_id', resolvedShopId);
         }
       } catch (profileShopError) {
-        console.warn('⚠️ Errore aggiornamento shop_id nel profilo:', profileShopError);
       }
       
       setAuthState(prev => ({ ...prev, isLoading: false }));
@@ -815,12 +794,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           );
 
           if (emailResult.success) {
-            console.log('✅ Email notifica inviata al negozio:', shop.notification_email);
           } else {
-            console.warn('⚠️ Errore nell\'invio email notifica:', emailResult.error);
           }
         } else {
-          console.log('ℹ️ Email notifica non configurata per il negozio');
         }
         
         if (data.email) {
@@ -837,9 +813,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           });
 
           if (welcomeResult.success) {
-            console.log('✅ Email di benvenuto inviata al cliente:', data.email);
           } else {
-            console.warn('⚠️ Errore nell\'invio email di benvenuto:', welcomeResult.error);
           }
         }
         
@@ -849,11 +823,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
       } catch (emailError) {
         // Non bloccare la registrazione se l'email fallisce
-        console.warn('⚠️ Errore nel recupero dati negozio o invio email:', emailError);
       }
       
       // Non facciamo login automatico, l'utente deve confermare l'email se necessario
-      console.log('✅ Utente registrato con successo:', signupJson.user?.email);
       
     } catch (error) {
       setAuthState(prev => ({ ...prev, isLoading: false }));
@@ -881,7 +853,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const urlObj = new URL(currentUrl);
       const redirectUrl = `${urlObj.origin}${urlObj.pathname}`;
       
-      console.log('🔐 Inizio OAuth Google, redirect URL:', redirectUrl);
       
       // URL per iniziare il flusso OAuth con Google
       // Supabase gestirà il redirect a Google e poi il callback
@@ -894,7 +865,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         authUrl.searchParams.set('data', JSON.stringify({ shop_slug: effectiveShopSlug }));
       }
 
-      console.log('🔐 Redirect a Supabase OAuth:', authUrl.toString());
 
       // Reindirizza a Google OAuth
       window.location.href = authUrl.toString();
@@ -936,7 +906,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // Supabase invierà l'email anche se l'email non esiste (per sicurezza)
       // Non riveliamo se l'email esiste o meno
-      console.log('✅ Email di recupero password inviata');
     } catch (error) {
       console.error('❌ Errore richiesta reset password:', error);
       throw error instanceof Error ? error : new Error('Errore durante la richiesta di reset password');
@@ -1008,7 +977,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         password: newPassword,
       });
 
-      console.log('✅ Password reimpostata e login effettuato con successo');
     } catch (error) {
       console.error('❌ Errore conferma reset password:', error);
       throw error instanceof Error ? error : new Error('Errore durante la conferma del reset password');

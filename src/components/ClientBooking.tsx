@@ -94,16 +94,10 @@ export const ClientBooking: React.FC = () => {
           apiService.getServices(),
           apiService.getStaff()
         ]);
-        console.log('✅ ClientBooking: Servizi caricati:', servicesData.length);
-        console.log('✅ ClientBooking: Staff caricato:', staffData.length);
         setServices(servicesData);
         setStaff(staffData);
         
         if (servicesData.length === 0) {
-          console.warn('⚠️ ClientBooking: Nessun servizio trovato! Verifica:');
-          console.warn('  - shop_id nel localStorage:', localStorage.getItem('current_shop_id'));
-          console.warn('  - currentShopId:', currentShopId);
-          console.warn('  - currentShop:', currentShop);
         }
       } catch (error) {
         console.error('❌ Error loading booking data:', error);
@@ -124,11 +118,9 @@ export const ClientBooking: React.FC = () => {
           const accessToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
           
           if (!accessToken) {
-            console.warn('⚠️ No access token found. User might not be properly authenticated.');
             return;
           }
           
-          console.log('🔍 Getting/creating client for user:', user.email, 'with token:', accessToken.substring(0, 20) + '...');
           
           const clientRecord = await apiService.getOrCreateClientFromUser({
             id: user.id,
@@ -136,7 +128,6 @@ export const ClientBooking: React.FC = () => {
             full_name: user.full_name,
           }, { accessToken });
           
-          console.log('✅ Client record obtained:', clientRecord.id);
           setClientId(clientRecord.id);
           
           // Carica lo stato della waitlist per questo cliente
@@ -214,13 +205,6 @@ export const ClientBooking: React.FC = () => {
       const endDateTime = new Date(startDateTime);
       endDateTime.setMinutes(endDateTime.getMinutes() + service.duration_min);
 
-      console.log('📅 Creazione appuntamento:', {
-        clientId,
-        service: service.name,
-        barber: barber.full_name,
-        start: startDateTime.toISOString(),
-        end: endDateTime.toISOString(),
-      });
 
       // Crea l'appuntamento usando l'API
       // Nota: createAppointmentDirect usa buildHeaders(true) che legge il token da localStorage
@@ -235,7 +219,6 @@ export const ClientBooking: React.FC = () => {
         status: 'confirmed',
       });
 
-      console.log('✅ Appuntamento creato con successo!');
       
       setIsSuccess(true);
       // Reset form

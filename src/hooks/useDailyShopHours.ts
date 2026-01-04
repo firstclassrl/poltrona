@@ -99,7 +99,6 @@ export const useDailyShopHours = () => {
 
     const cached = readCachedHours();
     if (cached) {
-      console.log('📦 Loading cached shop hours:', cached);
       setShopHours(cached);
     }
     setExtraOpening(readExtraOpeningFromStorage());
@@ -115,10 +114,8 @@ export const useDailyShopHours = () => {
     let isMounted = true;
     (async () => {
       try {
-        console.log('🔄 Fetching shop hours from database...');
         const remoteHours = await apiService.getDailyShopHours();
         if (!isMounted) return;
-        console.log('✅ Loaded shop hours from database:', remoteHours);
         setShopHours(remoteHours);
         persistHoursLocally(remoteHours);
         
@@ -129,7 +126,6 @@ export const useDailyShopHours = () => {
           setAutoCloseHolidays(shop.auto_close_holidays ?? true);
         } catch (shopError) {
           // If shop fetch fails, use default (true)
-          console.warn('Error loading shop auto_close_holidays setting:', shopError);
           setAutoCloseHolidays(true);
         }
       } catch (error) {
@@ -138,10 +134,8 @@ export const useDailyShopHours = () => {
         // I dati dalla cache sono già stati impostati all'inizio dell'useEffect
         // Se non c'è cache, usa i default solo come ultima risorsa
         if (!cached) {
-          console.warn('⚠️ No cached hours available, using defaults');
           setShopHours(createDefaultShopHoursConfig());
         } else {
-          console.info('ℹ️ Using cached shop hours due to load error');
         }
       } finally {
         if (isMounted) {
@@ -186,10 +180,8 @@ export const useDailyShopHours = () => {
       // Il reload sovrascrive lo stato locale e può causare problemi
       // Lo stato locale è già sincronizzato con quello che è stato salvato
       if (wasSaved) {
-        console.log('✅ Shop hours saved successfully, keeping local state');
         // Non fare reload - lo stato locale è già corretto
       } else {
-        console.log('ℹ️ No save was performed, keeping local state');
       }
     } catch (error) {
       console.error('❌ Error saving daily shop hours:', error);
@@ -199,7 +191,6 @@ export const useDailyShopHours = () => {
   }, []);
 
   const updateShopHours = useCallback((newHours: ShopHoursConfig) => {
-    console.log('📝 Updating shop hours locally:', newHours);
     setShopHours(newHours);
     shopHoursRef.current = newHours; // Aggiorna anche il ref
     persistHoursLocally(newHours);
@@ -217,34 +208,22 @@ export const useDailyShopHours = () => {
 
   const saveShopHours = useCallback(async (): Promise<boolean> => {
     try {
-      console.log('💾 Manual save triggered, saving shop hours...');
       // Leggi lo stato corrente dal ref invece di usare la closure
       // Questo evita problemi di stale closure
       const currentHours = shopHoursRef.current;
-      console.log('💾 Current shopHours state from ref:', JSON.stringify(currentHours, null, 2));
-      console.log('💾 Days summary:', 
-        Object.entries(currentHours).map(([day, config]) => ({
-          day: parseInt(day),
-          isOpen: config.isOpen,
-          slotsCount: config.timeSlots.length
-        }))
-      );
       const wasSaved = await apiService.saveDailyShopHours(currentHours);
       if (wasSaved) {
-        console.log('✅ Shop hours saved successfully');
         // Dopo il salvataggio, ricarica i dati dal database per sincronizzare
         try {
           const reloadedHours = await apiService.getDailyShopHours();
           setShopHours(reloadedHours);
           shopHoursRef.current = reloadedHours;
           persistHoursLocally(reloadedHours);
-          console.log('✅ Shop hours reloaded from database after save');
         } catch (reloadError) {
           console.error('⚠️ Error reloading shop hours after save:', reloadError);
         }
         return true;
       } else {
-        console.log('ℹ️ No changes to save');
         return false;
       }
     } catch (error) {
@@ -306,11 +285,6 @@ export const useDailyShopHours = () => {
     // Usa una funzione di aggiornamento per leggere sempre lo stato corrente
     setShopHours((currentHours) => {
       const newHours = { ...currentHours, [dayOfWeek]: dayHours };
-      console.log(`📝 Updating day ${dayOfWeek}:`, { 
-        old: currentHours[dayOfWeek], 
-        new: dayHours,
-        allDays: Object.keys(newHours).map(k => ({ day: k, isOpen: newHours[parseInt(k)].isOpen }))
-      });
       persistHoursLocally(newHours);
       shopHoursRef.current = newHours; // Aggiorna anche il ref
       return newHours;
@@ -356,11 +330,6 @@ export const useDailyShopHours = () => {
     setShopHours((currentHours) => {
       const dayHours = currentHours[dayOfWeek];
       const newHours = { ...currentHours, [dayOfWeek]: { ...dayHours, isOpen: !dayHours.isOpen } };
-      console.log(`🔄 Toggling day ${dayOfWeek}:`, { 
-        old: dayHours.isOpen, 
-        new: !dayHours.isOpen,
-        allDays: Object.keys(newHours).map(k => ({ day: k, isOpen: newHours[parseInt(k)].isOpen }))
-      });
       persistHoursLocally(newHours);
       shopHoursRef.current = newHours;
       return newHours;

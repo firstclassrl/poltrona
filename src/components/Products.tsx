@@ -139,7 +139,6 @@ export const Products: React.FC = () => {
       setProducts(uiProducts);
     };
     loadCatalog();
-    console.log('Products mounted. isAdmin:', user?.role);
   }, [user]);
 
   const loadUserProfile = async () => {
@@ -182,7 +181,6 @@ export const Products: React.FC = () => {
             const shop = await apiService.getShop();
             shopId = shop?.id;
           } catch (error) {
-            console.warn('Errore ottenendo shop, uso shop_id dal prodotto:', error);
           }
         }
         
@@ -915,7 +913,6 @@ export const Products: React.FC = () => {
                           const shop = await apiService.getShop();
                           shopId = shop?.id;
                         } catch (shopError) {
-                          console.warn('Errore ottenendo shop per upload:', shopError);
                         }
                       }
                       
