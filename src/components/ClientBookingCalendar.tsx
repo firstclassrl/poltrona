@@ -224,9 +224,10 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     };
   }, [shopLoading, currentShopId, currentShop, isAuthenticated, user]);
     
-    // Force reload vacation period after component mounts
-    // This ensures we get the latest vacation period even if it was set before this component mounted
-    // Try multiple times with increasing delays to catch the period if it's being set asynchronously
+  // Force reload vacation period after component mounts
+  // This ensures we get the latest vacation period even if it was set before this component mounted
+  // Try multiple times with increasing delays to catch the period if it's being set asynchronously
+  useEffect(() => {
     const checkVacationPeriod = () => {
       try {
         const saved = localStorage.getItem('vacationPeriod');
