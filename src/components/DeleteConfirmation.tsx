@@ -44,7 +44,7 @@ export const DeleteConfirmation = ({
         </p>
         
         {itemName && (
-          <div className="bg-gray-50 p-3 rounded-lg mb-6">
+          <div className="bg-gray-50 p-3 rounded-lg mb-6 aurora-modal-bg-white">
             <p className="text-sm font-medium text-gray-900 text-center">
               {itemName}
             </p>

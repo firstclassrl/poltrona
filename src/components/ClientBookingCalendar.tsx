@@ -1037,7 +1037,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
                 <p className="text-sm">Il negozio è chiuso per le vacanze in questa data</p>
               </div>
             ) : !isDateOpen(selectedDayForDetail) ? (
-              <div className="text-center py-12 text-gray-500 bg-gray-50 border border-gray-200 rounded-lg">
+              <div className="text-center py-12 text-gray-500 bg-gray-50 border border-gray-200 rounded-lg aurora-modal-bg-white">
                 <p className="text-lg font-semibold">Il negozio è chiuso in questa data</p>
               </div>
             ) : (
@@ -1148,7 +1148,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
           </div>
 
           {/* Earlier slot waitlist */}
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 aurora-modal-bg-white">
             <label className="flex items-start gap-3 cursor-pointer touch-target">
               <input
                 type="checkbox"

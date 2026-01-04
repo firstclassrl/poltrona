@@ -1134,6 +1134,59 @@ body {
 [data-theme='aurora'] .aurora-modal {
   border-radius: 1.5rem !important; /* rounded-2xl */
   box-shadow: 0 20px 60px rgba(91, 124, 255, 0.15) !important;
+  background-color: #ffffff !important;
+}
+
+/* Aurora: Forza background bianco su tutte le modali e loro contenuti */
+[data-theme='aurora'] .aurora-modal,
+[data-theme='aurora'] .aurora-modal > *,
+[data-theme='aurora'] .aurora-modal .bg-white,
+[data-theme='aurora'] .aurora-modal .bg-gray-50,
+[data-theme='aurora'] .aurora-modal .bg-gray-100 {
+  background-color: #ffffff !important;
+}
+
+/* Aurora: Forza background bianco su modali personalizzate (fixed inset z-50) */
+[data-theme='aurora'] div[class*="fixed"][class*="inset"][class*="z-50"] > div[class*="bg-white"],
+[data-theme='aurora'] div[class*="fixed"][class*="inset"][class*="z-50"] > div[class*="bg-gray"],
+[data-theme='aurora'] div[class*="fixed"][class*="inset"][class*="z-50"] div[class*="bg-white"],
+[data-theme='aurora'] div[class*="fixed"][class*="inset"][class*="z-50"] div[class*="bg-gray-50"],
+[data-theme='aurora'] div[class*="fixed"][class*="inset"][class*="z-50"] div[class*="bg-gray-100"] {
+  background-color: #ffffff !important;
+}
+
+/* Aurora: Forza background bianco su header, footer e contenuti delle modali */
+[data-theme='aurora'] .aurora-modal header,
+[data-theme='aurora'] .aurora-modal footer,
+[data-theme='aurora'] .aurora-modal .sticky[class*="bg-white"],
+[data-theme='aurora'] .aurora-modal .sticky[class*="bg-gray"] {
+  background-color: #ffffff !important;
+}
+
+/* Aurora: Classe helper per forzare background bianco su elementi all'interno delle modali */
+[data-theme='aurora'] .aurora-modal-bg-white,
+[data-theme='aurora'] .aurora-modal .aurora-modal-bg-white {
+  background-color: #ffffff !important;
+}
+
+/* Aurora: Forza background bianco anche su hover all'interno delle modali */
+[data-theme='aurora'] div[class*="fixed"][class*="inset"][class*="z-50"] button[class*="hover:bg-gray-50"]:hover,
+[data-theme='aurora'] .aurora-modal button[class*="hover:bg-gray-50"]:hover {
+  background-color: #ffffff !important;
+}
+
+/* Aurora: Forza background bianco su tutti gli elementi discendenti delle modali personalizzate */
+[data-theme='aurora'] div[class*="fixed"][class*="inset"][class*="z-50"] div[class*="rounded"]:has([class*="bg-gray"]) [class*="bg-gray-50"],
+[data-theme='aurora'] div[class*="fixed"][class*="inset"][class*="z-50"] div[class*="rounded"]:has([class*="bg-gray"]) [class*="bg-gray-100"] {
+  background-color: #ffffff !important;
+}
+
+/* Aurora: Regola generale - qualsiasi elemento con bg-gray all'interno di una modale deve essere bianco */
+[data-theme='aurora'] div[class*="fixed"][class*="inset"][class*="z-50"] [class*="bg-gray-50"],
+[data-theme='aurora'] div[class*="fixed"][class*="inset"][class*="z-50"] [class*="bg-gray-100"],
+[data-theme='aurora'] .aurora-modal [class*="bg-gray-50"],
+[data-theme='aurora'] .aurora-modal [class*="bg-gray-100"] {
+  background-color: #ffffff !important;
 }
 
 [data-theme='aurora'] .aurora-modal + div {

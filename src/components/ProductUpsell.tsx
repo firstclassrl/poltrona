@@ -129,7 +129,7 @@ export const ProductUpsell: React.FC<ProductUpsellProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowAllProducts(false)}
-                className="text-xs text-gray-600 hover:text-gray-700 hover:bg-gray-50 px-2 py-1"
+                className="text-xs text-gray-600 hover:text-gray-700 hover:bg-gray-50 px-2 py-1 aurora-modal-bg-white"
               >
                 ← Torna ai prodotti consigliati
               </Button>
@@ -151,7 +151,7 @@ export const ProductUpsell: React.FC<ProductUpsellProps> = ({
                 >
                   <div className="text-center">
                     {/* Product Image */}
-                    <div className="w-12 h-12 mx-auto mb-1 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                    <div className="w-12 h-12 mx-auto mb-1 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden aurora-modal-bg-white">
                       {product.image_url ? (
                         <img
                           src={product.image_url}
@@ -177,7 +177,7 @@ export const ProductUpsell: React.FC<ProductUpsellProps> = ({
                       <button
                         onClick={() => handleQuantityChange(product.id, -1)}
                         disabled={quantity === 0}
-                        className="w-5 h-5 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+                        className="w-5 h-5 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-colors aurora-modal-bg-white"
                       >
                         <Minus className="w-2.5 h-2.5" />
                       </button>
@@ -201,7 +201,7 @@ export const ProductUpsell: React.FC<ProductUpsellProps> = ({
 
           {/* Selected Products Summary */}
           {Object.keys(selectedProducts).length > 0 && (
-            <div className="bg-gray-50 rounded-lg p-2 mb-2">
+            <div className="bg-gray-50 rounded-lg p-2 mb-2 aurora-modal-bg-white">
               <h4 className="font-medium text-gray-900 mb-1 text-xs">Prodotti Selezionati</h4>
               <div className="space-y-0.5">
                 {Object.entries(selectedProducts).map(([productId, quantity]) => {
@@ -246,7 +246,7 @@ export const ProductUpsell: React.FC<ProductUpsellProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-3 border-t border-gray-200 bg-gray-50">
+        <div className="flex items-center justify-between p-3 border-t border-gray-200 bg-gray-50 aurora-modal-bg-white">
           <button
             onClick={onCancel}
             className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"

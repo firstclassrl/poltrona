@@ -664,7 +664,7 @@ export const ClientProfile: React.FC = () => {
               Sei sicuro di voler annullare questo appuntamento?
             </p>
             
-            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+            <div className="bg-gray-50 rounded-lg p-4 mb-6 aurora-modal-bg-white">
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Servizio:</span>

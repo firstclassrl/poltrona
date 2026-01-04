@@ -914,12 +914,17 @@ export const Calendar = () => {
             )}
 
             {/* Products */}
-            {selectedAppointment.products && selectedAppointment.products.length > 0 && (
+            {areProductsEnabled && selectedAppointment.products && selectedAppointment.products.length > 0 && (
               <div className="p-4 bg-orange-50 rounded-lg">
-                <p className="text-sm text-orange-700 font-medium mb-2">Prodotti da preparare</p>
+                <p className="text-sm text-orange-700 font-medium mb-2 flex items-center gap-2">
+                  <Package className="w-4 h-4" />
+                  Prodotti da preparare
+                </p>
                 <ul className="space-y-1">
                   {selectedAppointment.products.map((product: any, index: number) => (
-                    <li key={index} className="text-gray-700">• {product.name || product}</li>
+                    <li key={index} className="text-gray-700">
+                      • {product.productName || product.name || 'Prodotto'} {product.quantity > 1 ? `(x${product.quantity})` : ''}
+                    </li>
                   ))}
                 </ul>
               </div>
