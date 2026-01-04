@@ -62,6 +62,7 @@ export const ClientBooking: React.FC = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   
   // Waitlist state
   const [clientId, setClientId] = useState<string | null>(null);
@@ -76,93 +77,124 @@ export const ClientBooking: React.FC = () => {
   // Load services and staff from API - wait for shop to be loaded first
   useEffect(() => {
     let timeoutId: NodeJS.Timeout | null = null;
+    let globalTimeoutId: NodeJS.Timeout | null = null;
     let isMounted = true;
+    let hasLoaded = false;
+
+    // Timeout globale di sicurezza: dopo 5 secondi, imposta sempre loading a false
+    globalTimeoutId = setTimeout(() => {
+      if (isMounted && !hasLoaded) {
+        console.warn('⚠️ Global timeout: forcing loading to false');
+        setIsLoading(false);
+        setLoadError('Il caricamento sta impiegando troppo tempo. Se il problema persiste, ricarica la pagina.');
+      }
+    }, 5000);
 
     const loadData = async (shopIdToUse: string | null) => {
+      if (hasLoaded) return; // Evita caricamenti duplicati
+      hasLoaded = true;
+
       try {
         setIsLoading(true);
+        console.log('🔄 Loading services and staff, shopId:', shopIdToUse);
+        
         // Ensure shop_id is in localStorage before calling getServices
         if (shopIdToUse && shopIdToUse !== 'default') {
           localStorage.setItem('current_shop_id', shopIdToUse);
         }
         
-        const [servicesData, staffData] = await Promise.all([
-          apiService.getServices(),
-          apiService.getStaff()
-        ]);
+        // Timeout per le chiamate API (8 secondi)
+        const apiTimeout = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('API timeout')), 8000);
+        });
+
+        const [servicesData, staffData] = await Promise.race([
+          Promise.all([
+            apiService.getServices(),
+            apiService.getStaff()
+          ]),
+          apiTimeout
+        ]) as [Service[], Staff[]];
+        
+        console.log('✅ Loaded services:', servicesData.length, 'staff:', staffData.length);
+        
         if (isMounted) {
           setServices(servicesData);
           setStaff(staffData);
-        }
-        
-        if (servicesData.length === 0) {
+          setLoadError(null); // Reset error on success
         }
       } catch (error) {
         console.error('❌ Error loading booking data:', error);
+        // Anche in caso di errore, imposta loading a false per permettere all'utente di vedere l'interfaccia
+        if (isMounted) {
+          setServices([]);
+          setStaff([]);
+          const errorMessage = error instanceof Error && error.message === 'API timeout'
+            ? 'Il caricamento sta impiegando troppo tempo. Controlla la connessione internet e riprova.'
+            : 'Errore nel caricamento dei dati. Ricarica la pagina o riprova più tardi.';
+          setLoadError(errorMessage);
+        }
       } finally {
         if (isMounted) {
           setIsLoading(false);
         }
+        if (globalTimeoutId) {
+          clearTimeout(globalTimeoutId);
+        }
       }
     };
 
-    // Determina quale shop_id usare
+    // Determina quale shop_id usare (priorità: currentShopId > currentShop.id > localStorage)
     const shopIdToUse = currentShopId || currentShop?.id || null;
     const fallbackShopId = typeof window !== 'undefined' 
       ? localStorage.getItem('current_shop_id') 
       : null;
+    
+    const effectiveShopId = shopIdToUse || (fallbackShopId && fallbackShopId !== 'default' ? fallbackShopId : null);
 
-    // Se il negozio è ancora in caricamento, aspetta al massimo 3 secondi
-    if (shopLoading) {
-      // Se abbiamo un shop_id valido (da contesto o localStorage), aspetta un po' e poi carica
-      if (shopIdToUse || (fallbackShopId && fallbackShopId !== 'default')) {
-        timeoutId = setTimeout(() => {
-          if (isMounted) {
-            loadData(shopIdToUse || fallbackShopId);
-          }
-        }, 2000); // Aspetta 2 secondi per il caricamento del negozio
-      } else {
-        // Se non abbiamo neanche un fallback, imposta loading a false dopo un timeout
-        timeoutId = setTimeout(() => {
-          if (isMounted) {
-            setIsLoading(false);
-          }
-        }, 3000);
-      }
-      return () => {
-        if (timeoutId) clearTimeout(timeoutId);
-        isMounted = false;
-      };
-    }
+    console.log('📊 Shop loading state:', {
+      shopLoading,
+      currentShopId,
+      currentShop: currentShop?.id,
+      fallbackShopId,
+      effectiveShopId
+    });
 
-    // Se non c'è shop_id dal contesto, prova a usare quello in localStorage
-    if (!shopIdToUse) {
-      if (fallbackShopId && fallbackShopId !== 'default') {
-        // Usa il fallback dopo un breve delay per dare tempo al contesto di caricare
+    // Se abbiamo un shop_id valido (da qualsiasi fonte), carica i dati immediatamente
+    // Non aspettiamo il caricamento del negozio se abbiamo un fallback
+    if (effectiveShopId) {
+      // Carica immediatamente se abbiamo shop_id, anche se shopLoading è true
+      // Questo evita di aspettare indefinitamente
+      loadData(effectiveShopId);
+    } else {
+      // Se non abbiamo shop_id, aspetta al massimo 1.5 secondi per il caricamento del negozio
+      if (shopLoading) {
         timeoutId = setTimeout(() => {
-          if (isMounted) {
-            loadData(fallbackShopId);
+          if (isMounted && !hasLoaded) {
+            // Dopo 1.5 secondi, prova comunque a caricare (potrebbe funzionare senza shop_id esplicito)
+            const finalShopId = currentShopId || currentShop?.id || fallbackShopId;
+            if (finalShopId && finalShopId !== 'default') {
+              loadData(finalShopId);
+            } else {
+              // Se ancora non abbiamo shop_id, prova comunque a caricare (le API potrebbero funzionare)
+              console.warn('⚠️ No shop_id available, attempting to load anyway');
+              loadData(null);
+            }
           }
-        }, 1000);
-        return () => {
-          if (timeoutId) clearTimeout(timeoutId);
-          isMounted = false;
-        };
+        }, 1500);
       } else {
-        // Se non c'è neanche un fallback, imposta loading a false
-        setIsLoading(false);
-        return () => {
-          isMounted = false;
-        };
+        // Se shopLoading è false ma non abbiamo shop_id, prova comunque a caricare
+        if (!hasLoaded) {
+          loadData(effectiveShopId);
+        }
       }
     }
-
-    // Condizioni soddisfatte: carica i dati normalmente
-    loadData(shopIdToUse);
 
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
+      if (globalTimeoutId) clearTimeout(globalTimeoutId);
       isMounted = false;
+      hasLoaded = false;
     };
   }, [shopLoading, currentShopId, currentShop]);
 
@@ -421,6 +453,30 @@ export const ClientBooking: React.FC = () => {
       {!shopHoursLoaded && (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center text-gray-600">
           Caricamento orari del negozio...
+        </div>
+      )}
+
+      {loadError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center space-x-2">
+            <AlertCircle className="w-5 h-5 text-red-600" />
+            <p className="text-red-800 text-sm">{loadError}</p>
+            <button
+              onClick={() => {
+                setLoadError(null);
+                setIsLoading(true);
+                // Force reload by clearing and reloading
+                const shopId = currentShopId || currentShop?.id || localStorage.getItem('current_shop_id');
+                if (shopId && shopId !== 'default') {
+                  localStorage.setItem('current_shop_id', shopId);
+                }
+                window.location.reload();
+              }}
+              className="ml-auto text-red-600 hover:text-red-800 underline text-sm"
+            >
+              Ricarica
+            </button>
+          </div>
         </div>
       )}
 
