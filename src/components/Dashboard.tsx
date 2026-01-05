@@ -328,14 +328,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <Clock className="w-6 h-6 text-green-600" />
         </div>
 
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {upcomingAppointments.map((appointment) => (
             <div
               key={appointment.id}
               role="button"
               tabIndex={0}
               aria-label={`Appuntamento con ${getAppointmentClientLabel(appointment)} alle ${formatTime(appointment.start_at)}`}
-              className="dashboard-appointment-card flex items-center justify-between p-4 bg-white/60 backdrop-blur-xl rounded-lg border border-white/30 cursor-pointer hover:border-green-200 transition-colors shadow touch-target focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="dashboard-appointment-card bg-white/60 backdrop-blur-xl rounded-lg border border-white/30 cursor-pointer hover:border-green-200 transition-all shadow hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-green-500 h-full"
               onClick={() => handleAppointmentClick(appointment)}
               onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -344,53 +344,108 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 }
               }}
             >
-              <div className="flex items-center space-x-4">
-                {/* Orario in grande e colorato */}
-                <div className="flex flex-col items-center justify-center min-w-[80px]">
-                  <div className="text-2xl font-bold text-blue-600 mb-1">
-                    {formatTime(appointment.start_at)}
+              <div className="p-5 h-full flex flex-col">
+                {/* Layout a due colonne */}
+                <div className="grid grid-cols-2 gap-4 flex-1">
+                  {/* Colonna Sinistra */}
+                  <div className="flex flex-col space-y-3">
+                    {/* ORA */}
+                    <div className="flex flex-col">
+                      <span className="text-xs text-gray-500 font-medium mb-1">ORA</span>
+                      <span className="text-2xl font-bold text-blue-600">
+                        {formatTime(appointment.start_at)}
+                      </span>
+                    </div>
+
+                    {/* DATA */}
+                    <div className="flex flex-col">
+                      <span className="text-xs text-gray-500 font-medium mb-1">DATA</span>
+                      <span className="text-sm font-semibold text-gray-900">
+                        {new Date(appointment.start_at).toLocaleDateString('it-IT', { 
+                          weekday: 'short', 
+                          day: 'numeric', 
+                          month: 'short',
+                          year: 'numeric'
+                        })}
+                      </span>
+                    </div>
+
+                    {/* STATO */}
+                    <div className="flex flex-col">
+                      <span className="text-xs text-gray-500 font-medium mb-1">STATO</span>
+                      <div>
+                        {getStatusBadge(appointment.status || 'scheduled')}
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-500 font-medium">
-                    {new Date(appointment.start_at).toLocaleDateString('it-IT', { 
-                      weekday: 'short', 
-                      day: 'numeric', 
-                      month: 'short' 
-                    })}
+
+                  {/* Colonna Destra */}
+                  <div className="flex flex-col space-y-3">
+                    {/* FOTO CLIENTE */}
+                    <div className="flex flex-col">
+                      <span className="text-xs text-gray-500 font-medium mb-1">CLIENTE</span>
+                      <div className="flex items-center space-x-3">
+                        {appointment.clients?.photo_url ? (
+                          <img 
+                            src={appointment.clients.photo_url} 
+                            alt={getAppointmentClientLabel(appointment)}
+                            className="w-12 h-12 rounded-full object-cover border-2 border-green-200"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 bg-gradient-to-br from-green-600 to-green-800 rounded-full flex items-center justify-center border-2 border-green-200">
+                            <span className="text-yellow-300 font-semibold text-sm">
+                              {getAppointmentClientInitials(appointment)}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-gray-900 font-semibold text-sm truncate">
+                            {getAppointmentClientLabel(appointment)}
+                          </h3>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* BARBIERE */}
+                    <div className="flex flex-col">
+                      <span className="text-xs text-gray-500 font-medium mb-1">BARBIERE</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {appointment.staff?.full_name || 'Non assegnato'}
+                      </span>
+                    </div>
+
+                    {/* SERVIZIO */}
+                    <div className="flex flex-col">
+                      <span className="text-xs text-gray-500 font-medium mb-1">SERVIZIO</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {appointment.services?.name || 'Non specificato'}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-green-600 to-green-800 rounded-full flex items-center justify-center">
-                    <span className="text-yellow-300 font-semibold text-sm">
-                      {getAppointmentClientInitials(appointment)}
-                    </span>
+
+                {/* PRODOTTI - Sezione separata in fondo */}
+                {areProductsEnabled && appointment.products && appointment.products.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <div className="flex items-center space-x-2">
+                      <Package className="w-4 h-4 text-orange-600" />
+                      <span className="text-xs text-gray-500 font-medium">PRODOTTI</span>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {appointment.products.map((product, index) => (
+                        <div 
+                          key={index}
+                          className="flex items-center space-x-1 bg-orange-100 text-orange-700 px-2 py-1 rounded-full"
+                        >
+                          <span className="text-xs font-medium">
+                            {product.productName} (x{product.quantity})
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-gray-900 font-medium">
-                      {getAppointmentClientLabel(appointment)}
-                    </h3>
-                    <p className="text-gray-600 text-sm">
-                      {appointment.staff?.full_name} • {appointment.services?.name}
-                    </p>
-                  </div>
-                </div>
+                )}
               </div>
-              <div className="flex items-center space-x-3">
-                <span className="text-gray-700 font-medium">€{(appointment.services?.price_cents || 0) / 100}</span>
-                {getStatusBadge(appointment.status || 'scheduled')}
-              </div>
-              
-              {/* Avviso Prodotti da Preparare */}
-              {areProductsEnabled && appointment.products && appointment.products.length > 0 && (
-                <div className="flex items-center space-x-2 mt-2">
-                  <div className="flex items-center space-x-1 bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
-                    <ShoppingBag className="w-3 h-3" />
-                    <span className="text-xs font-medium">
-                      {appointment.products.length} prodotto{appointment.products.length > 1 ? 'i' : ''} da preparare
-                    </span>
-                  </div>
-                </div>
-              )}
             </div>
           ))}
         </div>
