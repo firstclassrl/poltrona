@@ -41,6 +41,22 @@ export const PWAUpdateNotification: React.FC = () => {
       setIsUpdating(true);
       // Invia messaggio al service worker per saltare l'attesa
       registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+      
+      // Timeout di sicurezza: se il reload non avviene entro 2 secondi, forza il reload
+      const reloadTimeout = setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+      
+      // Pulisci il timeout se il controllerchange viene attivato prima
+      const controllerChangeHandler = () => {
+        clearTimeout(reloadTimeout);
+        window.location.reload();
+      };
+      
+      navigator.serviceWorker.addEventListener('controllerchange', controllerChangeHandler, { once: true });
+    } else {
+      // Se non c'è un service worker in attesa, forza comunque un reload
+      window.location.reload();
     }
   };
 
