@@ -103,10 +103,15 @@ export const useDailyShopHours = () => {
     }
     setExtraOpening(readExtraOpeningFromStorage());
 
-    // Only fetch from backend if user is authenticated
+    // Try to fetch from backend even without auth token (for client booking)
+    // The RLS policies allow public read access to shop hours
     const authToken = localStorage.getItem('auth_token');
-    if (!authToken) {
-      // No auth token - use cached data or defaults, mark as loaded
+    const shopId = localStorage.getItem('current_shop_id');
+    
+    // If we have a shop_id, try to load hours even without auth
+    // This is important for client booking calendar
+    if (!authToken && (!shopId || shopId === 'default')) {
+      // No auth token and no shop_id - use cached data or defaults, mark as loaded
       setShopHoursLoaded(true);
       return;
     }
@@ -119,14 +124,16 @@ export const useDailyShopHours = () => {
         setShopHours(remoteHours);
         persistHoursLocally(remoteHours);
         
-        // Load shop auto_close_holidays setting
-        try {
-          const shop = await apiService.getShop();
-          if (!isMounted) return;
-          setAutoCloseHolidays(shop.auto_close_holidays ?? true);
-        } catch (shopError) {
-          // If shop fetch fails, use default (true)
-          setAutoCloseHolidays(true);
+        // Load shop auto_close_holidays setting (only if authenticated)
+        if (authToken) {
+          try {
+            const shop = await apiService.getShop();
+            if (!isMounted) return;
+            setAutoCloseHolidays(shop.auto_close_holidays ?? true);
+          } catch (shopError) {
+            // If shop fetch fails, use default (true)
+            setAutoCloseHolidays(true);
+          }
         }
       } catch (error) {
         console.error('❌ Error loading shop hours from backend:', error);
@@ -156,19 +163,26 @@ export const useDailyShopHours = () => {
 
     const loadShopHours = async () => {
       const authToken = localStorage.getItem('auth_token');
-      if (!authToken) return;
+      const shopId = localStorage.getItem('current_shop_id');
+      
+      // Load hours even without auth if we have a shop_id (for client booking)
+      if (!authToken && (!shopId || shopId === 'default')) {
+        return;
+      }
 
       try {
         const remoteHours = await apiService.getDailyShopHours();
         setShopHours(remoteHours);
         persistHoursLocally(remoteHours);
         
-        // Load shop auto_close_holidays setting
-        try {
-          const shop = await apiService.getShop();
-          setAutoCloseHolidays(shop.auto_close_holidays ?? true);
-        } catch (shopError) {
-          setAutoCloseHolidays(true);
+        // Load shop auto_close_holidays setting (only if authenticated)
+        if (authToken) {
+          try {
+            const shop = await apiService.getShop();
+            setAutoCloseHolidays(shop.auto_close_holidays ?? true);
+          } catch (shopError) {
+            setAutoCloseHolidays(true);
+          }
         }
       } catch (error) {
         console.error('❌ Error reloading shop hours:', error);
@@ -384,6 +398,12 @@ export const useDailyShopHours = () => {
 
   // Check if a specific date is open
   const isDateOpen = (date: Date): boolean => {
+    // If shop hours are not loaded yet, return false to be safe
+    // This prevents showing days as available before we know the actual schedule
+    if (!shopHoursLoaded) {
+      return false;
+    }
+    
     // Check if there's an extra opening for this date first
     if (isExtraOpeningActiveForDate(date)) return true;
     

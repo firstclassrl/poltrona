@@ -846,89 +846,99 @@ export const Calendar = () => {
       >
         {selectedAppointment && (
           <div className="space-y-6">
-            {/* Client Info */}
-            <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-              <div className="w-16 h-16 bg-gradient-to-br from-green-600 to-green-800 rounded-full flex items-center justify-center">
-                <span className="text-yellow-300 font-bold text-xl">
-                  {getAppointmentClientInitials(selectedAppointment)}
-                </span>
+            {/* Unified Card with all details */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
+              {/* Client Info */}
+              <div className="flex items-center space-x-4 pb-4 border-b border-gray-200">
+                <div className="w-16 h-16 bg-gradient-to-br from-green-600 to-green-800 rounded-full flex items-center justify-center">
+                  <span className="text-yellow-300 font-bold text-xl">
+                    {getAppointmentClientInitials(selectedAppointment)}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    {getAppointmentClientLabel(selectedAppointment)}
+                  </h3>
+                  {selectedAppointment.clients?.phone_e164 ? (
+                    <p className="text-gray-600">{selectedAppointment.clients?.phone_e164}</p>
+                  ) : (
+                    <p className="text-gray-500 text-sm">Cliente senza account</p>
+                  )}
+                </div>
               </div>
-              <div>
-                <h3 className="text-xl font-semibold text-gray-900">
-                  {getAppointmentClientLabel(selectedAppointment)}
-                </h3>
-                {selectedAppointment.clients?.phone_e164 ? (
-                  <p className="text-gray-600">{selectedAppointment.clients?.phone_e164}</p>
-                ) : (
-                  <p className="text-gray-500 text-sm">Cliente senza account</p>
-                )}
+
+              {/* Appointment Details */}
+              <div className="grid grid-cols-2 gap-4 pb-4 border-b border-gray-200">
+                <div>
+                  <p className="text-sm text-gray-600 font-medium mb-1">Data</p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {new Date(selectedAppointment.start_at).toLocaleDateString('it-IT', {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric'
+                    })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 font-medium mb-1">Orario</p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {formatTime(selectedAppointment.start_at)}
+                  </p>
+                </div>
               </div>
+
+              <div className="space-y-3 pb-4 border-b border-gray-200">
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-gray-600">Servizio</span>
+                  <span className="font-medium text-gray-900">{selectedAppointment.services?.name || 'Non specificato'}</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-gray-600">Barbiere</span>
+                  <span className="font-medium text-gray-900">{selectedAppointment.staff?.full_name}</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-gray-600">Durata</span>
+                  <span className="font-medium text-gray-900">{selectedAppointment.services?.duration_min || 0} minuti</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-gray-600">Stato</span>
+                  <Badge variant="info">{selectedAppointment.status}</Badge>
+                </div>
+              </div>
+
+              {/* Products */}
+              {areProductsEnabled && selectedAppointment.products && selectedAppointment.products.length > 0 && (
+                <div className="pb-4 border-b border-gray-200">
+                  <p className="text-sm text-gray-700 font-semibold mb-3 flex items-center gap-2">
+                    <Package className="w-4 h-4 text-orange-600" />
+                    Prodotti da preparare
+                  </p>
+                  <div className="space-y-2">
+                    {selectedAppointment.products.map((product: any, index: number) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-orange-50 rounded-md">
+                        <span className="text-gray-900 font-medium">
+                          {product.productName || product.name || 'Prodotto'}
+                        </span>
+                        {product.quantity > 1 && (
+                          <span className="text-sm text-gray-600 bg-white px-2 py-1 rounded">
+                            Quantità: {product.quantity}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Notes */}
+              {selectedAppointment.notes && (
+                <div>
+                  <p className="text-sm text-gray-700 font-semibold mb-2">Note</p>
+                  <p className="text-gray-700 bg-gray-50 p-3 rounded-md">{selectedAppointment.notes}</p>
+                </div>
+              )}
             </div>
-
-            {/* Appointment Details */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-600 font-medium">Data</p>
-                <p className="text-lg font-semibold text-gray-900">
-                  {new Date(selectedAppointment.start_at).toLocaleDateString('it-IT', {
-                    weekday: 'long',
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                  })}
-                </p>
-              </div>
-              <div className="p-4 bg-green-50 rounded-lg">
-                <p className="text-sm text-green-600 font-medium">Orario</p>
-                <p className="text-lg font-semibold text-gray-900">
-                  {formatTime(selectedAppointment.start_at)}
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex justify-between items-center p-3 border-b">
-                <span className="text-gray-600">Servizio</span>
-                <span className="font-medium text-gray-900">{selectedAppointment.services?.name || 'Non specificato'}</span>
-              </div>
-              <div className="flex justify-between items-center p-3 border-b">
-                <span className="text-gray-600">Barbiere</span>
-                <span className="font-medium text-gray-900">{selectedAppointment.staff?.full_name}</span>
-              </div>
-              <div className="flex justify-between items-center p-3 border-b">
-                <span className="text-gray-600">Durata</span>
-                <span className="font-medium text-gray-900">{selectedAppointment.services?.duration_min || 0} minuti</span>
-              </div>
-              <div className="flex justify-between items-center p-3">
-                <span className="text-gray-600">Stato</span>
-                <Badge variant="info">{selectedAppointment.status}</Badge>
-              </div>
-            </div>
-
-            {/* Notes */}
-            {selectedAppointment.notes && (
-              <div className="p-4 bg-yellow-50 rounded-lg">
-                <p className="text-sm text-yellow-700 font-medium mb-1">Note</p>
-                <p className="text-gray-700">{selectedAppointment.notes}</p>
-              </div>
-            )}
-
-            {/* Products */}
-            {areProductsEnabled && selectedAppointment.products && selectedAppointment.products.length > 0 && (
-              <div className="p-4 bg-orange-50 rounded-lg">
-                <p className="text-sm text-orange-700 font-medium mb-2 flex items-center gap-2">
-                  <Package className="w-4 h-4" />
-                  Prodotti da preparare
-                </p>
-                <ul className="space-y-1">
-                  {selectedAppointment.products.map((product: any, index: number) => (
-                    <li key={index} className="text-gray-700">
-                      • {product.productName || product.name || 'Prodotto'} {product.quantity > 1 ? `(x${product.quantity})` : ''}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
 
             {/* Actions */}
             <div className="flex space-x-3 pt-4">
