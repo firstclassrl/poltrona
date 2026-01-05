@@ -321,8 +321,12 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     const dateStr = date.toISOString().split('T')[0];
     const inVacation = isDateInVacation(date);
     
-    
     if (inVacation) {
+      return { available: 0, total: 0 };
+    }
+
+    // Check if the shop is closed on this day - this is the key check!
+    if (!isDateOpen(date)) {
       return { available: 0, total: 0 };
     }
 
@@ -434,8 +438,11 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       
       // Only allow clicking on today or future dates
       if (clickedDate >= today) {
-        setSelectedDayForDetail(date);
-        setCurrentView('day_detail');
+        // Don't allow clicking on closed days or vacation days
+        if (shopHoursLoaded && !isDateInVacation(clickedDate) && isDateOpen(clickedDate)) {
+          setSelectedDayForDetail(date);
+          setCurrentView('day_detail');
+        }
       }
     }
   };
@@ -927,7 +934,10 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
               today.setHours(0, 0, 0, 0);
               const clickedDate = new Date(date);
               clickedDate.setHours(0, 0, 0, 0);
-              const isClickable = isCurrentMonthDay && hasAvailability && clickedDate >= today;
+              // A day is clickable only if: it's in current month, has availability, is today or future, shop is open, and not in vacation
+              const isShopOpen = shopHoursLoaded && isDateOpen(date);
+              const isNotInVacation = !isDateInVacation(date);
+              const isClickable = isCurrentMonthDay && hasAvailability && clickedDate >= today && isShopOpen && isNotInVacation;
               
               // Calculate bar count (approximate visual representation - fewer and smaller)
               const totalBars = 4; // Maximum number of bars to show (reduced from 8)

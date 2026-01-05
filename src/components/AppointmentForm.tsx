@@ -133,6 +133,26 @@ export const AppointmentForm = ({
     }
   }, [formData.date, formData.time, isDateOpen, isTimeWithinHours, shopHoursLoaded]);
 
+  // Reset date if a closed day is selected
+  useEffect(() => {
+    if (!shopHoursLoaded) return;
+    if (formData.date) {
+      const selectedDate = new Date(formData.date);
+      if (!isDateOpen(selectedDate)) {
+        setFormData(prev => ({ ...prev, date: '', time: '' }));
+        setErrors(prev => ({ ...prev, date: 'Il negozio è chiuso in questa data. Seleziona un altro giorno.' }));
+      } else {
+        setErrors(prev => {
+          const newErrors = { ...prev };
+          if (newErrors.date === 'Il negozio è chiuso in questa data. Seleziona un altro giorno.') {
+            delete newErrors.date;
+          }
+          return newErrors;
+        });
+      }
+    }
+  }, [formData.date, isDateOpen, shopHoursLoaded]);
+
   const resetForm = () => {
     setFormData({
       is_walk_in: false,

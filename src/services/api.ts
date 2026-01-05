@@ -25,6 +25,7 @@ import type {
 } from '../types';
 import { createDefaultShopHoursConfig, formatTimeToHHMM, normalizeTimeString } from '../utils/shopHours';
 import { extractSlugFromLocation, nextSlugCandidate, slugify } from '../utils/slug';
+import { isItalianHoliday } from '../utils/italianHolidays';
 
 // Check if Supabase is configured
 const isSupabaseConfigured = () => {
@@ -1439,6 +1440,54 @@ export const apiService = {
       const resolvedShopId = shopId && shopId !== 'default' ? shopId : null;
       if (!resolvedShopId) {
         throw new Error('Impossibile creare l\'appuntamento: shop non impostato per questo utente');
+      }
+
+      // Validate that the appointment date is not on a closed day
+      try {
+        const appointmentDate = new Date(startDate);
+        appointmentDate.setHours(0, 0, 0, 0);
+        const dayOfWeek = appointmentDate.getDay();
+        
+        // Load shop hours to check if the day is closed
+        const shopHours = await this.getDailyShopHours();
+        const dayHours = shopHours[dayOfWeek];
+        
+        // Check if it's a regular closed day
+        if (!dayHours || !dayHours.isOpen || dayHours.timeSlots.length === 0) {
+          // Check if it's an Italian holiday and auto_close_holidays is enabled
+          const autoCloseHolidays = shop?.auto_close_holidays ?? true;
+          if (autoCloseHolidays && isItalianHoliday(appointmentDate)) {
+            throw new Error('Impossibile prenotare: il negozio è chiuso in questo giorno festivo');
+          }
+          
+          // If it's a regular closed day (not a holiday), throw error
+          const dayNames = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+          throw new Error(`Impossibile prenotare: il negozio è chiuso di ${dayNames[dayOfWeek]}`);
+        }
+        
+        // Check if the selected time is within opening hours
+        const appointmentTime = startDate.toTimeString().slice(0, 5); // HH:MM format
+        const isTimeValid = dayHours.timeSlots.some(slot => {
+          const [startHours, startMinutes] = slot.start.split(':').map(Number);
+          const [endHours, endMinutes] = slot.end.split(':').map(Number);
+          const [timeHours, timeMinutes] = appointmentTime.split(':').map(Number);
+          const timeInMinutes = timeHours * 60 + timeMinutes;
+          const startTime = startHours * 60 + startMinutes;
+          const endTime = endHours * 60 + endMinutes;
+          return timeInMinutes >= startTime && timeInMinutes < endTime;
+        });
+        
+        if (!isTimeValid) {
+          throw new Error('Impossibile prenotare: l\'orario selezionato è fuori dagli orari di apertura');
+        }
+      } catch (error) {
+        // If it's already an Error with a message, re-throw it
+        if (error instanceof Error && error.message.includes('Impossibile prenotare')) {
+          throw error;
+        }
+        // If it's an error from getDailyShopHours, log it but don't block the appointment
+        // (fallback: allow the appointment if we can't verify shop hours)
+        console.warn('⚠️ Could not validate shop hours, allowing appointment:', error);
       }
 
       // Check if products are enabled for this shop

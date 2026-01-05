@@ -152,9 +152,48 @@ export const useDailyShopHours = () => {
   useEffect(() => {
     if (!isBrowser) return;
 
+    let lastShopId: string | null = null;
+
+    const loadShopHours = async () => {
+      const authToken = localStorage.getItem('auth_token');
+      if (!authToken) return;
+
+      try {
+        const remoteHours = await apiService.getDailyShopHours();
+        setShopHours(remoteHours);
+        persistHoursLocally(remoteHours);
+        
+        // Load shop auto_close_holidays setting
+        try {
+          const shop = await apiService.getShop();
+          setAutoCloseHolidays(shop.auto_close_holidays ?? true);
+        } catch (shopError) {
+          setAutoCloseHolidays(true);
+        }
+      } catch (error) {
+        console.error('❌ Error reloading shop hours:', error);
+      }
+    };
+
     const handleStorage = (event: StorageEvent) => {
       if (event.key === EXTRA_OPENING_STORAGE_KEY) {
         setExtraOpening(readExtraOpeningFromStorage());
+      } else if (event.key === 'current_shop_id') {
+        // Shop changed - reload shop hours
+        const newShopId = event.newValue;
+        if (newShopId && newShopId !== lastShopId && newShopId !== 'default') {
+          lastShopId = newShopId;
+          loadShopHours();
+        }
+      }
+    };
+
+    // Also listen for same-tab changes (storage event only fires for other tabs)
+    const checkShopIdChange = () => {
+      const currentShopId = localStorage.getItem('current_shop_id');
+      if (currentShopId && currentShopId !== lastShopId && currentShopId !== 'default') {
+        lastShopId = currentShopId;
+        loadShopHours();
       }
     };
 
@@ -163,12 +202,19 @@ export const useDailyShopHours = () => {
       setExtraOpening(customEvent.detail ?? null);
     };
 
+    // Initial check
+    lastShopId = localStorage.getItem('current_shop_id');
+
     window.addEventListener('storage', handleStorage);
     window.addEventListener(EXTRA_OPENING_EVENT, handleExtraOpeningEvent as EventListener);
+    
+    // Check for shop changes periodically (for same-tab changes)
+    const intervalId = setInterval(checkShopIdChange, 1000);
 
     return () => {
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener(EXTRA_OPENING_EVENT, handleExtraOpeningEvent as EventListener);
+      clearInterval(intervalId);
     };
   }, []);
 
