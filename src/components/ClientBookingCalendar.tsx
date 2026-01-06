@@ -980,15 +980,18 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
                         aria-label={isClickable ? `Giorno ${date.getDate()} ${date.toLocaleDateString('it-IT', { month: 'long' })} - ${hasAvailability ? `${availability.available} slot disponibili` : 'Nessuno slot disponibile'}` : `Giorno ${date.getDate()} - non disponibile`}
                         aria-disabled={!isClickable}
                         className={`
-                    aspect-square p-1.5 border rounded-lg transition-all overflow-hidden touch-target
+                    relative flex flex-col items-center justify-between
+                    aspect-[4/5] sm:aspect-square 
+                    p-1 sm:p-1.5 
+                    border rounded-lg transition-all overflow-hidden touch-target
                     ${isCurrentMonthDay ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100'}
-                    ${isTodayDate ? 'ring-2 ring-blue-500 ring-offset-1' : ''}
+                    ${isTodayDate ? 'ring-2 ring-blue-500 ring-offset-1 z-10' : ''}
                     ${isClickable ? 'cursor-pointer hover:bg-blue-50 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500' : 'cursor-not-allowed opacity-60'}
                   `}
                       >
                         {/* Day Number */}
                         <div className={`
-                    text-xs sm:text-sm font-medium mb-0.5
+                    text-sm sm:text-base font-medium mt-1
                     ${isCurrentMonthDay ? (isTodayDate ? 'text-blue-600' : 'text-gray-900') : 'text-gray-400'}
                   `}>
                           {date.getDate()}
@@ -996,12 +999,9 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
 
                         {/* Availability Indicators - Fixed 3 bars (Traffic Light) */}
                         {isOpenAndAvailable && availability.total > 0 && (
-                          <div className="flex gap-1 h-1.5 mt-auto px-1 w-full mb-1">
+                          <div className="flex gap-0.5 sm:gap-1 h-1.5 sm:h-2 w-full px-0.5 sm:px-1 mb-1 sm:mb-2">
                             {[1, 2, 3].map((level) => {
                               // Determine color based on current signalLevel
-                              // usage: Low availability (level 1 active) -> Red/Orange warning
-                              // High availability (level 3 active) -> Green
-
                               let colorClass = 'bg-gray-200';
                               if (level <= signalLevel) {
                                 if (signalLevel === 1) colorClass = 'bg-red-400';

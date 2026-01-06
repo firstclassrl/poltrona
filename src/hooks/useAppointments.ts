@@ -19,7 +19,7 @@ export interface CreateAppointmentData {
 
 export const useAppointments = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [lastError, setLastError] = useState<Error | null>(null);
   const [isLoadingInProgress, setIsLoadingInProgress] = useState(false);
 
@@ -32,7 +32,7 @@ export const useAppointments = () => {
     }
 
     setIsLoadingInProgress(true);
-    
+
     try {
       setIsLoading(true);
       // Carica appuntamenti per un range ampio (1 settimana fa fino a 2 anni nel futuro)
@@ -44,16 +44,16 @@ export const useAppointments = () => {
       const endDate = new Date(today);
       endDate.setFullYear(today.getFullYear() + 2); // 2 anni nel futuro
       endDate.setHours(23, 59, 59, 999); // Imposta a fine giornata
-      
+
       const startISO = startDate.toISOString();
       const endISO = endDate.toISOString();
-      
-      
+
+
       const dbAppointments = await apiService.getAppointments(
         startISO,
         endISO
       );
-      
+
       if (dbAppointments && dbAppointments.length > 0) {
         setAppointments(dbAppointments);
         setLastError(null); // Reset error on success
@@ -67,7 +67,7 @@ export const useAppointments = () => {
     } catch (error) {
       console.error('Errore nel caricamento degli appuntamenti:', error);
       setLastError(error instanceof Error ? error : new Error(String(error)));
-      
+
       // Se l'errore è ERR_INSUFFICIENT_RESOURCES, non fare fallback al localStorage
       // per evitare loop infiniti
       if (error instanceof Error && (
@@ -78,7 +78,7 @@ export const useAppointments = () => {
         // Mantieni gli appuntamenti esistenti invece di resettarli
         return;
       }
-      
+
       // Fallback al localStorage solo per altri tipi di errori
       try {
         const savedAppointments = localStorage.getItem('appointments');
@@ -99,7 +99,7 @@ export const useAppointments = () => {
   // Crea un nuovo appuntamento
   const createAppointment = async (appointmentData: CreateAppointmentData): Promise<Appointment> => {
     setIsLoading(true);
-    
+
     try {
       // Prova a salvare nel database
       const created = await apiService.createAppointmentDirect({
@@ -113,18 +113,18 @@ export const useAppointments = () => {
         status: 'confirmed',
         products: appointmentData.products,
       });
-      
+
       // Aggiungi l'appuntamento creato alla lista locale immediatamente
       // per evitare di dover ricaricare tutto e causare loop
       setAppointments(prev => {
         // Evita duplicati
         const exists = prev.some(apt => apt.id === created.id);
         if (exists) return prev;
-        return [...prev, created].sort((a, b) => 
+        return [...prev, created].sort((a, b) =>
           new Date(a.start_at).getTime() - new Date(b.start_at).getTime()
         );
       });
-      
+
       // Ricarica gli appuntamenti dal database in background con un delay
       // per evitare richieste simultanee che causano ERR_INSUFFICIENT_RESOURCES
       setTimeout(() => {
@@ -134,13 +134,13 @@ export const useAppointments = () => {
           });
         }
       }, 1000);
-      
+
       return created;
-      
+
     } catch (error) {
       console.error('❌ Errore nella creazione dell\'appuntamento nel database:', error);
       throw error;
-      
+
     } finally {
       setIsLoading(false);
     }
@@ -172,7 +172,7 @@ export const useAppointments = () => {
   // Elimina un appuntamento
   const deleteAppointment = async (appointmentId: string): Promise<void> => {
     setIsLoading(true);
-    
+
     try {
       // Usa deleteAppointmentDirect per eliminare completamente l'appuntamento
       await apiService.deleteAppointmentDirect(appointmentId);
@@ -188,7 +188,7 @@ export const useAppointments = () => {
   // Aggiorna un appuntamento
   const updateAppointment = async (appointmentId: string, updates: Partial<Appointment>): Promise<void> => {
     setIsLoading(true);
-    
+
     try {
       // Filtra i valori null e undefined per compatibilità con UpdateAppointmentRequest
       const cleanUpdates: Record<string, any> = {};
@@ -197,7 +197,7 @@ export const useAppointments = () => {
           cleanUpdates[key] = value;
         }
       }
-      
+
       // Prova ad aggiornare nel database
       await apiService.updateAppointment({ id: appointmentId, ...cleanUpdates });
       await loadAppointments();

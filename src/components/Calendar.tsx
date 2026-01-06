@@ -22,7 +22,7 @@ export const Calendar = () => {
   const [timePeriod, setTimePeriod] = useState<'morning' | 'afternoon'>('morning');
   const [calendarViewMode, setCalendarViewMode] = useState<'split' | 'full'>('split');
   const { shopHours, getAvailableTimeSlots, isDateOpen, getShopHoursSummary, shopHoursLoaded } = useDailyShopHours();
-  const { getAssignedChairs } = useChairAssignment();
+  const { getAssignedChairs, availableStaff } = useChairAssignment();
   const { appointments, createAppointment, deleteAppointment, loadAppointments } = useAppointments();
   const { isDateInVacation } = useVacationMode();
   const { currentShop } = useShop();
@@ -313,6 +313,16 @@ export const Calendar = () => {
   const filteredAppointments = appointments.filter(apt => {
     // Escludi appuntamenti cancellati - liberano il posto per altri utenti
     if (apt.status === 'cancelled') return false;
+
+    // Filter out appointments for inactive staff when 'all' is selected
+    if (selectedChair === 'all') {
+      const staff = availableStaff.find(s => s.id === apt.staff_id);
+      // If staff not found or not active, hide appointment (unless we want to show it? User implies hiding inactive chairs)
+      // Assuming 'active' is boolean | null. Treat null as true or false? usually true unless explicitly false.
+      // But looking at UI filter: staff?.active === true.
+      if (staff && staff.active !== true) return false;
+    }
+
     const chairMatch = selectedChair === 'all' || apt.staff?.chair_id === selectedChair;
     return chairMatch;
   });
@@ -328,9 +338,6 @@ export const Calendar = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">Calendario</h1>
-                <p className="text-sm text-gray-600 mt-1">
-                  Orari configurati per ogni giorno della settimana
-                </p>
               </div>
               {!shopHoursLoaded && (
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center text-gray-600 mt-4 md:mt-0 md:ml-4">
@@ -344,10 +351,15 @@ export const Calendar = () => {
                   onChange={(e) => setSelectedChair(e.target.value)}
                   options={[
                     { value: 'all', label: 'Tutte le poltrone' },
-                    ...assignedChairs.map(chair => ({
-                      value: chair.chairId,
-                      label: `${chair.chairName} - ${chair.staffName}`
-                    }))
+                    ...assignedChairs
+                      .filter(chair => {
+                        const staff = availableStaff.find(s => s.id === chair.staffId);
+                        return staff?.active === true;
+                      })
+                      .map(chair => ({
+                        value: chair.chairId,
+                        label: `${chair.chairName} - ${chair.staffName}`
+                      }))
                   ]}
                 />
 
@@ -657,11 +669,16 @@ export const Calendar = () => {
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                           <option value="all">Tutte le poltrone</option>
-                          {assignedChairs.map(chair => (
-                            <option key={chair.chairId} value={chair.chairId}>
-                              {chair.chairName} - {chair.staffName}
-                            </option>
-                          ))}
+                          {assignedChairs
+                            .filter(chair => {
+                              const staff = availableStaff.find(s => s.id === chair.staffId);
+                              return staff?.active === true;
+                            })
+                            .map(chair => (
+                              <option key={chair.chairId} value={chair.chairId}>
+                                {chair.chairName} - {chair.staffName}
+                              </option>
+                            ))}
                         </select>
                       </div>
                     </Card>
