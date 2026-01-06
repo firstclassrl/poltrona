@@ -1227,7 +1227,7 @@ export const apiService = {
       // PostgREST accetta date ISO nel formato RFC3339
       // Costruiamo la query URL con i parametri correttamente codificati
       const params = new URLSearchParams({
-        select: '*,clients(id,first_name,last_name,phone_e164,email),staff(full_name),services(id,name,duration_min)',
+        select: '*,clients(id,first_name,last_name,phone_e164,email),staff(full_name,chair_id),services(id,name,duration_min)',
         order: 'start_at.asc',
       });
 

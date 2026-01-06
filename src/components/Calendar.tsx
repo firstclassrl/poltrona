@@ -305,24 +305,9 @@ export const Calendar = () => {
                   Caricamento orari del negozio...
                 </div>
               )}
+
               {/* Desktop Controls */}
               <div className="hidden md:flex items-center space-x-4">
-                <Select
-                  value={selectedChair}
-                  onChange={(e) => setSelectedChair(e.target.value)}
-                  options={[
-                    { value: 'all', label: 'Tutte le poltrone' },
-                    ...assignedChairs
-                      .filter(chair => {
-                        const staff = availableStaff.find(s => s.id === chair.staffId);
-                        return staff?.active === true;
-                      })
-                      .map(chair => ({
-                        value: chair.chairId,
-                        label: `${chair.chairName} - ${chair.staffName}`
-                      }))
-                  ]}
-                />
 
                 {/* Controlli Mattina/Pomeriggio - Solo se modalità split */}
                 {calendarViewMode === 'split' && (
@@ -827,6 +812,6 @@ export const Calendar = () => {
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 };

@@ -103,15 +103,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [forceLoad, setForceLoad] = useState(false);
 
   useEffect(() => {
+    // Timer runs once on mount and sets forceLoad to true after 2 seconds
+    // This ensures that even if loading states toggle, we eventually show the dashboard
     const timer = setTimeout(() => {
-      if (!shopHoursLoaded || isLoadingAppointments) {
-        console.log('⚠️ Dashboard loading timed out, forcing display');
-        setForceLoad(true);
-      }
+      console.log('⚠️ Dashboard loading timed out, forcing display');
+      setForceLoad(true);
     }, 2000); // 2 seconds timeout
 
     return () => clearTimeout(timer);
-  }, [shopHoursLoaded, isLoadingAppointments]);
+  }, []); // Empty dependency array = run once on mount
 
   // Show loading state while data is being fetched, unless forced
   if ((!shopHoursLoaded || isLoadingAppointments) && !forceLoad) {
