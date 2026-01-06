@@ -45,7 +45,7 @@ export const Login: React.FC = () => {
   const [isLoadingShop, setIsLoadingShop] = useState(true);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  
+
   const { login, register, signInWithGoogle, isLoading } = useAuth();
   const { toast, showToast, hideToast } = useToast();
   const { palette, themeId } = useTheme();
@@ -55,12 +55,12 @@ export const Login: React.FC = () => {
     const loadShopFromUrl = async () => {
       try {
         const shopSlug = extractSlugFromLocation();
-        
+
         if (shopSlug) {
           try {
             const shopData = await apiService.getShopBySlug(shopSlug);
             setShop(shopData);
-            
+
             // Carica il logo dello shop se disponibile
             // 1) prova logo_url salvato (se esiste)
             // 2) prova signed URL pubblico (senza autenticazione, per login page)
@@ -130,7 +130,7 @@ export const Login: React.FC = () => {
     } else {
       document.body.style.overflow = 'unset';
     }
-    
+
     return () => {
       document.body.style.overflow = 'unset';
     };
@@ -153,10 +153,10 @@ export const Login: React.FC = () => {
       console.error('❌ Errore in handleSubmit:', err);
       const errorMessage = err instanceof Error ? err.message : 'Errore durante l\'operazione';
       setError(errorMessage);
-      
+
       // Mostra anche un Toast per rendere l'errore più visibile
       showToast(errorMessage, 'error');
-      
+
       // Assicurati che il modal non sia mostrato in caso di errore
       setShowRegistrationSuccess(false);
     }
@@ -179,8 +179,8 @@ export const Login: React.FC = () => {
 
     // Registra il nuovo utente in Supabase
     const registrationEmail = registrationData.email;
-    
-    
+
+
     await register({
       email: registrationData.email,
       password: registrationData.password,
@@ -188,16 +188,16 @@ export const Login: React.FC = () => {
       role: 'client',
       phone: registrationData.phone || undefined,
     });
-    
+
     // Se arriviamo qui, la registrazione è andata a buon fine
-    
+
     // Imposta l'email e mostra il modal IMMEDIATAMENTE
     // Usa flushSync per forzare un aggiornamento sincrono dello stato
     flushSync(() => {
       setRegisteredEmail(registrationEmail);
       setShowRegistrationSuccess(true);
     });
-    
+
   };
 
   const handleDemoLogin = (role: 'admin' | 'barber' | 'client') => {
@@ -206,7 +206,7 @@ export const Login: React.FC = () => {
       barber: { email: 'barbiere@barbershop.com', password: 'password' },
       client: { email: 'cliente@example.com', password: 'password' },
     };
-    
+
     setCredentials(demoCredentials[role]);
   };
 
@@ -220,7 +220,7 @@ export const Login: React.FC = () => {
     ? palette?.colors.accent || '#eecf54'
     : '#ffffff';
   const patternId = `barbershop-pattern-${palette?.id || 'default'}`;
-  
+
   // Se mostra forgot password, non renderizzare il resto
   if (showForgotPassword) {
     return (
@@ -232,7 +232,7 @@ export const Login: React.FC = () => {
   }
 
   return (
-    <div 
+    <div
       className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden login-liquid"
       style={{
         background: `linear-gradient(to bottom right, ${bgColor}, ${bgColorMid}, ${bgColor})`
@@ -245,26 +245,26 @@ export const Login: React.FC = () => {
           <defs>
             <pattern id={patternId} x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
               {/* Linee diagonali */}
-              <line x1="0" y1="0" x2="60" y2="60" stroke={textureColor} strokeWidth="2"/>
-              <line x1="60" y1="0" x2="0" y2="60" stroke={textureColor} strokeWidth="2"/>
+              <line x1="0" y1="0" x2="60" y2="60" stroke={textureColor} strokeWidth="2" />
+              <line x1="60" y1="0" x2="0" y2="60" stroke={textureColor} strokeWidth="2" />
               {/* Cerchi decorativi */}
-              <circle cx="30" cy="30" r="3" fill={textureColor}/>
-              <circle cx="0" cy="0" r="2" fill={textureColor}/>
-              <circle cx="60" cy="60" r="2" fill={textureColor}/>
+              <circle cx="30" cy="30" r="3" fill={textureColor} />
+              <circle cx="0" cy="0" r="2" fill={textureColor} />
+              <circle cx="60" cy="60" r="2" fill={textureColor} />
             </pattern>
           </defs>
-          <rect width="100%" height="100%" fill={`url(#${patternId})`}/>
+          <rect width="100%" height="100%" fill={`url(#${patternId})`} />
         </svg>
       </div>
-      
+
       {/* Overlay sfumato con colore del tema */}
-      <div 
+      <div
         className="absolute inset-0"
         style={{
           background: `linear-gradient(to top, ${bgColor}30, transparent, ${bgColor}30)`
         }}
       ></div>
-      
+
       {/* Card principale - sopra il pattern */}
       <Card className="w-full max-w-md p-8 bg-white/25 backdrop-blur-2xl border border-white/30 shadow-2xl relative z-10 login-card-glass">
         <div className="text-center mb-8">
@@ -275,9 +275,9 @@ export const Login: React.FC = () => {
           ) : (
             <div className="w-20 h-20 mx-auto mb-4">
               {shopLogoUrl ? (
-                <img 
-                  src={shopLogoUrl} 
-                  alt={`Logo ${shop?.name || 'negozio'}`} 
+                <img
+                  src={shopLogoUrl}
+                  alt={`Logo ${shop?.name || 'negozio'}`}
                   className="w-full h-full object-contain filter brightness-110 rounded-lg"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
@@ -285,9 +285,9 @@ export const Login: React.FC = () => {
                   }}
                 />
               ) : (
-                <img 
-                  src="/logo Poltrona 2025.png" 
-                  alt="Logo ufficiale Poltrona" 
+                <img
+                  src="/logo Poltrona 2025.png"
+                  alt="Logo ufficiale Poltrona"
                   className="w-full h-full object-contain filter brightness-110"
                 />
               )}
@@ -371,10 +371,12 @@ export const Login: React.FC = () => {
                 <Input
                   label="Email"
                   type="email"
+                  name="email"
+                  id="email"
                   value={credentials.email}
                   onChange={(e) => setCredentials(prev => ({ ...prev, email: e.target.value }))}
                   placeholder="Inserisci la tua email"
-                  autoComplete="email"
+                  autoComplete="username"
                   required
                 />
               </div>
@@ -384,6 +386,8 @@ export const Login: React.FC = () => {
                   <Input
                     label="Password"
                     type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    id="password"
                     value={credentials.password}
                     onChange={(e) => setCredentials(prev => ({ ...prev, password: e.target.value }))}
                     placeholder="Inserisci la tua password"
@@ -650,8 +654,8 @@ export const Login: React.FC = () => {
         return null;
       })()}
       {showRegistrationSuccess && (
-        <div 
-          className="fixed inset-0 z-[99999] flex items-center justify-center p-3 bg-black/70 backdrop-blur-sm" 
+        <div
+          className="fixed inset-0 z-[99999] flex items-center justify-center p-3 bg-black/70 backdrop-blur-sm"
           style={{ zIndex: 99999, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
           onClick={(e) => {
             // Previeni la chiusura cliccando fuori dal modal
@@ -728,9 +732,9 @@ export const Login: React.FC = () => {
       )}
 
       {/* Privacy Policy Modal */}
-      <PrivacyPolicy 
-        isOpen={showPrivacyPolicy} 
-        onClose={() => setShowPrivacyPolicy(false)} 
+      <PrivacyPolicy
+        isOpen={showPrivacyPolicy}
+        onClose={() => setShowPrivacyPolicy(false)}
       />
 
       {/* Toast Notification */}

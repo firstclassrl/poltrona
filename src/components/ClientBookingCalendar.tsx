@@ -806,70 +806,157 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
             </div>
 
             {/* Step 1: scelta servizio e barbiere */}
-            <div className="max-w-3xl mx-auto rounded-3xl border border-white/30 shadow-2xl p-6 md:p-8 space-y-6 ring-1 ring-white/30 bg-white/50 backdrop-blur-2xl">
-              <div className="space-y-2">
-                <label className="block text-base font-semibold text-gray-800 flex items-center">
-                  <Scissors className="w-5 h-5 mr-2 text-green-600" />
-                  Servizio
-                </label>
-                <select
-                  value={selectedService}
-                  onChange={(e) => {
-                    setSelectedService(e.target.value);
-                    // reset eventuale selezione precedente
-                    setSelectedDate(null);
-                    setSelectedTime('');
-                    setCurrentView('monthly');
-                  }}
-                  className="w-full px-4 py-3 border-2 border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base bg-white/80 text-gray-900 transition-all hover:border-white shadow-lg backdrop-blur touch-target"
-                  disabled={isLoading}
-                  aria-label="Seleziona servizio"
-                  aria-describedby="service-description"
-                >
-                  <option value="">{isLoading ? 'Caricamento servizi...' : 'Seleziona un servizio'}</option>
-                  {services
-                    .filter((service) => service.active)
-                    .map((service) => (
-                      <option key={service.id} value={service.id}>
-                        {service.name} - €{(service.price_cents || 0) / 100} ({service.duration_min} min)
-                      </option>
-                    ))}
-                </select>
+            <div className="max-w-3xl mx-auto space-y-8">
+
+              {/* Service Selection - Grid Cards */}
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2 px-1">
+                  <Scissors className="w-5 h-5 text-green-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Seleziona Servizio</h3>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {isLoading ? (
+                    // Loading skeletons
+                    [1, 2, 3, 4].map((i) => (
+                      <div key={i} className="h-24 bg-white/40 rounded-xl animate-pulse border border-white/30"></div>
+                    ))
+                  ) : (
+                    services
+                      .filter((service) => service.active)
+                      .map((service) => {
+                        const isSelected = selectedService === service.id;
+                        return (
+                          <button
+                            key={service.id}
+                            onClick={() => {
+                              setSelectedService(service.id);
+                              setSelectedDate(null);
+                              setSelectedTime('');
+                              setCurrentView('monthly');
+                            }}
+                            className={`
+                              relative p-4 rounded-xl text-left transition-all touch-target group
+                              border-2 backdrop-blur-sm shadow-sm
+                              ${isSelected
+                                ? 'bg-green-50/90 border-green-500 ring-1 ring-green-500 shadow-md'
+                                : 'bg-white/60 border-white/50 hover:bg-white/80 hover:border-green-200'}
+                            `}
+                          >
+                            <div className="flex justify-between items-start">
+                              <span className={`font-semibold text-base ${isSelected ? 'text-green-900' : 'text-gray-900'}`}>
+                                {service.name}
+                              </span>
+                              {isSelected && (
+                                <div className="bg-green-500 rounded-full p-1 shadow-sm">
+                                  <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                                </div>
+                              )}
+                            </div>
+                            <div className="mt-2 flex items-center justify-between text-sm">
+                              <span className={`${isSelected ? 'text-green-700' : 'text-gray-500'}`}>
+                                {service.duration_min} min
+                              </span>
+                              <span className={`font-bold ${isSelected ? 'text-green-700' : 'text-gray-900'}`}>
+                                €{(service.price_cents || 0) / 100}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })
+                  )}
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="block text-base font-semibold text-gray-800 flex items-center">
-                  <User className="w-5 h-5 mr-2 text-green-600" />
-                  Barbiere
-                </label>
-                <select
-                  value={selectedBarber}
-                  onChange={(e) => {
-                    setSelectedBarber(e.target.value);
-                    setSelectedDate(null);
-                    setSelectedTime('');
-                    setCurrentView('monthly');
-                  }}
-                  className="w-full px-4 py-3 border-2 border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base bg-white/80 text-gray-900 transition-all hover:border-white shadow-lg backdrop-blur touch-target"
-                  disabled={!selectedService || isLoading}
-                  aria-label="Seleziona barbiere"
-                  aria-describedby="barber-description"
-                >
-                  <option value="">{isLoading ? 'Caricamento barbieri...' : 'Seleziona un barbiere'}</option>
-                  {availableBarbers.map((barber) => (
-                    <option key={barber.id} value={barber.id}>
-                      {barber.full_name}
-                    </option>
-                  ))}
-                </select>
+              {/* Barber Selection - Horizontal Scroll */}
+              <div className={`space-y-4 transition-all duration-300 ${!selectedService ? 'opacity-50 grayscale pointer-events-none' : 'opacity-100'}`}>
+                <div className="flex items-center space-x-2 px-1">
+                  <User className="w-5 h-5 text-green-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Scegli Barbiere</h3>
+                </div>
+
+                <div className="flex space-x-4 overflow-x-auto pb-4 px-1 scrollbar-hide -mx-4 md:mx-0 px-4 md:px-0">
+                  {isLoading ? (
+                    // Loading skeletons
+                    [1, 2, 3].map((i) => (
+                      <div key={i} className="flex-shrink-0 w-20 flex flex-col items-center space-y-2">
+                        <div className="w-16 h-16 rounded-full bg-white/40 animate-pulse"></div>
+                        <div className="w-12 h-3 bg-white/40 rounded animate-pulse"></div>
+                      </div>
+                    ))
+                  ) : (
+                    availableBarbers.map((barber) => {
+                      const isSelected = selectedBarber === barber.id;
+                      const initials = barber.full_name
+                        .split(' ')
+                        .map(n => n[0])
+                        .join('')
+                        .toUpperCase()
+                        .slice(0, 2);
+
+                      return (
+                        <button
+                          key={barber.id}
+                          onClick={() => {
+                            setSelectedBarber(barber.id);
+                            setSelectedDate(null);
+                            setSelectedTime('');
+                            setCurrentView('monthly');
+                          }}
+                          className="flex-shrink-0 flex flex-col items-center space-y-2 group touch-target"
+                        >
+                          <div className={`
+                            relative w-16 h-16 rounded-full flex items-center justify-center overflow-hidden transition-all border-2
+                            ${isSelected
+                              ? 'border-green-500 ring-2 ring-green-500 ring-offset-2 scale-110 shadow-lg'
+                              : 'border-white hover:border-green-300 bg-white/50'}
+                          `}>
+                            {barber.profile_photo_url ? (
+                              <img
+                                src={barber.profile_photo_url}
+                                alt={barber.full_name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span className={`text-lg font-bold ${isSelected ? 'text-green-700' : 'text-gray-500'}`}>
+                                {initials}
+                              </span>
+                            )}
+                            {isSelected && (
+                              <div className="absolute inset-0 bg-green-500/20 flex items-center justify-center">
+                                <Check className="w-6 h-6 text-white drop-shadow-md" strokeWidth={3} />
+                              </div>
+                            )}
+                          </div>
+                          <span className={`text-xs sm:text-sm font-medium whitespace-nowrap px-2 py-0.5 rounded-full ${isSelected ? 'bg-green-100 text-green-800' : 'text-gray-700 bg-white/40'
+                            }`}>
+                            {barber.full_name.split(' ')[0]}
+                          </span>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
               </div>
 
               {bookingDuration && selectedBarber && (
-                <div className="mt-2 p-4 bg-green-50/70 border border-green-200/70 rounded-xl shadow-inner backdrop-blur">
-                  <p className="text-sm text-green-800">
-                    <span className="font-semibold">Durata appuntamento:</span> {bookingDuration} minuti.
-                    Mostriamo solo slot con almeno questo tempo libero entro 6 mesi.
-                  </p>
+                <div className="p-4 bg-green-50/80 border border-green-200 rounded-xl shadow-sm backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <Check className="h-5 w-5 text-green-600" aria-hidden="true" />
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-green-800">Selezione completata</h3>
+                      <div className="mt-1 text-sm text-green-700">
+                        <p>
+                          Hai scelto <strong>{services.find(s => s.id === selectedService)?.name}</strong> con <strong>{staff.find(s => s.id === selectedBarber)?.full_name}</strong>.
+                        </p>
+                        <p className="mt-1">
+                          Vedi qui sotto gli orari disponibili.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
