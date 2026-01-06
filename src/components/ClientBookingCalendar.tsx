@@ -792,86 +792,67 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       <div className="w-full">
         <div className="flex flex-col space-y-8">
           <div className="space-y-8">
-            {/* Welcome Section */}
-            <div className="text-center mb-6 md:mb-10 glass-panel">
-              <div className="mb-3">
-                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                  Benvenuto, {userName}! 👋
-                </h2>
+            {/* Header / Welcome Section */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-gray-900 to-gray-800 text-white shadow-xl mb-8 p-6 md:p-10">
+              <div className="relative z-10">
+                <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400 mb-2">
+                  Ciao, {userName}!
+                </h1>
+                <p className="text-gray-400 text-lg max-w-xl">
+                  È il momento di prenderti cura di te. Prenota il tuo prossimo taglio.
+                </p>
               </div>
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Prenota Appuntamento</h1>
-              <p className="text-lg text-gray-700 max-w-2xl mx-auto">
-                Seleziona il servizio e il barbiere per visualizzare gli orari disponibili!
-              </p>
+
+              {/* Decorative elements */}
+              <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-green-500 rounded-full blur-3xl opacity-20"></div>
+              <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-blue-500 rounded-full blur-3xl opacity-20"></div>
             </div>
 
             {/* Step 1: scelta servizio e barbiere */}
             <div className="max-w-3xl mx-auto space-y-8">
 
-              {/* Service Selection - Grid Cards */}
+              {/* Service Selection - Dropdown (Reverted as requested) */}
               <div className="space-y-4">
                 <div className="flex items-center space-x-2 px-1">
-                  <Scissors className="w-5 h-5 text-green-600" />
+                  <Scissors className="w-5 h-5 text-gray-700" />
                   <h3 className="text-lg font-semibold text-gray-900">Seleziona Servizio</h3>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {isLoading ? (
-                    // Loading skeletons
-                    [1, 2, 3, 4].map((i) => (
-                      <div key={i} className="h-24 bg-white/40 rounded-xl animate-pulse border border-white/30"></div>
-                    ))
-                  ) : (
-                    services
+                <div className="relative">
+                  <select
+                    value={selectedService}
+                    onChange={(e) => {
+                      setSelectedService(e.target.value);
+                      setSelectedDate(null);
+                      setSelectedTime('');
+                      setCurrentView('monthly');
+                    }}
+                    className="w-full appearance-none bg-white border-2 border-gray-200 text-gray-900 text-lg rounded-xl px-4 py-4 pr-8 leading-tight focus:outline-none focus:bg-white focus:border-gray-500 focus:ring-4 focus:ring-gray-100 transition-all shadow-sm cursor-pointer"
+                    disabled={isLoading}
+                  >
+                    <option value="" className="text-gray-500">
+                      {isLoading ? 'Caricamento servizi...' : 'Scegli il trattamento...'}
+                    </option>
+                    {services
                       .filter((service) => service.active)
-                      .map((service) => {
-                        const isSelected = selectedService === service.id;
-                        return (
-                          <button
-                            key={service.id}
-                            onClick={() => {
-                              setSelectedService(service.id);
-                              setSelectedDate(null);
-                              setSelectedTime('');
-                              setCurrentView('monthly');
-                            }}
-                            className={`
-                              relative p-4 rounded-xl text-left transition-all touch-target group
-                              border-2 backdrop-blur-sm shadow-sm
-                              ${isSelected
-                                ? 'bg-green-50/90 border-green-500 ring-1 ring-green-500 shadow-md'
-                                : 'bg-white/60 border-white/50 hover:bg-white/80 hover:border-green-200'}
-                            `}
-                          >
-                            <div className="flex justify-between items-start">
-                              <span className={`font-semibold text-base ${isSelected ? 'text-green-900' : 'text-gray-900'}`}>
-                                {service.name}
-                              </span>
-                              {isSelected && (
-                                <div className="bg-green-500 rounded-full p-1 shadow-sm">
-                                  <Check className="w-3 h-3 text-white" strokeWidth={3} />
-                                </div>
-                              )}
-                            </div>
-                            <div className="mt-2 flex items-center justify-between text-sm">
-                              <span className={`${isSelected ? 'text-green-700' : 'text-gray-500'}`}>
-                                {service.duration_min} min
-                              </span>
-                              <span className={`font-bold ${isSelected ? 'text-green-700' : 'text-gray-900'}`}>
-                                €{(service.price_cents || 0) / 100}
-                              </span>
-                            </div>
-                          </button>
-                        );
-                      })
-                  )}
+                      .map((service) => (
+                        <option key={service.id} value={service.id}>
+                          {service.name} ({service.duration_min} min) - €{(service.price_cents || 0) / 100}
+                        </option>
+                      ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-600">
+                    <svg className="fill-current h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                      <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                    </svg>
+                  </div>
                 </div>
               </div>
 
-              {/* Barber Selection - Horizontal Scroll */}
+              {/* Barber Selection - Horizontal Scroll (Kept as requested) */}
               <div className={`space-y-4 transition-all duration-300 ${!selectedService ? 'opacity-50 grayscale pointer-events-none' : 'opacity-100'}`}>
                 <div className="flex items-center space-x-2 px-1">
-                  <User className="w-5 h-5 text-green-600" />
+                  <User className="w-5 h-5 text-gray-700" />
                   <h3 className="text-lg font-semibold text-gray-900">Scegli Barbiere</h3>
                 </div>
 
@@ -880,8 +861,8 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
                     // Loading skeletons
                     [1, 2, 3].map((i) => (
                       <div key={i} className="flex-shrink-0 w-20 flex flex-col items-center space-y-2">
-                        <div className="w-16 h-16 rounded-full bg-white/40 animate-pulse"></div>
-                        <div className="w-12 h-3 bg-white/40 rounded animate-pulse"></div>
+                        <div className="w-16 h-16 rounded-full bg-gray-200 animate-pulse"></div>
+                        <div className="w-12 h-3 bg-gray-200 rounded animate-pulse"></div>
                       </div>
                     ))
                   ) : (
@@ -903,13 +884,13 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
                             setSelectedTime('');
                             setCurrentView('monthly');
                           }}
-                          className="flex-shrink-0 flex flex-col items-center space-y-2 group touch-target"
+                          className="flex-shrink-0 flex flex-col items-center space-y-2 group touch-target focus:outline-none"
                         >
                           <div className={`
-                            relative w-16 h-16 rounded-full flex items-center justify-center overflow-hidden transition-all border-2
+                            relative w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center overflow-hidden transition-all duration-200 border-2
                             ${isSelected
-                              ? 'border-green-500 ring-2 ring-green-500 ring-offset-2 scale-110 shadow-lg'
-                              : 'border-white hover:border-green-300 bg-white/50'}
+                              ? 'border-gray-900 ring-4 ring-gray-100 scale-105 shadow-xl'
+                              : 'border-transparent bg-white shadow-md hover:scale-105'}
                           `}>
                             {barber.profile_photo_url ? (
                               <img
@@ -918,17 +899,17 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <span className={`text-lg font-bold ${isSelected ? 'text-green-700' : 'text-gray-500'}`}>
+                              <span className={`text-xl font-bold ${isSelected ? 'text-gray-900' : 'text-gray-400'}`}>
                                 {initials}
                               </span>
                             )}
                             {isSelected && (
-                              <div className="absolute inset-0 bg-green-500/20 flex items-center justify-center">
+                              <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
                                 <Check className="w-6 h-6 text-white drop-shadow-md" strokeWidth={3} />
                               </div>
                             )}
                           </div>
-                          <span className={`text-xs sm:text-sm font-medium whitespace-nowrap px-2 py-0.5 rounded-full ${isSelected ? 'bg-green-100 text-green-800' : 'text-gray-700 bg-white/40'
+                          <span className={`text-sm font-medium whitespace-nowrap px-3 py-1 rounded-full transition-colors ${isSelected ? 'bg-gray-900 text-white shadow-lg' : 'text-gray-600 bg-white/60'
                             }`}>
                             {barber.full_name.split(' ')[0]}
                           </span>
@@ -940,38 +921,30 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
               </div>
 
               {bookingDuration && selectedBarber && (
-                <div className="p-4 bg-green-50/80 border border-green-200 rounded-xl shadow-sm backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
                   <div className="flex items-start">
-                    <div className="flex-shrink-0">
+                    <div className="flex-shrink-0 mt-0.5">
                       <Check className="h-5 w-5 text-green-600" aria-hidden="true" />
                     </div>
                     <div className="ml-3">
-                      <h3 className="text-sm font-medium text-green-800">Selezione completata</h3>
-                      <div className="mt-1 text-sm text-green-700">
+                      <h3 className="text-sm font-medium text-gray-900">Ottima scelta!</h3>
+                      <div className="mt-1 text-sm text-gray-600">
                         <p>
-                          Hai scelto <strong>{services.find(s => s.id === selectedService)?.name}</strong> con <strong>{staff.find(s => s.id === selectedBarber)?.full_name}</strong>.
+                          Hai selezionato <strong>{services.find(s => s.id === selectedService)?.name}</strong> con <strong>{staff.find(s => s.id === selectedBarber)?.full_name}</strong>.
                         </p>
                         <p className="mt-1">
-                          Vedi qui sotto gli orari disponibili.
+                          {/* Additional content for the paragraph can go here */}
                         </p>
                       </div>
                     </div>
                   </div>
                 </div>
               )}
-            </div>
-
-            {/* Calendar View */}
-            {!shopHoursLoaded ? (
-              <div className="bg-white/40 border border-white/30 rounded-2xl p-6 text-center text-gray-700 shadow-lg backdrop-blur-xl">
-                Caricamento orari del negozio...
-              </div>
-            ) : !bookingDuration || !selectedBarber ? (
               <div className="text-center py-12 text-gray-700 bg-white/40 border border-white/30 rounded-2xl shadow-lg backdrop-blur-xl">
                 <p className="text-lg font-semibold">Seleziona servizio e barbiere</p>
                 <p className="text-sm mt-1">Poi vedrai il calendario mensile con gli orari disponibili.</p>
               </div>
-            ) : currentView === 'monthly' ? (
+              ) : currentView === 'monthly' ? (
               /* Monthly Calendar View */
               <div className="w-full">
                 {/* Month Header */}
@@ -1110,215 +1083,216 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
                   })}
                 </div>
               </div>
-            ) : (
+              ) : (
               /* Day Detail View */
               selectedDayForDetail && (
-                <div className="w-full space-y-6">
-                  {/* Back Button and Date Header */}
-                  <div className="flex items-center justify-between">
-                    <Button
-                      variant="ghost"
-                      onClick={() => setCurrentView('monthly')}
-                      className="flex items-center space-x-2 touch-target"
-                      aria-label="Torna al calendario mensile"
-                    >
-                      <ArrowLeft className="w-5 h-5" aria-hidden="true" />
-                      <span>Torna al calendario</span>
-                    </Button>
+              <div className="w-full space-y-6">
+                {/* Back Button and Date Header */}
+                <div className="flex items-center justify-between">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setCurrentView('monthly')}
+                    className="flex items-center space-x-2 touch-target"
+                    aria-label="Torna al calendario mensile"
+                  >
+                    <ArrowLeft className="w-5 h-5" aria-hidden="true" />
+                    <span>Torna al calendario</span>
+                  </Button>
 
-                    <div className="text-center">
-                      <h2 className="text-xl md:text-2xl font-bold text-gray-900">
-                        {selectedDayForDetail.toLocaleDateString('it-IT', {
-                          weekday: 'long',
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric'
-                        })}
-                      </h2>
-                      {isToday(selectedDayForDetail) && (
-                        <div className="text-sm text-blue-600 font-medium mt-1">Oggi</div>
+                  <div className="text-center">
+                    <h2 className="text-xl md:text-2xl font-bold text-gray-900">
+                      {selectedDayForDetail.toLocaleDateString('it-IT', {
+                        weekday: 'long',
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                      })}
+                    </h2>
+                    {isToday(selectedDayForDetail) && (
+                      <div className="text-sm text-blue-600 font-medium mt-1">Oggi</div>
+                    )}
+                  </div>
+
+                  <div className="w-32"></div> {/* Spacer for centering */}
+                </div>
+
+                {/* Time Slots */}
+                {isDateInVacation(selectedDayForDetail) ? (
+                  <div className="text-center py-12 text-red-600 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-lg font-semibold">CHIUSO PER FERIE</p>
+                    <p className="text-sm">Il negozio è chiuso per le vacanze in questa data</p>
+                  </div>
+                ) : !isDateOpen(selectedDayForDetail) ? (
+                  <div className="text-center py-12 text-gray-500 bg-gray-50 border border-gray-200 rounded-lg aurora-modal-bg-white">
+                    <p className="text-lg font-semibold">Il negozio è chiuso in questa data</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    {getTimeSlotsForDate(selectedDayForDetail).map((time) => (
+                      <button
+                        key={time}
+                        onClick={() => handleTimeSlotClick(selectedDayForDetail, time)}
+                        className="py-3 px-4 rounded-lg text-center transition-colors bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer border border-green-200 font-medium client-time-slot touch-target focus:outline-none focus:ring-2 focus:ring-green-500"
+                        aria-label={`Prenota alle ${time}`}
+                      >
+                        {time}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {getTimeSlotsForDate(selectedDayForDetail).length === 0 && isDateOpen(selectedDayForDetail) && !isDateInVacation(selectedDayForDetail) && (
+                  <div className="text-center py-12 text-gray-500">
+                    <p className="text-lg font-semibold">Nessun orario disponibile</p>
+                    <p className="text-sm mt-1">Non ci sono slot disponibili per questo giorno.</p>
+                  </div>
+                )}
+                )}
+              </div>
+              )
+          )}
+
+              {/* Success Message */}
+              {isSuccess && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-2xl p-8 max-w-md mx-4 text-center shadow-2xl">
+                    <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <Check className="w-10 h-10 text-green-600" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Grazie per la prenotazione!</h2>
+                    <p className="text-gray-600 mb-6">
+                      Il tuo appuntamento è stato confermato con successo.
+                    </p>
+
+                    {/* Add to Calendar Button */}
+                    {lastAppointmentData && (
+                      <div className="mb-6">
+                        <Button
+                          onClick={handleAddToCalendar}
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center space-x-2 touch-target"
+                          aria-label="Aggiungi appuntamento al calendario del dispositivo"
+                        >
+                          <Calendar className="w-5 h-5" aria-hidden="true" />
+                          <span>Aggiungi al calendario</span>
+                        </Button>
+                      </div>
+                    )}
+
+                    <p className="text-sm text-gray-500">
+                      Verrai reindirizzato al tuo profilo...
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Error Message */}
+              {error && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-2xl p-8 max-w-md mx-4 text-center shadow-2xl">
+                    <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <X className="w-10 h-10 text-red-600" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Errore nella prenotazione</h2>
+                    <p className="text-gray-600 mb-6">
+                      {error}
+                    </p>
+                    <Button
+                      onClick={() => setError(null)}
+                      className="w-full bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      Chiudi
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Booking Modal */}
+              <Modal
+                isOpen={showBookingModal}
+                onClose={() => setShowBookingModal(false)}
+                title="Conferma Prenotazione"
+                size="medium"
+              >
+                <div className="space-y-6">
+                  {/* Selected Date and Time */}
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <h3 className="font-medium text-blue-900 mb-2">Dettagli Prenotazione</h3>
+                    <div className="text-sm text-blue-800">
+                      <p><strong>Data:</strong> {selectedDate?.toLocaleDateString('it-IT')}</p>
+                      <p><strong>Orario:</strong> {selectedTime}</p>
+                      {selectedServiceObj && (
+                        <p>
+                          <strong>Servizio:</strong> {selectedServiceObj.name} ({selectedServiceObj.duration_min} min)
+                        </p>
+                      )}
+                      {selectedBarber && (
+                        <p>
+                          <strong>Barbiere:</strong>{' '}
+                          {staff.find((b) => b.id === selectedBarber)?.full_name || ''}
+                        </p>
                       )}
                     </div>
-
-                    <div className="w-32"></div> {/* Spacer for centering */}
                   </div>
 
-                  {/* Time Slots */}
-                  {isDateInVacation(selectedDayForDetail) ? (
-                    <div className="text-center py-12 text-red-600 bg-red-50 border border-red-200 rounded-lg">
-                      <p className="text-lg font-semibold">CHIUSO PER FERIE</p>
-                      <p className="text-sm">Il negozio è chiuso per le vacanze in questa data</p>
-                    </div>
-                  ) : !isDateOpen(selectedDayForDetail) ? (
-                    <div className="text-center py-12 text-gray-500 bg-gray-50 border border-gray-200 rounded-lg aurora-modal-bg-white">
-                      <p className="text-lg font-semibold">Il negozio è chiuso in questa data</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                      {getTimeSlotsForDate(selectedDayForDetail).map((time) => (
-                        <button
-                          key={time}
-                          onClick={() => handleTimeSlotClick(selectedDayForDetail, time)}
-                          className="py-3 px-4 rounded-lg text-center transition-colors bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer border border-green-200 font-medium client-time-slot touch-target focus:outline-none focus:ring-2 focus:ring-green-500"
-                          aria-label={`Prenota alle ${time}`}
-                        >
-                          {time}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {getTimeSlotsForDate(selectedDayForDetail).length === 0 && isDateOpen(selectedDayForDetail) && !isDateInVacation(selectedDayForDetail) && (
-                    <div className="text-center py-12 text-gray-500">
-                      <p className="text-lg font-semibold">Nessun orario disponibile</p>
-                      <p className="text-sm mt-1">Non ci sono slot disponibili per questo giorno.</p>
-                    </div>
-                  )}
-                </div>
-              )
-            )}
-
-            {/* Success Message */}
-            {isSuccess && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white rounded-2xl p-8 max-w-md mx-4 text-center shadow-2xl">
-                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Check className="w-10 h-10 text-green-600" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Grazie per la prenotazione!</h2>
-                  <p className="text-gray-600 mb-6">
-                    Il tuo appuntamento è stato confermato con successo.
-                  </p>
-
-                  {/* Add to Calendar Button */}
-                  {lastAppointmentData && (
-                    <div className="mb-6">
-                      <Button
-                        onClick={handleAddToCalendar}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center space-x-2 touch-target"
-                        aria-label="Aggiungi appuntamento al calendario del dispositivo"
-                      >
-                        <Calendar className="w-5 h-5" aria-hidden="true" />
-                        <span>Aggiungi al calendario</span>
-                      </Button>
-                    </div>
-                  )}
-
-                  <p className="text-sm text-gray-500">
-                    Verrai reindirizzato al tuo profilo...
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Error Message */}
-            {error && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white rounded-2xl p-8 max-w-md mx-4 text-center shadow-2xl">
-                  <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <X className="w-10 h-10 text-red-600" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Errore nella prenotazione</h2>
-                  <p className="text-gray-600 mb-6">
-                    {error}
-                  </p>
-                  <Button
-                    onClick={() => setError(null)}
-                    className="w-full bg-red-600 hover:bg-red-700 text-white"
-                  >
-                    Chiudi
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Booking Modal */}
-            <Modal
-              isOpen={showBookingModal}
-              onClose={() => setShowBookingModal(false)}
-              title="Conferma Prenotazione"
-              size="medium"
-            >
-              <div className="space-y-6">
-                {/* Selected Date and Time */}
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <h3 className="font-medium text-blue-900 mb-2">Dettagli Prenotazione</h3>
-                  <div className="text-sm text-blue-800">
-                    <p><strong>Data:</strong> {selectedDate?.toLocaleDateString('it-IT')}</p>
-                    <p><strong>Orario:</strong> {selectedTime}</p>
-                    {selectedServiceObj && (
-                      <p>
-                        <strong>Servizio:</strong> {selectedServiceObj.name} ({selectedServiceObj.duration_min} min)
-                      </p>
-                    )}
-                    {selectedBarber && (
-                      <p>
-                        <strong>Barbiere:</strong>{' '}
-                        {staff.find((b) => b.id === selectedBarber)?.full_name || ''}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Earlier slot waitlist */}
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 aurora-modal-bg-white">
-                  <label className="flex items-start gap-3 cursor-pointer touch-target">
-                    <input
-                      type="checkbox"
-                      className="mt-1 h-4 w-4 touch-target"
-                      checked={notifyIfEarlierSlot}
-                      onChange={(e) => setNotifyIfEarlierSlot(e.target.checked)}
-                      aria-label="Avvisami se si libera uno slot prima"
-                    />
-                    <div>
-                      <div className="text-sm font-semibold text-gray-900">
-                        AVVISAMI SE SI LIBERA UNO SLOT PRIMA
+                  {/* Earlier slot waitlist */}
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 aurora-modal-bg-white">
+                    <label className="flex items-start gap-3 cursor-pointer touch-target">
+                      <input
+                        type="checkbox"
+                        className="mt-1 h-4 w-4 touch-target"
+                        checked={notifyIfEarlierSlot}
+                        onChange={(e) => setNotifyIfEarlierSlot(e.target.checked)}
+                        aria-label="Avvisami se si libera uno slot prima"
+                      />
+                      <div>
+                        <div className="text-sm font-semibold text-gray-900">
+                          AVVISAMI SE SI LIBERA UNO SLOT PRIMA
+                        </div>
+                        <div className="text-xs text-gray-600 mt-1">
+                          Se si libera un posto prima, ti invieremo una mail e una notifica su questa app!
+                        </div>
                       </div>
-                      <div className="text-xs text-gray-600 mt-1">
-                        Se si libera un posto prima, ti invieremo una mail e una notifica su questa app!
-                      </div>
-                    </div>
-                  </label>
-                </div>
+                    </label>
+                  </div>
 
-                {/* Submit Button */}
-                <div className="flex justify-end space-x-3">
-                  <Button
-                    variant="secondary"
-                    onClick={() => setShowBookingModal(false)}
-                    className="touch-target"
-                    aria-label="Annulla prenotazione"
-                  >
-                    Annulla
-                  </Button>
-                  <Button
-                    onClick={handleBookingSubmit}
-                    disabled={!selectedService || !selectedBarber || isSubmitting}
-                    className="touch-target"
-                    aria-label={isSubmitting ? 'Prenotazione in corso' : 'Conferma prenotazione'}
-                  >
-                    {isSubmitting ? 'Prenotazione in corso...' : 'Conferma Prenotazione'}
-                  </Button>
+                  {/* Submit Button */}
+                  <div className="flex justify-end space-x-3">
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShowBookingModal(false)}
+                      className="touch-target"
+                      aria-label="Annulla prenotazione"
+                    >
+                      Annulla
+                    </Button>
+                    <Button
+                      onClick={handleBookingSubmit}
+                      disabled={!selectedService || !selectedBarber || isSubmitting}
+                      className="touch-target"
+                      aria-label={isSubmitting ? 'Prenotazione in corso' : 'Conferma prenotazione'}
+                    >
+                      {isSubmitting ? 'Prenotazione in corso...' : 'Conferma Prenotazione'}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </Modal>
+              </Modal>
 
-            {/* Product Upsell Modal - Only show if products are enabled */}
-            {areProductsEnabled && (
-              <ProductUpsell
-                isOpen={showUpsellModal}
-                onClose={handleUpsellSkip}
-                onCancel={handleUpsellCancel}
-                onConfirm={handleUpsellConfirm}
-                isSubmitting={isSubmitting}
-              />
-            )}
+              {/* Product Upsell Modal - Only show if products are enabled */}
+              {areProductsEnabled && (
+                <ProductUpsell
+                  isOpen={showUpsellModal}
+                  onClose={handleUpsellSkip}
+                  onCancel={handleUpsellCancel}
+                  onConfirm={handleUpsellConfirm}
+                  isSubmitting={isSubmitting}
+                />
+              )}
+            </div>
+
+            {/* Physical Spacer to force scroll past bottom nav */}
+            <div className="h-32 w-full flex-shrink-0" aria-hidden="true" />
           </div>
-
-          {/* Physical Spacer to force scroll past bottom nav */}
-          <div className="h-32 w-full flex-shrink-0" aria-hidden="true" />
         </div>
       </div>
-    </div>
-  );
+      );
 };
