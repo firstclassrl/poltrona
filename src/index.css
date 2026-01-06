@@ -123,8 +123,11 @@ body {
 [data-theme='aurora'] body,
 [data-theme='aurora'] html {
   background: linear-gradient(135deg, #f7fbff 0%, #c8e4ff 40%, #c7c5ff 100%) !important;
-  background-attachment: fixed !important;
+  /* background-attachment: fixed caused scroll issues on mobile */
   min-height: 100vh !important;
+  height: auto !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
 }
 
 [data-theme='aurora'] .app-theme-bg {

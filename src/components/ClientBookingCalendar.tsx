@@ -981,7 +981,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
                         aria-disabled={!isClickable}
                         className={`
                     relative flex flex-col items-center justify-between
-                    aspect-[4/5] sm:aspect-square 
+                    min-h-[90px] w-full
                     p-1 sm:p-1.5 
                     border rounded-lg transition-all overflow-hidden touch-target
                     ${isCurrentMonthDay ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100'}
@@ -999,7 +999,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
 
                         {/* Availability Indicators - Fixed 3 bars (Traffic Light) */}
                         {isOpenAndAvailable && availability.total > 0 && (
-                          <div className="flex gap-0.5 sm:gap-1 h-1.5 sm:h-2 w-full px-0.5 sm:px-1 mb-1 sm:mb-2">
+                          <div className="flex-shrink-0 flex gap-0.5 sm:gap-1 h-1.5 sm:h-2 w-full px-0.5 sm:px-1 mb-1 sm:mb-2">
                             {[1, 2, 3].map((level) => {
                               // Determine color based on current signalLevel
                               let colorClass = 'bg-gray-200';
