@@ -788,7 +788,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   const userName = userProfile?.full_name || user?.full_name || 'Cliente';
 
   return (
-    <div className="p-0 page-container-chat-style pb-48">
+    <div className="p-0 page-container-chat-style pb-52">
       <div className="w-full">
         <div className="flex flex-col space-y-8">
           <div className="space-y-8">

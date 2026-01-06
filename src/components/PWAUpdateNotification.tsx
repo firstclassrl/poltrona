@@ -36,29 +36,43 @@ export const PWAUpdateNotification: React.FC = () => {
     }
   }, []);
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
+    setIsUpdating(true);
+
+    // Helper force reload
+    const forceReload = () => {
+      // Clear any caches if possible (optional but safe)
+      if ('caches' in window) {
+        caches.keys().then((names) => {
+          names.forEach((name) => {
+            // Optional: Strategically delete only if needed, but for now just reload
+          });
+        });
+      }
+      window.location.reload();
+    };
+
     if (registration?.waiting) {
-      setIsUpdating(true);
       // Invia messaggio al service worker per saltare l'attesa
       registration.waiting.postMessage({ type: 'SKIP_WAITING' });
 
-      // Timeout di sicurezza: se il reload non avviene entro 500ms, forza il reload
-      // Ridotto a 500ms per dare feedback immediato all'utente
-      const reloadTimeout = setTimeout(() => {
-        window.location.reload();
-      }, 500);
+      // Timeout di sicurezza: se il reload non avviene entro 300ms, forza il reload
+      const reloadTimeout = setTimeout(forceReload, 300);
 
       // Pulisci il timeout se il controllerchange viene attivato prima
       const controllerChangeHandler = () => {
         clearTimeout(reloadTimeout);
-        window.location.reload();
+        forceReload();
       };
 
       navigator.serviceWorker.addEventListener('controllerchange', controllerChangeHandler, { once: true });
     } else {
-      // Se non c'è un service worker in attesa, o se qualcosa è andato storto, forza un reload
-      // Questo gestisce anche il caso in cui l'utente clicca su "Aggiorna" ma il SW è già attivo
-      window.location.reload();
+      // Se non c'è un service worker in attesa, prova a deregistrare e ricaricare
+      // Questo risolve casi in cui il browser è "bloccato"
+      if (registration) {
+        await registration.unregister();
+      }
+      forceReload();
     }
   };
 
