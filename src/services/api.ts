@@ -859,6 +859,12 @@ export const apiService = {
       }
       
       
+      // Se non ci sono orari configurati nel DB, usa i default (aperto Lun-Sab)
+      // Questo evita che il calendario mostri "Nessun giorno aperto" per i nuovi shop o in caso di errore
+      if (rows.length === 0) {
+        return createDefaultShopHoursConfig();
+      }
+
       // Inizializza tutti i giorni come chiusi (non usare il default che ha lunedì aperto)
       const config: ShopHoursConfig = {
         0: { isOpen: false, timeSlots: [] }, // Domenica
