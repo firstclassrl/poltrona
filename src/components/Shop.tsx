@@ -109,9 +109,9 @@ export const ShopManagement = () => {
   const persistShopState = (shopData: Shop, updateTimestamp: boolean = true) => {
     const shopWithTimestamp: Shop = updateTimestamp
       ? {
-          ...shopData,
-          updated_at: new Date().toISOString(),
-        }
+        ...shopData,
+        updated_at: new Date().toISOString(),
+      }
       : shopData;
     persistShopLocally(shopWithTimestamp);
     setShop(shopWithTimestamp);
@@ -123,11 +123,11 @@ export const ShopManagement = () => {
       const link = buildShopUrl(shop.slug || 'default');
       const encoded = encodeURIComponent(link);
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encoded}&size=500x500`;
-      
+
       // Fetch the QR code image
       const response = await fetch(qrUrl);
       const blob = await response.blob();
-      
+
       // Create a download link
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -149,9 +149,9 @@ export const ShopManagement = () => {
 
 
   const loadShopData = async () => {
-     try {
-       const shopData = await apiService.getShop();
-      
+    try {
+      const shopData = await apiService.getShop();
+
       const syncedShop = persistShopState(shopData, false);
       setBasicFormData({
         name: syncedShop.name || '',
@@ -168,7 +168,7 @@ export const ShopManagement = () => {
       const incomingLogoPath = (syncedShop as any).logo_path || '';
       const incomingLogoUrl = (syncedShop as any).logo_url || '';
       setLogoPath(incomingLogoPath);
-      
+
       // Priorità 1: Prova con logo_url salvato (se valido)
       if (incomingLogoUrl && incomingLogoUrl.trim() && incomingLogoUrl !== 'null' && incomingLogoUrl !== 'undefined' && incomingLogoUrl.length > 0) {
         setLogoUrl(incomingLogoUrl);
@@ -176,7 +176,7 @@ export const ShopManagement = () => {
         // Priorità 2: Costruisci URL pubblico da logo_path (se bucket è pubblico)
         const publicUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/shop-logos/${incomingLogoPath}`;
         setLogoUrl(publicUrl);
-        
+
         // Se URL pubblico non funziona, prova signed URL
         try {
           const testRes = await fetch(publicUrl, { method: 'HEAD' });
@@ -235,7 +235,7 @@ export const ShopManagement = () => {
         const incomingLogoPath = (syncedShop as any).logo_path || '';
         const incomingLogoUrl = (syncedShop as any).logo_url || '';
         setLogoPath(incomingLogoPath);
-        
+
         // Priorità 1: Prova con logo_url salvato (se valido)
         if (incomingLogoUrl && incomingLogoUrl.trim() && incomingLogoUrl !== 'null' && incomingLogoUrl !== 'undefined') {
           setLogoUrl(incomingLogoUrl);
@@ -278,37 +278,37 @@ export const ShopManagement = () => {
   };
 
   const handleSaveBasic = async () => {
-     if (!shop) {
-       showMessage(setBasicMessage, 'error', 'Impossibile salvare: dati negozio non disponibili.', 5000);
-       return;
-     }
- 
-     setIsSavingBasic(true);
-     const updatedShop: Shop = {
-       ...shop,
-       name: basicFormData.name,
-       address: basicFormData.address,
-       postal_code: basicFormData.postal_code,
-       city: basicFormData.city,
-       province: basicFormData.province,
-       phone: basicFormData.phone,
-       whatsapp: basicFormData.whatsapp,
-       email: basicFormData.email,
-       notification_email: basicFormData.notification_email,
-       description: basicFormData.description,
-     };
-     try {
-       await apiService.updateShop(updatedShop);
-       persistShopState(updatedShop);
-       setIsEditingBasic(false);
-       showMessage(setBasicMessage, 'success', 'Informazioni negozio salvate con successo!');
-     } catch (error) {
-       console.error('Error saving shop:', error);
-       showMessage(setBasicMessage, 'error', 'Errore durante il salvataggio. Riprova.', 5000);
-     } finally {
-       setIsSavingBasic(false);
-     }
-   };
+    if (!shop) {
+      showMessage(setBasicMessage, 'error', 'Impossibile salvare: dati negozio non disponibili.', 5000);
+      return;
+    }
+
+    setIsSavingBasic(true);
+    const updatedShop: Shop = {
+      ...shop,
+      name: basicFormData.name,
+      address: basicFormData.address,
+      postal_code: basicFormData.postal_code,
+      city: basicFormData.city,
+      province: basicFormData.province,
+      phone: basicFormData.phone,
+      whatsapp: basicFormData.whatsapp,
+      email: basicFormData.email,
+      notification_email: basicFormData.notification_email,
+      description: basicFormData.description,
+    };
+    try {
+      await apiService.updateShop(updatedShop);
+      persistShopState(updatedShop);
+      setIsEditingBasic(false);
+      showMessage(setBasicMessage, 'success', 'Informazioni negozio salvate con successo!');
+    } catch (error) {
+      console.error('Error saving shop:', error);
+      showMessage(setBasicMessage, 'error', 'Errore durante il salvataggio. Riprova.', 5000);
+    } finally {
+      setIsSavingBasic(false);
+    }
+  };
 
   const handleUploadLogo = async (file: File) => {
     if (!shop) {
@@ -376,494 +376,487 @@ export const ShopManagement = () => {
   return (
     <div className="p-0 page-container-chat-style">
       <div className="w-full">
-      <div className="flex flex-col space-y-4">
-      <div className="space-y-4 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-gray-900">
-          {isClient ? 'Informazioni Negozio' : 'Gestione Negozio'}
-        </h1>
-      </div>
-
-      {/* Card Unica: Informazioni Negozio e Contatti */}
-      <Card className="!border-2 !border-green-500">
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center">
-              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mr-3">
-                <Building2 className="w-5 h-5 text-white" />
-              </div>
-              <h2 className="text-lg font-semibold text-gray-900">Informazioni Negozio e Contatti</h2>
-            </div>
-            {!isClient && (
-              !isEditingBasic ? (
-                <Button 
-                  onClick={() => setIsEditingBasic(true)} 
-                  size="sm"
-                  className="bg-green-600 hover:bg-green-700 text-white border-green-600"
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  Modifica
-                </Button>
-              ) : (
-                <div className="flex space-x-2">
-                  <Button
-                    variant="secondary"
-                    onClick={handleCancelBasic}
-                    size="sm"
-                    disabled={isSavingBasic}
-                  >
-                    <X className="w-4 h-4 mr-2" />
-                    Annulla
-                  </Button>
-                  <Button
-                    onClick={handleSaveBasic}
-                    size="sm"
-                    loading={isSavingBasic}
-                    disabled={isSavingBasic}
-                    className="bg-green-600 hover:bg-green-700 text-white border-green-600"
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    Salva
-                  </Button>
-                </div>
-              )
-            )}
-          </div>
-          {basicMessage && (
-            <div
-              className={`mb-4 p-3 rounded-lg ${
-                basicMessage.type === 'success'
-                  ? 'bg-green-50 border border-green-200 text-green-800'
-                  : 'bg-red-50 border border-red-200 text-red-800'
-              }`}
-            >
-              <p className="text-sm font-medium">{basicMessage.text}</p>
-            </div>
-          )}
-
-          {/* Logo negozio (solo admin modifica) */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                  <ImageIcon className="w-4 h-4 text-green-600" />
-                </div>
-                <div>
-                  <h3 className="text-md font-medium text-gray-900">Logo negozio</h3>
-                  <p className="text-xs text-gray-500">PNG / JPG / PDF, max 5MB</p>
-                </div>
-              </div>
+        <div className="flex flex-col space-y-4">
+          <div className="space-y-4 max-w-7xl mx-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-2xl font-bold text-gray-900">
+                {isClient ? 'Informazioni Negozio' : 'Gestione Negozio'}
+              </h1>
             </div>
 
-            {logoMessage && (
-              <div
-                className={`mb-3 p-3 rounded-lg ${
-                  logoMessage.type === 'success'
-                    ? 'bg-green-50 border border-green-200 text-green-800'
-                    : 'bg-red-50 border border-red-200 text-red-800'
-                }`}
-              >
-                <p className="text-sm font-medium">{logoMessage.text}</p>
-              </div>
-            )}
-
-            {isAdmin ? (
-              <PhotoUpload
-                onUpload={handleUploadLogo}
-                currentImageUrl={
-                  logoPath && logoPath.toLowerCase().endsWith('.pdf') ? undefined : logoUrl || DEFAULT_LOGO
-                }
-                onRemove={logoPath ? handleRemoveLogo : undefined}
-                accept=".png,.jpg,.jpeg,.pdf"
-                allowPdf
-                maxSize={5}
-                title="Trascina il logo qui"
-                subtitle="oppure"
-                helper="PNG, JPG o PDF fino a 5MB"
-                className="max-w-md"
-              />
-            ) : (
-              <div className="flex items-center space-x-3">
-                {logoUrl && !logoPath?.toLowerCase().endsWith('.pdf') ? (
-                  <img
-                    src={logoUrl}
-                    alt="Logo negozio"
-                    className="w-20 h-20 object-contain rounded-lg border border-gray-200"
-                  />
-                ) : logoPath ? (
-                  <div className="flex items-center space-x-2 text-sm text-gray-700">
-                    <FileText className="w-4 h-4" />
-                    <span>Logo (PDF)</span>
+            {/* Card Unica: Informazioni Negozio e Contatti */}
+            <Card className="!border-2 !border-green-500">
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center">
+                    <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mr-3">
+                      <Building2 className="w-5 h-5 text-white" />
+                    </div>
+                    <h2 className="text-lg font-semibold text-gray-900">Informazioni Negozio e Contatti</h2>
                   </div>
-                ) : (
-                  <img
-                    src={DEFAULT_LOGO}
-                    alt="Logo generico Poltrona"
-                    className="w-20 h-20 object-contain rounded-lg border border-gray-200"
-                  />
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Informazioni Principali */}
-          <div className="mb-6">
-            <h3 className="text-md font-medium text-gray-900 mb-3">Informazioni Principali</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <Input
-                label="Nome Negozio"
-                value={basicFormData.name}
-                onChange={(e) => setBasicFormData(prev => ({ ...prev, name: e.target.value }))}
-                disabled={!isEditingBasic || isClient}
-                required
-              />
-              
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Descrizione
-                </label>
-                <textarea
-                  value={basicFormData.description}
-                  onChange={(e) => setBasicFormData(prev => ({ ...prev, description: e.target.value }))}
-                  disabled={!isEditingBasic || isClient}
-                  placeholder="Descrizione del negozio..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 text-sm"
-                  rows={2}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Contatti e Indirizzo */}
-          <div>
-            <div className="flex items-center mb-3">
-              <MapPin className="w-5 h-5 text-gray-600 mr-2" />
-              <h3 className="text-md font-medium text-gray-900">Contatti e Indirizzo</h3>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="md:col-span-3">
-              <Input
-                label="Indirizzo"
-                value={basicFormData.address}
-                onChange={(e) => setBasicFormData(prev => ({ ...prev, address: e.target.value }))}
-                disabled={!isEditingBasic || isClient}
-                placeholder="Via Roma 123"
-              />
-              </div>
-              
-              <Input
-                label="CAP"
-                value={basicFormData.postal_code}
-                onChange={(e) => setBasicFormData(prev => ({ ...prev, postal_code: e.target.value }))}
-                disabled={!isEditingBasic || isClient}
-                placeholder="00100"
-                maxLength={5}
-              />
-              
-              <Input
-                label="Città"
-                value={basicFormData.city}
-                onChange={(e) => setBasicFormData(prev => ({ ...prev, city: e.target.value }))}
-                disabled={!isEditingBasic || isClient}
-                placeholder="Roma"
-              />
-              
-              <Input
-                label="Provincia"
-                value={basicFormData.province}
-                onChange={(e) => setBasicFormData(prev => ({ ...prev, province: e.target.value }))}
-                disabled={!isEditingBasic || isClient}
-                placeholder="RM"
-                maxLength={2}
-              />
-              
-              <Input
-                label="Telefono"
-                value={basicFormData.phone}
-                onChange={(e) => setBasicFormData(prev => ({ ...prev, phone: e.target.value }))}
-                disabled={!isEditingBasic || isClient}
-                placeholder="+39 06 1234567"
-              />
-              
-              <Input
-                label="WhatsApp"
-                value={basicFormData.whatsapp}
-                onChange={(e) => setBasicFormData(prev => ({ ...prev, whatsapp: e.target.value }))}
-                disabled={!isEditingBasic || isClient}
-                placeholder="+39 06 1234567"
-              />
-              
-              <Input
-                label="Email"
-                type="email"
-                value={basicFormData.email}
-                onChange={(e) => setBasicFormData(prev => ({ ...prev, email: e.target.value }))}
-                disabled={!isEditingBasic || isClient}
-                placeholder="info@retrobarbershop.it"
-              />
-              
-              {/* Email Notifiche - Solo per admin */}
-              {isAdmin && (
-                <div className="md:col-span-3">
-                  <Input
-                    label="Email Notifiche"
-                    type="email"
-                    value={basicFormData.notification_email}
-                    onChange={(e) => setBasicFormData(prev => ({ ...prev, notification_email: e.target.value }))}
-                    disabled={!isEditingBasic}
-                    placeholder="admin@negozio.it"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Email dove ricevere notifiche per nuove registrazioni clienti
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      {/* Card Orari di Apertura - solo staff/admin, rimossa per i clienti */}
-      {!isClient && (
-        <Card className="!border-2 !border-indigo-400">
-          <div className="p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-indigo-600" />
-                </div>
-                <div>
-                  <h3 className="text-base font-semibold text-gray-900">Orari di Apertura</h3>
-                  <p className="text-sm text-gray-600">Gestisci l'apertura giornaliera del negozio.</p>
-                </div>
-              </div>
-              {isAdmin && (
-                !isEditingHours ? (
-                  <Button
-                    onClick={() => setIsEditingHours(true)}
-                    size="sm"
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600"
-                  >
-                    <Edit className="w-4 h-4 mr-2" />
-                    Modifica
-                  </Button>
-                ) : (
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={async () => {
-                        setIsSavingHours(true);
-                        try {
-                          if (!currentShopHours) {
-                            showMessage(setHoursMessage, 'error', 'Nessun dato da salvare');
-                            return;
-                          }
-                          // Passa lo stato corrente direttamente da DailyHoursManager
-                          const wasSaved = await apiService.saveDailyShopHours(currentShopHours);
-                          if (wasSaved) {
-                            showMessage(setHoursMessage, 'success', 'Orari salvati con successo!');
-                            setIsEditingHours(false);
-                          } else {
-                            showMessage(setHoursMessage, 'error', 'Nessuna modifica da salvare');
-                          }
-                        } catch (error) {
-                          showMessage(
-                            setHoursMessage,
-                            'error',
-                            `Errore nel salvataggio: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`
-                          );
-                        } finally {
-                          setIsSavingHours(false);
-                        }
-                      }}
-                      size="sm"
-                      disabled={isSavingHours}
-                      className="bg-green-600 hover:bg-green-700 text-white border-green-600"
-                    >
-                      <Save className="w-4 h-4 mr-2" />
-                      {isSavingHours ? 'Salvataggio...' : 'Salva'}
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setIsEditingHours(false);
-                        setHoursMessage(null);
-                      }}
-                      size="sm"
-                      disabled={isSavingHours}
-                      variant="ghost"
-                      className="text-gray-600 hover:text-gray-800"
-                    >
-                      <X className="w-4 h-4 mr-2" />
-                      Annulla
-                    </Button>
-                  </div>
-                )
-              )}
-            </div>
-
-            <DailyHoursManager 
-              disabled={!isEditingHours || !isAdmin}
-              onStateChange={(hours) => {
-                setCurrentShopHours(hours);
-              }}
-            />
-
-            {hoursMessage && (
-              <div
-                className={`p-3 rounded-lg ${
-                  hoursMessage.type === 'success'
-                    ? 'bg-green-50 text-green-800 border border-green-200'
-                    : 'bg-red-50 text-red-800 border border-red-200'
-                }`}
-              >
-                {hoursMessage.text}
-              </div>
-            )}
-
-            {!isEditingHours && isAdmin && (
-              <p className="text-xs text-gray-500">
-                Clicca su Modifica per aggiornare i giorni e le fasce orarie.
-              </p>
-            )}
-          </div>
-        </Card>
-      )}
-
-      {/* Card Barbieri - solo vista cliente 'Il Mio Barbiere' */}
-      {isClient && staff.length > 0 && (
-        <Card className="!border-2 !border-purple-400">
-          <div className="p-4 space-y-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                  <UserIcon className="w-4 h-4 text-purple-600" />
-                </div>
-                <h3 className="text-base font-semibold text-gray-900">Barbieri</h3>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Selettore barbiere */}
-              <div className="md:col-span-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Scegli il tuo barbiere
-                </label>
-                <select
-                  value={selectedBarberId}
-                  onChange={(e) => setSelectedBarberId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm bg-white"
-                >
-                  {staff.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.full_name || 'Barbiere'}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Dettagli barbiere selezionato */}
-              <div className="md:col-span-2">
-                {(() => {
-                  const selected = staff.find((s) => s.id === selectedBarberId) || staff[0];
-                  if (!selected) return null;
-
-                  return (
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                      <div className="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                        {selected.profile_photo_url ? (
-                          <img
-                            src={selected.profile_photo_url}
-                            alt={selected.full_name || 'Barbiere'}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-white font-semibold text-lg">
-                            {(selected.full_name || 'B')
-                              .split(' ')
-                              .map((n) => n[0])
-                              .join('')
-                              .toUpperCase()}
-                          </span>
-                        )}
+                  {!isClient && (
+                    !isEditingBasic ? (
+                      <Button
+                        onClick={() => setIsEditingBasic(true)}
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700 text-white border-green-600"
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Modifica
+                      </Button>
+                    ) : (
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="secondary"
+                          onClick={handleCancelBasic}
+                          size="sm"
+                          disabled={isSavingBasic}
+                        >
+                          <X className="w-4 h-4 mr-2" />
+                          Annulla
+                        </Button>
+                        <Button
+                          onClick={handleSaveBasic}
+                          size="sm"
+                          loading={isSavingBasic}
+                          disabled={isSavingBasic}
+                          className="bg-green-600 hover:bg-green-700 text-white border-green-600"
+                        >
+                          <Save className="w-4 h-4 mr-2" />
+                          Salva
+                        </Button>
                       </div>
-                      <div className="space-y-1">
-                        <p className="text-lg font-semibold text-gray-900">
-                          {selected.full_name || 'Barbiere'}
-                        </p>
-                        {selected.role && (
-                          <p className="text-sm text-gray-600">{selected.role}</p>
-                        )}
-                        <div className="text-sm text-gray-700 space-y-0.5">
-                          {selected.phone && (
-                            <p>
-                              <span className="font-medium">Telefono:</span>{' '}
-                              {selected.phone}
-                            </p>
-                          )}
-                          {selected.email && (
-                            <p>
-                              <span className="font-medium">Email:</span>{' '}
-                              {selected.email}
-                            </p>
-                          )}
-                          {selected.chair_id && (
-                            <p className="text-xs text-gray-500">
-                              Poltrona: {selected.chair_id.replace('chair_', 'Poltrona ')}
-                            </p>
-                          )}
-                        </div>
-                        {selected.specialties && (
-                          <p className="text-xs text-gray-600 mt-1">
-                            <span className="font-medium">Specialità:</span>{' '}
-                            {selected.specialties}
-                          </p>
-                        )}
-                        {selected.bio && (
-                          <p className="text-xs text-gray-600 mt-1">
-                            <span className="font-medium">Bio:</span>{' '}
-                            {selected.bio}
-                          </p>
-                        )}
+                    )
+                  )}
+                </div>
+                {basicMessage && (
+                  <div
+                    className={`mb-4 p-3 rounded-lg ${basicMessage.type === 'success'
+                        ? 'bg-green-50 border border-green-200 text-green-800'
+                        : 'bg-red-50 border border-red-200 text-red-800'
+                      }`}
+                  >
+                    <p className="text-sm font-medium">{basicMessage.text}</p>
+                  </div>
+                )}
+
+                {/* Logo negozio (solo admin modifica) */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                        <ImageIcon className="w-4 h-4 text-green-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-md font-medium text-gray-900">Logo negozio</h3>
+                        <p className="text-xs text-gray-500">PNG / JPG / PDF, max 5MB</p>
                       </div>
                     </div>
-                  );
-                })()}
-              </div>
-            </div>
-          </div>
-        </Card>
-      )}
+                  </div>
 
-      {/* QR Code per Registrazione Clienti */}
-      {shop && shop.slug && (
-        <Card className="!border-2 !border-blue-400">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold text-gray-900">QR Code Registrazione Clienti</h3>
-            </div>
-            
-            <div className="flex flex-col items-center space-y-4 p-4 bg-gray-50 rounded-lg">
-              <ShopQRCode 
-                link={buildShopUrl(shop.slug)} 
-                size={200} 
-              />
-              <button
-                type="button"
-                onClick={() => downloadQRCode(shop)}
-                className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white px-6 py-3 font-semibold rounded-lg transition-all duration-200"
-              >
-                <Download className="w-4 h-4" />
-                Scarica QR Code
-              </button>
-              <p className="text-xs text-gray-600 text-center max-w-md">
-                Condividi questo QR code con i tuoi clienti per permettere loro di registrarsi facilmente al tuo negozio.
-              </p>
-            </div>
+                  {logoMessage && (
+                    <div
+                      className={`mb-3 p-3 rounded-lg ${logoMessage.type === 'success'
+                          ? 'bg-green-50 border border-green-200 text-green-800'
+                          : 'bg-red-50 border border-red-200 text-red-800'
+                        }`}
+                    >
+                      <p className="text-sm font-medium">{logoMessage.text}</p>
+                    </div>
+                  )}
+
+                  {isAdmin ? (
+                    <PhotoUpload
+                      onUpload={handleUploadLogo}
+                      currentImageUrl={
+                        logoPath && logoPath.toLowerCase().endsWith('.pdf') ? undefined : logoUrl || DEFAULT_LOGO
+                      }
+                      onRemove={logoPath ? handleRemoveLogo : undefined}
+                      accept=".png,.jpg,.jpeg,.pdf"
+                      allowPdf
+                      maxSize={5}
+                      title="Trascina il logo qui"
+                      subtitle="oppure"
+                      helper="PNG, JPG o PDF fino a 5MB"
+                      className="max-w-md"
+                    />
+                  ) : (
+                    <div className="flex items-center space-x-3">
+                      {logoUrl && !logoPath?.toLowerCase().endsWith('.pdf') ? (
+                        <img
+                          src={logoUrl}
+                          alt="Logo negozio"
+                          className="w-20 h-20 object-contain rounded-lg border border-gray-200"
+                        />
+                      ) : logoPath ? (
+                        <div className="flex items-center space-x-2 text-sm text-gray-700">
+                          <FileText className="w-4 h-4" />
+                          <span>Logo (PDF)</span>
+                        </div>
+                      ) : (
+                        <img
+                          src={DEFAULT_LOGO}
+                          alt="Logo generico Poltrona"
+                          className="w-20 h-20 object-contain rounded-lg border border-gray-200"
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Informazioni Principali */}
+                <div className="mb-6">
+                  <h3 className="text-md font-medium text-gray-900 mb-3">Informazioni Principali</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <Input
+                      label="Nome Negozio"
+                      value={basicFormData.name}
+                      onChange={(e) => setBasicFormData(prev => ({ ...prev, name: e.target.value }))}
+                      disabled={!isEditingBasic || isClient}
+                      required
+                    />
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Descrizione
+                      </label>
+                      <textarea
+                        value={basicFormData.description}
+                        onChange={(e) => setBasicFormData(prev => ({ ...prev, description: e.target.value }))}
+                        disabled={!isEditingBasic || isClient}
+                        placeholder="Descrizione del negozio..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 text-sm"
+                        rows={2}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contatti e Indirizzo */}
+                <div>
+                  <div className="flex items-center mb-3">
+                    <MapPin className="w-5 h-5 text-gray-600 mr-2" />
+                    <h3 className="text-md font-medium text-gray-900">Contatti e Indirizzo</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="md:col-span-3">
+                      <Input
+                        label="Indirizzo"
+                        value={basicFormData.address}
+                        onChange={(e) => setBasicFormData(prev => ({ ...prev, address: e.target.value }))}
+                        disabled={!isEditingBasic || isClient}
+                        placeholder="Via Roma 123"
+                      />
+                    </div>
+
+                    <Input
+                      label="CAP"
+                      value={basicFormData.postal_code}
+                      onChange={(e) => setBasicFormData(prev => ({ ...prev, postal_code: e.target.value }))}
+                      disabled={!isEditingBasic || isClient}
+                      placeholder="00100"
+                      maxLength={5}
+                    />
+
+                    <Input
+                      label="Città"
+                      value={basicFormData.city}
+                      onChange={(e) => setBasicFormData(prev => ({ ...prev, city: e.target.value }))}
+                      disabled={!isEditingBasic || isClient}
+                      placeholder="Roma"
+                    />
+
+                    <Input
+                      label="Provincia"
+                      value={basicFormData.province}
+                      onChange={(e) => setBasicFormData(prev => ({ ...prev, province: e.target.value }))}
+                      disabled={!isEditingBasic || isClient}
+                      placeholder="RM"
+                      maxLength={2}
+                    />
+
+                    <Input
+                      label="Telefono"
+                      value={basicFormData.phone}
+                      onChange={(e) => setBasicFormData(prev => ({ ...prev, phone: e.target.value }))}
+                      disabled={!isEditingBasic || isClient}
+                      placeholder="+39 06 1234567"
+                    />
+
+                    <Input
+                      label="WhatsApp"
+                      value={basicFormData.whatsapp}
+                      onChange={(e) => setBasicFormData(prev => ({ ...prev, whatsapp: e.target.value }))}
+                      disabled={!isEditingBasic || isClient}
+                      placeholder="+39 06 1234567"
+                    />
+
+                    <Input
+                      label="Email"
+                      type="email"
+                      value={basicFormData.email}
+                      onChange={(e) => setBasicFormData(prev => ({ ...prev, email: e.target.value }))}
+                      disabled={!isEditingBasic || isClient}
+                      placeholder="info@retrobarbershop.it"
+                    />
+
+                    {/* Email Notifiche - Solo per admin */}
+                    {isAdmin && (
+                      <div className="md:col-span-3">
+                        <Input
+                          label="Email Notifiche"
+                          type="email"
+                          value={basicFormData.notification_email}
+                          onChange={(e) => setBasicFormData(prev => ({ ...prev, notification_email: e.target.value }))}
+                          disabled={!isEditingBasic}
+                          placeholder="admin@negozio.it"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Email dove ricevere notifiche per nuove registrazioni clienti
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Card Orari di Apertura - solo staff/admin, rimossa per i clienti */}
+            {!isClient && (
+              <Card className="!border-2 !border-indigo-400">
+                <div className="p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                        <Clock className="w-5 h-5 text-indigo-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-semibold text-gray-900">Orari di Apertura</h3>
+                        <p className="text-sm text-gray-600">Gestisci l'apertura giornaliera del negozio.</p>
+                      </div>
+                    </div>
+                    {isAdmin && (
+                      !isEditingHours ? (
+                        <Button
+                          onClick={() => setIsEditingHours(true)}
+                          size="sm"
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600"
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Modifica
+                        </Button>
+                      ) : (
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={async () => {
+                              setIsSavingHours(true);
+                              try {
+                                if (!currentShopHours) {
+                                  showMessage(setHoursMessage, 'error', 'Nessun dato da salvare');
+                                  return;
+                                }
+                                // Passa lo stato corrente direttamente da DailyHoursManager
+                                const wasSaved = await apiService.saveDailyShopHours(currentShopHours);
+                                if (wasSaved) {
+                                  showMessage(setHoursMessage, 'success', 'Orari salvati con successo!');
+                                  setIsEditingHours(false);
+                                } else {
+                                  showMessage(setHoursMessage, 'error', 'Nessuna modifica da salvare');
+                                }
+                              } catch (error) {
+                                showMessage(
+                                  setHoursMessage,
+                                  'error',
+                                  `Errore nel salvataggio: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`
+                                );
+                              } finally {
+                                setIsSavingHours(false);
+                              }
+                            }}
+                            size="sm"
+                            disabled={isSavingHours}
+                            className="bg-green-600 hover:bg-green-700 text-white border-green-600"
+                          >
+                            <Save className="w-4 h-4 mr-2" />
+                            {isSavingHours ? 'Salvataggio...' : 'Salva'}
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              setIsEditingHours(false);
+                              setHoursMessage(null);
+                            }}
+                            size="sm"
+                            disabled={isSavingHours}
+                            variant="ghost"
+                            className="text-gray-600 hover:text-gray-800"
+                          >
+                            <X className="w-4 h-4 mr-2" />
+                            Annulla
+                          </Button>
+                        </div>
+                      )
+                    )}
+                  </div>
+
+                  <DailyHoursManager
+                    disabled={!isEditingHours || !isAdmin}
+                    onStateChange={(hours) => {
+                      setCurrentShopHours(hours);
+                    }}
+                  />
+
+                  {hoursMessage && (
+                    <div
+                      className={`p-3 rounded-lg ${hoursMessage.type === 'success'
+                          ? 'bg-green-50 text-green-800 border border-green-200'
+                          : 'bg-red-50 text-red-800 border border-red-200'
+                        }`}
+                    >
+                      {hoursMessage.text}
+                    </div>
+                  )}
+
+
+                </div>
+              </Card>
+            )}
+
+            {/* Card Barbieri - solo vista cliente 'Il Mio Barbiere' */}
+            {isClient && staff.length > 0 && (
+              <Card className="!border-2 !border-purple-400">
+                <div className="p-4 space-y-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                        <UserIcon className="w-4 h-4 text-purple-600" />
+                      </div>
+                      <h3 className="text-base font-semibold text-gray-900">Barbieri</h3>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Selettore barbiere */}
+                    <div className="md:col-span-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Scegli il tuo barbiere
+                      </label>
+                      <select
+                        value={selectedBarberId}
+                        onChange={(e) => setSelectedBarberId(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm bg-white"
+                      >
+                        {staff.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.full_name || 'Barbiere'}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Dettagli barbiere selezionato */}
+                    <div className="md:col-span-2">
+                      {(() => {
+                        const selected = staff.find((s) => s.id === selectedBarberId) || staff[0];
+                        if (!selected) return null;
+
+                        return (
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                            <div className="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                              {selected.profile_photo_url ? (
+                                <img
+                                  src={selected.profile_photo_url}
+                                  alt={selected.full_name || 'Barbiere'}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <span className="text-white font-semibold text-lg">
+                                  {(selected.full_name || 'B')
+                                    .split(' ')
+                                    .map((n) => n[0])
+                                    .join('')
+                                    .toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-lg font-semibold text-gray-900">
+                                {selected.full_name || 'Barbiere'}
+                              </p>
+                              {selected.role && (
+                                <p className="text-sm text-gray-600">{selected.role}</p>
+                              )}
+                              <div className="text-sm text-gray-700 space-y-0.5">
+                                {selected.phone && (
+                                  <p>
+                                    <span className="font-medium">Telefono:</span>{' '}
+                                    {selected.phone}
+                                  </p>
+                                )}
+                                {selected.email && (
+                                  <p>
+                                    <span className="font-medium">Email:</span>{' '}
+                                    {selected.email}
+                                  </p>
+                                )}
+                                {selected.chair_id && (
+                                  <p className="text-xs text-gray-500">
+                                    Poltrona: {selected.chair_id.replace('chair_', 'Poltrona ')}
+                                  </p>
+                                )}
+                              </div>
+                              {selected.specialties && (
+                                <p className="text-xs text-gray-600 mt-1">
+                                  <span className="font-medium">Specialità:</span>{' '}
+                                  {selected.specialties}
+                                </p>
+                              )}
+                              {selected.bio && (
+                                <p className="text-xs text-gray-600 mt-1">
+                                  <span className="font-medium">Bio:</span>{' '}
+                                  {selected.bio}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {/* QR Code per Registrazione Clienti */}
+            {shop && shop.slug && (
+              <Card className="!border-2 !border-blue-400">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-semibold text-gray-900">QR Code Registrazione Clienti</h3>
+                  </div>
+
+                  <div className="flex flex-col items-center space-y-4 p-4 bg-gray-50 rounded-lg">
+                    <ShopQRCode
+                      link={buildShopUrl(shop.slug)}
+                      size={200}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => downloadQRCode(shop)}
+                      className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white px-6 py-3 font-semibold rounded-lg transition-all duration-200"
+                    >
+                      <Download className="w-4 h-4" />
+                      Scarica QR Code
+                    </button>
+                    <p className="text-xs text-gray-600 text-center max-w-md">
+                      Condividi questo QR code con i tuoi clienti per permettere loro di registrarsi facilmente al tuo negozio.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            )}
           </div>
-        </Card>
-      )}
-      </div>
-      </div>
+        </div>
       </div>
     </div>
   );

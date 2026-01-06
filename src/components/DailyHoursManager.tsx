@@ -41,7 +41,7 @@ export const DailyHoursManager: React.FC<DailyHoursManagerProps> = ({ disabled =
     const updatedSlot = { ...timeSlot, [field]: value };
     updateTimeSlot(dayOfWeek, slotIndex, updatedSlot);
   };
-  
+
   const handleRemoveTimeSlot = (dayOfWeek: number, slotIndex: number) => {
     if (disabled) return;
     removeTimeSlot(dayOfWeek, slotIndex);
@@ -52,23 +52,20 @@ export const DailyHoursManager: React.FC<DailyHoursManagerProps> = ({ disabled =
     const [endHours, endMinutes] = slot.end.split(':').map(Number);
     const startTime = startHours * 60 + startMinutes;
     const endTime = endHours * 60 + endMinutes;
-    
+
     return startTime < endTime && startTime >= 0 && endTime <= 24 * 60;
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center space-x-2 mb-3">
-        <Clock className="w-5 h-5 text-purple-500" />
-        <h2 className="text-lg font-bold text-gray-900">Orari di Apertura</h2>
-      </div>
+
 
       {/* Layout a 3 colonne */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {DAYS_OF_WEEK.map((day) => {
           const dayHours = shopHours[day.key];
           const isOpen = dayHours.isOpen;
-          
+
           return (
             <div key={day.key} className="border border-gray-200 rounded-lg p-3 bg-white hover:shadow-sm transition-shadow min-w-0">
               <div className="flex items-center justify-between mb-2">
@@ -115,14 +112,13 @@ export const DailyHoursManager: React.FC<DailyHoursManagerProps> = ({ disabled =
                     <>
                       {dayHours.timeSlots.map((slot, slotIndex) => {
                         const isValid = validateTimeSlot(slot);
-                        
+
                         return (
-                        <div
-                          key={slotIndex}
-                          className={`flex items-center justify-between p-3 rounded border ${
-                            isValid ? 'border-gray-200 bg-gray-50' : 'border-red-200 bg-red-50'
-                          }`}
-                        >
+                          <div
+                            key={slotIndex}
+                            className={`flex items-center justify-between p-3 rounded border ${isValid ? 'border-gray-200 bg-gray-50' : 'border-red-200 bg-red-50'
+                              }`}
+                          >
                             <div className="flex items-center space-x-2">
                               <TimePicker
                                 value={slot.start}
@@ -140,7 +136,7 @@ export const DailyHoursManager: React.FC<DailyHoursManagerProps> = ({ disabled =
                                 placeholder="18:00"
                               />
                             </div>
-                            
+
                             <Button
                               variant="ghost"
                               size="sm"
