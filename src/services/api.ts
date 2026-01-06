@@ -1,8 +1,8 @@
 import { API_ENDPOINTS, API_CONFIG } from '../config/api';
-import type { 
-  Client, 
-  Appointment, 
-  CreateAppointmentRequest, 
+import type {
+  Client,
+  Appointment,
+  CreateAppointmentRequest,
   UpdateAppointmentRequest,
   Profile,
   Staff,
@@ -43,11 +43,11 @@ const isAuthError = (error: any): boolean => {
   if (!error) return false;
   const errorStr = error.toString().toLowerCase();
   const errorMessage = error?.message?.toLowerCase() || '';
-  return errorStr.includes('jwt expired') || 
-         errorStr.includes('jwt') ||
-         errorMessage.includes('jwt expired') ||
-         errorMessage.includes('401') ||
-         errorMessage.includes('unauthorized');
+  return errorStr.includes('jwt expired') ||
+    errorStr.includes('jwt') ||
+    errorMessage.includes('jwt expired') ||
+    errorMessage.includes('401') ||
+    errorMessage.includes('unauthorized');
 };
 
 // Helper per tentare il refresh del token
@@ -95,7 +95,7 @@ const tryRefreshToken = async (): Promise<boolean> => {
       }
       return true;
     }
-    
+
     return false;
   } catch (error) {
     console.error('Error refreshing token:', error);
@@ -105,37 +105,37 @@ const tryRefreshToken = async (): Promise<boolean> => {
 
 // Helper per fare fetch con retry automatico se il token è scaduto
 const fetchWithTokenRefresh = async (
-  url: string, 
-  options: RequestInit, 
+  url: string,
+  options: RequestInit,
   useAuth: boolean = true
 ): Promise<Response> => {
   let response = await fetch(url, options);
-  
+
   // Se errore 401/403 e usaAuth, prova refresh se token scaduto o bad_jwt
   // IMPORTANTE: Tentiamo il refresh anche per errori 403 generici, perché potrebbero essere causati da token scaduto
   // che fa fallire le policy RLS (auth.uid() restituisce NULL quando il token è scaduto)
   if (useAuth && (response.status === 401 || response.status === 403)) {
     const responseText = await response.clone().text();
     const responseLower = responseText.toLowerCase();
-    
+
     // Controlla se è un errore JWT esplicito
-    const isJwtIssue = responseLower.includes('jwt expired') || 
-                       responseLower.includes('bad jwt') ||
-                       responseLower.includes('jwt') ||
-                       responseLower.includes('unauthorized');
-    
+    const isJwtIssue = responseLower.includes('jwt expired') ||
+      responseLower.includes('bad jwt') ||
+      responseLower.includes('jwt') ||
+      responseLower.includes('unauthorized');
+
     // Controlla se è un errore RLS che potrebbe essere causato da token scaduto
-    const isRlsIssue = responseLower.includes('row-level security') || 
-                       responseLower.includes('violates row-level security policy') ||
-                       responseLower.includes('42501');
-    
+    const isRlsIssue = responseLower.includes('row-level security') ||
+      responseLower.includes('violates row-level security policy') ||
+      responseLower.includes('42501');
+
     // Tentiamo il refresh se:
     // 1. È un errore JWT esplicito
     // 2. È un errore 401 (sempre probabilmente autenticazione)
     // 3. È un errore 403 con RLS (potrebbe essere token scaduto)
     if (isJwtIssue || response.status === 401 || (response.status === 403 && isRlsIssue)) {
       const refreshed = await tryRefreshToken();
-      
+
       if (refreshed) {
         // Ricostruisci gli headers con il nuovo token (cerca in entrambi gli storage)
         const newToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
@@ -146,7 +146,7 @@ const fetchWithTokenRefresh = async (
         if (newToken) {
           newHeaders['Authorization'] = `Bearer ${newToken}`;
         }
-        
+
         // Riprova la chiamata
         response = await fetch(url, { ...options, headers: newHeaders });
       } else {
@@ -155,7 +155,7 @@ const fetchWithTokenRefresh = async (
       }
     }
   }
-  
+
   return response;
 };
 
@@ -165,11 +165,11 @@ const buildHeaders = (authRequired: boolean = false, overrideToken?: string) => 
   if (typeof window !== 'undefined') {
     storedToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
   }
-  
-  const bearer = authRequired 
+
+  const bearer = authRequired
     ? (overrideToken || storedToken || API_CONFIG.SUPABASE_ANON_KEY)
     : API_CONFIG.SUPABASE_ANON_KEY;
-  
+
   return {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -254,7 +254,7 @@ export const apiService = {
   // Client search
   async searchClients(query: string): Promise<Client[]> {
     if (!isSupabaseConfigured()) return [];
-    
+
     try {
       // CRITICO: Aggiungi filtro esplicito shop_id come doppia sicurezza
       let shopId = getStoredShopId();
@@ -262,17 +262,17 @@ export const apiService = {
         const shop = await this.getShop();
         shopId = shop?.id ?? null;
       }
-      
+
       // Se la query è vuota, carica tutti i clienti senza limite
       // Altrimenti, applica un limite ragionevole per le ricerche
       const limit = query.trim() === '' ? 'limit=1000' : 'limit=100';
-      
+
       // Costruisci URL con filtro shop_id se disponibile
       let url = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=id,first_name,last_name,phone_e164,email&or=(first_name.ilike.*${query}*,last_name.ilike.*${query}*,phone_e164.ilike.*${query}*)&order=created_at.desc&${limit}`;
       if (shopId && shopId !== 'default') {
         url += `&shop_id=eq.${shopId}`;
       }
-      
+
       const response = await fetch(url, { headers: buildHeaders(true) });
       if (!response.ok) throw new Error('Failed to search clients');
       return await response.json();
@@ -285,21 +285,21 @@ export const apiService = {
   // Create new client (requires authentication)
   async createClient(data: Partial<Client> & { password?: string }, options?: { accessToken?: string }): Promise<Client> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     // Validate required fields
     if (!data.first_name?.trim()) throw new Error('Nome è obbligatorio');
     if (!data.last_name?.trim()) throw new Error('Cognome è obbligatorio');
     if (!data.phone_e164?.trim()) throw new Error('Telefono è obbligatorio');
     if (!data.email?.trim()) throw new Error('Email è obbligatoria');
-    
+
     let authUserId: string | undefined;
     let authAccessToken: string | undefined;
-    
+
     // If password is provided, create Auth user first
     if (data.password) {
       try {
         const fullName = `${data.first_name.trim()} ${data.last_name.trim()}`.trim();
-        
+
         // Create user in Supabase Auth
         const signupUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/signup`;
         const signupRes = await fetch(signupUrl, {
@@ -328,13 +328,13 @@ export const apiService = {
             try {
               const errText = await signupRes.text();
               serverMsg = errText || serverMsg;
-            } catch {}
+            } catch { }
           }
-          
+
           // If user already exists, try to get existing user
-          if (serverMsg.toLowerCase().includes('already registered') || 
-              serverMsg.toLowerCase().includes('user already exists') ||
-              signupRes.status === 422) {
+          if (serverMsg.toLowerCase().includes('already registered') ||
+            serverMsg.toLowerCase().includes('user already exists') ||
+            signupRes.status === 422) {
             // User already exists, we'll create client record without Auth user
             // User already exists, create client record only
           } else {
@@ -356,9 +356,9 @@ export const apiService = {
                   'apikey': API_CONFIG.SUPABASE_ANON_KEY,
                   'Authorization': `Bearer ${API_CONFIG.SUPABASE_ANON_KEY}`,
                 },
-                body: JSON.stringify({ 
-                  email: data.email.trim().toLowerCase(), 
-                  password: data.password 
+                body: JSON.stringify({
+                  email: data.email.trim().toLowerCase(),
+                  password: data.password
                 })
               });
               if (tokenRes.ok) {
@@ -376,7 +376,7 @@ export const apiService = {
         // (might be duplicate email case)
       }
     }
-    
+
     let shopId = getStoredShopId();
     if (!shopId || shopId === 'default') {
       try {
@@ -407,12 +407,12 @@ export const apiService = {
         }
       }
     }
-    
+
     if (!shopId || shopId === 'default') {
       console.error('❌ createClient: shop_id non disponibile! Impossibile creare cliente.');
       throw new Error('Impossibile determinare l\'ID del negozio. Assicurati di essere loggato correttamente.');
     }
-    
+
     const payload: Partial<Client> = {
       shop_id: shopId,
       first_name: data.first_name.trim(),
@@ -421,13 +421,13 @@ export const apiService = {
       email: data.email.trim(),
       notes: data.notes || null,
     };
-    
+
     try {
       // Use auth token if available, otherwise use provided token
       const accessToken = authAccessToken || options?.accessToken;
-      
+
       const headers = buildHeaders(true, accessToken);
-      
+
       // Usa fetchWithTokenRefresh per gestire automaticamente il refresh del token se scaduto
       const response = await fetchWithTokenRefresh(
         API_ENDPOINTS.SEARCH_CLIENTS,
@@ -438,7 +438,7 @@ export const apiService = {
         },
         true // useAuth = true per abilitare il refresh automatico
       );
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ createClient: Errore creazione cliente:', response.status, errorText);
@@ -446,10 +446,10 @@ export const apiService = {
         console.error('❌ createClient: URL:', API_ENDPOINTS.SEARCH_CLIENTS);
         throw new Error(`Failed to create client: ${response.status} ${errorText}`);
       }
-      
+
       const created = await response.json();
       const newClient = created[0];
-      
+
       // If we created an Auth user, ensure the client record is linked via getOrCreateClientFromUser
       // This ensures consistency with the profiles table
       if (authUserId && authAccessToken) {
@@ -468,7 +468,7 @@ export const apiService = {
           // Don't fail if linking fails, client is already created
         }
       }
-      
+
       return newClient;
     } catch (error) {
       console.error('Error creating client:', error);
@@ -480,7 +480,7 @@ export const apiService = {
   async updateClient(clientId: string, data: Partial<Client>, options?: { accessToken?: string }): Promise<Client> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
     if (!clientId) throw new Error('ID cliente mancante');
-    
+
     const allowedFields: Array<keyof Client> = [
       'first_name',
       'last_name',
@@ -501,12 +501,12 @@ export const apiService = {
         headers: { ...buildHeaders(true, options?.accessToken), Prefer: 'return=representation' },
         body: JSON.stringify(payload),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Failed to update client: ${response.status} ${errorText}`);
       }
-      
+
       const updated = await response.json();
       return updated[0];
     } catch (error) {
@@ -524,7 +524,7 @@ export const apiService = {
       // Se Supabase non è configurato, non fare nulla (silent fail)
       return;
     }
-    
+
     try {
       // CRITICO: Ottieni shop_id prima di cercare il cliente
       let shopId = getStoredShopId();
@@ -532,7 +532,7 @@ export const apiService = {
         const shop = await this.getShop();
         shopId = shop?.id ?? null;
       }
-      
+
       // Prima cerca se il cliente esiste (usa accesso pubblico)
       // CRITICO: Filtra per shop_id per evitare cross-shop
       let searchUrl = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=id,shop_id&email=eq.${encodeURIComponent(email)}&limit=1`;
@@ -540,13 +540,13 @@ export const apiService = {
         searchUrl += `&shop_id=eq.${shopId}`;
       }
       const searchResponse = await fetch(searchUrl, { headers: buildHeaders(true) });
-      
+
       if (searchResponse.ok) {
         const clients = await searchResponse.json();
-        
+
         if (clients && clients.length > 0) {
           const foundClient = clients[0];
-          
+
           // CRITICO: Verifica che il cliente appartenga allo shop corretto
           if (shopId && shopId !== 'default' && foundClient.shop_id && foundClient.shop_id !== shopId) {
             // Cliente trovato ma appartiene a un altro shop - crea nuovo cliente per questo shop
@@ -559,7 +559,7 @@ export const apiService = {
               headers: { ...buildHeaders(true), Prefer: 'return=minimal' },
               body: JSON.stringify(data),
             });
-            
+
             if (updateResponse.ok) {
               // Client updated successfully
               return; // Esci dalla funzione dopo l'aggiornamento
@@ -569,7 +569,7 @@ export const apiService = {
             }
           }
         }
-        
+
         // Cliente non esiste o appartiene a shop diverso - crealo (usa accesso pubblico)
         // shopId già ottenuto sopra
         const createData = {
@@ -579,13 +579,13 @@ export const apiService = {
           phone_e164: data.phone_e164 || '+39000000000',
           email: email,
         };
-        
+
         const createResponse = await fetch(API_ENDPOINTS.SEARCH_CLIENTS, {
           method: 'POST',
           headers: { ...buildHeaders(true), Prefer: 'return=representation' },
           body: JSON.stringify(createData),
         });
-        
+
         if (createResponse.ok) {
           // Client created successfully
         } else {
@@ -612,7 +612,7 @@ export const apiService = {
         const shop = await this.getShop();
         shopId = shop?.id ?? null;
       }
-      
+
       let url = `${API_ENDPOINTS.SEARCH_CLIENTS}?select=*&email=eq.${encodeURIComponent(email)}&limit=1`;
       if (shopId && shopId !== 'default') {
         url += `&shop_id=eq.${shopId}`;
@@ -639,7 +639,7 @@ export const apiService = {
       // Se Supabase non è configurato, genera un ID temporaneo
       return { id: `temp_client_${Date.now()}`, email: user.email ?? null, phone_e164: user.phone ?? null };
     }
-    
+
     try {
       // CRITICO: Ottieni shop_id prima di cercare il cliente
       let shopId = getStoredShopId();
@@ -647,7 +647,7 @@ export const apiService = {
         const shop = await this.getShop();
         shopId = shop?.id ?? null;
       }
-      
+
       // Cerca se esiste già un cliente con questa email (usa accesso pubblico)
       // CRITICO: Filtra per shop_id per evitare cross-shop
       if (user.email) {
@@ -656,19 +656,19 @@ export const apiService = {
           searchUrl += `&shop_id=eq.${shopId}`;
         }
         const searchResponse = await fetch(searchUrl, { headers: buildHeaders(true, options?.accessToken) });
-        
+
         if (searchResponse.ok) {
           const existingClients = await searchResponse.json();
           if (existingClients && existingClients.length > 0) {
             const existingClient = existingClients[0];
-            
+
             // CRITICO: Verifica che il cliente appartenga allo shop corretto
             if (shopId && shopId !== 'default' && existingClient.shop_id && existingClient.shop_id !== shopId) {
               // Cliente trovato ma appartiene a un altro shop - non restituirlo
               console.warn('⚠️ Cliente trovato ma appartiene a shop diverso:', existingClient.shop_id, 'vs', shopId);
               // Continua a creare un nuovo cliente per questo shop
             } else {
-            
+
               // Aggiorna il numero se manca e l'utente lo ha fornito
               if ((!existingClient.phone_e164 || existingClient.phone_e164 === '+39000000000') && user.phone) {
                 try {
@@ -681,7 +681,7 @@ export const apiService = {
                 } catch (updateError) {
                 }
               }
-              
+
               return existingClient;
             }
           }
@@ -697,7 +697,7 @@ export const apiService = {
       const nameParts = fullName.split(' ');
       const firstName = nameParts[0] || 'Cliente';
       const lastName = nameParts.slice(1).join(' ') || null;
-      
+
       const clientData: Partial<Client> = {
         shop_id: shopId && shopId !== 'default' ? shopId : null,
         first_name: firstName,
@@ -720,7 +720,7 @@ export const apiService = {
             'Authorization': `Bearer ${tokenToUse}`,
           }
         });
-        
+
         if (!verifyResponse.ok) {
           console.error('❌ Token non valido:', verifyResponse.status);
           // Prova a fare refresh del token
@@ -759,7 +759,7 @@ export const apiService = {
           error: errorText,
           clientData,
         });
-        
+
         // Se è un errore 401 (non autenticato), non generare ID temporaneo per evitare loop
         if (createResponse.status === 401) {
           throw new Error('Unauthorized: autenticazione richiesta');
@@ -786,7 +786,7 @@ export const apiService = {
 
     try {
       let shopId = getStoredShopId();
-      
+
       // Se lo shop_id non è trovato o è 'default', carica lo shop dal database
       if (!shopId || shopId === 'default') {
         const shop = await this.getShop();
@@ -796,7 +796,7 @@ export const apiService = {
           localStorage.setItem('current_shop_id', shopId);
         }
       }
-      
+
       // Se ancora non abbiamo uno shop_id valido, restituisci config vuota
       if (!shopId || shopId === 'default') {
         return createDefaultShopHoursConfig();
@@ -807,9 +807,9 @@ export const apiService = {
       // Se non c'è autenticazione, le RLS policies potrebbero non trovare i record
       const hasAuth = !!localStorage.getItem('auth_token');
       let url = `${API_ENDPOINTS.SHOP_DAILY_HOURS}?select=*&shop_id=eq.${shopId}&order=day_of_week.asc`;
-      
+
       let response = await fetch(url, { headers: buildHeaders(hasAuth) });
-      
+
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');
         console.error(`❌ Failed to fetch shop daily hours: ${response.status}`, errorText);
@@ -817,48 +817,48 @@ export const apiService = {
       }
 
       let rows = await response.json() as ShopDailyHoursEntity[];
-      
+
       // Carica sempre i time slots separatamente (più affidabile della relazione embedded)
       if (rows.length > 0) {
         const dailyHoursIds = rows.map(r => r.id);
         // PostgREST supporta filtri IN con la sintassi: column=in.(value1,value2,...)
         const idsFilter = dailyHoursIds.join(',');
         const timeSlotsUrl = `${API_ENDPOINTS.SHOP_DAILY_TIME_SLOTS}?select=*&daily_hours_id=in.(${idsFilter})&order=daily_hours_id.asc,position.asc`;
-        
+
         // Usa la stessa autenticazione usata per i daily_hours
         const timeSlotsResponse = await fetch(timeSlotsUrl, { headers: buildHeaders(hasAuth) });
-        
+
         if (timeSlotsResponse.ok) {
           const allTimeSlots = await timeSlotsResponse.json() as ShopDailyTimeSlotRow[];
-          
+
           // Crea una mappa per raggruppare i time slots per daily_hours_id
           const timeSlotsMap = new Map<string, ShopDailyTimeSlotRow[]>();
-          
+
           allTimeSlots.forEach(slot => {
             if (!timeSlotsMap.has(slot.daily_hours_id)) {
               timeSlotsMap.set(slot.daily_hours_id, []);
             }
             timeSlotsMap.get(slot.daily_hours_id)!.push(slot);
           });
-          
+
           // Aggiungi i time slots ai rispettivi giorni
           rows = rows.map(row => ({
             ...row,
             shop_daily_time_slots: timeSlotsMap.get(row.id) || []
           }));
-          
+
         } else {
           const errorText = await timeSlotsResponse.text().catch(() => 'Unknown error');
         }
       } else {
       }
-      
+
       if (!Array.isArray(rows)) {
         console.error('❌ Invalid response format from shop_daily_hours:', rows);
         throw new Error('Invalid response format from shop_daily_hours');
       }
-      
-      
+
+
       // Se non ci sono orari configurati nel DB, usa i default (aperto Lun-Sab)
       // Questo evita che il calendario mostri "Nessun giorno aperto" per i nuovi shop o in caso di errore
       if (rows.length === 0) {
@@ -881,12 +881,12 @@ export const apiService = {
         if (row.day_of_week < 0 || row.day_of_week > 6) {
           return;
         }
-        
+
         // Debug: verifica se i time slots sono presenti
         if (!row.shop_daily_time_slots) {
         } else {
         }
-        
+
         const timeSlots = (row.shop_daily_time_slots ?? [])
           .sort((a, b) => {
             const positionDiff = (a.position ?? 0) - (b.position ?? 0);
@@ -907,7 +907,7 @@ export const apiService = {
             }
           })
           .filter((slot): slot is TimeSlot => slot !== null);
-        
+
 
         config[row.day_of_week] = {
           isOpen: row.is_open ?? false,
@@ -968,12 +968,12 @@ export const apiService = {
 
 
       const changedDays: number[] = [];
-      
+
       for (let day = 0; day < 7; day += 1) {
         const dayConfig = hoursConfig[day] ?? { isOpen: false, timeSlots: [] };
         const existingDay = existingRows.find(r => r.day_of_week === day);
-        
-        
+
+
         // Se il giorno non esiste nel database, deve essere creato o aggiornato
         if (!existingDay) {
           // Se il giorno è aperto o ha time slots, deve essere creato
@@ -986,13 +986,13 @@ export const apiService = {
           }
           continue;
         }
-        
+
         // Verifica se is_open è cambiato
         if (existingDay.is_open !== dayConfig.isOpen) {
           changedDays.push(day);
           continue;
         }
-        
+
         // Se il giorno è chiuso, non ci sono time slots da confrontare
         if (!dayConfig.isOpen) {
           // Se ci sono time slots nel database ma il giorno è chiuso, dobbiamo eliminarli
@@ -1001,7 +1001,7 @@ export const apiService = {
           }
           continue;
         }
-        
+
         // Confronta i time slots (ordinati per start_time)
         const existingSlots = (existingDay.shop_daily_time_slots ?? [])
           .map(slot => ({
@@ -1009,82 +1009,46 @@ export const apiService = {
             end: normalizeTimeString(slot.end_time ?? ''),
           }))
           .sort((a, b) => a.start.localeCompare(b.start));
-        
+
         const configSlots = dayConfig.timeSlots
           .map(slot => ({
             start: normalizeTimeString(slot.start),
             end: normalizeTimeString(slot.end),
           }))
           .sort((a, b) => a.start.localeCompare(b.start));
-        
+
         if (existingSlots.length !== configSlots.length) {
           changedDays.push(day);
           continue;
         }
-        
+
         // Confronta ogni slot
         const slotsDiffer = existingSlots.some((slot, idx) => {
           const configSlot = configSlots[idx];
           return !configSlot || slot.start !== configSlot.start || slot.end !== configSlot.end;
         });
-        
+
         if (slotsDiffer) {
           changedDays.push(day);
         }
       }
 
       if (changedDays.length === 0) {
-        // Nessuna modifica, non salvare
-        // Ma se il database è completamente vuoto e lo stato locale ha giorni aperti, 
-        // dobbiamo comunque salvare per inizializzare il database
-        const hasOpenDays = Object.values(hoursConfig).some(day => day.isOpen || day.timeSlots.length > 0);
-        if (existingRows.length === 0 && hasOpenDays) {
-          // Salva tutti i giorni che sono aperti o hanno slot
+        // Se non ci sono righe nel database (shop nuovo o mai configurato), 
+        // dobbiamo salvare TUTTI i giorni per inizializzare il DB ed evitare il fallback ai default
+        if (existingRows.length === 0) {
+          // Salva tutti i giorni (0-6) indipendentemente dallo stato
           for (let day = 0; day < 7; day += 1) {
-            const dayConfig = hoursConfig[day] ?? { isOpen: false, timeSlots: [] };
-            if (dayConfig.isOpen || dayConfig.timeSlots.length > 0) {
-              changedDays.push(day);
-            }
-          }
-          if (changedDays.length === 0) {
-            return false;
+            changedDays.push(day);
           }
         } else {
           // Se ci sono righe nel database ma nessun cambiamento rilevato, 
-          // potrebbe essere un problema di confronto - verifichiamo ogni giorno aperto
-          const openDaysInConfig = Object.entries(hoursConfig)
-            .filter(([_, config]) => config.isOpen || config.timeSlots.length > 0)
-            .map(([day, _]) => parseInt(day));
-          
-          if (openDaysInConfig.length > 0) {
-            
-            // Verifica ogni giorno aperto per vedere se c'è davvero una differenza
-            for (const day of openDaysInConfig) {
-              const dayConfig = hoursConfig[day];
-              const existingDay = existingRows.find(r => r.day_of_week === day);
-              
-              if (!existingDay) {
-                changedDays.push(day);
-              } else if (existingDay.is_open !== dayConfig.isOpen) {
-                changedDays.push(day);
-              } else if (dayConfig.isOpen && dayConfig.timeSlots.length > 0) {
-                // Verifica anche i time slots
-                const existingSlotsCount = existingDay.shop_daily_time_slots?.length || 0;
-                if (existingSlotsCount !== dayConfig.timeSlots.length) {
-                  changedDays.push(day);
-                }
-              }
-            }
-            
-            if (changedDays.length === 0) {
-              return false;
-            }
-          } else {
-            return false; // Indica che non è stato fatto alcun salvataggio
-          }
+          // saltiamo il salvataggio
+          return false;
         }
       }
-      
+
+
 
 
       // Processa solo i giorni che sono cambiati
@@ -1096,9 +1060,9 @@ export const apiService = {
           const updateRes = await fetchWithTokenRefresh(
             `${API_ENDPOINTS.SHOP_DAILY_HOURS}?id=eq.${currentRow.id}`,
             {
-            method: 'PATCH',
-            headers,
-            body: JSON.stringify({ is_open: dayConfig.isOpen }),
+              method: 'PATCH',
+              headers,
+              body: JSON.stringify({ is_open: dayConfig.isOpen }),
             },
             true
           );
@@ -1112,13 +1076,13 @@ export const apiService = {
           const createRes = await fetchWithTokenRefresh(
             API_ENDPOINTS.SHOP_DAILY_HOURS,
             {
-            method: 'POST',
+              method: 'POST',
               headers: { ...headers, Prefer: 'return=representation,resolution=merge-duplicates' },
-            body: JSON.stringify([{
-              shop_id: shopId,
-              day_of_week: day,
-              is_open: dayConfig.isOpen,
-            }]),
+              body: JSON.stringify([{
+                shop_id: shopId,
+                day_of_week: day,
+                is_open: dayConfig.isOpen,
+              }]),
             },
             true
           );
@@ -1177,8 +1141,8 @@ export const apiService = {
         const deleteSlotsRes = await fetchWithTokenRefresh(
           `${API_ENDPOINTS.SHOP_DAILY_TIME_SLOTS}?daily_hours_id=eq.${currentRow.id}`,
           {
-          method: 'DELETE',
-          headers,
+            method: 'DELETE',
+            headers,
           },
           true
         );
@@ -1208,23 +1172,23 @@ export const apiService = {
 
           if (validSlots.length > 0) {
             const payload = validSlots.map((slot, index) => ({
-            daily_hours_id: currentRow!.id,
-            start_time: normalizeTimeString(slot.start),
-            end_time: normalizeTimeString(slot.end),
-            position: index,
-          }));
+              daily_hours_id: currentRow!.id,
+              start_time: normalizeTimeString(slot.start),
+              end_time: normalizeTimeString(slot.end),
+              position: index,
+            }));
 
             const insertSlotsRes = await fetchWithTokenRefresh(
               API_ENDPOINTS.SHOP_DAILY_TIME_SLOTS,
               {
-            method: 'POST',
+                method: 'POST',
                 headers: { ...headers, Prefer: 'return=representation' },
-            body: JSON.stringify(payload),
+                body: JSON.stringify(payload),
               },
               true
             );
-          if (!insertSlotsRes.ok) {
-            const errorText = await insertSlotsRes.text();
+            if (!insertSlotsRes.ok) {
+              const errorText = await insertSlotsRes.text();
               console.error(`❌ Failed to insert time slots for day ${day}:`, {
                 status: insertSlotsRes.status,
                 error: errorText,
@@ -1233,7 +1197,7 @@ export const apiService = {
               });
               throw new Error(`Failed to insert time slots (${day}): ${insertSlotsRes.status} ${errorText}`);
             }
-            
+
             // Verifica che i time slots siano stati inseriti
             try {
               const inserted = await insertSlotsRes.json();
@@ -1244,7 +1208,7 @@ export const apiService = {
           }
         }
       }
-      
+
       return true; // Indica che il salvataggio è stato completato con successo
     } catch (error) {
       console.error('❌ Error saving daily shop hours:', error);
@@ -1255,7 +1219,7 @@ export const apiService = {
   // Get appointments
   async getAppointments(start: string, end: string): Promise<Appointment[]> {
     if (!isSupabaseConfigured()) return [];
-    
+
     try {
       // Usa buildHeaders(true) per autenticazione e filtro RLS per shop_id
       // Le RLS policies filtrano automaticamente per shop_id tramite current_shop_id()
@@ -1266,11 +1230,11 @@ export const apiService = {
         select: '*,clients(id,first_name,last_name,phone_e164,email),staff(full_name),services(id,name,duration_min)',
         order: 'start_at.asc',
       });
-      
+
       // PostgREST usa operatori di filtro nella sintassi: column.operator.value
       // Per il range, usiamo due filtri separati
       const url = `${API_ENDPOINTS.APPOINTMENTS_FEED}?${params.toString()}&start_at=gte.${encodeURIComponent(start)}&start_at=lte.${encodeURIComponent(end)}`;
-      
+
       const response = await fetch(url, { headers: buildHeaders(true) });
       if (!response.ok) {
         const errorText = await response.text();
@@ -1316,9 +1280,9 @@ export const apiService = {
       });
       return;
     }
-    
+
     if (!isSupabaseConfigured()) throw new Error('Backend non configurato');
-    
+
     try {
       const response = await fetch(API_ENDPOINTS.CREATE_APPOINTMENT, {
         method: 'POST',
@@ -1361,7 +1325,7 @@ export const apiService = {
     }>;
   }): Promise<any> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     try {
       const normalizedClientId =
         typeof data.client_id === 'string' && data.client_id.trim().length > 0 ? data.client_id.trim() : null;
@@ -1375,52 +1339,52 @@ export const apiService = {
       // Check for overlapping appointments before creating
       const startDate = new Date(data.start_at);
       const endDate = new Date(data.end_at);
-      
+
       // Normalize dates to avoid timezone issues
       const startTime = startDate.getTime();
       const endTime = endDate.getTime();
-      
+
       // Check only the same day to avoid unnecessary queries
       const checkStart = new Date(startDate);
       checkStart.setHours(0, 0, 0, 0);
       const checkEnd = new Date(startDate);
       checkEnd.setHours(23, 59, 59, 999);
-      
+
       const existingAppointments = await this.getAppointments(
         checkStart.toISOString(),
         checkEnd.toISOString()
       );
-      
+
       // Filter appointments for the same staff and check for overlaps
       const overlappingAppointments = existingAppointments.filter(apt => {
         // Skip cancelled appointments
         if (apt.status === 'cancelled') return false;
-        
+
         // Must be same staff
         if (apt.staff_id !== data.staff_id) return false;
-        
+
         const aptStart = new Date(apt.start_at);
         const aptEnd = apt.end_at ? new Date(apt.end_at) : new Date(aptStart.getTime() + (apt.services?.duration_min || 30) * 60000);
-        
+
         const aptStartTime = aptStart.getTime();
         const aptEndTime = aptEnd.getTime();
-        
+
         // Check if appointments overlap: start1 < end2 && end1 > start2
         // But allow exact boundaries (one ends exactly when the other starts)
         const hasOverlap = startTime < aptEndTime && endTime > aptStartTime;
-        
+
         // Log for debugging
         if (hasOverlap) {
         }
-        
+
         return hasOverlap;
       });
-      
+
       if (overlappingAppointments.length > 0) {
         console.error('❌ Overlapping appointments found:', overlappingAppointments);
         throw new Error('Impossibile creare l\'appuntamento: c\'è un conflitto con un altro appuntamento per lo stesso barbiere');
       }
-      
+
       // Resolve shop_id with multiple fallbacks to satisfy RLS
       let shopId = getStoredShopId();
       let shop: Shop | null = null;
@@ -1453,11 +1417,11 @@ export const apiService = {
         const appointmentDate = new Date(startDate);
         appointmentDate.setHours(0, 0, 0, 0);
         const dayOfWeek = appointmentDate.getDay();
-        
+
         // Load shop hours to check if the day is closed
         const shopHours = await this.getDailyShopHours();
         const dayHours = shopHours[dayOfWeek];
-        
+
         // Check if it's a regular closed day
         if (!dayHours || !dayHours.isOpen || dayHours.timeSlots.length === 0) {
           // Check if it's an Italian holiday and auto_close_holidays is enabled
@@ -1465,12 +1429,12 @@ export const apiService = {
           if (autoCloseHolidays && isItalianHoliday(appointmentDate)) {
             throw new Error('Impossibile prenotare: il negozio è chiuso in questo giorno festivo');
           }
-          
+
           // If it's a regular closed day (not a holiday), throw error
           const dayNames = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
           throw new Error(`Impossibile prenotare: il negozio è chiuso di ${dayNames[dayOfWeek]}`);
         }
-        
+
         // Check if the selected time is within opening hours
         const appointmentTime = startDate.toTimeString().slice(0, 5); // HH:MM format
         const isTimeValid = dayHours.timeSlots.some(slot => {
@@ -1482,7 +1446,7 @@ export const apiService = {
           const endTime = endHours * 60 + endMinutes;
           return timeInMinutes >= startTime && timeInMinutes < endTime;
         });
-        
+
         if (!isTimeValid) {
           throw new Error('Impossibile prenotare: l\'orario selezionato è fuori dagli orari di apertura');
         }
@@ -1502,11 +1466,11 @@ export const apiService = {
       // Format products for JSONB storage - only if products_enabled is true
       const productsArray = (areProductsEnabled && data.products && data.products.length > 0)
         ? data.products.map(p => ({
-            productId: p.productId,
-            quantity: p.quantity,
-            productName: p.productName,
-            productPrice: p.productPrice,
-          }))
+          productId: p.productId,
+          quantity: p.quantity,
+          productName: p.productName,
+          productPrice: p.productPrice,
+        }))
         : [];
 
       const payload: any = {
@@ -1525,7 +1489,7 @@ export const apiService = {
       if (productsArray.length > 0) {
         payload.products = productsArray;
       }
-      
+
       // Usa fetchWithTokenRefresh per gestire automaticamente il refresh del token
       const response = await fetchWithTokenRefresh(
         API_ENDPOINTS.APPOINTMENTS_FEED,
@@ -1536,13 +1500,13 @@ export const apiService = {
         },
         true
       );
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ Errore creazione appuntamento:', response.status, errorText);
         throw new Error(`Failed to create appointment: ${response.status} ${errorText}`);
       }
-      
+
       const created = await response.json();
       return created[0];
     } catch (error) {
@@ -1554,7 +1518,7 @@ export const apiService = {
   // Update appointment
   async updateAppointment(data: UpdateAppointmentRequest): Promise<void> {
     if (!isSupabaseConfigured() || !API_CONFIG.N8N_BASE_URL) throw new Error('Backend non configurato');
-    
+
     try {
       const response = await fetch(API_ENDPOINTS.UPDATE_APPOINTMENT, {
         method: 'POST',
@@ -1650,13 +1614,13 @@ export const apiService = {
       // Format products for JSONB storage - only if products_enabled is true
       const productsArray = (areProductsEnabled && data.products && data.products.length > 0)
         ? data.products.map(p => ({
-            productId: p.productId,
-            quantity: p.quantity,
-            productName: p.productName,
-            productPrice: p.productPrice,
-          }))
-        : (data.products === null || data.products === undefined) 
-          ? undefined 
+          productId: p.productId,
+          quantity: p.quantity,
+          productName: p.productName,
+          productPrice: p.productPrice,
+        }))
+        : (data.products === null || data.products === undefined)
+          ? undefined
           : []; // If products is explicitly set to empty array, clear it
 
       const payload: Record<string, unknown> = {
@@ -1667,7 +1631,7 @@ export const apiService = {
       if (data.notes !== undefined) payload.notes = data.notes;
       if (serviceId) payload.service_id = serviceId;
       if (staffId) payload.staff_id = staffId;
-      
+
       // Handle products update - only if products_enabled is true
       if (productsArray !== undefined) {
         if (areProductsEnabled && productsArray.length > 0) {
@@ -1702,7 +1666,7 @@ export const apiService = {
   // Cancel appointment
   async cancelAppointment(id: string): Promise<void> {
     if (!isSupabaseConfigured() || !API_CONFIG.N8N_BASE_URL) throw new Error('Backend non configurato');
-    
+
     try {
       const response = await fetch(API_ENDPOINTS.CANCEL_APPOINTMENT, {
         method: 'POST',
@@ -1721,16 +1685,16 @@ export const apiService = {
     if (!isSupabaseConfigured() || !API_CONFIG.N8N_BASE_URL) {
       return; // Permetti l'attivazione della modalità ferie anche senza backend
     }
-    
+
     try {
       // First, get all appointments in the date range
       const appointments = await this.getAppointments(startDate, endDate);
-      
+
       // Cancel each appointment
-      const cancelPromises = appointments.map(appointment => 
+      const cancelPromises = appointments.map(appointment =>
         this.cancelAppointment(appointment.id)
       );
-      
+
       await Promise.all(cancelPromises);
     } catch (error) {
       console.error('Error canceling appointments in range:', error);
@@ -1741,7 +1705,7 @@ export const apiService = {
   // Get user profile
   async getUserProfile(): Promise<Profile> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     try {
       const url = `${API_ENDPOINTS.PROFILES}?select=*&limit=1`;
       const response = await fetch(url, { headers: buildHeaders() });
@@ -2149,18 +2113,18 @@ export const apiService = {
   // Get signed shop logo URL without authentication (for login page)
   async getSignedShopLogoUrlPublic(path: string): Promise<string | null> {
     if (!isSupabaseConfigured()) return null;
-    
+
     try {
       const bucket = 'shop-logos';
       // Prova prima con URL pubblico (se bucket è pubblico)
       const publicUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/${bucket}/${path}`;
-      
+
       // Verifica se l'URL pubblico funziona facendo una HEAD request
       const headRes = await fetch(publicUrl, { method: 'HEAD' });
       if (headRes.ok) {
         return publicUrl;
       }
-      
+
       // Se il bucket è privato, prova a generare un signed URL con anon key
       // (funziona solo se le policy del bucket lo permettono)
       const signUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/sign/${bucket}/${path}`;
@@ -2172,12 +2136,12 @@ export const apiService = {
         },
         body: JSON.stringify({ expiresIn: 60 * 60 * 24 * 7 }),
       });
-      
+
       if (signRes.ok) {
         const signJson = await signRes.json();
         return `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1${signJson.signedURL || signJson.signedUrl || ''}`;
       }
-      
+
       return null;
     } catch (error) {
       return null;
@@ -2187,7 +2151,7 @@ export const apiService = {
   // Get staff profile
   async getStaffProfile(): Promise<Staff> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     try {
       // CRITICO: Filtra per shop_id per evitare cross-shop
       let shopId = getStoredShopId();
@@ -2195,7 +2159,7 @@ export const apiService = {
         const shop = await this.getShop();
         shopId = shop?.id ?? null;
       }
-      
+
       let url = `${API_ENDPOINTS.STAFF}?select=*&limit=1`;
       if (shopId && shopId !== 'default') {
         url += `&shop_id=eq.${shopId}`;
@@ -2240,7 +2204,7 @@ export const apiService = {
   // Create service
   async createService(data: Partial<Service>): Promise<Service> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     try {
       // Assicurati che shop_id sia presente
       let shopId = data.shop_id || getStoredShopId();
@@ -2251,12 +2215,12 @@ export const apiService = {
         } catch (shopError) {
         }
       }
-      
+
       const payload = {
         ...data,
         shop_id: shopId && shopId !== 'default' ? shopId : undefined,
       };
-      
+
       const response = await fetch(API_ENDPOINTS.SERVICES, {
         method: 'POST',
         headers: { ...buildHeaders(true), Prefer: 'return=representation' },
@@ -2277,7 +2241,7 @@ export const apiService = {
   // Update service
   async updateService(data: Service): Promise<Service> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     try {
       const response = await fetch(`${API_ENDPOINTS.SERVICES}?id=eq.${data.id}`, {
         method: 'PATCH',
@@ -2296,7 +2260,7 @@ export const apiService = {
   // Delete service
   async deleteService(id: string): Promise<void> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     try {
       const response = await fetch(`${API_ENDPOINTS.SERVICES}?id=eq.${id}`, {
         method: 'DELETE',
@@ -2310,7 +2274,7 @@ export const apiService = {
   },
 
   async getShopBySlug(slug: string): Promise<Shop> {
-    
+
     if (!isSupabaseConfigured()) {
       return {
         id: 'default',
@@ -2339,26 +2303,26 @@ export const apiService = {
     try {
       const encodedSlug = encodeURIComponent(slug);
       const url = `${API_ENDPOINTS.SHOPS}?select=*&slug=eq.${encodedSlug}&limit=1`;
-      
-      
+
+
       const response = await fetch(url, { headers: buildHeaders(false) });
-      
-      
+
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ getShopBySlug: Errore HTTP:', response.status, errorText);
         throw new Error(`Impossibile caricare shop con slug ${slug}: ${response.status} ${errorText}`);
       }
-      
+
       const shops = await response.json();
-      
+
       if (!shops || shops.length === 0) {
         console.error('❌ getShopBySlug: Nessun shop trovato con slug:', slug);
         throw new Error(`Nessun shop trovato con slug ${slug}`);
       }
-      
+
       const shop = shops[0];
-      
+
       persistShopLocally(shop);
       return shop;
     } catch (error) {
@@ -2397,7 +2361,7 @@ export const apiService = {
     // Fallback a buildHeaders(false) solo se non c'è token (es. pagina login)
     const hasAuth = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
     const url = `${API_ENDPOINTS.SHOPS}?select=*&id=eq.${id}&limit=1`;
-    
+
     let response: Response;
     if (hasAuth) {
       // Usa fetchWithTokenRefresh per gestire automaticamente il refresh del token se scaduto
@@ -2445,14 +2409,14 @@ export const apiService = {
         updated_at: new Date().toISOString(),
       };
     }
-    
+
     try {
       const slugToUse = slugOverride || getEffectiveSlug();
       // Usa buildHeaders(true) se l'utente è autenticato per rispettare RLS
       // Fallback a buildHeaders(false) solo se non c'è token (es. pagina login)
       const hasAuth = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       const url = `${API_ENDPOINTS.SHOPS}?select=*&slug=eq.${encodeURIComponent(slugToUse)}&limit=1`;
-      
+
       let response: Response;
       if (hasAuth) {
         // Usa fetchWithTokenRefresh per gestire automaticamente il refresh del token se scaduto
@@ -2461,7 +2425,7 @@ export const apiService = {
         // Accesso pubblico senza autenticazione
         response = await fetch(url, { headers: buildHeaders(false) });
       }
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ getShop error:', response.status, errorText);
@@ -2503,7 +2467,7 @@ export const apiService = {
         };
       }
       const shops = await response.json();
-      
+
       if (!shops || shops.length === 0) {
         // Se non ci sono shop, crea uno di default
         const defaultShop: Shop = {
@@ -2530,13 +2494,13 @@ export const apiService = {
         };
         return defaultShop;
       }
-      
+
       const shopData = shops[0];
       if (!shopData.slug) {
         shopData.slug = slugToUse;
       }
       persistShopLocally(shopData);
-      
+
       // Parse vacation_period if it's a JSONB string
       // Supabase JSONB columns can come as strings or objects depending on how they're queried
       if (shopData.vacation_period) {
@@ -2554,7 +2518,7 @@ export const apiService = {
           }
         }
       }
-      
+
       return shopData;
     } catch (error) {
       // Non loggare errori per getShop - è normale se non autenticato
@@ -2591,42 +2555,42 @@ export const apiService = {
       console.error('❌ validateShopInvite: Supabase non configurato');
       return null;
     }
-    
+
     if (!token || token.trim().length === 0) {
       console.error('❌ validateShopInvite: Token vuoto o mancante');
       return null;
     }
-    
+
     try {
       const nowIso = new Date().toISOString();
       const encodedToken = encodeURIComponent(token.trim());
       const url = `${API_ENDPOINTS.SHOP_INVITES}?select=*&token=eq.${encodedToken}&limit=1`;
-      
-      
+
+
       const response = await fetch(url, { headers: buildHeaders(false) });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ validateShopInvite: Errore HTTP:', response.status, errorText);
         return null;
       }
-      
+
       const invites = await response.json();
-      
+
       const invite = invites?.[0];
       if (!invite) {
         return null;
       }
-      
+
       if (invite.used_at) {
         return null;
       }
-      
+
       if (invite.expires_at && invite.expires_at <= nowIso) {
         return null;
       }
-      
-      
+
+
       return {
         id: invite.id,
         token: invite.token,
@@ -2703,18 +2667,18 @@ export const apiService = {
   // Update shop
   async updateShop(data: Shop): Promise<void> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     try {
       // Prepare data for update - ensure vacation_period is properly formatted
       const updateData: any = { ...data };
-      
+
       // Convert vacation_period to JSON string if it's an object
       if (updateData.vacation_period && typeof updateData.vacation_period === 'object') {
         updateData.vacation_period = JSON.stringify(updateData.vacation_period);
       } else if (updateData.vacation_period === null) {
         updateData.vacation_period = null;
       }
-      
+
       if (data.id === 'default') {
         // Se è un shop di default, crea un nuovo record
         const { id, ...shopData } = updateData;
@@ -2757,7 +2721,7 @@ export const apiService = {
   // Update shop auto close holidays setting
   async updateShopAutoCloseHolidays(enabled: boolean): Promise<void> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     try {
       const shop = await this.getShop();
       const updatedShop: Shop = {
@@ -2774,7 +2738,7 @@ export const apiService = {
   // Update shop vacation period
   async updateShopVacationPeriod(vacationPeriod: VacationPeriod | null): Promise<void> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     try {
       const shop = await this.getShop();
       const updatedShop: Shop = {
@@ -2791,12 +2755,12 @@ export const apiService = {
   // Chat functions (richiede autenticazione)
   async getChats(): Promise<Chat[]> {
     if (!isSupabaseConfigured()) return [];
-    
+
     // Non fare chiamata se l'utente non è autenticato
     if (!isAuthenticated()) {
       return [];
     }
-    
+
     try {
       // CRITICO: Aggiungi filtro esplicito shop_id come doppia sicurezza
       let shopId = getStoredShopId();
@@ -2804,7 +2768,7 @@ export const apiService = {
         const shop = await this.getShop();
         shopId = shop?.id ?? null;
       }
-      
+
       // Carica le chat base con filtro shop_id
       let url = `${API_ENDPOINTS.CHATS}?select=*&order=updated_at.desc`;
       if (shopId && shopId !== 'default') {
@@ -2819,15 +2783,15 @@ export const apiService = {
         throw new Error('Failed to fetch chats');
       }
       const chats = await response.json();
-      
+
       if (!chats || chats.length === 0) {
         return [];
       }
-      
+
       // Raccogli tutti gli ID unici di clienti e staff
       const clientIds = [...new Set(chats.map((c: any) => c.client_id).filter(Boolean))];
       const staffIds = [...new Set(chats.map((c: any) => c.staff_id).filter(Boolean))];
-      
+
       // Carica tutti i clienti in una sola query
       // CRITICO: Filtra per shop_id per evitare cross-shop anche se gli ID sono già filtrati dalle chat
       let clientsMap = new Map();
@@ -2844,7 +2808,7 @@ export const apiService = {
             clients.forEach((client: any) => {
               clientsMap.set(client.id, client);
             });
-            
+
             // Se alcuni clienti hanno user_id, recupera le foto profilo dalla tabella profiles
             // CRITICO: Filtra per shop_id anche per i profili per evitare cross-shop
             const clientUserIds = [...new Set(clients.map((c: any) => c.user_id).filter(Boolean))];
@@ -2872,7 +2836,7 @@ export const apiService = {
           console.error('Error loading clients:', error);
         }
       }
-      
+
       // Carica tutti gli staff in una sola query
       // CRITICO: Filtra per shop_id per evitare cross-shop anche se gli ID sono già filtrati dalle chat
       let staffMap = new Map();
@@ -2893,25 +2857,25 @@ export const apiService = {
           console.error('Error loading staff:', error);
         }
       }
-      
+
       // Per ogni chat, carica l'ultimo messaggio e il conteggio non letti, e aggiungi i dati cliente/staff
       const chatsWithDetails = await Promise.all(
         chats.map(async (chat: any) => {
           // Ottieni dati cliente
           const clientData = clientsMap.get(chat.client_id);
-          const clientName = clientData 
+          const clientName = clientData
             ? `${clientData.first_name || ''} ${clientData.last_name || ''}`.trim() || clientData.email || 'Cliente'
             : 'Cliente';
           const clientProfilePhoto = clientData?.user_id ? clientProfilesMap.get(clientData.user_id) : null;
-          
+
           // Ottieni dati staff
           const staffData = staffMap.get(chat.staff_id);
           const staffName = staffData?.full_name || 'Barbiere';
-          
+
           // Carica l'ultimo messaggio
           let lastMessage: any = undefined;
           let unreadCount = 0;
-          
+
           try {
             const messagesUrl = `${API_ENDPOINTS.CHAT_MESSAGES}?select=id,content,sender_type,sender_id,created_at,read_at&chat_id=eq.${chat.id}&order=created_at.desc&limit=1`;
             const messagesResponse = await fetch(messagesUrl, { headers: buildHeaders(true) });
@@ -2921,7 +2885,7 @@ export const apiService = {
                 lastMessage = messages[0];
               }
             }
-            
+
             // Conta i messaggi non letti
             const unreadUrl = `${API_ENDPOINTS.CHAT_MESSAGES}?select=id&chat_id=eq.${chat.id}&read_at=is.null`;
             const unreadResponse = await fetch(unreadUrl, { headers: buildHeaders(true) });
@@ -2932,7 +2896,7 @@ export const apiService = {
           } catch (error) {
             console.error('Error loading chat details:', error);
           }
-          
+
           return {
             id: chat.id,
             client_id: chat.client_id,
@@ -2948,7 +2912,7 @@ export const apiService = {
           };
         })
       );
-      
+
       return chatsWithDetails;
     } catch (error) {
       // Non loggare errori di autenticazione
@@ -2962,7 +2926,7 @@ export const apiService = {
 
   async getMessages(chatId: string): Promise<ChatMessage[]> {
     if (!isSupabaseConfigured()) return [];
-    
+
     try {
       // CRITICO: Aggiungi filtro esplicito shop_id come doppia sicurezza
       // Recupera shop_id dal chat per validazione
@@ -2984,7 +2948,7 @@ export const apiService = {
           shopId = shop?.id ?? null;
         }
       }
-      
+
       let url = `${API_ENDPOINTS.CHAT_MESSAGES}?select=*&chat_id=eq.${chatId}&order=created_at.asc`;
       if (shopId && shopId !== 'default') {
         url += `&shop_id=eq.${shopId}`;
@@ -3000,7 +2964,7 @@ export const apiService = {
 
   async sendMessage(data: CreateMessageRequest): Promise<void> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     try {
       const response = await fetch(API_ENDPOINTS.CHAT_MESSAGES, {
         method: 'POST',
@@ -3022,7 +2986,7 @@ export const apiService = {
     if (!isAuthenticated()) {
       return null;
     }
-    
+
     try {
       // CRITICO: Filtra per shop_id per evitare cross-shop
       let shopId = getStoredShopId();
@@ -3030,7 +2994,7 @@ export const apiService = {
         const shop = await this.getShop();
         shopId = shop?.id ?? null;
       }
-      
+
       let url = `${API_ENDPOINTS.CHATS}?select=*&client_id=eq.${clientId}&staff_id=eq.${staffId}&limit=1`;
       if (shopId && shopId !== 'default') {
         url += `&shop_id=eq.${shopId}`;
@@ -3049,7 +3013,7 @@ export const apiService = {
 
   async createChat(data: CreateChatRequest): Promise<Chat> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     try {
       const response = await fetch(API_ENDPOINTS.CHATS, {
         method: 'POST',
@@ -3090,7 +3054,7 @@ export const apiService = {
 
   async markMessagesAsRead(chatId: string): Promise<void> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     try {
       const response = await fetch(`${API_ENDPOINTS.CHAT_MESSAGES}?chat_id=eq.${chatId}`, {
         method: 'PATCH',
@@ -3107,11 +3071,11 @@ export const apiService = {
   // Get all services
   async getServices(): Promise<Service[]> {
     if (!isSupabaseConfigured()) return [];
-    
+
     try {
       // CRITICO: Aggiungi filtro esplicito shop_id come doppia sicurezza
       let shopId = getStoredShopId();
-      
+
       if (!shopId || shopId === 'default') {
         const shop = await this.getShop();
         shopId = shop?.id ?? null;
@@ -3120,7 +3084,7 @@ export const apiService = {
           localStorage.setItem('current_shop_id', shopId);
         }
       }
-      
+
       // Mostra tutti i servizi (attivi e non), ordinati per nome
       // Permetti accesso pubblico (buildHeaders(false)) per permettere ai clienti non autenticati di vedere i servizi
       // Il filtro shop_id nella query assicura che vedano solo i servizi del negozio corretto
@@ -3129,10 +3093,10 @@ export const apiService = {
         url += `&shop_id=eq.${shopId}`;
       } else {
       }
-      
+
       // Prova prima con autenticazione, poi fallback a pubblico
       const hasAuth = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-      
+
       let response: Response;
       if (hasAuth) {
         // Usa fetchWithTokenRefresh per gestire automaticamente il refresh del token se scaduto
@@ -3141,7 +3105,7 @@ export const apiService = {
         // Accesso pubblico senza autenticazione
         response = await fetch(url, { headers: buildHeaders(false) });
       }
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         // Se è un errore 401 anche dopo il refresh, prova con accesso pubblico
@@ -3155,7 +3119,7 @@ export const apiService = {
         console.error('❌ getServices: Errore nella risposta:', response.status, errorText);
         throw new Error(`Failed to fetch services: ${response.status} ${errorText}`);
       }
-      
+
       const services = await response.json();
       return services;
     } catch (error) {
@@ -3173,11 +3137,11 @@ export const apiService = {
   // Get all staff (pubblico per permettere ai clienti di vedere i barbieri disponibili)
   async getStaff(): Promise<Staff[]> {
     if (!isSupabaseConfigured()) return [];
-    
+
     try {
       // CRITICO: Aggiungi filtro esplicito shop_id come doppia sicurezza
       let shopId = getStoredShopId();
-      
+
       if (!shopId || shopId === 'default') {
         const shop = await this.getShop();
         shopId = shop?.id ?? null;
@@ -3186,7 +3150,7 @@ export const apiService = {
           localStorage.setItem('current_shop_id', shopId);
         }
       }
-      
+
       // Permetti accesso pubblico (buildHeaders(false)) per permettere ai clienti non autenticati di vedere lo staff
       // Il filtro shop_id nella query assicura che vedano solo lo staff del negozio corretto
       let url = `${API_ENDPOINTS.STAFF}?select=*&order=full_name.asc&active=eq.true`;
@@ -3194,10 +3158,10 @@ export const apiService = {
         url += `&shop_id=eq.${shopId}`;
       } else {
       }
-      
+
       // Prova prima con autenticazione, poi fallback a pubblico
       const hasAuth = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-      
+
       let response: Response;
       if (hasAuth) {
         // Usa fetchWithTokenRefresh per gestire automaticamente il refresh del token se scaduto
@@ -3206,7 +3170,7 @@ export const apiService = {
         // Accesso pubblico senza autenticazione
         response = await fetch(url, { headers: buildHeaders(false) });
       }
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         // Se è un errore 401 anche dopo il refresh, prova con accesso pubblico
@@ -3221,7 +3185,7 @@ export const apiService = {
         // Se fallisce, restituisci array vuoto invece di loggare errore
         return [];
       }
-      
+
       const staff = await response.json();
       return staff;
     } catch (error) {
@@ -3239,12 +3203,12 @@ export const apiService = {
   // Create new staff member
   async createStaff(staffData: Omit<Staff, 'id' | 'created_at'>): Promise<Staff> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     try {
       // Se shop_id è passato esplicitamente, usalo (può essere null per indicare "non assegnato")
       // Altrimenti prova a ottenere lo shop_id dal contesto corrente
       let shopId: string | null = null;
-      
+
       if (staffData.shop_id !== undefined) {
         // shop_id è stato passato esplicitamente (può essere null o un valore)
         shopId = staffData.shop_id;
@@ -3262,14 +3226,14 @@ export const apiService = {
           }
         }
       }
-      
+
       // Invia solo i campi che esistono nella tabella staff del DB
       const payload: Record<string, any> = {
         full_name: staffData.full_name,
         role: staffData.role,
         active: staffData.active ?? true,
       };
-      
+
       // Aggiungi shop_id solo se è un UUID valido (può essere null esplicitamente)
       // Non aggiungere shop_id se è '1' o 'default' (valori di default non validi)
       if (shopId && shopId !== '1' && shopId !== 'default') {
@@ -3285,28 +3249,28 @@ export const apiService = {
         payload.shop_id = null;
       } else {
       }
-      
+
       // Aggiungi campi opzionali solo se hanno un valore
       if (staffData.calendar_id) payload.calendar_id = staffData.calendar_id;
       if (staffData.email) payload.email = staffData.email;
       if (staffData.phone) payload.phone = staffData.phone;
       if ((staffData as any).chair_id) payload.chair_id = (staffData as any).chair_id;
       if ((staffData as any).user_id) payload.user_id = (staffData as any).user_id;
-      
+
       const response = await fetch(API_ENDPOINTS.STAFF, {
         method: 'POST',
         headers: { ...buildHeaders(true), Prefer: 'return=representation' },
         body: JSON.stringify(payload),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Failed to create staff: ${response.status} ${errorText}`);
       }
-      
+
       const created = await response.json();
       const createdStaff = created[0] as Staff;
-      
+
       // Se lo staff è stato creato con un user_id, aggiorna profiles.role a 'barber'
       if ((staffData as any).user_id) {
         try {
@@ -3314,11 +3278,11 @@ export const apiService = {
           const profileCheckRes = await fetch(`${API_ENDPOINTS.PROFILES}?user_id=eq.${(staffData as any).user_id}&select=role&limit=1`, {
             headers: { ...buildHeaders(true) },
           });
-          
+
           if (profileCheckRes.ok) {
             const profiles = await profileCheckRes.json();
             const existingProfile = profiles[0];
-            
+
             // Aggiorna solo se il ruolo non è già 'barber' o 'admin'
             if (existingProfile && existingProfile.role !== 'barber' && existingProfile.role !== 'admin') {
               await fetch(`${API_ENDPOINTS.PROFILES}?user_id=eq.${(staffData as any).user_id}`, {
@@ -3336,7 +3300,7 @@ export const apiService = {
           console.warn('⚠️ Impossibile aggiornare profiles.role per staff creato:', profileError);
         }
       }
-      
+
       return createdStaff;
     } catch (error) {
       console.error('Error creating staff:', error);
@@ -3347,12 +3311,12 @@ export const apiService = {
   // Update existing staff member
   async updateStaff(id: string, staffData: Partial<Staff>): Promise<Staff> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     try {
       // Recupera lo staff esistente per verificare se user_id è cambiato
       let oldUserId: string | null = null;
       const newUserId = (staffData as any).user_id;
-      
+
       if (newUserId !== undefined) {
         try {
           const existingStaffRes = await fetch(`${API_ENDPOINTS.STAFF}?id=eq.${id}&select=user_id&limit=1`, {
@@ -3368,41 +3332,41 @@ export const apiService = {
           // Ignora errori nel recupero dello staff esistente
         }
       }
-      
+
       // Filtra solo i campi che esistono nel DB (incluso chair_id per assegnazione poltrone)
       const dbFields = ['shop_id', 'full_name', 'role', 'calendar_id', 'active', 'email', 'phone', 'chair_id', 'profile_photo_url', 'specialties', 'bio'];
       const payload: Record<string, any> = {};
-      
+
       for (const key of dbFields) {
         if (key in staffData) {
           payload[key] = (staffData as any)[key];
         }
       }
-      
+
       // Aggiungi user_id se presente
       if (newUserId !== undefined) {
         payload.user_id = newUserId;
       }
-      
+
       // Se non ci sono campi da aggiornare nel DB, ritorna
       if (Object.keys(payload).length === 0) {
         return { id, ...staffData } as Staff;
       }
-      
+
       const response = await fetch(`${API_ENDPOINTS.STAFF}?id=eq.${id}`, {
         method: 'PATCH',
         headers: { ...buildHeaders(true), Prefer: 'return=representation' },
         body: JSON.stringify(payload),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Failed to update staff: ${response.status} ${errorText}`);
       }
-      
+
       const updated = await response.json();
       const updatedStaff = { ...updated[0], ...staffData } as Staff;
-      
+
       // Se user_id è stato aggiunto o modificato, aggiorna profiles.role a 'barber'
       if (newUserId !== undefined && newUserId !== null && newUserId !== oldUserId) {
         try {
@@ -3410,11 +3374,11 @@ export const apiService = {
           const profileCheckRes = await fetch(`${API_ENDPOINTS.PROFILES}?user_id=eq.${newUserId}&select=role&limit=1`, {
             headers: { ...buildHeaders(true) },
           });
-          
+
           if (profileCheckRes.ok) {
             const profiles = await profileCheckRes.json();
             const existingProfile = profiles[0];
-            
+
             // Aggiorna solo se il ruolo non è già 'barber' o 'admin'
             if (existingProfile && existingProfile.role !== 'barber' && existingProfile.role !== 'admin') {
               await fetch(`${API_ENDPOINTS.PROFILES}?user_id=eq.${newUserId}`, {
@@ -3432,7 +3396,7 @@ export const apiService = {
           console.warn('⚠️ Impossibile aggiornare profiles.role per staff aggiornato:', profileError);
         }
       }
-      
+
       return updatedStaff;
     } catch (error) {
       console.error('Error updating staff:', error);
@@ -3443,13 +3407,13 @@ export const apiService = {
   // Delete staff member
   async deleteStaff(id: string): Promise<void> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     try {
       const response = await fetch(`${API_ENDPOINTS.STAFF}?id=eq.${id}`, {
         method: 'DELETE',
         headers: { ...buildHeaders(true) },
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Failed to delete staff: ${response.status} ${errorText}`);
@@ -3463,7 +3427,7 @@ export const apiService = {
   // Get all products
   async getProducts(): Promise<Product[]> {
     if (!isSupabaseConfigured()) return [];
-    
+
     try {
       // CRITICO: Aggiungi filtro esplicito shop_id come doppia sicurezza
       let shopId = getStoredShopId();
@@ -3475,7 +3439,7 @@ export const apiService = {
           localStorage.setItem('current_shop_id', shopId);
         }
       }
-      
+
       // Filtra sempre per prodotti attivi
       // IMPORTANTE: Filtra SOLO per shop_id specifico per evitare di mostrare prodotti di altri negozi
       let url = `${API_ENDPOINTS.PRODUCTS}?select=*&order=name.asc&active=eq.true`;
@@ -3487,13 +3451,13 @@ export const apiService = {
         // Questo evita di mostrare prodotti di altri negozi
         url += `&shop_id=is.null`;
       }
-      
+
       console.log('🛍️ getProducts: Fetching products', {
         shopId,
         url,
         hasShopIdFilter: shopId && shopId !== 'default'
       });
-      
+
       // Usa fetchWithTokenRefresh per gestire automaticamente il refresh del token se scaduto
       const hasAuth = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       let response: Response;
@@ -3503,7 +3467,7 @@ export const apiService = {
         // Accesso pubblico senza autenticazione
         response = await fetch(url, { headers: buildHeaders(false) });
       }
-      
+
       if (!response.ok) {
         // Se è un errore 401 anche dopo il refresh, prova con accesso pubblico
         if (response.status === 401 && hasAuth) {
@@ -3529,7 +3493,7 @@ export const apiService = {
         imageurl: p.imageurl,
         active: p.active
       })));
-      
+
       // Normalizza i prodotti: gestisci sia image_url che imageurl
       const normalizedProducts = products.map((p: any) => {
         const normalized: any = { ...p };
@@ -3543,7 +3507,7 @@ export const apiService = {
         }
         return normalized;
       });
-      
+
       return normalizedProducts;
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -3554,7 +3518,7 @@ export const apiService = {
   // Create product
   async createProduct(productData: Partial<Product>): Promise<Product> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     try {
       // Assicurati che shop_id sia presente
       let shopId = (productData as any).shop_id || getStoredShopId();
@@ -3565,13 +3529,13 @@ export const apiService = {
         } catch (shopError) {
         }
       }
-      
+
       const payload = {
         ...productData,
         shop_id: shopId && shopId !== 'default' ? shopId : undefined,
         active: true,
       } as any;
-      
+
       const response = await fetch(API_ENDPOINTS.PRODUCTS, {
         method: 'POST',
         headers: { ...buildHeaders(true), Prefer: 'return=representation' },
@@ -3579,7 +3543,7 @@ export const apiService = {
       });
       if (!response.ok) {
         let detail = '';
-        try { detail = await response.text(); } catch {}
+        try { detail = await response.text(); } catch { }
         throw new Error(`Failed to create product: ${response.status} ${detail}`);
       }
       const products = await response.json();
@@ -3593,7 +3557,7 @@ export const apiService = {
   // Update product
   async updateProduct(id: string, productData: Partial<Product>): Promise<Product> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     try {
       const payload = { ...(productData as any) } as any;
       const response = await fetch(`${API_ENDPOINTS.PRODUCTS}?id=eq.${id}`, {
@@ -3603,7 +3567,7 @@ export const apiService = {
       });
       if (!response.ok) {
         let detail = '';
-        try { detail = await response.text(); } catch {}
+        try { detail = await response.text(); } catch { }
         throw new Error(`Failed to update product: ${response.status} ${detail}`);
       }
       const products = await response.json();
@@ -3617,7 +3581,7 @@ export const apiService = {
   // Delete product
   async deleteProduct(id: string): Promise<void> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     try {
       const response = await fetch(`${API_ENDPOINTS.PRODUCTS}?id=eq.${id}`, {
         method: 'DELETE',
@@ -3637,12 +3601,12 @@ export const apiService = {
   // Get notifications for current user (richiede autenticazione)
   async getNotifications(userId: string, limit: number = 50): Promise<Notification[]> {
     if (!isSupabaseConfigured()) return [];
-    
+
     // Non fare chiamata se l'utente non è autenticato
     if (!isAuthenticated()) {
       return [];
     }
-    
+
     try {
       const url = `${API_ENDPOINTS.NOTIFICATIONS}?user_id=eq.${userId}&order=created_at.desc&limit=${limit}`;
       const response = await fetch(url, { headers: buildHeaders(true) });
@@ -3667,16 +3631,16 @@ export const apiService = {
   // Get unread notifications count (richiede autenticazione)
   async getUnreadNotificationsCount(userId: string): Promise<number> {
     if (!isSupabaseConfigured()) return 0;
-    
+
     // Non fare chiamata se l'utente non è autenticato
     if (!isAuthenticated()) {
       return 0;
     }
-    
+
     try {
       const url = `${API_ENDPOINTS.NOTIFICATIONS}?user_id=eq.${userId}&read_at=is.null&select=id`;
-      const response = await fetch(url, { 
-        headers: { ...buildHeaders(true), 'Prefer': 'count=exact' } 
+      const response = await fetch(url, {
+        headers: { ...buildHeaders(true), 'Prefer': 'count=exact' }
       });
       if (!response.ok) {
         // Se è un errore di autenticazione, non loggare
@@ -3685,14 +3649,14 @@ export const apiService = {
         }
         throw new Error('Failed to fetch notifications count');
       }
-      
+
       // Supabase returns count in content-range header
       const contentRange = response.headers.get('content-range');
       if (contentRange) {
         const match = contentRange.match(/\/(\d+)/);
         if (match) return parseInt(match[1], 10);
       }
-      
+
       // Fallback: count from response
       const data = await response.json();
       return Array.isArray(data) ? data.length : 0;
@@ -3709,7 +3673,7 @@ export const apiService = {
   // Mark notification as read
   async markNotificationAsRead(notificationId: string): Promise<void> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     try {
       const response = await fetch(`${API_ENDPOINTS.NOTIFICATIONS}?id=eq.${notificationId}`, {
         method: 'PATCH',
@@ -3726,7 +3690,7 @@ export const apiService = {
   // Mark all notifications as read for a user
   async markAllNotificationsAsRead(userId: string): Promise<void> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     try {
       const response = await fetch(`${API_ENDPOINTS.NOTIFICATIONS}?user_id=eq.${userId}&read_at=is.null`, {
         method: 'PATCH',
@@ -3743,20 +3707,20 @@ export const apiService = {
   // Delete a notification
   async deleteNotification(notificationId: string): Promise<void> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     try {
       const headers = buildHeaders(true);
       const response = await fetch(`${API_ENDPOINTS.NOTIFICATIONS}?id=eq.${notificationId}`, {
         method: 'DELETE',
         headers: { ...headers, Prefer: 'return=minimal' },
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ Errore DELETE notifica:', response.status, errorText);
         throw new Error(`Failed to delete notification: ${response.status} ${errorText}`);
       }
-      
+
       // Notification deleted successfully
     } catch (error) {
       console.error('Error deleting notification:', error);
@@ -3767,7 +3731,7 @@ export const apiService = {
   // Delete all notifications for current user
   async deleteAllNotifications(userId: string): Promise<void> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     try {
       const headers = buildHeaders(true);
       const url = `${API_ENDPOINTS.NOTIFICATIONS}?user_id=eq.${userId}`;
@@ -3775,13 +3739,13 @@ export const apiService = {
         method: 'DELETE',
         headers: { ...headers, Prefer: 'return=minimal' },
       }, true);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ Errore DELETE tutte notifiche:', response.status, errorText);
         throw new Error(`Failed to delete all notifications: ${response.status} ${errorText}`);
       }
-      
+
       // All notifications deleted successfully
     } catch (error) {
       console.error('Error deleting all notifications:', error);
@@ -3796,24 +3760,24 @@ export const apiService = {
   // Cancel appointment directly in Supabase (for client cancellations)
   async cancelAppointmentDirect(appointmentId: string): Promise<void> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     try {
       // Usa buildHeaders(true) per avere i permessi di aggiornamento con token utente
       const response = await fetch(`${API_ENDPOINTS.APPOINTMENTS_FEED}?id=eq.${appointmentId}`, {
         method: 'PATCH',
         headers: { ...buildHeaders(true), Prefer: 'return=minimal' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           status: 'cancelled',
           updated_at: new Date().toISOString()
         }),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ Errore cancellazione appuntamento:', response.status, errorText);
         throw new Error(`Failed to cancel appointment: ${response.status} ${errorText}`);
       }
-      
+
       // Appointment cancelled successfully
     } catch (error) {
       console.error('❌ Errore critico cancellazione appuntamento:', error);
@@ -3824,20 +3788,20 @@ export const apiService = {
   // Delete appointment completely from Supabase (for barber deletions)
   async deleteAppointmentDirect(appointmentId: string): Promise<void> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     try {
       // Usa buildHeaders(true) per avere i permessi di eliminazione con token utente
       const response = await fetch(`${API_ENDPOINTS.APPOINTMENTS_FEED}?id=eq.${appointmentId}`, {
         method: 'DELETE',
         headers: { ...buildHeaders(true), Prefer: 'return=minimal' },
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ Errore eliminazione appuntamento:', response.status, errorText);
         throw new Error(`Failed to delete appointment: ${response.status} ${errorText}`);
       }
-      
+
       // Appointment deleted successfully
     } catch (error) {
       console.error('❌ Errore critico eliminazione appuntamento:', error);
@@ -3857,14 +3821,14 @@ export const apiService = {
     if (!isSupabaseConfigured()) {
       return null;
     }
-    
+
     try {
       let shopId = getStoredShopId();
       if (!shopId) {
         const shop = await this.getShop();
         shopId = shop?.id ?? null;
       }
-      
+
       const payload = {
         shop_id: shopId && shopId !== 'default' ? shopId : null,
         user_id: data.user_id,
@@ -3874,7 +3838,7 @@ export const apiService = {
         message: data.message,
         data: data.data || {},
       };
-      
+
       const response = await fetchWithTokenRefresh(
         API_ENDPOINTS.NOTIFICATIONS,
         {
@@ -3884,13 +3848,13 @@ export const apiService = {
         },
         true
       );
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ Errore creazione notifica:', response.status);
         console.error('❌ Dettaglio errore:', errorText);
         console.error('❌ Payload inviato:', JSON.stringify(payload, null, 2));
-        
+
         // Se è un errore 403, probabilmente è un problema di RLS policy
         if (response.status === 403) {
           console.error('❌ ERRORE RLS: La policy di Supabase non permette l\'inserimento. Esegui lo script SQL per aggiornare le policies.');
@@ -3901,7 +3865,7 @@ export const apiService = {
         }
         return null;
       }
-      
+
       const created = await response.json();
       return created[0];
     } catch (error) {
@@ -3913,7 +3877,7 @@ export const apiService = {
   // Get staff member by ID
   async getStaffById(staffId: string): Promise<Staff | null> {
     if (!isSupabaseConfigured()) return null;
-    
+
     try {
       const url = `${API_ENDPOINTS.STAFF}?id=eq.${staffId}&select=*&limit=1`;
       const response = await fetch(url, { headers: buildHeaders(true) });
@@ -3930,7 +3894,7 @@ export const apiService = {
   async getStaffByUserId(userId: string): Promise<Staff | null> {
     if (!isSupabaseConfigured()) return null;
     if (!userId) return null;
-    
+
     try {
       const url = `${API_ENDPOINTS.STAFF}?user_id=eq.${userId}&select=*&limit=1`;
       const response = await fetch(url, { headers: buildHeaders(true) });
@@ -3948,7 +3912,7 @@ export const apiService = {
   // Get appointment by ID with full details
   async getAppointmentById(appointmentId: string): Promise<Appointment | null> {
     if (!isSupabaseConfigured()) return null;
-    
+
     try {
       // Includi user_id nello staff per le notifiche
       const url = `${API_ENDPOINTS.APPOINTMENTS_FEED}?id=eq.${appointmentId}&select=*,clients(first_name,last_name,phone_e164,email),staff(id,full_name,email,user_id),services(id,name,duration_min)&limit=1`;
@@ -3971,7 +3935,7 @@ export const apiService = {
     if (!isSupabaseConfigured()) {
       return null;
     }
-    
+
     try {
       // Expire at: default = appointment start (passed by caller) or 30 days
       const expiresAt =
@@ -3989,19 +3953,19 @@ export const apiService = {
         expires_at: expiresAt,
         notes: data.notes || null,
       };
-      
+
       const response = await fetch(API_ENDPOINTS.WAITLIST, {
         method: 'POST',
         headers: { ...buildHeaders(true), Prefer: 'return=representation' },
         body: JSON.stringify(payload),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ Errore inserimento in waitlist:', response.status, errorText);
         throw new Error(`Failed to join waitlist: ${response.status} ${errorText}`);
       }
-      
+
       const created = await response.json();
       return created[0];
     } catch (error) {
@@ -4013,18 +3977,18 @@ export const apiService = {
   // Disable waitlist entry (delete)
   async leaveWaitlist(waitlistId: string): Promise<void> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     try {
       const response = await fetch(`${API_ENDPOINTS.WAITLIST}?id=eq.${waitlistId}`, {
         method: 'DELETE',
         headers: buildHeaders(true),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Failed to leave waitlist: ${response.status} ${errorText}`);
       }
-      
+
       // Waitlist entry removed successfully
     } catch (error) {
       console.error('❌ Errore rimozione da waitlist:', error);
@@ -4035,7 +3999,7 @@ export const apiService = {
   // Get client's active waitlist entries (for upcoming appointments)
   async getClientWaitlistStatus(clientId: string): Promise<WaitlistEntry[]> {
     if (!isSupabaseConfigured()) return [];
-    
+
     try {
       // Active / notified entries that haven't expired
       const url =
@@ -4046,13 +4010,13 @@ export const apiService = {
         `&select=*,staff(id,full_name),appointments:appointment_id(id,start_at,end_at,service_id,services(id,name,duration_min))` +
         `&order=created_at.desc`;
       const response = await fetch(url, { headers: buildHeaders(true) });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Errore fetch waitlist status:', response.status, errorText);
         return [];
       }
-      
+
       return await response.json();
     } catch (error) {
       console.error('Error fetching waitlist status:', error);
@@ -4063,24 +4027,24 @@ export const apiService = {
   // Update waitlist entry status
   async updateWaitlistStatus(waitlistId: string, status: 'active' | 'notified' | 'accepted' | 'expired' | 'disabled'): Promise<void> {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
-    
+
     try {
       const payload: Record<string, unknown> = { status };
       if (status === 'notified') {
         payload.notified_at = new Date().toISOString();
       }
-      
+
       const response = await fetch(`${API_ENDPOINTS.WAITLIST}?id=eq.${waitlistId}`, {
         method: 'PATCH',
         headers: { ...buildHeaders(true), Prefer: 'return=minimal' },
         body: JSON.stringify(payload),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Failed to update waitlist status: ${response.status} ${errorText}`);
       }
-      
+
       // Waitlist status updated successfully
     } catch (error) {
       console.error('❌ Errore aggiornamento stato waitlist:', error);
@@ -4091,7 +4055,7 @@ export const apiService = {
   // Check if client is already subscribed for the given appointment
   async isClientInWaitlist(clientId: string, appointmentId: string): Promise<boolean> {
     if (!isSupabaseConfigured()) return false;
-    
+
     try {
       const url =
         `${API_ENDPOINTS.WAITLIST}` +
