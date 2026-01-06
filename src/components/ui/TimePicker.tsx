@@ -72,7 +72,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
           {label}
         </label>
       )}
-      
+
       <div className="relative" ref={dropdownRef}>
         <button
           type="button"
@@ -118,7 +118,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
                       type="button"
                       onClick={() => handleTimeChange(hour, minutes)}
                       className={cn(
-                        'w-full px-2 py-1 text-sm text-left hover:bg-green-50 transition-colors',
+                        'w-full px-2 py-1 text-sm text-left text-gray-900 hover:bg-green-50 transition-colors',
                         hours === hour && 'bg-green-100 text-green-700 font-medium'
                       )}
                     >
@@ -141,7 +141,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
                       onClick={() => handleTimeChange(hours, minute)}
                       aria-label={`Seleziona ${minute} minuti`}
                       className={cn(
-                        'w-full px-2 py-1 text-sm text-left hover:bg-green-50 transition-colors touch-target',
+                        'w-full px-2 py-1 text-sm text-left text-gray-900 hover:bg-green-50 transition-colors touch-target',
                         minutes === minute && 'bg-green-100 text-green-700 font-medium'
                       )}
                     >

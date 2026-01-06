@@ -31,16 +31,16 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   const { getUserProfile } = useUserProfile();
   const { appointments, createAppointment } = useAppointments();
   const { isDateInVacation, vacationPeriod, getVacationPeriod } = useVacationMode();
-  
+
   // Force reload vacation period on mount - sometimes the hook doesn't load it initially
   useEffect(() => {
     // Check if vacation period is loaded
     const currentPeriod = getVacationPeriod();
-    
+
     // Always check localStorage directly and compare with hook state
     try {
       const saved = localStorage.getItem('vacationPeriod');
-      
+
       if (saved && !currentPeriod) {
         // Parse and manually set if hook didn't load it
         try {
@@ -61,7 +61,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   const [currentView, setCurrentView] = useState<'monthly' | 'day_detail'>('monthly');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDayForDetail, setSelectedDayForDetail] = useState<Date | null>(null);
-  
+
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState('');
   const [selectedService, setSelectedService] = useState('');
@@ -125,13 +125,13 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
         console.log('⏭️ ClientBookingCalendar: Skipping duplicate load request');
         return;
       }
-      
+
       isLoadingData = true;
       hasLoaded = true;
 
       try {
         setIsLoading(true);
-        
+
         // Verifica che il token sia disponibile
         const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
         console.log('🔄 ClientBookingCalendar: Loading services and staff', {
@@ -141,12 +141,12 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
           isAuthenticated,
           user: user?.email
         });
-        
+
         // Ensure shop_id is in localStorage before calling getServices
         if (shopIdToUse && shopIdToUse !== 'default') {
           localStorage.setItem('current_shop_id', shopIdToUse);
         }
-        
+
         // Timeout per le chiamate API (8 secondi)
         const apiTimeout = new Promise((_, reject) => {
           setTimeout(() => reject(new Error('API timeout')), 8000);
@@ -159,9 +159,9 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
           ]),
           apiTimeout
         ]) as [Service[], Staff[]];
-        
+
         console.log('✅ ClientBookingCalendar: Loaded services:', servicesData.length, 'staff:', staffData.length);
-        
+
         if (isMounted) {
           setServices(servicesData);
           setStaff(staffData);
@@ -194,10 +194,10 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
 
     // Determina quale shop_id usare (priorità: currentShopId > currentShop.id > localStorage)
     const shopIdToUse = currentShopId || currentShop?.id || null;
-    const fallbackShopId = typeof window !== 'undefined' 
-      ? localStorage.getItem('current_shop_id') 
+    const fallbackShopId = typeof window !== 'undefined'
+      ? localStorage.getItem('current_shop_id')
       : null;
-    
+
     const effectiveShopId = shopIdToUse || (fallbackShopId && fallbackShopId !== 'default' ? fallbackShopId : null);
 
     console.log('📊 ClientBookingCalendar: Shop loading state:', {
@@ -241,7 +241,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       isLoadingData = false;
     };
   }, [shopLoading, currentShopId, currentShop?.id, isAuthenticated, user?.id]);
-    
+
   // Force reload vacation period after component mounts
   // This ensures we get the latest vacation period even if it was set before this component mounted
   // Try multiple times with increasing delays to catch the period if it's being set asynchronously
@@ -256,10 +256,10 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
         console.error('Error checking localStorage:', e);
       }
     };
-    
+
     // Check immediately
     checkVacationPeriod();
-    
+
     // Check again after delays to catch async saves
     setTimeout(checkVacationPeriod, 100);
     setTimeout(checkVacationPeriod, 500);
@@ -320,7 +320,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     // If date is in vacation mode, return no availability
     const dateStr = date.toISOString().split('T')[0];
     const inVacation = isDateInVacation(date);
-    
+
     if (inVacation) {
       return { available: 0, total: 0 };
     }
@@ -372,32 +372,32 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   const calendarDays = useMemo(() => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
-    
+
     // First day of the month
     const firstDay = new Date(year, month, 1);
     // Last day of the month
     const lastDay = new Date(year, month + 1, 0);
-    
+
     // Start from Monday of the week containing the first day
     const startDate = new Date(firstDay);
     const dayOfWeek = firstDay.getDay();
     const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert Sunday (0) to 6
     startDate.setDate(firstDay.getDate() - daysToSubtract);
-    
+
     // End on Sunday of the week containing the last day
     const endDate = new Date(lastDay);
     const lastDayOfWeek = lastDay.getDay();
     const daysToAdd = lastDayOfWeek === 0 ? 0 : 7 - lastDayOfWeek;
     endDate.setDate(lastDay.getDate() + daysToAdd);
-    
+
     const days: Date[] = [];
     const current = new Date(startDate);
-    
+
     while (current <= endDate) {
       days.push(new Date(current));
       current.setDate(current.getDate() + 1);
     }
-    
+
     return days;
   }, [currentMonth, vacationPeriod]); // Recalculate when month or vacation period changes
 
@@ -428,14 +428,14 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     const month = currentMonth.getMonth();
     const dayYear = date.getFullYear();
     const dayMonth = date.getMonth();
-    
+
     // Allow clicking on current month days
     if (dayYear === year && dayMonth === month) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const clickedDate = new Date(date);
       clickedDate.setHours(0, 0, 0, 0);
-      
+
       // Only allow clicking on today or future dates
       if (clickedDate >= today) {
         // Don't allow clicking on closed days or vacation days
@@ -465,7 +465,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
 
   const handleBookingSubmit = async () => {
     if (!selectedDate || !selectedTime || !selectedService || !selectedBarber) return;
-    
+
     // Check if products are enabled before showing upsell
     if (!areProductsEnabled) {
       // Skip upsell and directly confirm appointment
@@ -480,12 +480,12 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   const handleUpsellConfirm = async (products: { productId: string; quantity: number }[]) => {
     setSelectedProducts(products);
     setIsSubmitting(true);
-    
+
     try {
       // Get service and barber details
       const service = services.find(s => s.id === selectedService);
       const barber = staff.find(b => b.id === selectedBarber);
-      
+
       // Verifica autenticazione
       if (!isAuthenticated || !user) {
         throw new Error('Devi essere autenticato per prenotare un appuntamento. Vai al login.');
@@ -500,12 +500,12 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       if (!selectedDate || !selectedTime || !selectedService || !selectedBarber) {
         throw new Error('Dati mancanti per la prenotazione');
       }
-      
+
       // Check if date is in vacation mode
       if (isDateInVacation(selectedDate)) {
         throw new Error('Non è possibile prenotare durante il periodo di ferie');
       }
-      
+
       // Get or create client record in clients table
       const clientRecord = await apiService.getOrCreateClientFromUser({
         id: user.id,
@@ -515,14 +515,14 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       });
       const clientId = clientRecord.id;
       const clientPhone = clientRecord.phone_e164 || user.phone || '';
-      
+
       // Create and save the appointment
       // Use local date methods to avoid timezone issues
       const [hours, minutes] = selectedTime.split(':').map(Number);
       const startDateTime = new Date(selectedDate);
       startDateTime.setHours(hours, minutes, 0, 0);
       const endDateTime = new Date(startDateTime.getTime() + (service?.duration_min || 60) * 60000);
-      
+
       const appointmentData = {
         client_id: clientId,
         staff_id: selectedBarber,
@@ -532,7 +532,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
         notes: '',
         products: products
       };
-      
+
       const savedAppointment = await createAppointment(appointmentData);
 
       // Optional: enable earlier-slot waitlist for this appointment
@@ -558,7 +558,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
           // Failed to enable earlier slot notification
         }
       }
-      
+
       // Save appointment data for calendar export
       setLastAppointmentData({
         service: service || null,
@@ -566,46 +566,46 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
         startDateTime,
         endDateTime,
       });
-      
+
       // Nota: La notifica in-app viene creata automaticamente dal trigger del database
       // quando viene inserito l'appuntamento (vedi sql/triggers.sql - notify_barber_on_appointment_created)
       // Non è necessario crearla manualmente qui per evitare duplicati
-      
+
       // Play notification sound using Web Audio API
       if (barber && user) {
         try {
           const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
           const oscillator = audioContext.createOscillator();
           const gainNode = audioContext.createGain();
-          
+
           oscillator.connect(gainNode);
           gainNode.connect(audioContext.destination);
-          
+
           oscillator.frequency.value = 880; // A5 note
           oscillator.type = 'sine';
           gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
           gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-          
+
           oscillator.start(audioContext.currentTime);
           oscillator.stop(audioContext.currentTime + 0.3);
         } catch {
           // Audio not available
         }
-        
+
         // Refresh notifications count (il trigger del database ha già creato la notifica)
         refreshUnreadCount();
-        
+
         // Emails disabilitate lato app: invio gestito da webhooks Supabase
       }
-      
+
       // Close all modals
       setShowUpsellModal(false);
       setShowBookingModal(false);
-      
+
       // Show success message
       setIsSuccess(true);
       setError(null); // Clear any previous errors
-      
+
       // Reset form
       setSelectedDate(null);
       setSelectedTime('');
@@ -614,7 +614,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       setSelectedProducts([]);
       setNotifyIfEarlierSlot(false);
       setCurrentView('monthly');
-      
+
       // Navigate to profile after 5 seconds (increased to allow time for calendar action)
       setTimeout(() => {
         setIsSuccess(false);
@@ -655,7 +655,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     }
 
     const { service, barber, startDateTime, endDateTime } = lastAppointmentData;
-    
+
     // Build location string
     const locationParts: string[] = [];
     if (currentShop?.name) {
@@ -696,10 +696,10 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   };
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('it-IT', { 
-      weekday: 'short', 
-      day: 'numeric', 
-      month: 'short' 
+    return date.toLocaleDateString('it-IT', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short'
     });
   };
 
@@ -715,20 +715,20 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   };
 
   const isCurrentMonth = (date: Date) => {
-    return date.getMonth() === currentMonth.getMonth() && 
-           date.getFullYear() === currentMonth.getFullYear();
+    return date.getMonth() === currentMonth.getMonth() &&
+      date.getFullYear() === currentMonth.getFullYear();
   };
 
   const isToday = (date: Date) => {
     const today = new Date();
     return date.getDate() === today.getDate() &&
-           date.getMonth() === today.getMonth() &&
-           date.getFullYear() === today.getFullYear();
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear();
   };
 
   // Verifica anche direttamente il token per essere sicuri
   const hasToken = typeof window !== 'undefined' && (
-    localStorage.getItem('auth_token') || 
+    localStorage.getItem('auth_token') ||
     sessionStorage.getItem('auth_token')
   );
 
@@ -736,32 +736,32 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   if ((!authLoading && !isAuthenticated) || (!authLoading && !hasToken && !user)) {
     return (
       <div className="p-0 page-container-chat-style">
-      <div className="w-full">
-      <div className="flex flex-col space-y-8">
-      <div className="space-y-8">
-        <div className="text-center mb-6 md:mb-10 glass-panel">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Prenota Appuntamento</h1>
-        </div>
-        <div className="glass-panel max-w-2xl mx-auto">
-          <div className="p-6 text-center">
-            <AlertCircle className="w-12 h-12 text-amber-600 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Autenticazione Richiesta</h2>
-            <p className="text-gray-600 mb-4">
-              Devi effettuare il login per prenotare un appuntamento.
-            </p>
-            <Button
-              onClick={() => {
-                window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
-              }}
-            >
-              Vai al Login
-            </Button>
+        <div className="w-full">
+          <div className="flex flex-col space-y-8">
+            <div className="space-y-8">
+              <div className="text-center mb-6 md:mb-10 glass-panel">
+                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Prenota Appuntamento</h1>
+              </div>
+              <div className="glass-panel max-w-2xl mx-auto">
+                <div className="p-6 text-center">
+                  <AlertCircle className="w-12 h-12 text-amber-600 mx-auto mb-4" />
+                  <h2 className="text-xl font-semibold text-gray-900 mb-2">Autenticazione Richiesta</h2>
+                  <p className="text-gray-600 mb-4">
+                    Devi effettuare il login per prenotare un appuntamento.
+                  </p>
+                  <Button
+                    onClick={() => {
+                      window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+                    }}
+                  >
+                    Vai al Login
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-      </div>
-      </div>
-    </div>
     );
   }
 
@@ -770,14 +770,14 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     return (
       <div className="p-0 page-container-chat-style">
         <div className="w-full">
-        <div className="flex flex-col space-y-8">
-        <div className="space-y-8">
-          <div className="text-center mb-6 md:mb-10 glass-panel">
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Prenota Appuntamento</h1>
-            <p className="text-gray-600">Caricamento...</p>
+          <div className="flex flex-col space-y-8">
+            <div className="space-y-8">
+              <div className="text-center mb-6 md:mb-10 glass-panel">
+                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Prenota Appuntamento</h1>
+                <p className="text-gray-600">Caricamento...</p>
+              </div>
+            </div>
           </div>
-        </div>
-        </div>
         </div>
       </div>
     );
@@ -790,428 +790,444 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   return (
     <div className="p-0 page-container-chat-style">
       <div className="w-full">
-      <div className="flex flex-col space-y-8">
-      <div className="space-y-8">
-      {/* Welcome Section */}
-      <div className="text-center mb-6 md:mb-10 glass-panel">
-        <div className="mb-3">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-            Benvenuto, {userName}! 👋
-          </h2>
-        </div>
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Prenota Appuntamento</h1>
-        <p className="text-lg text-gray-700 max-w-2xl mx-auto">
-          Seleziona il servizio e il barbiere per visualizzare gli orari disponibili!
-        </p>
-      </div>
-
-      {/* Step 1: scelta servizio e barbiere */}
-      <div className="max-w-3xl mx-auto rounded-3xl border border-white/30 shadow-2xl p-6 md:p-8 space-y-6 ring-1 ring-white/30 bg-white/50 backdrop-blur-2xl">
-        <div className="space-y-2">
-          <label className="block text-base font-semibold text-gray-800 flex items-center">
-            <Scissors className="w-5 h-5 mr-2 text-green-600" />
-            Servizio
-          </label>
-          <select
-            value={selectedService}
-            onChange={(e) => {
-              setSelectedService(e.target.value);
-              // reset eventuale selezione precedente
-              setSelectedDate(null);
-              setSelectedTime('');
-              setCurrentView('monthly');
-            }}
-            className="w-full px-4 py-3 border-2 border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base bg-white/80 text-gray-900 transition-all hover:border-white shadow-lg backdrop-blur touch-target"
-            disabled={isLoading}
-            aria-label="Seleziona servizio"
-            aria-describedby="service-description"
-          >
-            <option value="">{isLoading ? 'Caricamento servizi...' : 'Seleziona un servizio'}</option>
-            {services
-              .filter((service) => service.active)
-              .map((service) => (
-                <option key={service.id} value={service.id}>
-                  {service.name} - €{(service.price_cents || 0) / 100} ({service.duration_min} min)
-                </option>
-              ))}
-          </select>
-        </div>
-
-        <div className="space-y-2">
-          <label className="block text-base font-semibold text-gray-800 flex items-center">
-            <User className="w-5 h-5 mr-2 text-green-600" />
-            Barbiere
-          </label>
-          <select
-            value={selectedBarber}
-            onChange={(e) => {
-              setSelectedBarber(e.target.value);
-              setSelectedDate(null);
-              setSelectedTime('');
-              setCurrentView('monthly');
-            }}
-            className="w-full px-4 py-3 border-2 border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base bg-white/80 text-gray-900 transition-all hover:border-white shadow-lg backdrop-blur touch-target"
-            disabled={!selectedService || isLoading}
-            aria-label="Seleziona barbiere"
-            aria-describedby="barber-description"
-          >
-            <option value="">{isLoading ? 'Caricamento barbieri...' : 'Seleziona un barbiere'}</option>
-            {availableBarbers.map((barber) => (
-              <option key={barber.id} value={barber.id}>
-                {barber.full_name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {bookingDuration && selectedBarber && (
-          <div className="mt-2 p-4 bg-green-50/70 border border-green-200/70 rounded-xl shadow-inner backdrop-blur">
-            <p className="text-sm text-green-800">
-              <span className="font-semibold">Durata appuntamento:</span> {bookingDuration} minuti.
-              Mostriamo solo slot con almeno questo tempo libero entro 6 mesi.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Calendar View */}
-      {!shopHoursLoaded ? (
-        <div className="bg-white/40 border border-white/30 rounded-2xl p-6 text-center text-gray-700 shadow-lg backdrop-blur-xl">
-          Caricamento orari del negozio...
-        </div>
-      ) : !bookingDuration || !selectedBarber ? (
-        <div className="text-center py-12 text-gray-700 bg-white/40 border border-white/30 rounded-2xl shadow-lg backdrop-blur-xl">
-          <p className="text-lg font-semibold">Seleziona servizio e barbiere</p>
-          <p className="text-sm mt-1">Poi vedrai il calendario mensile con gli orari disponibili.</p>
-        </div>
-      ) : currentView === 'monthly' ? (
-        /* Monthly Calendar View */
-        <div className="w-full">
-          {/* Month Header */}
-          <div className="flex items-center justify-between mb-6">
-            <Button
-              variant="ghost"
-              size="lg"
-              onClick={() => navigateMonth('prev')}
-              className="flex items-center space-x-2 touch-target"
-              aria-label="Mese precedente"
-            >
-              <ChevronLeft className="w-6 h-6" aria-hidden="true" />
-            </Button>
-            
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
-              {formatMonthYear(currentMonth)}
-            </h2>
-            
-            <Button
-              variant="ghost"
-              size="lg"
-              onClick={() => navigateMonth('next')}
-              className="flex items-center space-x-2 touch-target"
-              aria-label="Mese successivo"
-            >
-              <ChevronRight className="w-6 h-6" aria-hidden="true" />
-            </Button>
-          </div>
-
-          {/* Days of Week Header */}
-          <div className="grid grid-cols-7 gap-1 mb-2">
-            {['L', 'M', 'M', 'G', 'V', 'S', 'D'].map((day, index) => (
-              <div key={index} className="text-center text-sm font-semibold text-gray-600 py-2">
-                {day}
+        <div className="flex flex-col space-y-8">
+          <div className="space-y-8">
+            {/* Welcome Section */}
+            <div className="text-center mb-6 md:mb-10 glass-panel">
+              <div className="mb-3">
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+                  Benvenuto, {userName}! 👋
+                </h2>
               </div>
-            ))}
-          </div>
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Prenota Appuntamento</h1>
+              <p className="text-lg text-gray-700 max-w-2xl mx-auto">
+                Seleziona il servizio e il barbiere per visualizzare gli orari disponibili!
+              </p>
+            </div>
 
-          {/* Calendar Grid */}
-          <div className="grid grid-cols-7 gap-1">
-            {calendarDays.map((date, index) => {
-              const isCurrentMonthDay = isCurrentMonth(date);
-              const isTodayDate = isToday(date);
-              const availability = getDayAvailabilityPreview(date);
-              const hasAvailability = availability.available > 0;
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-              const clickedDate = new Date(date);
-              clickedDate.setHours(0, 0, 0, 0);
-              // A day is clickable only if: it's in current month, has availability, is today or future, shop is open, and not in vacation
-              const isShopOpen = shopHoursLoaded && isDateOpen(date);
-              const isNotInVacation = !isDateInVacation(date);
-              const isClickable = isCurrentMonthDay && hasAvailability && clickedDate >= today && isShopOpen && isNotInVacation;
-              
-              // Calculate bar count (approximate visual representation - fewer and smaller)
-              const totalBars = 4; // Maximum number of bars to show (reduced from 8)
-              const availableBars = availability.total > 0 
-                ? Math.max(1, Math.round((availability.available / availability.total) * totalBars))
-                : 0;
-              const occupiedBars = totalBars - availableBars;
-
-              return (
-                <div
-                  key={index}
-                  role={isClickable ? "button" : undefined}
-                  tabIndex={isClickable ? 0 : -1}
-                  onClick={() => isClickable && handleDayClick(date)}
-                  onKeyDown={(e) => {
-                    if ((e.key === 'Enter' || e.key === ' ') && isClickable) {
-                      e.preventDefault();
-                      handleDayClick(date);
-                    }
+            {/* Step 1: scelta servizio e barbiere */}
+            <div className="max-w-3xl mx-auto rounded-3xl border border-white/30 shadow-2xl p-6 md:p-8 space-y-6 ring-1 ring-white/30 bg-white/50 backdrop-blur-2xl">
+              <div className="space-y-2">
+                <label className="block text-base font-semibold text-gray-800 flex items-center">
+                  <Scissors className="w-5 h-5 mr-2 text-green-600" />
+                  Servizio
+                </label>
+                <select
+                  value={selectedService}
+                  onChange={(e) => {
+                    setSelectedService(e.target.value);
+                    // reset eventuale selezione precedente
+                    setSelectedDate(null);
+                    setSelectedTime('');
+                    setCurrentView('monthly');
                   }}
-                  aria-label={isClickable ? `Giorno ${date.getDate()} ${date.toLocaleDateString('it-IT', { month: 'long' })} - ${hasAvailability ? `${availability.available} slot disponibili` : 'Nessuno slot disponibile'}` : `Giorno ${date.getDate()} - non disponibile`}
-                  aria-disabled={!isClickable}
-                  className={`
+                  className="w-full px-4 py-3 border-2 border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base bg-white/80 text-gray-900 transition-all hover:border-white shadow-lg backdrop-blur touch-target"
+                  disabled={isLoading}
+                  aria-label="Seleziona servizio"
+                  aria-describedby="service-description"
+                >
+                  <option value="">{isLoading ? 'Caricamento servizi...' : 'Seleziona un servizio'}</option>
+                  {services
+                    .filter((service) => service.active)
+                    .map((service) => (
+                      <option key={service.id} value={service.id}>
+                        {service.name} - €{(service.price_cents || 0) / 100} ({service.duration_min} min)
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-base font-semibold text-gray-800 flex items-center">
+                  <User className="w-5 h-5 mr-2 text-green-600" />
+                  Barbiere
+                </label>
+                <select
+                  value={selectedBarber}
+                  onChange={(e) => {
+                    setSelectedBarber(e.target.value);
+                    setSelectedDate(null);
+                    setSelectedTime('');
+                    setCurrentView('monthly');
+                  }}
+                  className="w-full px-4 py-3 border-2 border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base bg-white/80 text-gray-900 transition-all hover:border-white shadow-lg backdrop-blur touch-target"
+                  disabled={!selectedService || isLoading}
+                  aria-label="Seleziona barbiere"
+                  aria-describedby="barber-description"
+                >
+                  <option value="">{isLoading ? 'Caricamento barbieri...' : 'Seleziona un barbiere'}</option>
+                  {availableBarbers.map((barber) => (
+                    <option key={barber.id} value={barber.id}>
+                      {barber.full_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {bookingDuration && selectedBarber && (
+                <div className="mt-2 p-4 bg-green-50/70 border border-green-200/70 rounded-xl shadow-inner backdrop-blur">
+                  <p className="text-sm text-green-800">
+                    <span className="font-semibold">Durata appuntamento:</span> {bookingDuration} minuti.
+                    Mostriamo solo slot con almeno questo tempo libero entro 6 mesi.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Calendar View */}
+            {!shopHoursLoaded ? (
+              <div className="bg-white/40 border border-white/30 rounded-2xl p-6 text-center text-gray-700 shadow-lg backdrop-blur-xl">
+                Caricamento orari del negozio...
+              </div>
+            ) : !bookingDuration || !selectedBarber ? (
+              <div className="text-center py-12 text-gray-700 bg-white/40 border border-white/30 rounded-2xl shadow-lg backdrop-blur-xl">
+                <p className="text-lg font-semibold">Seleziona servizio e barbiere</p>
+                <p className="text-sm mt-1">Poi vedrai il calendario mensile con gli orari disponibili.</p>
+              </div>
+            ) : currentView === 'monthly' ? (
+              /* Monthly Calendar View */
+              <div className="w-full">
+                {/* Month Header */}
+                <div className="flex items-center justify-between mb-6">
+                  <Button
+                    variant="ghost"
+                    size="lg"
+                    onClick={() => navigateMonth('prev')}
+                    className="flex items-center space-x-2 touch-target"
+                    aria-label="Mese precedente"
+                  >
+                    <ChevronLeft className="w-6 h-6" aria-hidden="true" />
+                  </Button>
+
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+                    {formatMonthYear(currentMonth)}
+                  </h2>
+
+                  <Button
+                    variant="ghost"
+                    size="lg"
+                    onClick={() => navigateMonth('next')}
+                    className="flex items-center space-x-2 touch-target"
+                    aria-label="Mese successivo"
+                  >
+                    <ChevronRight className="w-6 h-6" aria-hidden="true" />
+                  </Button>
+                </div>
+
+                {/* Days of Week Header */}
+                <div className="grid grid-cols-7 gap-1 mb-2">
+                  {['L', 'M', 'M', 'G', 'V', 'S', 'D'].map((day, index) => (
+                    <div key={index} className="text-center text-sm font-semibold text-gray-600 py-2">
+                      {day}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Calendar Grid */}
+                <div className="grid grid-cols-7 gap-1">
+                  {calendarDays.map((date, index) => {
+                    const isCurrentMonthDay = isCurrentMonth(date);
+                    const isTodayDate = isToday(date);
+                    const availability = getDayAvailabilityPreview(date);
+                    const hasAvailability = availability.available > 0;
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const clickedDate = new Date(date);
+                    clickedDate.setHours(0, 0, 0, 0);
+                    // A day is clickable only if: it's in current month, has availability, is today or future, shop is open, and not in vacation
+                    const isShopOpen = shopHoursLoaded && isDateOpen(date);
+                    const isNotInVacation = !isDateInVacation(date);
+                    const isClickable = isCurrentMonthDay && hasAvailability && clickedDate >= today && isShopOpen && isNotInVacation;
+
+                    // Calculate availability level (0-3) for traffic light indicators
+                    const percentage = availability.total > 0 ? availability.available / availability.total : 0;
+
+                    // 1 (Low) = < 33% free slots
+                    // 2 (Medium) = 33-66% free slots
+                    // 3 (High) = > 66% free slots
+                    const signalLevel = percentage === 0 ? 0
+                      : percentage < 0.33 ? 1
+                        : percentage < 0.66 ? 2
+                          : 3;
+
+                    const isOpenAndAvailable = isShopOpen && isNotInVacation;
+
+                    // Se il giorno è chiuso o in ferie, renderizza una cella vuota/invisibile
+                    if (!isOpenAndAvailable) {
+                      return (
+                        <div
+                          key={index}
+                          className="aspect-square p-1.5 border border-transparent rounded-lg opacity-20 bg-gray-50 pointer-events-none"
+                          aria-hidden="true"
+                        >
+                          {/* Cella vuota per mantenere la griglia allineata */}
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div
+                        key={index}
+                        role={isClickable ? "button" : undefined}
+                        tabIndex={isClickable ? 0 : -1}
+                        onClick={() => isClickable && handleDayClick(date)}
+                        onKeyDown={(e) => {
+                          if ((e.key === 'Enter' || e.key === ' ') && isClickable) {
+                            e.preventDefault();
+                            handleDayClick(date);
+                          }
+                        }}
+                        aria-label={isClickable ? `Giorno ${date.getDate()} ${date.toLocaleDateString('it-IT', { month: 'long' })} - ${hasAvailability ? `${availability.available} slot disponibili` : 'Nessuno slot disponibile'}` : `Giorno ${date.getDate()} - non disponibile`}
+                        aria-disabled={!isClickable}
+                        className={`
                     aspect-square p-1.5 border rounded-lg transition-all overflow-hidden touch-target
                     ${isCurrentMonthDay ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100'}
                     ${isTodayDate ? 'ring-2 ring-blue-500 ring-offset-1' : ''}
                     ${isClickable ? 'cursor-pointer hover:bg-blue-50 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500' : 'cursor-not-allowed opacity-60'}
                   `}
-                >
-                  {/* Day Number */}
-                  <div className={`
+                      >
+                        {/* Day Number */}
+                        <div className={`
                     text-xs sm:text-sm font-medium mb-0.5
                     ${isCurrentMonthDay ? (isTodayDate ? 'text-blue-600' : 'text-gray-900') : 'text-gray-400'}
                   `}>
-                    {date.getDate()}
+                          {date.getDate()}
+                        </div>
+
+                        {/* Availability Indicators - Fixed 3 bars (Traffic Light) */}
+                        {isOpenAndAvailable && availability.total > 0 && (
+                          <div className="flex gap-1 h-1.5 mt-auto px-1 w-full mb-1">
+                            {[1, 2, 3].map((level) => {
+                              // Determine color based on current signalLevel
+                              // usage: Low availability (level 1 active) -> Red/Orange warning
+                              // High availability (level 3 active) -> Green
+
+                              let colorClass = 'bg-gray-200';
+                              if (level <= signalLevel) {
+                                if (signalLevel === 1) colorClass = 'bg-red-400';
+                                else if (signalLevel === 2) colorClass = 'bg-yellow-400';
+                                else colorClass = 'bg-green-500';
+                              }
+
+                              return (
+                                <div
+                                  key={level}
+                                  className={`flex-1 rounded-full transition-colors ${colorClass}`}
+                                />
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              /* Day Detail View */
+              selectedDayForDetail && (
+                <div className="w-full space-y-6">
+                  {/* Back Button and Date Header */}
+                  <div className="flex items-center justify-between">
+                    <Button
+                      variant="ghost"
+                      onClick={() => setCurrentView('monthly')}
+                      className="flex items-center space-x-2 touch-target"
+                      aria-label="Torna al calendario mensile"
+                    >
+                      <ArrowLeft className="w-5 h-5" aria-hidden="true" />
+                      <span>Torna al calendario</span>
+                    </Button>
+
+                    <div className="text-center">
+                      <h2 className="text-xl md:text-2xl font-bold text-gray-900">
+                        {selectedDayForDetail.toLocaleDateString('it-IT', {
+                          weekday: 'long',
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric'
+                        })}
+                      </h2>
+                      {isToday(selectedDayForDetail) && (
+                        <div className="text-sm text-blue-600 font-medium mt-1">Oggi</div>
+                      )}
+                    </div>
+
+                    <div className="w-32"></div> {/* Spacer for centering */}
                   </div>
 
-                  {/* Availability Bars - smaller and contained */}
-                  {/* Only show bars if date is not in vacation mode, shop is open, and has availability */}
-                  {isCurrentMonthDay && !isDateInVacation(date) && isDateOpen(date) && availability.total > 0 && (
-                    <div className="flex flex-wrap gap-0.5 items-end h-4 overflow-hidden">
-                      {/* Available bars (green) */}
-                      {Array.from({ length: availableBars }).map((_, i) => (
-                        <div
-                          key={`available-${i}`}
-                          className="flex-1 bg-green-500 rounded-sm min-w-[2px]"
-                          style={{ height: `${40 + (i % 3) * 20}%` }}
-                        />
-                      ))}
-                      {/* Occupied bars (gray) */}
-                      {Array.from({ length: occupiedBars }).map((_, i) => (
-                        <div
-                          key={`occupied-${i}`}
-                          className="flex-1 bg-gray-300 rounded-sm min-w-[2px]"
-                          style={{ height: `${40 + (i % 3) * 20}%` }}
-                        />
+                  {/* Time Slots */}
+                  {isDateInVacation(selectedDayForDetail) ? (
+                    <div className="text-center py-12 text-red-600 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-lg font-semibold">CHIUSO PER FERIE</p>
+                      <p className="text-sm">Il negozio è chiuso per le vacanze in questa data</p>
+                    </div>
+                  ) : !isDateOpen(selectedDayForDetail) ? (
+                    <div className="text-center py-12 text-gray-500 bg-gray-50 border border-gray-200 rounded-lg aurora-modal-bg-white">
+                      <p className="text-lg font-semibold">Il negozio è chiuso in questa data</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                      {getTimeSlotsForDate(selectedDayForDetail).map((time) => (
+                        <button
+                          key={time}
+                          onClick={() => handleTimeSlotClick(selectedDayForDetail, time)}
+                          className="py-3 px-4 rounded-lg text-center transition-colors bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer border border-green-200 font-medium client-time-slot touch-target focus:outline-none focus:ring-2 focus:ring-green-500"
+                          aria-label={`Prenota alle ${time}`}
+                        >
+                          {time}
+                        </button>
                       ))}
                     </div>
                   )}
-                  
-                  {/* Closed/Vacation indicator */}
-                  {isCurrentMonthDay && (isDateInVacation(date) || !isDateOpen(date)) && (
-                    <div className="text-xs text-red-500 mt-1">Chiuso</div>
+
+                  {getTimeSlotsForDate(selectedDayForDetail).length === 0 && isDateOpen(selectedDayForDetail) && !isDateInVacation(selectedDayForDetail) && (
+                    <div className="text-center py-12 text-gray-500">
+                      <p className="text-lg font-semibold">Nessun orario disponibile</p>
+                      <p className="text-sm mt-1">Non ci sono slot disponibili per questo giorno.</p>
+                    </div>
                   )}
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      ) : (
-        /* Day Detail View */
-        selectedDayForDetail && (
-          <div className="w-full space-y-6">
-            {/* Back Button and Date Header */}
-            <div className="flex items-center justify-between">
-              <Button
-                variant="ghost"
-                onClick={() => setCurrentView('monthly')}
-                className="flex items-center space-x-2 touch-target"
-                aria-label="Torna al calendario mensile"
-              >
-                <ArrowLeft className="w-5 h-5" aria-hidden="true" />
-                <span>Torna al calendario</span>
-              </Button>
-              
-              <div className="text-center">
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900">
-                  {selectedDayForDetail.toLocaleDateString('it-IT', {
-                    weekday: 'long',
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                  })}
-                </h2>
-                {isToday(selectedDayForDetail) && (
-                  <div className="text-sm text-blue-600 font-medium mt-1">Oggi</div>
-                )}
-              </div>
-              
-              <div className="w-32"></div> {/* Spacer for centering */}
-            </div>
+              )
+            )}
 
-            {/* Time Slots */}
-            {isDateInVacation(selectedDayForDetail) ? (
-              <div className="text-center py-12 text-red-600 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-lg font-semibold">CHIUSO PER FERIE</p>
-                <p className="text-sm">Il negozio è chiuso per le vacanze in questa data</p>
+            {/* Success Message */}
+            {isSuccess && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-2xl p-8 max-w-md mx-4 text-center shadow-2xl">
+                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Check className="w-10 h-10 text-green-600" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Grazie per la prenotazione!</h2>
+                  <p className="text-gray-600 mb-6">
+                    Il tuo appuntamento è stato confermato con successo.
+                  </p>
+
+                  {/* Add to Calendar Button */}
+                  {lastAppointmentData && (
+                    <div className="mb-6">
+                      <Button
+                        onClick={handleAddToCalendar}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center space-x-2 touch-target"
+                        aria-label="Aggiungi appuntamento al calendario del dispositivo"
+                      >
+                        <Calendar className="w-5 h-5" aria-hidden="true" />
+                        <span>Aggiungi al calendario</span>
+                      </Button>
+                    </div>
+                  )}
+
+                  <p className="text-sm text-gray-500">
+                    Verrai reindirizzato al tuo profilo...
+                  </p>
+                </div>
               </div>
-            ) : !isDateOpen(selectedDayForDetail) ? (
-              <div className="text-center py-12 text-gray-500 bg-gray-50 border border-gray-200 rounded-lg aurora-modal-bg-white">
-                <p className="text-lg font-semibold">Il negozio è chiuso in questa data</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                {getTimeSlotsForDate(selectedDayForDetail).map((time) => (
-                  <button
-                    key={time}
-                    onClick={() => handleTimeSlotClick(selectedDayForDetail, time)}
-                    className="py-3 px-4 rounded-lg text-center transition-colors bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer border border-green-200 font-medium client-time-slot touch-target focus:outline-none focus:ring-2 focus:ring-green-500"
-                    aria-label={`Prenota alle ${time}`}
+            )}
+
+            {/* Error Message */}
+            {error && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-2xl p-8 max-w-md mx-4 text-center shadow-2xl">
+                  <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <X className="w-10 h-10 text-red-600" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Errore nella prenotazione</h2>
+                  <p className="text-gray-600 mb-6">
+                    {error}
+                  </p>
+                  <Button
+                    onClick={() => setError(null)}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white"
                   >
-                    {time}
-                  </button>
-                ))}
+                    Chiudi
+                  </Button>
+                </div>
               </div>
             )}
 
-            {getTimeSlotsForDate(selectedDayForDetail).length === 0 && isDateOpen(selectedDayForDetail) && !isDateInVacation(selectedDayForDetail) && (
-              <div className="text-center py-12 text-gray-500">
-                <p className="text-lg font-semibold">Nessun orario disponibile</p>
-                <p className="text-sm mt-1">Non ci sono slot disponibili per questo giorno.</p>
-              </div>
-            )}
-          </div>
-        )
-      )}
-
-      {/* Success Message */}
-      {isSuccess && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-8 max-w-md mx-4 text-center shadow-2xl">
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Check className="w-10 h-10 text-green-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Grazie per la prenotazione!</h2>
-            <p className="text-gray-600 mb-6">
-              Il tuo appuntamento è stato confermato con successo.
-            </p>
-            
-            {/* Add to Calendar Button */}
-            {lastAppointmentData && (
-              <div className="mb-6">
-                <Button
-                  onClick={handleAddToCalendar}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center space-x-2 touch-target"
-                  aria-label="Aggiungi appuntamento al calendario del dispositivo"
-                >
-                  <Calendar className="w-5 h-5" aria-hidden="true" />
-                  <span>Aggiungi al calendario</span>
-                </Button>
-              </div>
-            )}
-            
-            <p className="text-sm text-gray-500">
-              Verrai reindirizzato al tuo profilo...
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Error Message */}
-      {error && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-8 max-w-md mx-4 text-center shadow-2xl">
-            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <X className="w-10 h-10 text-red-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Errore nella prenotazione</h2>
-            <p className="text-gray-600 mb-6">
-              {error}
-            </p>
-            <Button
-              onClick={() => setError(null)}
-              className="w-full bg-red-600 hover:bg-red-700 text-white"
+            {/* Booking Modal */}
+            <Modal
+              isOpen={showBookingModal}
+              onClose={() => setShowBookingModal(false)}
+              title="Conferma Prenotazione"
+              size="medium"
             >
-              Chiudi
-            </Button>
-          </div>
-        </div>
-      )}
+              <div className="space-y-6">
+                {/* Selected Date and Time */}
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h3 className="font-medium text-blue-900 mb-2">Dettagli Prenotazione</h3>
+                  <div className="text-sm text-blue-800">
+                    <p><strong>Data:</strong> {selectedDate?.toLocaleDateString('it-IT')}</p>
+                    <p><strong>Orario:</strong> {selectedTime}</p>
+                    {selectedServiceObj && (
+                      <p>
+                        <strong>Servizio:</strong> {selectedServiceObj.name} ({selectedServiceObj.duration_min} min)
+                      </p>
+                    )}
+                    {selectedBarber && (
+                      <p>
+                        <strong>Barbiere:</strong>{' '}
+                        {staff.find((b) => b.id === selectedBarber)?.full_name || ''}
+                      </p>
+                    )}
+                  </div>
+                </div>
 
-      {/* Booking Modal */}
-      <Modal
-        isOpen={showBookingModal}
-        onClose={() => setShowBookingModal(false)}
-        title="Conferma Prenotazione"
-        size="medium"
-      >
-        <div className="space-y-6">
-          {/* Selected Date and Time */}
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <h3 className="font-medium text-blue-900 mb-2">Dettagli Prenotazione</h3>
-            <div className="text-sm text-blue-800">
-              <p><strong>Data:</strong> {selectedDate?.toLocaleDateString('it-IT')}</p>
-              <p><strong>Orario:</strong> {selectedTime}</p>
-              {selectedServiceObj && (
-                <p>
-                  <strong>Servizio:</strong> {selectedServiceObj.name} ({selectedServiceObj.duration_min} min)
-                </p>
-              )}
-              {selectedBarber && (
-                <p>
-                  <strong>Barbiere:</strong>{' '}
-                  {staff.find((b) => b.id === selectedBarber)?.full_name || ''}
-                </p>
-              )}
-            </div>
-          </div>
+                {/* Earlier slot waitlist */}
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 aurora-modal-bg-white">
+                  <label className="flex items-start gap-3 cursor-pointer touch-target">
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4 touch-target"
+                      checked={notifyIfEarlierSlot}
+                      onChange={(e) => setNotifyIfEarlierSlot(e.target.checked)}
+                      aria-label="Avvisami se si libera uno slot prima"
+                    />
+                    <div>
+                      <div className="text-sm font-semibold text-gray-900">
+                        AVVISAMI SE SI LIBERA UNO SLOT PRIMA
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        Se si libera un posto prima, ti invieremo una mail e una notifica su questa app!
+                      </div>
+                    </div>
+                  </label>
+                </div>
 
-          {/* Earlier slot waitlist */}
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 aurora-modal-bg-white">
-            <label className="flex items-start gap-3 cursor-pointer touch-target">
-              <input
-                type="checkbox"
-                className="mt-1 h-4 w-4 touch-target"
-                checked={notifyIfEarlierSlot}
-                onChange={(e) => setNotifyIfEarlierSlot(e.target.checked)}
-                aria-label="Avvisami se si libera uno slot prima"
+                {/* Submit Button */}
+                <div className="flex justify-end space-x-3">
+                  <Button
+                    variant="secondary"
+                    onClick={() => setShowBookingModal(false)}
+                    className="touch-target"
+                    aria-label="Annulla prenotazione"
+                  >
+                    Annulla
+                  </Button>
+                  <Button
+                    onClick={handleBookingSubmit}
+                    disabled={!selectedService || !selectedBarber || isSubmitting}
+                    className="touch-target"
+                    aria-label={isSubmitting ? 'Prenotazione in corso' : 'Conferma prenotazione'}
+                  >
+                    {isSubmitting ? 'Prenotazione in corso...' : 'Conferma Prenotazione'}
+                  </Button>
+                </div>
+              </div>
+            </Modal>
+
+            {/* Product Upsell Modal - Only show if products are enabled */}
+            {areProductsEnabled && (
+              <ProductUpsell
+                isOpen={showUpsellModal}
+                onClose={handleUpsellSkip}
+                onCancel={handleUpsellCancel}
+                onConfirm={handleUpsellConfirm}
+                isSubmitting={isSubmitting}
               />
-              <div>
-                <div className="text-sm font-semibold text-gray-900">
-                  AVVISAMI SE SI LIBERA UNO SLOT PRIMA
-                </div>
-                <div className="text-xs text-gray-600 mt-1">
-                  Se si libera un posto prima, ti invieremo una mail e una notifica su questa app!
-                </div>
-              </div>
-            </label>
-          </div>
-
-          {/* Submit Button */}
-          <div className="flex justify-end space-x-3">
-            <Button
-              variant="secondary"
-              onClick={() => setShowBookingModal(false)}
-              className="touch-target"
-              aria-label="Annulla prenotazione"
-            >
-              Annulla
-            </Button>
-            <Button
-              onClick={handleBookingSubmit}
-              disabled={!selectedService || !selectedBarber || isSubmitting}
-              className="touch-target"
-              aria-label={isSubmitting ? 'Prenotazione in corso' : 'Conferma prenotazione'}
-            >
-              {isSubmitting ? 'Prenotazione in corso...' : 'Conferma Prenotazione'}
-            </Button>
+            )}
           </div>
         </div>
-      </Modal>
-
-      {/* Product Upsell Modal - Only show if products are enabled */}
-      {areProductsEnabled && (
-        <ProductUpsell
-          isOpen={showUpsellModal}
-          onClose={handleUpsellSkip}
-          onCancel={handleUpsellCancel}
-          onConfirm={handleUpsellConfirm}
-          isSubmitting={isSubmitting}
-        />
-      )}
-      </div>
-      </div>
       </div>
     </div>
   );
