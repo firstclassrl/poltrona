@@ -39,39 +39,45 @@ export const PWAUpdateNotification: React.FC = () => {
   const handleUpdate = async () => {
     setIsUpdating(true);
 
-    // Helper force reload
-    const forceReload = () => {
-      // Clear any caches if possible (optional but safe)
+    // Helper force reload with nuclear cache clearing
+    const forceReload = async () => {
+      console.log('☢️ Performing nuclear cache clear...');
+
+      // 1. Clear all Cache API caches
       if ('caches' in window) {
-        caches.keys().then((names) => {
-          names.forEach((name) => {
-            // Optional: Strategically delete only if needed, but for now just reload
-          });
-        });
+        try {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(key => caches.delete(key)));
+          console.log('✅ Caches cleared');
+        } catch (e) {
+          console.error('Failed to clear caches:', e);
+        }
       }
+
+      // 2. Unregister all Service Workers
+      if ('serviceWorker' in navigator) {
+        try {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map(reg => reg.unregister()));
+          console.log('✅ Service Workers unregistered');
+        } catch (e) {
+          console.error('Failed to unregister SW:', e);
+        }
+      }
+
+      // 3. Force reload ignoring cache
       window.location.reload();
     };
 
     if (registration?.waiting) {
-      // Invia messaggio al service worker per saltare l'attesa
+      // Send skip waiting message
       registration.waiting.postMessage({ type: 'SKIP_WAITING' });
 
-      // Timeout di sicurezza: se il reload non avviene entro 300ms, forza il reload
-      const reloadTimeout = setTimeout(forceReload, 300);
-
-      // Pulisci il timeout se il controllerchange viene attivato prima
-      const controllerChangeHandler = () => {
-        clearTimeout(reloadTimeout);
-        forceReload();
-      };
-
-      navigator.serviceWorker.addEventListener('controllerchange', controllerChangeHandler, { once: true });
+      // Wait briefly for the SW to activate, then nuke everything
+      // We wait 100ms just to let the message send, but we don't trust the controllerchange
+      setTimeout(forceReload, 100);
     } else {
-      // Se non c'è un service worker in attesa, prova a deregistrare e ricaricare
-      // Questo risolve casi in cui il browser è "bloccato"
-      if (registration) {
-        await registration.unregister();
-      }
+      // Immediate nuke if no waiting worker
       forceReload();
     }
   };
