@@ -5,7 +5,14 @@ import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { Select } from './ui/Select';
 import { Modal } from './ui/Modal';
-import { formatTime, formatDate, doesAppointmentOverlapSlot, getAppointmentSlotCount, getSlotDateTime } from '../utils/date';
+import {
+  formatDate,
+  formatTime,
+  doesAppointmentOverlapSlot,
+  getAppointmentSlotCount,
+  getAppointmentClientLabel,
+  getSlotDateTime
+} from '../utils/date';
 import { useDailyShopHours } from '../hooks/useDailyShopHours';
 import { useChairAssignment } from '../hooks/useChairAssignment';
 import { useAppointments } from '../hooks/useAppointments';
@@ -15,6 +22,10 @@ import { AppointmentForm } from './AppointmentForm';
 import { DeleteConfirmation } from './DeleteConfirmation';
 import { apiService } from '../services/api';
 import type { Appointment, Shop } from '../types';
+
+import { CalendarGrid } from './CalendarGrid';
+
+// ... other imports
 
 export const Calendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -47,11 +58,6 @@ export const Calendar = () => {
     staff_id?: string;
   } | null>(null);
 
-  const getAppointmentClientLabel = (apt: Appointment): string => {
-    const fromClientRecord = `${apt.clients?.first_name || ''} ${apt.clients?.last_name || ''}`.trim();
-    return (apt.client_name?.trim() || fromClientRecord || 'Cliente');
-  };
-
   const getAppointmentClientInitials = (apt: Appointment): string => {
     const label = getAppointmentClientLabel(apt);
     const parts = label.split(' ').filter(Boolean);
@@ -65,23 +71,68 @@ export const Calendar = () => {
     setShowAppointmentDetails(true);
   };
 
-  const handleEmptySlotClick = (day: Date, time: string) => {
+  const assignedChairs = getAssignedChairs();
+
+  const filteredAppointments = appointments.filter(apt => {
+    // Escludi appuntamenti cancellati - liberano il posto per altri utenti
+    if (apt.status === 'cancelled') return false;
+
+    // Filter out appointments for inactive staff when 'all' is selected
+    if (selectedChair === 'all') {
+      const staff = availableStaff.find(s => s.id === apt.staff_id);
+      if (staff && staff.active !== true) return false;
+    }
+
+    const chairMatch = selectedChair === 'all' || apt.staff?.chair_id === selectedChair;
+    return chairMatch;
+  });
+
+  const getTimeSlotsForDate = (date: Date, period?: 'morning' | 'afternoon') => {
+    // get basic slots from hook
+    const allSlots = getAvailableTimeSlots(date);
+
+    if (calendarViewMode === 'full' || !period) {
+      return allSlots;
+    }
+
+    // Filter for split view
+    return allSlots.filter(time => {
+      const [hours, minutes] = time.split(':').map(Number);
+      const minutesTotal = hours * 60 + minutes;
+      if (period === 'morning') {
+        return minutesTotal < 13 * 60; // < 13:00
+      } else {
+        return minutesTotal >= 13 * 60; // >= 13:00
+      }
+    });
+  };
+
+  // Update handleEmptySlotClick to accept optional specific staffId
+  const handleEmptySlotClick = (day: Date, time: string, specificStaffId?: string) => {
     // Check if slot is available
     const dayTimeSlots = getTimeSlotsForDate(day, calendarViewMode === 'split' ? timePeriod : undefined);
     if (!dayTimeSlots.includes(time)) return;
 
-    // Check if slot is already occupied
-    const hasAppointment = filteredAppointments.some(apt =>
-      doesAppointmentOverlapSlot(apt, day, time)
-    );
-    if (hasAppointment) return;
+    // Check if slot is already occupied (check against ALL appointments initially, but technically we should check per chair if we were stricter)
+    // In multi-view, logic is simpler: we are clicking on a specific calendar, so we check that chair.
 
-    // Get staff_id from selected chair if not 'all'
-    let staffId: string | undefined;
-    if (selectedChair !== 'all') {
+    // Get staff_id from specific argument OR selectedChair fallback (which is now likely unused for 'all')
+    let staffId: string | undefined = specificStaffId;
+
+    // If no specific staff sent (legacy path), check selector
+    if (!staffId && selectedChair !== 'all') {
       const chairAssignment = assignedChairs.find(chair => chair.chairId === selectedChair);
       staffId = chairAssignment?.staffId || undefined;
     }
+
+    // Check overlap only for relevant staff if known
+    const hasAppointment = filteredAppointments.some(apt => {
+      // If we know target staff, only check overlap for that staff
+      if (staffId && apt.staff_id !== staffId) return false;
+      return doesAppointmentOverlapSlot(apt, day, time);
+    });
+
+    if (hasAppointment) return;
 
     // Set prefilled data and open modal
     const dateString = day.toISOString().split('T')[0];
@@ -203,80 +254,7 @@ export const Calendar = () => {
     });
   };
 
-  // Usa gli orari del negozio per generare i time slots filtrati per periodo
-  const getTimeSlotsForDate = (date: Date, period?: 'morning' | 'afternoon') => {
-    if (!shopHoursLoaded) return [];
-    const dayOfWeek = date.getDay();
-    const dayHours = shopHours[dayOfWeek];
 
-    if (!dayHours.isOpen || dayHours.timeSlots.length === 0) return [];
-
-    const filteredSlots: string[] = [];
-
-    // Se calendar_view_mode è 'full', mostra tutti gli slot senza filtrare per periodo
-    if (calendarViewMode === 'full') {
-      dayHours.timeSlots.forEach((slot) => {
-        const [startHours, startMinutes] = slot.start.split(':').map(Number);
-        const [endHours, endMinutes] = slot.end.split(':').map(Number);
-        const startTime = startHours * 60 + startMinutes;
-        const endTime = endHours * 60 + endMinutes;
-
-        // Genera tutti gli slot per questo timeSlot
-        let currentTime = startTime;
-        const slotDurationMinutes = 15;
-
-        while (currentTime + slotDurationMinutes <= endTime) {
-          const hours = Math.floor(currentTime / 60);
-          const minutes = currentTime % 60;
-          const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-          filteredSlots.push(timeString);
-          currentTime += slotDurationMinutes;
-        }
-      });
-    } else {
-      // Modalità 'split': filtra per periodo mattina/pomeriggio
-      dayHours.timeSlots.forEach((slot, index) => {
-        const [startHours, startMinutes] = slot.start.split(':').map(Number);
-        const [endHours, endMinutes] = slot.end.split(':').map(Number);
-        const startTime = startHours * 60 + startMinutes;
-        const endTime = endHours * 60 + endMinutes;
-
-        // Determina se questo slot appartiene al periodo mattina o pomeriggio
-        // Mattina: primo slot (index 0) o slot che inizia prima delle 13:00
-        // Pomeriggio: secondo slot (index 1) o slot che inizia dalle 13:00 in poi
-        const isMorningSlot = index === 0 && startTime < 13 * 60;
-        const isAfternoonSlot = index > 0 || startTime >= 13 * 60;
-
-        if ((period === 'morning' && isMorningSlot) || (period === 'afternoon' && isAfternoonSlot)) {
-          // Genera gli slot per questo timeSlot
-          let currentTime = startTime;
-          const slotDurationMinutes = 15;
-
-          while (currentTime + slotDurationMinutes <= endTime) {
-            const hours = Math.floor(currentTime / 60);
-            const minutes = currentTime % 60;
-            const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-            filteredSlots.push(timeString);
-            currentTime += slotDurationMinutes;
-          }
-        }
-      });
-    }
-
-    return filteredSlots.sort();
-  };
-
-  // Calcola l'insieme degli slot per l'intera settimana in base al turno selezionato
-  // Evita che la griglia si limiti agli slot del primo giorno (che potrebbe non avere orario continuato)
-  const getWeekTimeSlots = (period?: 'morning' | 'afternoon') => {
-    const all = weekDays
-      .flatMap((d) => getTimeSlotsForDate(d, period))
-      .filter(Boolean);
-    // Unione + ordinamento HH:MM
-    const unique = Array.from(new Set(all));
-    unique.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
-    return unique;
-  };
 
   const getStatusColor = (status: string) => {
     const colors = {
@@ -308,24 +286,7 @@ export const Calendar = () => {
   };
 
 
-  const assignedChairs = getAssignedChairs();
 
-  const filteredAppointments = appointments.filter(apt => {
-    // Escludi appuntamenti cancellati - liberano il posto per altri utenti
-    if (apt.status === 'cancelled') return false;
-
-    // Filter out appointments for inactive staff when 'all' is selected
-    if (selectedChair === 'all') {
-      const staff = availableStaff.find(s => s.id === apt.staff_id);
-      // If staff not found or not active, hide appointment (unless we want to show it? User implies hiding inactive chairs)
-      // Assuming 'active' is boolean | null. Treat null as true or false? usually true unless explicitly false.
-      // But looking at UI filter: staff?.active === true.
-      if (staff && staff.active !== true) return false;
-    }
-
-    const chairMatch = selectedChair === 'all' || apt.staff?.chair_id === selectedChair;
-    return chairMatch;
-  });
 
   const glassCard = 'bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl';
 
@@ -395,7 +356,6 @@ export const Calendar = () => {
 
             {/* Desktop Calendar Grid */}
             <div className="hidden md:block">
-
               <Card className={glassCard}>
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center space-x-4">
@@ -438,132 +398,39 @@ export const Calendar = () => {
                   </div>
                 </div>
 
-                {/* Calendar Grid */}
-                <div className="overflow-x-auto">
-                  <div className="min-w-full">
-                    {/* Week Header */}
-                    <div className={`grid gap-1 mb-4 overflow-hidden`} style={{ gridTemplateColumns: `60px repeat(${weekDays.length}, minmax(0, 1fr))` }}>
-                      <div className="p-2 text-sm font-medium text-gray-600">Orario</div>
-                      {weekDays.map((day, index) => (
-                        <div
-                          key={index}
-                          className="p-2 text-center border-b border-gray-200"
-                        >
-                          <div className="text-sm text-gray-600">
-                            {day.toLocaleDateString('it-IT', { weekday: 'short' })}
-                          </div>
-                          <div className="text-lg font-semibold text-gray-900">
-                            {day.getDate()}
-                          </div>
-                        </div>
-                      ))}
+                {/* Multiple Calendar Grids - One per ACTIVE chair */}
+                <div className={`grid grid-cols-1 ${getAssignedChairs().filter(c => availableStaff.find(s => s.id === c.staffId)?.active).length > 1 ? 'xl:grid-cols-2' : ''} gap-6`}>
+                  {getAssignedChairs()
+                    .filter(chair => {
+                      const staff = availableStaff.find(s => s.id === chair.staffId);
+                      return staff?.active === true;
+                    })
+                    .map(chair => (
+                      <CalendarGrid
+                        key={chair.chairId}
+                        chairName={`${chair.chairName} - ${chair.staffName}`}
+                        currentDate={currentDate}
+                        weekDays={weekDays}
+                        timePeriod={timePeriod}
+                        calendarViewMode={calendarViewMode}
+                        shopHoursLoaded={shopHoursLoaded}
+                        shopHours={shopHours}
+                        appointments={filteredAppointments.filter(apt => apt.staff?.chair_id === chair.chairId)}
+                        areProductsEnabled={areProductsEnabled}
+                        isDateInVacation={isDateInVacation}
+                        isDateOpen={isDateOpen}
+                        onAppointmentClick={handleAppointmentClick}
+                        onEmptySlotClick={(day, time) => handleEmptySlotClick(day, time, chair.staffId ?? undefined)}
+                        getStatusColor={getStatusColor}
+                      />
+                    ))}
+
+                  {/* Fallback if no chairs are active */}
+                  {getAssignedChairs().filter(c => availableStaff.find(s => s.id === c.staffId)?.active).length === 0 && (
+                    <div className="text-center py-10 col-span-full">
+                      <p className="text-gray-500">Nessuna poltrona attiva. Attiva una poltrona nelle impostazioni staff.</p>
                     </div>
-
-                    {/* Time Slots */}
-                    <div className="grid gap-1 overflow-hidden" style={{ gridTemplateColumns: `60px repeat(${weekDays.length}, minmax(0, 1fr))` }}>
-                      {/* Usa l'unione degli slot della settimana per costruire la griglia */}
-                      {(() => {
-                        const gridTimeSlots = getWeekTimeSlots(calendarViewMode === 'split' ? timePeriod : undefined);
-                        return gridTimeSlots.map((time) => (
-                          <React.Fragment key={time}>
-                            <div className="p-2 text-right text-sm text-gray-600 border-r border-gray-200">
-                              {time}
-                            </div>
-                            {weekDays.map((day, dayIndex) => {
-                              const dayTimeSlots = getTimeSlotsForDate(day, calendarViewMode === 'split' ? timePeriod : undefined);
-                              const isTimeSlotAvailable = dayTimeSlots.includes(time);
-                              const appointmentAtSlot = getAppointmentAtSlot(day, time);
-                              const slotCount = appointmentAtSlot ? getAppointmentSlotCount(appointmentAtSlot) : 0;
-
-                              return (
-                                <div
-                                  key={`${time}-${dayIndex}`}
-                                  role={isTimeSlotAvailable ? "button" : undefined}
-                                  tabIndex={isTimeSlotAvailable ? 0 : -1}
-                                  aria-label={isTimeSlotAvailable ? `Slot disponibile ${time} del ${day.toLocaleDateString('it-IT')}` : `Slot non disponibile ${time}`}
-                                  aria-disabled={!isTimeSlotAvailable}
-                                  className={`calendar-time-slot min-h-[60px] max-h-[60px] p-1 border border-gray-100 transition-colors relative touch-target ${appointmentAtSlot ? 'overflow-visible' : 'overflow-hidden'
-                                    } ${isTimeSlotAvailable
-                                      ? 'hover:bg-gray-50 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500'
-                                      : 'bg-gray-200 text-gray-600 cursor-not-allowed'
-                                    }`}
-                                  onClick={(e) => {
-                                    // Only handle click if clicking on empty space (not on appointment)
-                                    if (e.target === e.currentTarget || (e.target as HTMLElement).closest('.appointment-block') === null) {
-                                      const hasAppointment = filteredAppointments.some(apt =>
-                                        doesAppointmentOverlapSlot(apt, day, time)
-                                      );
-                                      if (!hasAppointment && isTimeSlotAvailable) {
-                                        handleEmptySlotClick(day, time);
-                                      }
-                                    }
-                                  }}
-                                >
-                                  {/* Render appointment only if it starts at this slot */}
-                                  {appointmentAtSlot && (
-                                    <div
-                                      role="button"
-                                      tabIndex={0}
-                                      aria-label={`Appuntamento con ${getAppointmentClientLabel(appointmentAtSlot)} alle ${formatTime(appointmentAtSlot.start_at)}`}
-                                      className={`appointment-block rounded text-xs border w-full ${getStatusColor(appointmentAtSlot.status || 'scheduled')} cursor-pointer hover:opacity-90 transition-opacity z-10 touch-target focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                                      style={{
-                                        height: `${slotCount * 46}px`,
-                                        minHeight: `${slotCount * 46}px`,
-                                        maxHeight: `${slotCount * 46}px`,
-                                      }}
-                                      draggable
-                                      onDragStart={(e) => e.dataTransfer.setData('appointmentId', appointmentAtSlot.id || '')}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleAppointmentClick(appointmentAtSlot);
-                                      }}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                          handleAppointmentClick(appointmentAtSlot);
-                                        }
-                                      }}
-                                      title={`${getAppointmentClientLabel(appointmentAtSlot)} - ${appointmentAtSlot.services?.name || 'Servizio'} - ${appointmentAtSlot.staff?.full_name}`}
-                                    >
-                                      <div className="font-medium truncate whitespace-nowrap overflow-hidden text-ellipsis">
-                                        {getAppointmentClientLabel(appointmentAtSlot)}
-                                      </div>
-                                      <div className="text-xs text-gray-600 mt-0.5 truncate">
-                                        {appointmentAtSlot.services?.name || 'Servizio'}
-                                      </div>
-                                      {areProductsEnabled && appointmentAtSlot.products && appointmentAtSlot.products.length > 0 && (
-                                        <div className="text-xs text-orange-700 mt-0.5 truncate flex items-center gap-1">
-                                          <Package className="w-3 h-3 flex-shrink-0" />
-                                          <span>{appointmentAtSlot.products.length} prodotto{appointmentAtSlot.products.length > 1 ? 'i' : ''}</span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-
-                                  {/* Testo "Chiuso" per slot non disponibili */}
-                                  {!isTimeSlotAvailable && !appointmentAtSlot && !isDateInVacation(day) && (
-                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
-                                      <span className="text-[10px] text-gray-400 font-medium opacity-75">Chiuso</span>
-                                    </div>
-                                  )}
-
-                                  {/* Overlay per giorni in ferie */}
-                                  {isDateInVacation(day) && (
-                                    <div className="absolute inset-0 bg-red-500/10 flex items-center justify-center z-20 pointer-events-none">
-                                      <span className="text-red-600 font-bold text-sm transform -rotate-45">
-                                        CHIUSO PER FERIE
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </React.Fragment>
-                        ));
-                      })()}
-                    </div>
-                  </div>
+                  )}
                 </div>
               </Card>
             </div>
@@ -637,52 +504,7 @@ export const Calendar = () => {
                     </div>
                   )}
 
-                  {/* Chair Filter */}
-                  <div className="flex items-center justify-between">
-                    <Button
-                      variant="secondary"
-                      size="lg"
-                      onClick={() => setShowMobileFilters(!showMobileFilters)}
-                      className="flex items-center space-x-2"
-                    >
-                      <Filter className="w-4 h-4" />
-                      <span>Filtri</span>
-                    </Button>
 
-                    {selectedChair !== 'all' && (
-                      <Badge variant="info">
-                        {assignedChairs.find(chair => chair.chairId === selectedChair)?.chairName || 'Poltrona'}
-                      </Badge>
-                    )}
-                  </div>
-
-                  {/* Expanded Filters */}
-                  {showMobileFilters && (
-                    <Card className={`p-4 ${glassCard}`}>
-                      <div className="space-y-3">
-                        <label className="block text-sm font-medium text-gray-700">
-                          Poltrona
-                        </label>
-                        <select
-                          value={selectedChair}
-                          onChange={(e) => setSelectedChair(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value="all">Tutte le poltrone</option>
-                          {assignedChairs
-                            .filter(chair => {
-                              const staff = availableStaff.find(s => s.id === chair.staffId);
-                              return staff?.active === true;
-                            })
-                            .map(chair => (
-                              <option key={chair.chairId} value={chair.chairId}>
-                                {chair.chairName} - {chair.staffName}
-                              </option>
-                            ))}
-                        </select>
-                      </div>
-                    </Card>
-                  )}
                 </div>
 
                 {/* Add Appointment Button */}

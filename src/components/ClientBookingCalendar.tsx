@@ -788,7 +788,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   const userName = userProfile?.full_name || user?.full_name || 'Cliente';
 
   return (
-    <div className="p-0 page-container-chat-style">
+    <div className="p-0 page-container-chat-style pb-32">
       <div className="w-full">
         <div className="flex flex-col space-y-8">
           <div className="space-y-8">
@@ -942,13 +942,13 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
                     // Calculate availability level (0-3) for traffic light indicators
                     const percentage = availability.total > 0 ? availability.available / availability.total : 0;
 
-                    // 1 (Low) = < 33% free slots
+                    // 1 (Low/Full) = < 33% free slots (includes 0%)
                     // 2 (Medium) = 33-66% free slots
                     // 3 (High) = > 66% free slots
-                    const signalLevel = percentage === 0 ? 0
-                      : percentage < 0.33 ? 1
-                        : percentage < 0.66 ? 2
-                          : 3;
+                    // Change: 0% availability should show as Red (Level 1) not Grey (Level 0)
+                    const signalLevel = percentage < 0.33 ? 1
+                      : percentage < 0.66 ? 2
+                        : 3;
 
                     const isOpenAndAvailable = isShopOpen && isNotInVacation;
 

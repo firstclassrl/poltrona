@@ -99,8 +99,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return (apt.client_name?.trim() || fromClientRecord || 'Cliente');
   };
 
-  // Show loading state while data is being fetched
-  if (!shopHoursLoaded || isLoadingAppointments) {
+  // Safety timeout to prevent infinite loading
+  const [forceLoad, setForceLoad] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!shopHoursLoaded || isLoadingAppointments) {
+        console.log('⚠️ Dashboard loading timed out, forcing display');
+        setForceLoad(true);
+      }
+    }, 2000); // 2 seconds timeout
+
+    return () => clearTimeout(timer);
+  }, [shopHoursLoaded, isLoadingAppointments]);
+
+  // Show loading state while data is being fetched, unless forced
+  if ((!shopHoursLoaded || isLoadingAppointments) && !forceLoad) {
     return (
       <div className="p-0 page-container-chat-style flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center space-y-4">

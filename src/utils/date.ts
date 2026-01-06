@@ -34,11 +34,11 @@ export const getWeekDates = (date: Date = new Date()): { start: string; end: str
   const start = new Date(date);
   start.setDate(date.getDate() - date.getDay() + 1); // Monday
   start.setHours(0, 0, 0, 0);
-  
+
   const end = new Date(start);
   end.setDate(start.getDate() + 6); // Sunday
   end.setHours(23, 59, 59, 999);
-  
+
   return {
     start: start.toISOString(),
     end: end.toISOString(),
@@ -48,10 +48,10 @@ export const getWeekDates = (date: Date = new Date()): { start: string; end: str
 export const getTodayRange = (): { start: string; end: string } => {
   const start = new Date();
   start.setHours(0, 0, 0, 0);
-  
+
   const end = new Date();
   end.setHours(23, 59, 59, 999);
-  
+
   return {
     start: start.toISOString(),
     end: end.toISOString(),
@@ -104,9 +104,9 @@ export const doesAppointmentOverlapSlot = (
   const appointmentEnd = appointment.end_at
     ? new Date(appointment.end_at)
     : addMinutes(
-        appointmentStart,
-        appointment.services?.duration_min || slotDurationMinutes
-      );
+      appointmentStart,
+      appointment.services?.duration_min || slotDurationMinutes
+    );
 
   return slotStart < appointmentEnd && slotEnd > appointmentStart;
 };
@@ -138,7 +138,7 @@ export const doAppointmentsOverlap = (
 
   const start1 = new Date(appointment1.start_at);
   const end1 = appointment1.end_at ? new Date(appointment1.end_at) : addMinutes(start1, appointment1.services?.duration_min || 30);
-  
+
   const start2 = new Date(appointment2.start_at);
   const end2 = appointment2.end_at ? new Date(appointment2.end_at) : addMinutes(start2, appointment2.services?.duration_min || 30);
 
@@ -162,22 +162,29 @@ export const checkAppointmentOverlap = (
   const newStartTime = newStart.getTime();
   const newEndTime = newEnd.getTime();
 
+  // ... existing code ...
   return existingAppointments.some(existing => {
+    // ... existing check implementation
     if (existing.status === 'cancelled') return false;
     if (existing.staff_id !== newAppointment.staff_id) return false;
 
     const existingStart = new Date(existing.start_at);
-    const existingEnd = existing.end_at 
+    const existingEnd = existing.end_at
       ? new Date(existing.end_at)
       : addMinutes(existingStart, existing.services?.duration_min || 30);
-    
+
     const existingStartTime = existingStart.getTime();
     const existingEndTime = existingEnd.getTime();
 
     // Check if appointments overlap: start1 < end2 && end1 > start2
     // Allow exact boundaries (one ends exactly when the other starts)
     const overlaps = newStartTime < existingEndTime && newEndTime > existingStartTime;
-    
+
     return overlaps;
   });
+};
+
+export const getAppointmentClientLabel = (apt: Appointment): string => {
+  const fromClientRecord = `${apt.clients?.first_name || ''} ${apt.clients?.last_name || ''}`.trim();
+  return (apt.client_name?.trim() || fromClientRecord || 'Cliente');
 };
