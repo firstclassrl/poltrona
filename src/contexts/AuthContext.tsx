@@ -57,7 +57,7 @@ const loadAuthData = (): {
   const localUser = localStorage.getItem('auth_user');
   const localToken = localStorage.getItem('auth_token');
   const localRefreshToken = localStorage.getItem('refresh_token');
-  
+
   if (localUser && localToken) {
     return {
       user: JSON.parse(localUser),
@@ -66,12 +66,12 @@ const loadAuthData = (): {
       rememberMe: true,
     };
   }
-  
+
   // Se non trovato in localStorage, controlla sessionStorage (rememberMe = false)
   const sessionUser = sessionStorage.getItem('auth_user');
   const sessionToken = sessionStorage.getItem('auth_token');
   const sessionRefreshToken = sessionStorage.getItem('refresh_token');
-  
+
   if (sessionUser && sessionToken) {
     return {
       user: JSON.parse(sessionUser),
@@ -80,7 +80,7 @@ const loadAuthData = (): {
       rememberMe: false,
     };
   }
-  
+
   return {
     user: null,
     accessToken: null,
@@ -95,7 +95,7 @@ const clearAuthData = (): void => {
   localStorage.removeItem('auth_token');
   localStorage.removeItem('refresh_token');
   localStorage.removeItem('current_shop_id');
-  
+
   sessionStorage.removeItem('auth_user');
   sessionStorage.removeItem('auth_token');
   sessionStorage.removeItem('refresh_token');
@@ -107,11 +107,27 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    isAuthenticated: false,
-    isLoading: true,
-  });
+  // OPTIMIZATION: Initialize with cached user data to prevent loading flash
+  // Token verification happens in background
+  const getInitialAuthState = (): AuthState => {
+    const { user, accessToken } = loadAuthData();
+    if (user && accessToken) {
+      // User was previously authenticated - show them immediately
+      // Token will be verified in background
+      return {
+        user,
+        isAuthenticated: true,
+        isLoading: false, // No loading spinner!
+      };
+    }
+    return {
+      user: null,
+      isAuthenticated: false,
+      isLoading: false, // Also no loading for non-authenticated users
+    };
+  };
+
+  const [authState, setAuthState] = useState<AuthState>(getInitialAuthState);
 
   // Funzione per verificare se il token è valido
   const verifyToken = async (token: string): Promise<boolean> => {
@@ -137,7 +153,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Controlla se ci sono parametri OAuth nell'URL (hash o query params)
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       const queryParams = new URLSearchParams(window.location.search);
-      
+
       const accessToken = hashParams.get('access_token') || queryParams.get('access_token');
       const refreshToken = hashParams.get('refresh_token') || queryParams.get('refresh_token');
       const error = hashParams.get('error') || queryParams.get('error');
@@ -154,7 +170,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (accessToken && refreshToken) {
         try {
           setAuthState(prev => ({ ...prev, isLoading: true }));
-          
+
           // Ottieni i dati dell'utente
           const userRes = await fetch(`${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/user`, {
             headers: {
@@ -171,7 +187,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const authUserId = authUser.id;
           const userEmail = authUser.email;
           const userMetadata = authUser.user_metadata || {};
-          
+
           // Estrai i dati da Google
           const fullName = userMetadata.full_name || userMetadata.name || userEmail?.split('@')[0] || 'Cliente';
           const avatarUrl = userMetadata.avatar_url || userMetadata.picture || null;
@@ -193,7 +209,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // Risolvi shop slug (serve sia per creare profilo che per User)
           const effectiveShopSlug = getShopSlugFromUrl() || 'retro-barbershop';
           let resolvedShopId: string | null = null;
-          
+
           if (effectiveShopSlug) {
             try {
               const shop = await apiService.getShopBySlug(effectiveShopSlug);
@@ -201,7 +217,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             } catch (e) {
             }
           }
-          
+
           if (!resolvedShopId) {
             const stored = localStorage.getItem('current_shop_id');
             if (stored) resolvedShopId = stored;
@@ -218,7 +234,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                   'Authorization': `Bearer ${accessToken}`,
                 }
               });
-              
+
               if (staffCheckRes.ok) {
                 const staffRecords = await staffCheckRes.json();
                 if (staffRecords && staffRecords.length > 0) {
@@ -284,7 +300,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               },
               { accessToken }
             );
-            
+
             // Se c'è una foto profilo da Google, aggiorna il cliente
             if (avatarUrl) {
               try {
@@ -385,12 +401,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Check for stored auth on mount and verify/refresh token
     const initAuth = async () => {
       const { user, accessToken, refreshToken, rememberMe } = loadAuthData();
-      
+
       if (user && accessToken) {
         try {
           // Verifica se il token è ancora valido
           const isTokenValid = await verifyToken(accessToken);
-          
+
           if (isTokenValid) {
             // Token valido, ricarica il profilo dal database per avere il ruolo aggiornato
             try {
@@ -404,7 +420,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               if (profileRes.ok) {
                 const profiles = await profileRes.json();
                 const profile = profiles[0] as User | undefined;
-                
+
                 if (profile) {
                   // Aggiorna l'utente con i dati freschi dal database
                   const updatedUser: User = {
@@ -416,17 +432,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     is_platform_admin: (profile as any).is_platform_admin ?? user.is_platform_admin,
                     created_at: (profile as any).created_at ?? user.created_at,
                   };
-                  
+
                   // Salva l'utente aggiornato nello storage
                   const storage = getStorage(rememberMe);
                   storage.setItem('auth_user', JSON.stringify(updatedUser));
-                  
+
                   setAuthState({
                     user: updatedUser,
                     isAuthenticated: true,
                     isLoading: false,
                   });
-                  
+
                   if (updatedUser.shop_id) {
                     storage.setItem('current_shop_id', updatedUser.shop_id);
                   }
@@ -469,7 +485,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
           } else if (refreshToken) {
             // Token scaduto, prova a refresharlo
-            
+
             const refreshUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/token?grant_type=refresh_token`;
             const refreshRes = await fetch(refreshUrl, {
               method: 'POST',
@@ -488,7 +504,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               if (tokenJson.refresh_token) {
                 storage.setItem('refresh_token', tokenJson.refresh_token);
               }
-              
+
               // Ricarica il profilo dal database con il nuovo token
               try {
                 const profileRes = await fetch(`${API_ENDPOINTS.PROFILES}?select=*&user_id=eq.${user.id}`, {
@@ -501,7 +517,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 if (profileRes.ok) {
                   const profiles = await profileRes.json();
                   const profile = profiles[0] as User | undefined;
-                  
+
                   if (profile) {
                     const updatedUser: User = {
                       id: user.id,
@@ -512,15 +528,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                       is_platform_admin: (profile as any).is_platform_admin ?? user.is_platform_admin,
                       created_at: (profile as any).created_at ?? user.created_at,
                     };
-                    
+
                     storage.setItem('auth_user', JSON.stringify(updatedUser));
-                    
+
                     setAuthState({
                       user: updatedUser,
                       isAuthenticated: true,
                       isLoading: false,
                     });
-                    
+
                     if (updatedUser.shop_id) {
                       storage.setItem('current_shop_id', updatedUser.shop_id);
                     }
@@ -605,7 +621,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     window.addEventListener('auth:session-expired', handleSessionExpired);
-    
+
     return () => {
       window.removeEventListener('auth:session-expired', handleSessionExpired);
     };
@@ -635,7 +651,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (!tokenRes.ok) {
         let serverMsg = 'Credenziali non valide';
         let errorCode = '';
-        
+
         try {
           const maybeJson = await tokenRes.clone().json();
           serverMsg = maybeJson?.error_description || maybeJson?.msg || maybeJson?.message || serverMsg;
@@ -644,47 +660,47 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           try {
             const errText = await tokenRes.text();
             serverMsg = errText || serverMsg;
-          } catch {}
+          } catch { }
         }
-        
+
         // Interpreta gli errori di Supabase per dare messaggi più chiari all'utente
         const errorLower = serverMsg.toLowerCase();
         const codeLower = errorCode.toLowerCase();
-        
+
         // Password sbagliata
-        if (errorLower.includes('invalid login') || 
-            errorLower.includes('invalid credentials') || 
-            errorLower.includes('wrong password') ||
-            errorLower.includes('incorrect password') ||
-            errorLower.includes('password') ||
-            codeLower.includes('invalid_credentials') ||
-            codeLower.includes('invalid_grant') ||
-            (errorLower.includes('invalid') && errorLower.includes('credential'))) {
+        if (errorLower.includes('invalid login') ||
+          errorLower.includes('invalid credentials') ||
+          errorLower.includes('wrong password') ||
+          errorLower.includes('incorrect password') ||
+          errorLower.includes('password') ||
+          codeLower.includes('invalid_credentials') ||
+          codeLower.includes('invalid_grant') ||
+          (errorLower.includes('invalid') && errorLower.includes('credential'))) {
           serverMsg = 'Password errata. Controlla la password e riprova.';
         }
         // Email non trovata o utente non esiste
         else if (errorLower.includes('user not found') ||
-                 errorLower.includes('email not found') ||
-                 errorLower.includes('no user') ||
-                 codeLower.includes('user_not_found')) {
+          errorLower.includes('email not found') ||
+          errorLower.includes('no user') ||
+          codeLower.includes('user_not_found')) {
           serverMsg = 'Email non trovata. Verifica l\'indirizzo email e riprova.';
         }
         // Email non confermata
         else if (errorLower.includes('email not confirmed') ||
-                 errorLower.includes('email_not_confirmed') ||
-                 errorLower.includes('signup_disabled')) {
+          errorLower.includes('email_not_confirmed') ||
+          errorLower.includes('signup_disabled')) {
           serverMsg = 'Account non confermato. Controlla la tua email e clicca sul link di conferma.';
         }
         // Troppi tentativi
         else if (errorLower.includes('too many requests') ||
-                 errorLower.includes('rate limit')) {
+          errorLower.includes('rate limit')) {
           serverMsg = 'Troppi tentativi di accesso. Attendi qualche minuto e riprova.';
         }
         // Errore generico di autenticazione
         else if (tokenRes.status === 400 || tokenRes.status === 401) {
           serverMsg = 'Credenziali non valide. Verifica email e password.';
         }
-        
+
         setAuthState(prev => ({ ...prev, isLoading: false }));
         throw new Error(serverMsg);
       }
@@ -729,7 +745,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Usa rememberMe dalle credenziali (default: true)
       const rememberMe = credentials.rememberMe !== false;
       saveAuthData(user, accessToken, tokenJson.refresh_token, rememberMe);
-      
+
       if (shopId) {
         try {
           await apiService.getShopById(shopId);
@@ -754,13 +770,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Funzione per refreshare la sessione usando il refresh token
   const refreshSession = async (): Promise<boolean> => {
     const { user, refreshToken, rememberMe } = loadAuthData();
-    
+
     if (!refreshToken || !user || !isSupabaseConfigured()) {
       return false;
     }
 
     try {
-      
+
       const refreshUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/token?grant_type=refresh_token`;
       const refreshRes = await fetch(refreshUrl, {
         method: 'POST',
@@ -813,7 +829,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // IMPORTANTE: Se non c'è slug nell'URL, usa 'retro-barbershop' come default
       // (questo gestisce il caso del redirect temporaneo da poltrona.abruzzo.ai)
       const effectiveShopSlug = slugFromOptions || 'retro-barbershop';
-      
+
       if (effectiveShopSlug) {
         try {
           const shop = await apiService.getShopBySlug(effectiveShopSlug);
@@ -825,7 +841,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const stored = localStorage.getItem('current_shop_id');
         if (stored) resolvedShopId = stored;
       }
-      
+
       // Crea l'utente in Supabase Auth
       // IMPORTANTE: Passa shop_slug nei metadati così il trigger SQL può assegnare lo shop_id corretto
       const signupUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/signup`;
@@ -856,7 +872,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           try {
             const errText = await signupRes.text();
             serverMsg = errText || serverMsg;
-          } catch {}
+          } catch { }
         }
         setAuthState(prev => ({ ...prev, isLoading: false }));
         throw new Error(serverMsg);
@@ -885,7 +901,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } catch (silentLoginError) {
         }
       }
-      
+
       // Se l'utente è stato creato con successo, crea anche il record client
       // per far apparire l'utente nella pagina Clienti
       try {
@@ -912,9 +928,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       } catch (profileShopError) {
       }
-      
+
       setAuthState(prev => ({ ...prev, isLoading: false }));
-      
+
       // Invia notifica email al negozio se configurata
       try {
         const shop = await apiService.getShop();
@@ -934,7 +950,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           };
 
           const emailResult = await emailNotificationService.sendNewClientNotification(
-            clientData, 
+            clientData,
             shop.notification_email
           );
 
@@ -943,7 +959,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
         } else {
         }
-        
+
         if (data.email) {
           const portalUrl = typeof window !== 'undefined' && window.location?.origin
             ? buildShopUrl(shop?.slug || '')
@@ -961,17 +977,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           } else {
           }
         }
-        
+
         // Nota: Le notifiche in-app vengono create automaticamente dal trigger del database
         // quando viene creato un nuovo utente in auth.users (vedi sql/triggers.sql)
         // Non è necessario crearle manualmente qui per evitare duplicati
-        
+
       } catch (emailError) {
         // Non bloccare la registrazione se l'email fallisce
       }
-      
+
       // Non facciamo login automatico, l'utente deve confermare l'email se necessario
-      
+
     } catch (error) {
       setAuthState(prev => ({ ...prev, isLoading: false }));
       throw error instanceof Error ? error : new Error('Errore durante la registrazione');
@@ -989,7 +1005,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       // Risolvi shop slug per passarlo come parametro
       const effectiveShopSlug = getShopSlugFromUrl() || 'retro-barbershop';
-      
+
       // Costruisci l'URL di redirect (dove Google reindirizzerà dopo l'autenticazione)
       // Usa sempre l'URL corrente della pagina per garantire il redirect corretto
       // In produzione sarà https://poltrona.abruzzo.ai/[path], in sviluppo sarà localhost
@@ -997,14 +1013,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Rimuovi eventuali parametri query o hash esistenti per avere un URL pulito
       const urlObj = new URL(currentUrl);
       const redirectUrl = `${urlObj.origin}${urlObj.pathname}`;
-      
-      
+
+
       // URL per iniziare il flusso OAuth con Google
       // Supabase gestirà il redirect a Google e poi il callback
       const authUrl = new URL(`${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/authorize`);
       authUrl.searchParams.set('provider', 'google');
       authUrl.searchParams.set('redirect_to', redirectUrl);
-      
+
       // Aggiungi shop_slug come parametro extra per il callback
       if (effectiveShopSlug) {
         authUrl.searchParams.set('data', JSON.stringify({ shop_slug: effectiveShopSlug }));
@@ -1013,7 +1029,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // Reindirizza a Google OAuth
       window.location.href = authUrl.toString();
-      
+
       // Nota: Il flusso continuerà nel callback OAuth gestito dal useEffect sopra
       // Non impostiamo isLoading a false qui perché il redirect avviene immediatamente
     } catch (error) {
@@ -1134,12 +1150,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const hasPermission = (permission: string): boolean => {
     if (!authState.user) return false;
-    
+
     // Platform Admin ha accesso a tutto
     if (isPlatformAdmin()) return true;
-    
+
     const { role } = authState.user;
-    
+
     switch (permission) {
       case 'dashboard':
         return role === 'admin' || role === 'barber'; // Clienti non vedono dashboard
