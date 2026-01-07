@@ -19,13 +19,22 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
     if (isOpen) {
       // Save previous active element
       previousActiveElement.current = document.activeElement as HTMLElement;
-      
+
       // Focus modal on open
       setTimeout(() => {
         modalRef.current?.focus();
       }, 100);
 
-      // Handle Escape key
+      // Restore focus to previous element on cleanup
+      return () => {
+        previousActiveElement.current?.focus();
+      };
+    }
+  }, [isOpen]);
+
+  // Handle Escape key
+  React.useEffect(() => {
+    if (isOpen) {
       const handleEscape = (e: KeyboardEvent) => {
         if (e.key === 'Escape') {
           onClose();
@@ -35,8 +44,6 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
       document.addEventListener('keydown', handleEscape);
       return () => {
         document.removeEventListener('keydown', handleEscape);
-        // Restore focus to previous element
-        previousActiveElement.current?.focus();
       };
     }
   }, [isOpen, onClose]);
@@ -44,7 +51,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
   // Focus trap: keep focus inside modal
   const handleTabKey = (e: React.KeyboardEvent) => {
     if (e.key !== 'Tab') return;
-    
+
     const modal = modalRef.current;
     if (!modal) return;
 
@@ -76,7 +83,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
   };
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/50 backdrop-blur-sm"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
@@ -87,7 +94,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
       aria-modal="true"
       aria-labelledby="modal-title"
     >
-      <div 
+      <div
         ref={modalRef}
         className={`w-full ${sizeClasses[size]} bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden aurora-modal max-h-[90vh] overflow-y-auto`}
         tabIndex={-1}
