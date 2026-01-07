@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
-import { RefreshCw, X } from 'lucide-react';
+import { RefreshCw, X, Loader2 } from 'lucide-react';
 
 export const PWAUpdateNotification: React.FC = () => {
+  const [isUpdating, setIsUpdating] = useState(false);
+
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
@@ -14,11 +17,60 @@ export const PWAUpdateNotification: React.FC = () => {
     },
   });
 
-  const handleUpdate = () => {
-    updateServiceWorker(true);
+  const handleUpdate = async () => {
+    if (isUpdating) return; // Previene click multipli
+
+    setIsUpdating(true);
+    console.log('[PWA] Starting update...');
+
+    try {
+      // Step 1: Prova ad aggiornare il service worker
+      await updateServiceWorker(true);
+
+      // Step 2: Se siamo ancora qui dopo 2 secondi, forza un hard reload
+      // perché il SW update potrebbe non aver triggerato il reload
+      setTimeout(async () => {
+        console.log('[PWA] Force reload after SW update...');
+
+        // Cancella tutte le cache del service worker
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          await Promise.all(
+            cacheNames.map(cacheName => {
+              console.log(`[PWA] Deleting cache: ${cacheName}`);
+              return caches.delete(cacheName);
+            })
+          );
+        }
+
+        // Unregister del service worker corrente e force reload
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          for (const registration of registrations) {
+            await registration.unregister();
+            console.log('[PWA] SW unregistered');
+          }
+        }
+
+        // Force hard reload senza cache
+        window.location.href = window.location.origin + '?cache_bust=' + Date.now();
+      }, 2000);
+
+    } catch (error) {
+      console.error('[PWA] Update failed:', error);
+      setIsUpdating(false);
+
+      // Fallback: forza reload anche in caso di errore
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+      }
+      window.location.reload();
+    }
   };
 
   const handleDismiss = () => {
+    if (isUpdating) return; // Non permettere dismiss durante update
     setNeedRefresh(false);
   };
 
@@ -42,14 +94,29 @@ export const PWAUpdateNotification: React.FC = () => {
             </p>
             <button
               onClick={handleUpdate}
-              className="w-full bg-white hover:bg-gray-100 text-blue-600 font-medium py-2 px-4 rounded-lg text-sm transition-all duration-200 shadow-lg"
+              disabled={isUpdating}
+              className={`w-full font-medium py-2 px-4 rounded-lg text-sm transition-all duration-200 shadow-lg flex items-center justify-center gap-2 ${isUpdating
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  : 'bg-white hover:bg-gray-100 text-blue-600'
+                }`}
             >
-              Aggiorna ora
+              {isUpdating ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Aggiornamento in corso...
+                </>
+              ) : (
+                'Aggiorna ora'
+              )}
             </button>
           </div>
           <button
             onClick={handleDismiss}
-            className="flex-shrink-0 text-white/80 hover:text-white transition-colors"
+            disabled={isUpdating}
+            className={`flex-shrink-0 transition-colors ${isUpdating
+                ? 'text-white/40 cursor-not-allowed'
+                : 'text-white/80 hover:text-white'
+              }`}
             aria-label="Chiudi"
           >
             <X className="w-5 h-5" />
