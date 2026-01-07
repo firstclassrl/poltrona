@@ -104,6 +104,13 @@ export default defineConfig({
   build: {
     rollupOptions: {
       external: ['nodemailer'],
+      output: {
+        // OPTIMIZATION: Split vendor chunks to reduce initial bundle
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-lucide': ['lucide-react'],
+        }
+      }
     },
   },
 });

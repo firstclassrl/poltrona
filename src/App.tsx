@@ -1,29 +1,32 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { Navigation } from './components/Navigation';
-import { Dashboard } from './components/Dashboard';
-import { Calendar } from './components/Calendar';
-import { Clients } from './components/Clients';
-import { Products } from './components/Products';
-import { Services } from './components/Services';
-import { BarberProfile } from './components/BarberProfile';
-import { ShopManagement } from './components/Shop';
-import { ClientShop } from './components/ClientShop';
-import { Settings } from './components/Settings';
-import { AppointmentForm } from './components/AppointmentForm';
-import { Login } from './components/Login';
-import { ShopSetup } from './components/ShopSetup';
-import { ResetPassword } from './components/ResetPassword';
-import { ClientProfile } from './components/ClientProfile';
-import { ClientBookings } from './components/ClientBookings';
-import { ClientBookingCalendar } from './components/ClientBookingCalendar';
-import { ClientProducts } from './components/ClientProducts';
-import { Chat } from './components/Chat';
-import { Notifications } from './components/Notifications';
-import { WaitlistDashboard } from './components/WaitlistDashboard';
 import { Toast } from './components/ui/Toast';
 import { useToast } from './hooks/useToast';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { PWAUpdateNotification } from './components/PWAUpdateNotification';
+import { PageSkeleton } from './components/ui/PageSkeleton';
+
+// Lazy load page components for code splitting
+const Dashboard = lazy(() => import('./components/Dashboard').then(m => ({ default: m.Dashboard })));
+const Calendar = lazy(() => import('./components/Calendar').then(m => ({ default: m.Calendar })));
+const Clients = lazy(() => import('./components/Clients').then(m => ({ default: m.Clients })));
+const Products = lazy(() => import('./components/Products').then(m => ({ default: m.Products })));
+const Services = lazy(() => import('./components/Services').then(m => ({ default: m.Services })));
+const BarberProfile = lazy(() => import('./components/BarberProfile').then(m => ({ default: m.BarberProfile })));
+const ShopManagement = lazy(() => import('./components/Shop').then(m => ({ default: m.ShopManagement })));
+const ClientShop = lazy(() => import('./components/ClientShop').then(m => ({ default: m.ClientShop })));
+const Settings = lazy(() => import('./components/Settings').then(m => ({ default: m.Settings })));
+const AppointmentForm = lazy(() => import('./components/AppointmentForm').then(m => ({ default: m.AppointmentForm })));
+const Login = lazy(() => import('./components/Login').then(m => ({ default: m.Login })));
+const ShopSetup = lazy(() => import('./components/ShopSetup').then(m => ({ default: m.ShopSetup })));
+const ResetPassword = lazy(() => import('./components/ResetPassword').then(m => ({ default: m.ResetPassword })));
+const ClientProfile = lazy(() => import('./components/ClientProfile').then(m => ({ default: m.ClientProfile })));
+const ClientBookings = lazy(() => import('./components/ClientBookings').then(m => ({ default: m.ClientBookings })));
+const ClientBookingCalendar = lazy(() => import('./components/ClientBookingCalendar').then(m => ({ default: m.ClientBookingCalendar })));
+const ClientProducts = lazy(() => import('./components/ClientProducts').then(m => ({ default: m.ClientProducts })));
+const Chat = lazy(() => import('./components/Chat').then(m => ({ default: m.Chat })));
+const Notifications = lazy(() => import('./components/Notifications').then(m => ({ default: m.Notifications })));
+const WaitlistDashboard = lazy(() => import('./components/WaitlistDashboard').then(m => ({ default: m.WaitlistDashboard })));
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
@@ -186,7 +189,7 @@ const AppContent: React.FC = () => {
         return <ClientBookings />;
       case 'client_booking':
         return (
-          <ClientBookingCalendar 
+          <ClientBookingCalendar
             onNavigateToProfile={() => setActiveTab('client_profile')}
             initialParams={(() => {
               // Recupera parametri da localStorage se presenti (impostati dalla notifica)
@@ -228,12 +231,24 @@ const AppContent: React.FC = () => {
 
   if (!isAuthenticated) {
     if (setupToken) {
-      return <ShopSetup />;
+      return (
+        <Suspense fallback={<PageSkeleton />}>
+          <ShopSetup />
+        </Suspense>
+      );
     }
     if (resetPasswordToken) {
-      return <ResetPassword />;
+      return (
+        <Suspense fallback={<PageSkeleton />}>
+          <ResetPassword />
+        </Suspense>
+      );
     }
-    return <Login />;
+    return (
+      <Suspense fallback={<PageSkeleton />}>
+        <Login />
+      </Suspense>
+    );
   }
 
   return (
@@ -265,20 +280,24 @@ const AppContent: React.FC = () => {
       {/* Main Content */}
       <div className="md:ml-64 pb-20 md:pb-4" style={{ marginTop: 0, paddingTop: 0, minHeight: 'calc(100vh - 0px)' }}>
         <main className="text-[var(--theme-text)]" style={{ marginTop: 0, paddingTop: 0, paddingBottom: '2rem' }}>
-          {renderActiveTab()}
+          <Suspense fallback={<PageSkeleton />}>
+            {renderActiveTab()}
+          </Suspense>
         </main>
       </div>
 
       {/* Appointment Form Modal */}
-      <AppointmentForm
-        isOpen={isAppointmentFormOpen}
-        onClose={() => {
-          setIsAppointmentFormOpen(false);
-          setEditingAppointment(null);
-        }}
-        onSave={handleSaveAppointment}
-        appointment={editingAppointment}
-      />
+      <Suspense fallback={null}>
+        <AppointmentForm
+          isOpen={isAppointmentFormOpen}
+          onClose={() => {
+            setIsAppointmentFormOpen(false);
+            setEditingAppointment(null);
+          }}
+          onSave={handleSaveAppointment}
+          appointment={editingAppointment}
+        />
+      </Suspense>
 
       {/* Toast Notifications */}
       <Toast

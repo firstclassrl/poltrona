@@ -100,6 +100,9 @@ export const useDailyShopHours = () => {
     const cached = readCachedHours();
     if (cached) {
       setShopHours(cached);
+      // OPTIMIZATION: Show cached data immediately - mark as loaded right away
+      // This prevents Dashboard from waiting for API call
+      setShopHoursLoaded(true);
     }
     setExtraOpening(readExtraOpeningFromStorage());
 
@@ -107,7 +110,7 @@ export const useDailyShopHours = () => {
     // The RLS policies allow public read access to shop hours
     const authToken = localStorage.getItem('auth_token');
     const shopId = localStorage.getItem('current_shop_id');
-    
+
     // If we have a shop_id, try to load hours even without auth
     // This is important for client booking calendar
     if (!authToken && (!shopId || shopId === 'default')) {
@@ -123,7 +126,7 @@ export const useDailyShopHours = () => {
         if (!isMounted) return;
         setShopHours(remoteHours);
         persistHoursLocally(remoteHours);
-        
+
         // Load shop auto_close_holidays setting (only if authenticated)
         if (authToken) {
           try {
@@ -142,10 +145,10 @@ export const useDailyShopHours = () => {
         // Se non c'è cache, usa i default solo come ultima risorsa
         if (!cached) {
           setShopHours(createDefaultShopHoursConfig());
-        } else {
         }
       } finally {
         if (isMounted) {
+          // Ensure loaded is set even if we showed cached data earlier
           setShopHoursLoaded(true);
         }
       }
@@ -164,7 +167,7 @@ export const useDailyShopHours = () => {
     const loadShopHours = async () => {
       const authToken = localStorage.getItem('auth_token');
       const shopId = localStorage.getItem('current_shop_id');
-      
+
       // Load hours even without auth if we have a shop_id (for client booking)
       if (!authToken && (!shopId || shopId === 'default')) {
         return;
@@ -174,7 +177,7 @@ export const useDailyShopHours = () => {
         const remoteHours = await apiService.getDailyShopHours();
         setShopHours(remoteHours);
         persistHoursLocally(remoteHours);
-        
+
         // Load shop auto_close_holidays setting (only if authenticated)
         if (authToken) {
           try {
@@ -221,7 +224,7 @@ export const useDailyShopHours = () => {
 
     window.addEventListener('storage', handleStorage);
     window.addEventListener(EXTRA_OPENING_EVENT, handleExtraOpeningEvent as EventListener);
-    
+
     // Check for shop changes periodically (for same-tab changes)
     const intervalId = setInterval(checkShopIdChange, 1000);
 
@@ -235,7 +238,7 @@ export const useDailyShopHours = () => {
   const performSave = useCallback(async (hoursToSave: ShopHoursConfig) => {
     try {
       const wasSaved = await apiService.saveDailyShopHours(hoursToSave);
-      
+
       // NON fare il reload automatico dopo il salvataggio
       // Il reload sovrascrive lo stato locale e può causare problemi
       // Lo stato locale è già sincronizzato con quello che è stato salvato
@@ -260,7 +263,7 @@ export const useDailyShopHours = () => {
 
   // Funzione per salvataggio manuale - usa un ref per evitare problemi di stale closure
   const shopHoursRef = useRef<ShopHoursConfig>(shopHours);
-  
+
   // Aggiorna il ref ogni volta che shopHours cambia
   useEffect(() => {
     shopHoursRef.current = shopHours;
@@ -376,7 +379,7 @@ export const useDailyShopHours = () => {
   const updateTimeSlot = (dayOfWeek: number, slotIndex: number, timeSlot: TimeSlot) => {
     setShopHours((currentHours) => {
       const dayHours = currentHours[dayOfWeek];
-      const newTimeSlots = dayHours.timeSlots.map((slot, index) => 
+      const newTimeSlots = dayHours.timeSlots.map((slot, index) =>
         index === slotIndex ? timeSlot : slot
       );
       const newHours = { ...currentHours, [dayOfWeek]: { ...dayHours, timeSlots: newTimeSlots } };
@@ -403,15 +406,15 @@ export const useDailyShopHours = () => {
     if (!shopHoursLoaded) {
       return false;
     }
-    
+
     // Check if there's an extra opening for this date first
     if (isExtraOpeningActiveForDate(date)) return true;
-    
+
     // Check if it's an Italian holiday and auto_close_holidays is enabled
     if (autoCloseHolidays && isItalianHoliday(date)) {
       return false;
     }
-    
+
     // Check regular shop hours
     const dayOfWeek = date.getDay();
     return shopHours[dayOfWeek]?.isOpen || false;
@@ -439,21 +442,21 @@ export const useDailyShopHours = () => {
     }
 
     if (!isDateOpen(date)) return false;
-    
+
     const dayOfWeek = date.getDay();
     const dayHours = shopHours[dayOfWeek];
-    
+
     if (!dayHours.isOpen || dayHours.timeSlots.length === 0) return false;
-    
+
     const [hours, minutes] = time.split(':').map(Number);
     const timeInMinutes = hours * 60 + minutes;
-    
+
     return dayHours.timeSlots.some(slot => {
       const [startHours, startMinutes] = slot.start.split(':').map(Number);
       const [endHours, endMinutes] = slot.end.split(':').map(Number);
       const startTime = startHours * 60 + startMinutes;
       const endTime = endHours * 60 + endMinutes;
-      
+
       return timeInMinutes >= startTime && timeInMinutes < endTime;
     });
   };
@@ -465,22 +468,22 @@ export const useDailyShopHours = () => {
     }
 
     if (!isDateOpen(date)) return [];
-    
+
     const dayOfWeek = date.getDay();
     const dayHours = shopHours[dayOfWeek];
-    
+
     if (!dayHours.isOpen || dayHours.timeSlots.length === 0) return [];
-    
+
     const slots: string[] = [];
-    
+
     dayHours.timeSlots.forEach(slot => {
       const [startHours, startMinutes] = slot.start.split(':').map(Number);
       const [endHours, endMinutes] = slot.end.split(':').map(Number);
       const startTime = startHours * 60 + startMinutes;
       const endTime = endHours * 60 + endMinutes;
-      
+
       let currentTime = startTime;
-      
+
       while (currentTime + slotDurationMinutes <= endTime) {
         const hours = Math.floor(currentTime / 60);
         const minutes = currentTime % 60;
@@ -489,14 +492,14 @@ export const useDailyShopHours = () => {
         currentTime += slotDurationMinutes;
       }
     });
-    
+
     return slots;
   };
 
   // Get shop hours summary for display
   const getShopHoursSummary = (): string => {
     const summary: string[] = [];
-    
+
     DAYS_OF_WEEK.forEach(day => {
       const dayHours = shopHours[day.key];
       if (dayHours.isOpen && dayHours.timeSlots.length > 0) {
@@ -508,7 +511,7 @@ export const useDailyShopHours = () => {
         summary.push(`${day.shortName}: Chiuso`);
       }
     });
-    
+
     return summary.join(' | ');
   };
 

@@ -18,8 +18,21 @@ export interface CreateAppointmentData {
 }
 
 export const useAppointments = () => {
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // OPTIMIZATION: Initialize state from localStorage cache to show data immediately
+  const getInitialAppointments = (): Appointment[] => {
+    try {
+      const saved = localStorage.getItem('appointments');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch {
+      // Ignore parse errors
+    }
+    return [];
+  };
+
+  const [appointments, setAppointments] = useState<Appointment[]>(getInitialAppointments);
+  const [isLoading, setIsLoading] = useState(getInitialAppointments().length === 0); // Only loading if no cache
   const [lastError, setLastError] = useState<Error | null>(null);
   const [isLoadingInProgress, setIsLoadingInProgress] = useState(false);
 
