@@ -47,7 +47,9 @@ export const useAppointments = () => {
     setIsLoadingInProgress(true);
 
     try {
-      setIsLoading(true);
+      // OPTIMIZATION: Only show loading spinner if we have NO data
+      // This prevents flicker when refreshing in background
+      // Keep showing stale data while fetching fresh data
       // Carica appuntamenti per un range ampio (1 settimana fa fino a 2 anni nel futuro)
       // per includere appuntamenti prenotati anche molto in anticipo (es. 2026)
       const today = new Date();

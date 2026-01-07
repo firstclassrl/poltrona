@@ -99,31 +99,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return (apt.client_name?.trim() || fromClientRecord || 'Cliente');
   };
 
-  // Safety timeout to prevent infinite loading
-  const [forceLoad, setForceLoad] = useState(false);
-
-  useEffect(() => {
-    // Timer runs once on mount and sets forceLoad to true after 2 seconds
-    // This ensures that even if loading states toggle, we eventually show the dashboard
-    const timer = setTimeout(() => {
-      console.log('⚠️ Dashboard loading timed out, forcing display');
-      setForceLoad(true);
-    }, 2000); // 2 seconds timeout
-
-    return () => clearTimeout(timer);
-  }, []); // Empty dependency array = run once on mount
-
-  // Show loading state while data is being fetched, unless forced
-  if ((!shopHoursLoaded || isLoadingAppointments) && !forceLoad) {
-    return (
-      <div className="p-0 page-container-chat-style flex items-center justify-center min-h-screen">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="w-12 h-12 border-4 border-green-200 border-t-green-600 rounded-full animate-spin"></div>
-          <p className="text-gray-500 font-medium">Caricamento dashboard...</p>
-        </div>
-      </div>
-    );
-  }
+  // Removed: Dashboard loading spinner - now handled by Suspense boundary in App.tsx
+  // This eliminates the flicker caused by multiple loading states
 
   const getAppointmentClientInitials = (apt: Appointment): string => {
     const label = getAppointmentClientLabel(apt);
