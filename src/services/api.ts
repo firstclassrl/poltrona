@@ -2164,7 +2164,19 @@ export const apiService = {
       if (shopId && shopId !== 'default') {
         url += `&shop_id=eq.${shopId}`;
       }
-      const response = await fetch(url, { headers: buildHeaders(false) }); // Use false for now to avoid auth issues
+
+      // SECURITY FIX: Usa buildHeaders(true) per far funzionare le RLS policies
+      // In caso di errore auth, fallback a buildHeaders(false) per accesso pubblico
+      const token = getAuthToken();
+      let response: Response;
+
+      if (token) {
+        response = await fetch(url, { headers: buildHeaders(true) });
+      } else {
+        // Senza token, usa accesso pubblico (filtrato comunque per shop_id nella URL)
+        response = await fetch(url, { headers: buildHeaders(false) });
+      }
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('API Error:', response.status, errorText);
