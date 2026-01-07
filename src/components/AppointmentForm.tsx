@@ -41,7 +41,7 @@ export const AppointmentForm = ({
     time: '',
     notes: '',
   });
-  
+
   const [clientQuery, setClientQuery] = useState('');
   const [clientSuggestions, setClientSuggestions] = useState<Client[]>([]);
   const [, setSelectedClient] = useState<Client | null>(null);
@@ -172,28 +172,28 @@ export const AppointmentForm = ({
 
   const handleClientSearch = useCallback(async (query: string) => {
     setClientQuery(query);
-    
+
     // Clear previous timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
-    
+
     if (query.length === 0) {
       setClientSuggestions([]);
       setShowClientSuggestions(false);
       setIsSearchingClients(false);
       return;
     }
-    
+
     if (query.length === 1) {
       setShowClientSuggestions(false);
       setIsSearchingClients(false);
       return;
     }
-    
+
     // Show loading state
     setIsSearchingClients(true);
-    
+
     // Debounce search - wait 300ms after user stops typing
     searchTimeoutRef.current = setTimeout(async () => {
       try {
@@ -209,7 +209,7 @@ export const AppointmentForm = ({
       }
     }, 300);
   }, []);
-  
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -251,19 +251,19 @@ export const AppointmentForm = ({
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const selectedDate = new Date(selectedDateTime.getFullYear(), selectedDateTime.getMonth(), selectedDateTime.getDate());
-    
+
     // Check if date is valid according to shop hours
     if (!isDateOpen(selectedDate)) {
       newErrors.date = 'Il negozio è chiuso in questa data';
     }
-    
+
     // Check if time is within shop hours (basic validation)
     if (!formData.time) {
       newErrors.time = 'Seleziona un orario';
     } else if (!isTimeWithinHours(selectedDate, formData.time)) {
       newErrors.time = 'Orario fuori dagli orari di apertura';
     }
-    
+
     // Allow appointments for today if they are at least 1 hour in the future
     if (selectedDate.getTime() === today.getTime()) {
       const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
@@ -286,12 +286,12 @@ export const AppointmentForm = ({
         if (apt.status === 'cancelled') return false;
         if (isEditing && appointment && apt.id === appointment.id) return false;
         if (apt.staff_id !== formData.staff_id) return false;
-        
+
         // Only check appointments on the same day
         const aptDate = new Date(apt.start_at);
         const selectedDate = new Date(formData.date);
         if (aptDate.toDateString() !== selectedDate.toDateString()) return false;
-        
+
         return true;
       });
 
@@ -322,7 +322,7 @@ export const AppointmentForm = ({
       const selectedService = services.find(s => s.id === formData.service_id);
       const durationMinutes = selectedService?.duration_min || 30;
       const endAt = new Date(new Date(startAt).getTime() + durationMinutes * 60000).toISOString();
-      
+
       const appointmentData = {
         client_id: formData.is_walk_in ? null : formData.client_id,
         client_name: formData.is_walk_in ? formData.client_name.trim() : undefined,
@@ -422,52 +422,80 @@ export const AppointmentForm = ({
               </Button>
             </div>
           )}
-          
+
           {!formData.is_walk_in && (showClientSuggestions || isSearchingClients) && (
-            <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
               {isSearchingClients ? (
-                <div className="p-3 text-center text-gray-300">
-                  <div className="animate-pulse">Cerca clienti...</div>
+                <div className="p-4 text-center text-gray-500 flex items-center justify-center gap-2">
+                  <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+                  <span>Ricerca in corso...</span>
                 </div>
               ) : clientSuggestions.length > 0 ? (
                 <>
                   {clientSuggestions.map((client) => (
                     <div
                       key={client.id}
-                      className="p-3 hover:bg-white/10 cursor-pointer transition-colors border-b border-white/5 last:border-b-0"
+                      className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0"
                       onClick={() => handleClientSelect(client)}
                     >
-                      <div className="text-white font-medium">
-                        {client.first_name} {client.last_name || ''}
+                      {/* Avatar with Initials */}
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center flex-shrink-0 border border-green-200">
+                        <span className="text-green-700 font-semibold text-sm">
+                          {(client.first_name[0] || '')}{(client.last_name?.[0] || '')}
+                        </span>
                       </div>
-                      <div className="text-gray-300 text-sm mt-1">
-                        {client.phone_e164}
-                        {client.email && (
-                          <span className="ml-2 text-gray-400">• {client.email}</span>
-                        )}
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-gray-900 font-medium truncate">
+                          {client.first_name} {client.last_name || ''}
+                        </div>
+                        <div className="text-gray-500 text-xs mt-0.5 truncate flex items-center gap-2">
+                          <span>{client.phone_e164}</span>
+                          {client.email && (
+                            <>
+                              <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                              <span className="truncate">{client.email}</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
-              <div className="p-3 border-t border-white/10">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="w-full"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setShowClientSuggestions(false);
-                    setShowCustomerForm(true);
-                  }}
-                >
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Crea nuovo cliente
-                </Button>
-              </div>
+                  <div className="p-2 bg-gray-50 sticky bottom-0 border-t border-gray-100">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start text-green-700 hover:text-green-800 hover:bg-green-50"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowClientSuggestions(false);
+                        setShowCustomerForm(true);
+                      }}
+                    >
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Crea nuovo cliente "{clientQuery}"
+                    </Button>
+                  </div>
                 </>
               ) : (
-                <div className="p-3 text-center text-gray-400">
-                  Nessun cliente trovato
+                <div className="p-6 text-center">
+                  <p className="text-gray-500 mb-4">Nessun cliente trovato</p>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="w-full"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setShowClientSuggestions(false);
+                      setShowCustomerForm(true);
+                    }}
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Crea nuovo cliente
+                  </Button>
                 </div>
               )}
             </div>
@@ -493,9 +521,9 @@ export const AppointmentForm = ({
           onChange={(e) => setFormData(prev => ({ ...prev, service_id: e.target.value }))}
           options={[
             { value: '', label: isLoading ? 'Caricamento servizi...' : 'Seleziona servizio' },
-            ...services.map(service => ({ 
-              value: service.id, 
-              label: `${service.name} (${service.duration_min}min - €${(service.price_cents || 0) / 100})` 
+            ...services.map(service => ({
+              value: service.id,
+              label: `${service.name} (${service.duration_min}min - €${(service.price_cents || 0) / 100})`
             }))
           ]}
           error={errors.service_id}
@@ -512,7 +540,7 @@ export const AppointmentForm = ({
             min={new Date().toISOString().split('T')[0]}
             disabled={!shopHoursLoaded}
           />
-          
+
           <div>
             <Select
               label="Orario"
@@ -523,9 +551,9 @@ export const AppointmentForm = ({
                 ...timeSlots.map(time => ({ value: time, label: time }))
               ]}
               error={errors.time}
-            disabled={!shopHoursLoaded || !formData.date}
+              disabled={!shopHoursLoaded || !formData.date}
             />
-          {formData.date && shopHoursLoaded && (
+            {formData.date && shopHoursLoaded && (
               <p className="text-xs text-gray-500 mt-1">
                 Orari disponibili: {timeSlots.length > 0 ? timeSlots[0] + ' - ' + timeSlots[timeSlots.length - 1] : 'Nessuno'}
               </p>
@@ -568,7 +596,7 @@ export const AppointmentForm = ({
           </Button>
         </div>
       </div>
-      
+
       {/* Customer Form Modal */}
       <CustomerForm
         isOpen={showCustomerForm}
