@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { CheckCircle, XCircle, Info, X } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
@@ -17,7 +18,8 @@ export const Toast: React.FC<ToastProps> = ({ message, type, isVisible, onClose 
       setShow(true);
       const timer = setTimeout(() => {
         setShow(false);
-        setTimeout(onClose, 300); // Wait for animation to complete
+        const closeTimer = setTimeout(onClose, 300); // Wait for animation to complete
+        return () => clearTimeout(closeTimer);
       }, 3000);
       return () => clearTimeout(timer);
     } else {
@@ -51,13 +53,13 @@ export const Toast: React.FC<ToastProps> = ({ message, type, isVisible, onClose 
     }
   };
 
-  if (!isVisible) return null;
+  if (!isVisible && !show) return null;
 
-  return (
-    <div className="fixed top-4 right-4 z-50">
+  return createPortal(
+    <div className="fixed top-4 right-4 z-[99999] pointer-events-none">
       <div
         className={cn(
-          'flex items-center space-x-3 px-4 py-3 rounded-lg border backdrop-blur-sm shadow-lg transition-all duration-300 transform',
+          'flex items-center space-x-3 px-4 py-3 rounded-lg border backdrop-blur-sm shadow-lg transition-all duration-300 transform pointer-events-auto',
           getTypeClasses(),
           show ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
         )}
@@ -65,12 +67,16 @@ export const Toast: React.FC<ToastProps> = ({ message, type, isVisible, onClose 
         {getIcon()}
         <span className="font-medium">{message}</span>
         <button
-          onClick={onClose}
+          onClick={() => {
+            setShow(false);
+            setTimeout(onClose, 300);
+          }}
           className="ml-2 hover:bg-white/20 rounded-full p-1 transition-colors"
         >
           <X className="w-4 h-4" />
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
