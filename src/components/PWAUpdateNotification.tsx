@@ -17,56 +17,45 @@ export const PWAUpdateNotification: React.FC = () => {
     },
   });
 
-  const handleUpdate = async () => {
+  const handleUpdate = () => {
     if (isUpdating) return; // Previene click multipli
 
     setIsUpdating(true);
-    console.log('[PWA] Starting update...');
+    console.log('[PWA] Starting update - forcing hard reload...');
 
-    try {
-      // Step 1: Prova ad aggiornare il service worker
-      await updateServiceWorker(true);
+    // Esegui tutto in modo sincrono e aggressivo
+    // Non aspettiamo updateServiceWorker perché sembra non funzionare
 
-      // Step 2: Se siamo ancora qui dopo 2 secondi, forza un hard reload
-      // perché il SW update potrebbe non aver triggerato il reload
-      setTimeout(async () => {
-        console.log('[PWA] Force reload after SW update...');
-
-        // Cancella tutte le cache del service worker
+    // Funzione che forza il reload
+    const forceReload = async () => {
+      try {
+        // 1. Cancella TUTTE le cache
         if ('caches' in window) {
           const cacheNames = await caches.keys();
-          await Promise.all(
-            cacheNames.map(cacheName => {
-              console.log(`[PWA] Deleting cache: ${cacheName}`);
-              return caches.delete(cacheName);
-            })
-          );
+          console.log('[PWA] Deleting caches:', cacheNames);
+          await Promise.all(cacheNames.map(name => caches.delete(name)));
         }
 
-        // Unregister del service worker corrente e force reload
+        // 2. Unregister TUTTI i service workers
         if ('serviceWorker' in navigator) {
           const registrations = await navigator.serviceWorker.getRegistrations();
-          for (const registration of registrations) {
-            await registration.unregister();
-            console.log('[PWA] SW unregistered');
-          }
+          console.log('[PWA] Unregistering SWs:', registrations.length);
+          await Promise.all(registrations.map(r => r.unregister()));
         }
 
-        // Force hard reload senza cache
-        window.location.href = window.location.origin + '?cache_bust=' + Date.now();
-      }, 2000);
-
-    } catch (error) {
-      console.error('[PWA] Update failed:', error);
-      setIsUpdating(false);
-
-      // Fallback: forza reload anche in caso di errore
-      if ('caches' in window) {
-        const cacheNames = await caches.keys();
-        await Promise.all(cacheNames.map(name => caches.delete(name)));
+        // 3. Forza hard reload
+        console.log('[PWA] Forcing hard reload...');
+        // Usa replace per non lasciare entry nella history
+        window.location.replace(window.location.origin + window.location.pathname + '?v=' + Date.now());
+      } catch (error) {
+        console.error('[PWA] Error during update:', error);
+        // Fallback: reload semplice
+        window.location.reload();
       }
-      window.location.reload();
-    }
+    };
+
+    // Esegui immediatamente
+    forceReload();
   };
 
   const handleDismiss = () => {
@@ -96,8 +85,8 @@ export const PWAUpdateNotification: React.FC = () => {
               onClick={handleUpdate}
               disabled={isUpdating}
               className={`w-full font-medium py-2 px-4 rounded-lg text-sm transition-all duration-200 shadow-lg flex items-center justify-center gap-2 ${isUpdating
-                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                  : 'bg-white hover:bg-gray-100 text-blue-600'
+                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                : 'bg-white hover:bg-gray-100 text-blue-600'
                 }`}
             >
               {isUpdating ? (
@@ -114,8 +103,8 @@ export const PWAUpdateNotification: React.FC = () => {
             onClick={handleDismiss}
             disabled={isUpdating}
             className={`flex-shrink-0 transition-colors ${isUpdating
-                ? 'text-white/40 cursor-not-allowed'
-                : 'text-white/80 hover:text-white'
+              ? 'text-white/40 cursor-not-allowed'
+              : 'text-white/80 hover:text-white'
               }`}
             aria-label="Chiudi"
           >

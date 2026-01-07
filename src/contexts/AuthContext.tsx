@@ -622,8 +622,142 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     window.addEventListener('auth:session-expired', handleSessionExpired);
 
+    // PROACTIVE TOKEN REFRESH: Refresh token ogni 50 minuti per evitare scadenza
+    // Il token di Supabase scade dopo 1 ora (3600 secondi) per default
+    // Refreshiamo a 50 minuti per avere un margine di sicurezza
+    const TOKEN_REFRESH_INTERVAL_MS = 50 * 60 * 1000; // 50 minuti
+
+    const proactiveRefreshInterval = setInterval(async () => {
+      const { user, accessToken, refreshToken, rememberMe } = loadAuthData();
+
+      // Solo se l'utente è autenticato
+      if (!user || !accessToken || !refreshToken) {
+        return;
+      }
+
+      try {
+        // Verifica se il token è ancora valido
+        const isTokenValid = await verifyToken(accessToken);
+
+        if (!isTokenValid) {
+          // Token già scaduto o invalido, prova a refresharlo
+          console.log('🔄 Token scaduto, refresh proattivo in corso...');
+
+          const refreshUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/token?grant_type=refresh_token`;
+          const refreshRes = await fetch(refreshUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({ refresh_token: refreshToken })
+          });
+
+          if (refreshRes.ok) {
+            const tokenJson = await refreshRes.json();
+            const storage = getStorage(rememberMe);
+            storage.setItem('auth_token', tokenJson.access_token);
+            if (tokenJson.refresh_token) {
+              storage.setItem('refresh_token', tokenJson.refresh_token);
+            }
+            console.log('✅ Token refreshato proattivamente');
+          } else {
+            console.warn('⚠️ Refresh proattivo fallito, l\'utente potrebbe dover rifare il login');
+          }
+        } else {
+          // Token ancora valido, ma refreshiamo comunque per prolungare la sessione
+          console.log('🔄 Refresh proattivo del token per prolungare la sessione...');
+
+          const refreshUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/token?grant_type=refresh_token`;
+          const refreshRes = await fetch(refreshUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({ refresh_token: refreshToken })
+          });
+
+          if (refreshRes.ok) {
+            const tokenJson = await refreshRes.json();
+            const storage = getStorage(rememberMe);
+            storage.setItem('auth_token', tokenJson.access_token);
+            if (tokenJson.refresh_token) {
+              storage.setItem('refresh_token', tokenJson.refresh_token);
+            }
+            console.log('✅ Token refreshato proattivamente');
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Errore durante il refresh proattivo del token:', error);
+      }
+    }, TOKEN_REFRESH_INTERVAL_MS);
+
+    // ACTIVITY-BASED REFRESH: Refresh quando l'utente interagisce con l'app
+    // ma solo se sono passati almeno 30 minuti dall'ultimo refresh
+    let lastActivityRefresh = Date.now();
+    const ACTIVITY_REFRESH_COOLDOWN_MS = 30 * 60 * 1000; // 30 minuti
+
+    const handleUserActivity = async () => {
+      const now = Date.now();
+
+      // Se non sono passati abbastanza minuti dall'ultimo refresh, esci
+      if (now - lastActivityRefresh < ACTIVITY_REFRESH_COOLDOWN_MS) {
+        return;
+      }
+
+      const { user, accessToken, refreshToken, rememberMe } = loadAuthData();
+
+      if (!user || !accessToken || !refreshToken) {
+        return;
+      }
+
+      try {
+        // Verifica se il token è ancora valido
+        const isTokenValid = await verifyToken(accessToken);
+
+        if (!isTokenValid) {
+          console.log('🔄 Token scaduto durante attività utente, refresh in corso...');
+
+          const refreshUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/token?grant_type=refresh_token`;
+          const refreshRes = await fetch(refreshUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({ refresh_token: refreshToken })
+          });
+
+          if (refreshRes.ok) {
+            const tokenJson = await refreshRes.json();
+            const storage = getStorage(rememberMe);
+            storage.setItem('auth_token', tokenJson.access_token);
+            if (tokenJson.refresh_token) {
+              storage.setItem('refresh_token', tokenJson.refresh_token);
+            }
+            lastActivityRefresh = Date.now();
+            console.log('✅ Token refreshato durante attività utente');
+          }
+        }
+      } catch (error) {
+        // Silent fail per non disturbare l'utente
+      }
+    };
+
+    // Ascolta gli eventi di attività utente (debounced implicitamente dal cooldown)
+    window.addEventListener('click', handleUserActivity);
+    window.addEventListener('keydown', handleUserActivity);
+    window.addEventListener('scroll', handleUserActivity);
+    window.addEventListener('touchstart', handleUserActivity);
+
     return () => {
       window.removeEventListener('auth:session-expired', handleSessionExpired);
+      window.removeEventListener('click', handleUserActivity);
+      window.removeEventListener('keydown', handleUserActivity);
+      window.removeEventListener('scroll', handleUserActivity);
+      window.removeEventListener('touchstart', handleUserActivity);
+      clearInterval(proactiveRefreshInterval);
     };
   }, []);
 
