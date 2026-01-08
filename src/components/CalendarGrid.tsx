@@ -178,7 +178,9 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                                         const { themeId } = useTheme();
                                         const borderClass = themeId === 'heritage' ? 'border-[#25401c]/20' :
                                             themeId === 'terra-soft' ? 'border-[#b46a4b]/20' :
-                                                'border-gray-50/50';
+                                                themeId === 'dark-mode' ? 'border-white/20' :
+                                                    themeId === 'sunset-neon' ? 'border-[#facc15]/30' :
+                                                        'border-gray-50/50';
 
                                         return (
                                             <div

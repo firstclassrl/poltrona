@@ -294,6 +294,32 @@ export const Calendar = () => {
       return terraSoftColors[status as keyof typeof terraSoftColors] || terraSoftColors.scheduled;
     }
 
+    // Dark Mode theme specific styles - White borders
+    if (themeId === 'dark-mode') {
+      const darkModeColors = {
+        scheduled: 'bg-[#1a1a1a] border-white text-white border',
+        confirmed: 'bg-[#262626] border-white text-white border',
+        in_progress: 'bg-[#262626] border-white text-white border ring-1 ring-white',
+        completed: 'bg-[#171717] border-white text-gray-300 border opacity-80',
+        cancelled: 'bg-red-900/20 border-red-500 text-red-500 opacity-60',
+        no_show: 'bg-red-900/20 border-red-500 text-red-500 opacity-60',
+      } as const;
+      return darkModeColors[status as keyof typeof darkModeColors] || darkModeColors.scheduled;
+    }
+
+    // Sunset Neon theme specific styles - Yellow borders
+    if (themeId === 'sunset-neon') {
+      const sunsetColors = {
+        scheduled: 'bg-[#fffbeb] border-[#facc15] text-[#854d0e] border',
+        confirmed: 'bg-[#fefce8] border-[#facc15] text-[#854d0e] border',
+        in_progress: 'bg-[#fef08a] border-[#facc15] text-[#854d0e] border ring-1 ring-[#facc15]',
+        completed: 'bg-[#fde047]/20 border-[#facc15] text-[#854d0e] border opacity-80',
+        cancelled: 'bg-red-50 border-red-300 text-red-800 opacity-60',
+        no_show: 'bg-red-50 border-red-300 text-red-800 opacity-60',
+      } as const;
+      return sunsetColors[status as keyof typeof sunsetColors] || sunsetColors.scheduled;
+    }
+
     const colors = {
       scheduled: 'bg-yellow-100 border-yellow-400 text-green-800',
       confirmed: 'bg-green-100 border-green-400 text-green-800',
