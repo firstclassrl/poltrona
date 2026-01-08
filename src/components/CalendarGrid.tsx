@@ -176,7 +176,9 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                                         const slotCount = appointmentAtSlot ? getAppointmentSlotCount(appointmentAtSlot) : 0;
 
                                         const { themeId } = useTheme();
-                                        const borderClass = themeId === 'heritage' ? 'border-[#25401c]/20' : 'border-gray-50/50';
+                                        const borderClass = themeId === 'heritage' ? 'border-[#25401c]/20' :
+                                            themeId === 'terra-soft' ? 'border-[#b46a4b]/20' :
+                                                'border-gray-50/50';
 
                                         return (
                                             <div

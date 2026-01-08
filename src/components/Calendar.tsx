@@ -281,6 +281,19 @@ export const Calendar = () => {
       return heritageColors[status as keyof typeof heritageColors] || heritageColors.scheduled;
     }
 
+    // Terra Soft theme specific styles - Brownish borders
+    if (themeId === 'terra-soft') {
+      const terraSoftColors = {
+        scheduled: 'bg-[#f7f2eb] border-[#b46a4b] text-[#5c3a2e] border',
+        confirmed: 'bg-[#eaddd5] border-[#b46a4b] text-[#5c3a2e] border',
+        in_progress: 'bg-[#dcc8bc] border-[#b46a4b] text-[#5c3a2e] border ring-1 ring-[#b46a4b]',
+        completed: 'bg-[#d28b6c]/20 border-[#b46a4b] text-[#5c3a2e] border opacity-80',
+        cancelled: 'bg-red-50 border-red-300 text-red-800 opacity-60',
+        no_show: 'bg-red-50 border-red-300 text-red-800 opacity-60',
+      } as const;
+      return terraSoftColors[status as keyof typeof terraSoftColors] || terraSoftColors.scheduled;
+    }
+
     const colors = {
       scheduled: 'bg-yellow-100 border-yellow-400 text-green-800',
       confirmed: 'bg-green-100 border-green-400 text-green-800',
