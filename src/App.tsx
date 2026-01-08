@@ -28,10 +28,6 @@ const Chat = lazy(() => import('./components/Chat').then(m => ({ default: m.Chat
 const Notifications = lazy(() => import('./components/Notifications').then(m => ({ default: m.Notifications })));
 const WaitlistDashboard = lazy(() => import('./components/WaitlistDashboard').then(m => ({ default: m.WaitlistDashboard })));
 const Billing = lazy(() => import('./components/Billing').then(m => ({ default: m.Billing })));
-const PlatformAdmin = lazy(() => import('./components/PlatformAdmin').then(m => ({ default: m.PlatformAdmin })).catch(err => {
-  console.error('❌ Failed to load PlatformAdmin:', err);
-  return { default: () => <div className="p-10 text-red-600">Errore caricamento tool admin. Vedi console.</div> };
-}));
 import { Paywall } from './components/Paywall';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -48,30 +44,6 @@ import type { CreateAppointmentRequest, UpdateAppointmentRequest, Appointment } 
 
 const AppContent: React.FC = () => {
   const { forceUpdate, needRefresh } = usePWAUpdate();
-
-  // Platform Admin Mode (Hidden Tool)
-  // Rimosso vincolo DEV, ora accessibile ovunque MA protetto da password interna
-  const isPlatformAdmin = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-
-    // Rileva admin mode da URL (query param o hash) per massima compatibilità
-    const url = window.location.href;
-    const isActive = url.includes('admin_mode=true') || url.includes('#admin');
-
-    if (isActive) {
-      console.log('🚀 Admin Mode Activated via URL');
-    }
-
-    return isActive;
-  }, []);
-
-  if (isPlatformAdmin) {
-    return (
-      <Suspense fallback={<div className="flex h-screen items-center justify-center">Caricamento Admin Tool...</div>}>
-        <PlatformAdmin />
-      </Suspense>
-    );
-  }
 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [latestVersion, setLatestVersion] = useState<string | null>(null);

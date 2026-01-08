@@ -39,7 +39,12 @@ export interface Service {
   price_cents: number | null;
   active: boolean | null;
   image_url?: string | null;
+  is_duration_variable?: boolean; // Se true, la durata viene calcolata in base al profilo capelli
+  duration_config?: DurationConfig; // Configurazione per calcolo durata dinamica
 }
+
+// Importato da hairProfile.ts per referenza
+import type { DurationConfig } from './hairProfile';
 
 export interface Product {
   id: string;
@@ -127,6 +132,7 @@ export interface Shop {
   extra_afternoon_start?: string | null;
   extra_afternoon_end?: string | null;
   theme_palette?: string | null;
+  hair_questionnaire_enabled?: boolean; // Se true, mostra questionario capelli durante booking (solo hairdresser)
   // Configurazione reminder WhatsApp
   whatsapp_reminder_enabled?: boolean; // Abilita/disabilita reminder WhatsApp (default: true)
   whatsapp_reminder_time?: string; // Orario in cui inviare i reminder (formato HH:MM, default: '20:00')

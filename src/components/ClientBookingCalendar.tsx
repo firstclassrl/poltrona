@@ -18,6 +18,12 @@ import type { Service, Staff, Shop, Appointment } from '../types';
 import { findAvailableSlotsForDuration } from '../utils/availability';
 import { getSlotDateTime, addMinutes } from '../utils/date';
 import { generateICSFile, downloadICSFile } from '../utils/calendar';
+import { HairQuestionnaire } from './booking/HairQuestionnaire';
+import { DurationEstimate } from './booking/DurationEstimate';
+import { useHairQuestionnaire } from '../hooks/useHairQuestionnaire';
+import { useClientHairProfile } from '../hooks/useClientHairProfile';
+import { calculateServiceDuration } from '../utils/calculateDuration';
+import type { HairProfile, DurationResult } from '../types/hairProfile';
 
 interface ClientBookingCalendarProps {
   onNavigateToProfile?: () => void;
@@ -88,24 +94,41 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   } | null>(null);
   const areProductsEnabled = currentShop?.products_enabled === true;
 
-  // Apply initial params from notification (if any)
+  // Questionnaire State
+  const [clientId, setClientId] = useState<string | null>(null);
+  const [tempHairProfile, setTempHairProfile] = useState<Partial<HairProfile> | null>(null);
+  const [showQuestionnaire, setShowQuestionnaire] = useState(false);
+  const [showDurationEstimate, setShowDurationEstimate] = useState(false);
+  const [durationResult, setDurationResult] = useState<DurationResult | null>(null);
+  const [customDuration, setCustomDuration] = useState<number | null>(null);
+
+  // Determina quale shop_id usare (priorità: currentShopId > currentShop.id > localStorage)
+  const shopIdToUse = currentShopId || currentShop?.id || null;
+  const fallbackShopId = typeof window !== 'undefined'
+    ? localStorage.getItem('current_shop_id')
+    : null;
+  const effectiveShopId = shopIdToUse || (fallbackShopId && fallbackShopId !== 'default' ? fallbackShopId : null);
+
+  // Fetch Client ID (if user logged in)
   useEffect(() => {
-    if (initialParams && services.length > 0 && staff.length > 0) {
-      if (initialParams.date) {
-        const date = new Date(initialParams.date);
-        setSelectedDate(date);
-        // Switch to day detail view if date is provided
-        setCurrentView('day_detail');
-        setSelectedDayForDetail(date);
+    const fetchClientId = async () => {
+      if (user) {
+        try {
+          // Usa getOrCreateClientFromUser che gestisce anche il recupero di clienti esistenti
+          const client = await apiService.getOrCreateClientFromUser({
+            id: user.id, email: user.email, full_name: user.full_name, phone: user.phone
+          });
+          setClientId(client.id);
+        } catch (e) { console.error('Error fetching client ID:', e); }
+      } else {
+        setClientId(null);
       }
-      if (initialParams.serviceId && services.find(s => s.id === initialParams.serviceId)) {
-        setSelectedService(initialParams.serviceId);
-      }
-      if (initialParams.staffId && staff.find(s => s.id === initialParams.staffId)) {
-        setSelectedBarber(initialParams.staffId);
-      }
-    }
-  }, [initialParams, services, staff]);
+    };
+    fetchClientId();
+  }, [user]);
+
+  // Hair Profile Hooks
+  const { profile: dbHairProfile, saveProfile: saveHairProfile } = useClientHairProfile(clientId, effectiveShopId);
 
   // Load services and staff from API - wait for shop to be loaded first
   useEffect(() => {
@@ -113,7 +136,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     let globalTimeoutId: NodeJS.Timeout | null = null;
     let isMounted = true;
     let hasLoaded = false;
-    let isLoadingData = false; // Flag per prevenire caricamenti simultanei
+    let isLoadingData = false;
 
     // Timeout globale di sicurezza: dopo 5 secondi, imposta sempre loading a false
     globalTimeoutId = setTimeout(() => {
@@ -124,11 +147,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     }, 5000);
 
     const loadData = async (shopIdToUse: string | null) => {
-      // Prevenire caricamenti duplicati o simultanei
-      if (hasLoaded || isLoadingData) {
-        console.log('⏭️ ClientBookingCalendar: Skipping duplicate load request');
-        return;
-      }
+      if (hasLoaded || isLoadingData) return;
 
       isLoadingData = true;
       hasLoaded = true;
@@ -136,22 +155,11 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       try {
         setIsLoading(true);
 
-        // Verifica che il token sia disponibile
         const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-        console.log('🔄 ClientBookingCalendar: Loading services and staff', {
-          shopId: shopIdToUse,
-          hasToken: !!token,
-          tokenLocation: localStorage.getItem('auth_token') ? 'localStorage' : (sessionStorage.getItem('auth_token') ? 'sessionStorage' : 'none'),
-          isAuthenticated,
-          user: user?.email
-        });
-
-        // Ensure shop_id is in localStorage before calling getServices
         if (shopIdToUse && shopIdToUse !== 'default') {
           localStorage.setItem('current_shop_id', shopIdToUse);
         }
 
-        // Timeout per le chiamate API (8 secondi)
         const apiTimeout = new Promise((_, reject) => {
           setTimeout(() => reject(new Error('API timeout')), 8000);
         });
@@ -164,22 +172,14 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
           apiTimeout
         ]) as [Service[], Staff[]];
 
-        console.log('✅ ClientBookingCalendar: Loaded services:', servicesData.length, 'staff:', staffData.length);
-
         if (isMounted) {
           setServices(servicesData);
           setStaff(staffData);
         }
       } catch (error) {
         console.error('❌ ClientBookingCalendar: Error loading booking data:', error);
-        // Se l'errore è ERR_INSUFFICIENT_RESOURCES, non riprovare immediatamente
         if (error instanceof Error && error.message.includes('ERR_INSUFFICIENT_RESOURCES')) {
-          console.warn('⚠️ Too many requests, will not retry immediately');
-          // Reset hasLoaded dopo un delay per permettere un retry futuro
-          setTimeout(() => {
-            hasLoaded = false;
-            isLoadingData = false;
-          }, 5000);
+          setTimeout(() => { hasLoaded = false; isLoadingData = false; }, 5000);
         }
         if (isMounted) {
           setServices([]);
@@ -187,53 +187,23 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
         }
       } finally {
         isLoadingData = false;
-        if (isMounted) {
-          setIsLoading(false);
-        }
-        if (globalTimeoutId) {
-          clearTimeout(globalTimeoutId);
-        }
+        if (isMounted) setIsLoading(false);
+        if (globalTimeoutId) clearTimeout(globalTimeoutId);
       }
     };
 
-    // Determina quale shop_id usare (priorità: currentShopId > currentShop.id > localStorage)
-    const shopIdToUse = currentShopId || currentShop?.id || null;
-    const fallbackShopId = typeof window !== 'undefined'
-      ? localStorage.getItem('current_shop_id')
-      : null;
-
-    const effectiveShopId = shopIdToUse || (fallbackShopId && fallbackShopId !== 'default' ? fallbackShopId : null);
-
-    console.log('📊 ClientBookingCalendar: Shop loading state:', {
-      shopLoading,
-      currentShopId,
-      currentShop: currentShop?.id,
-      fallbackShopId,
-      effectiveShopId
-    });
-
-    // Se abbiamo un shop_id valido (da qualsiasi fonte), carica i dati immediatamente
     if (effectiveShopId) {
-      // Carica immediatamente se abbiamo shop_id, anche se shopLoading è true
       loadData(effectiveShopId);
     } else {
-      // Se non abbiamo shop_id, aspetta al massimo 1.5 secondi per il caricamento del negozio
       if (shopLoading) {
         timeoutId = setTimeout(() => {
           if (isMounted && !hasLoaded && !isLoadingData) {
-            const finalShopId = currentShopId || currentShop?.id || fallbackShopId;
-            if (finalShopId && finalShopId !== 'default') {
-              loadData(finalShopId);
-            } else {
-              console.warn('⚠️ ClientBookingCalendar: No shop_id available, attempting to load anyway');
-              loadData(null);
-            }
+            const finalId = currentShopId || currentShop?.id || fallbackShopId;
+            loadData(finalId && finalId !== 'default' ? finalId : null);
           }
         }, 1500);
       } else {
-        if (!hasLoaded && !isLoadingData) {
-          loadData(effectiveShopId);
-        }
+        if (!hasLoaded && !isLoadingData) loadData(effectiveShopId);
       }
     }
 
@@ -244,32 +214,22 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       hasLoaded = false;
       isLoadingData = false;
     };
-  }, [shopLoading, currentShopId, currentShop?.id, isAuthenticated, user?.id]);
+  }, [shopLoading, currentShopId, currentShop?.id, isAuthenticated, user?.id, effectiveShopId]);
 
-  // Force reload vacation period after component mounts
-  // This ensures we get the latest vacation period even if it was set before this component mounted
-  // Try multiple times with increasing delays to catch the period if it's being set asynchronously
+  // Force reload vacation period
   useEffect(() => {
     const checkVacationPeriod = () => {
       try {
-        const saved = localStorage.getItem('vacationPeriod');
-        if (saved) {
+        if (localStorage.getItem('vacationPeriod')) {
           window.dispatchEvent(new CustomEvent('vacation-period-updated'));
         }
-      } catch (e) {
-        console.error('Error checking localStorage:', e);
-      }
+      } catch (e) { }
     };
-
-    // Check immediately
     checkVacationPeriod();
-
-    // Check again after delays to catch async saves
     setTimeout(checkVacationPeriod, 100);
     setTimeout(checkVacationPeriod, 500);
     setTimeout(checkVacationPeriod, 1000);
   }, []);
-
 
   // Get available barbers (those assigned to chairs)
   const availableBarbers = availableStaff.filter(staff => staff.active && staff.chair_id);
@@ -279,7 +239,89 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     [services, selectedService]
   );
 
-  const bookingDuration = selectedServiceObj?.duration_min ?? null;
+  const selectedServicesArray = useMemo(() =>
+    selectedServiceObj ? [{ ...selectedServiceObj, duration_minutes: selectedServiceObj.duration_min, is_duration_variable: !!selectedServiceObj.is_duration_variable }] : [],
+    [selectedServiceObj]
+  );
+
+  const questionnaireDecision = useHairQuestionnaire(
+    effectiveShopId,
+    clientId,
+    selectedServicesArray
+  );
+
+  // Booking Duration Logic
+  const bookingDuration = useMemo(() => {
+    if (customDuration) return customDuration;
+    if (durationResult?.rounded_minutes) return durationResult.rounded_minutes;
+    return selectedServiceObj?.duration_min ?? null;
+  }, [customDuration, durationResult, selectedServiceObj]);
+
+  // Questionnaire Flow Effect
+  useEffect(() => {
+    if (!selectedService) {
+      setDurationResult(null);
+      setCustomDuration(null);
+      setTempHairProfile(null);
+      return;
+    }
+
+    // Se stiamo già mostrando una modale o abbiamo già calcolato il risultato per questo servizio, non fare nulla
+    if (showQuestionnaire || showDurationEstimate || (durationResult && !tempHairProfile)) {
+      return;
+    }
+
+    if (questionnaireDecision?.shouldShow) {
+      setShowQuestionnaire(true);
+    } else if (selectedServiceObj?.is_duration_variable) {
+      // Calcola durata con profilo esistente o default
+      const profileToUse = dbHairProfile || {};
+      const serviceForCalc = {
+        ...selectedServiceObj,
+        duration_minutes: selectedServiceObj.duration_min,
+        is_duration_variable: !!selectedServiceObj.is_duration_variable
+      };
+
+      const result = calculateServiceDuration([serviceForCalc], profileToUse);
+
+      // Se diversa dalla durata base, mostra stima
+      if (result.rounded_minutes !== selectedServiceObj.duration_min || result.breakdown.color_extra > 0) {
+        setDurationResult(result);
+        setShowDurationEstimate(true);
+      }
+    }
+  }, [selectedService, questionnaireDecision, selectedServiceObj, dbHairProfile, showQuestionnaire, showDurationEstimate, durationResult, tempHairProfile]);
+
+  // Handlers
+  const handleQuestionnaireComplete = (profileData: Partial<HairProfile>) => {
+    setTempHairProfile(profileData);
+    setShowQuestionnaire(false);
+
+    if (selectedServiceObj) {
+      // Merge with existing profile to keep other fields if any
+      const mergedProfile = { ...dbHairProfile, ...profileData };
+      const serviceForCalc = {
+        ...selectedServiceObj,
+        duration_minutes: selectedServiceObj.duration_min,
+        is_duration_variable: !!selectedServiceObj.is_duration_variable
+      };
+      const result = calculateServiceDuration([serviceForCalc], mergedProfile);
+      setDurationResult(result);
+      setShowDurationEstimate(true);
+    }
+  };
+
+  const handleDurationConfirm = () => {
+    setShowDurationEstimate(false);
+    // Se c'è un tempProfile, lo salveremo al momento della prenotazione
+    // Proceed to enable calendar view (handled by closing modal)
+  };
+
+  const handleModifyProfile = () => {
+    setShowDurationEstimate(false);
+    setShowQuestionnaire(true);
+  };
+
 
   // Pre-calculated available slots for the next 6 months based on selected service duration
   const availableSlots = useMemo(() => {
@@ -537,6 +579,11 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
         products: products
       };
 
+      // Save Hair Profile if we have one from questionnaire
+      if (tempHairProfile && clientId) {
+        await saveHairProfile(tempHairProfile);
+      }
+
       const savedAppointment = await createAppointment(appointmentData);
 
       // Optional: enable earlier-slot waitlist for this appointment
@@ -617,7 +664,11 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       setSelectedBarber('');
       setSelectedProducts([]);
       setNotifyIfEarlierSlot(false);
+      setNotifyIfEarlierSlot(false);
       setCurrentView('monthly');
+      setTempHairProfile(null);
+      setDurationResult(null);
+      setCustomDuration(null);
 
       // Navigate to profile after 5 seconds (increased to allow time for calendar action)
       setTimeout(() => {
@@ -1323,6 +1374,35 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
           <div className="h-32 w-full flex-shrink-0" aria-hidden="true" />
         </div>
       </div>
+
+      {/* Questionnaire Modal */}
+      {showQuestionnaire && (
+        <HairQuestionnaire
+          existingProfile={dbHairProfile}
+          questionsToAsk={questionnaireDecision?.questionsToAsk || []}
+          onComplete={handleQuestionnaireComplete}
+          onClose={() => {
+            setShowQuestionnaire(false);
+            setSelectedService(''); // Reset if cancelled
+          }}
+        />
+      )}
+
+      {/* Duration Estimate Modal */}
+      {showDurationEstimate && durationResult && (
+        <Modal
+          isOpen={true}
+          onClose={() => setShowDurationEstimate(false)}
+          title="Stima Durata Appuntamento"
+        >
+          <DurationEstimate
+            result={durationResult}
+            onAccept={handleDurationConfirm}
+            onModifyProfile={handleModifyProfile}
+          />
+        </Modal>
+      )}
+
     </div>
   );
 };

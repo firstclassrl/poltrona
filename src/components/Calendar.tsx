@@ -24,6 +24,8 @@ import { apiService } from '../services/api';
 import type { Appointment, Shop } from '../types';
 
 import { CalendarGrid } from './CalendarGrid';
+import { useClientHairProfile } from '../hooks/useClientHairProfile';
+import { HairProfileBadge } from './client/HairProfileBadge';
 
 // ... other imports
 
@@ -48,6 +50,12 @@ export const Calendar = () => {
   // Appointment details modal
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [showAppointmentDetails, setShowAppointmentDetails] = useState(false);
+
+  // Hair Profile for selected appointment
+  const { profile: selectedAppointmentHairProfile } = useClientHairProfile(
+    selectedAppointment?.client_id || null,
+    currentShop?.id || null
+  );
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -703,6 +711,16 @@ export const Calendar = () => {
                           <p className="text-gray-500 text-sm">Cliente senza account</p>
                         )}
                       </div>
+
+                      {/* Hair Profile Badge */}
+                      {currentShop?.hair_questionnaire_enabled && selectedAppointmentHairProfile && (
+                        <div className="ml-auto">
+                          <HairProfileBadge
+                            profile={selectedAppointmentHairProfile}
+                            compact
+                          />
+                        </div>
+                      )}
                     </div>
 
                     {/* Appointment Details */}
