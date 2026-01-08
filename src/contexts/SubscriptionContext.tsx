@@ -44,7 +44,8 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
     const [error, setError] = useState<string | null>(null);
 
     const getAuthHeaders = useCallback(() => {
-        const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+        // Fix: AuthContext usa 'auth_token', non 'access_token'
+        const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
         return {
             'Content-Type': 'application/json',
             'apikey': API_CONFIG.SUPABASE_ANON_KEY,

@@ -213,59 +213,11 @@ export const Billing: React.FC = () => {
                             </button>
                         </div>
 
-                        {/* Piano Annuale */}
-                        <div className="bg-white rounded-xl border-2 border-blue-500 shadow-sm p-6 relative">
-                            <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                                <span className="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full">
-                                    RISPARMIA 17%
-                                </span>
-                            </div>
-
-                            <div className="mb-4">
-                                <h3 className="text-xl font-bold text-gray-900">Annuale</h3>
-                                <p className="text-gray-600 text-sm">Miglior valore</p>
-                            </div>
-
-                            <div className="mb-6">
-                                <span className="text-4xl font-bold text-gray-900">€290</span>
-                                <span className="text-gray-600">/anno</span>
-                                <p className="text-sm text-gray-500 mt-1">equivalente a €24/mese</p>
-                            </div>
-
-                            <ul className="space-y-3 mb-6">
-                                <li className="flex items-center gap-2 text-gray-700">
-                                    <CheckCircle className="w-5 h-5 text-green-600" />
-                                    Tutte le funzionalità
-                                </li>
-                                <li className="flex items-center gap-2 text-gray-700">
-                                    <CheckCircle className="w-5 h-5 text-green-600" />
-                                    Supporto prioritario
-                                </li>
-                                <li className="flex items-center gap-2 text-gray-700">
-                                    <CheckCircle className="w-5 h-5 text-green-600" />
-                                    Aggiornamenti inclusi
-                                </li>
-                                <li className="flex items-center gap-2 text-gray-700">
-                                    <CheckCircle className="w-5 h-5 text-green-600" />
-                                    2 mesi gratis
-                                </li>
-                            </ul>
-
-                            <button
-                                onClick={() => handleSubscribe('yearly')}
-                                disabled={checkoutLoading !== null || !STRIPE_PRICES.yearly}
-                                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                            >
-                                {checkoutLoading === 'yearly' ? (
-                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                ) : (
-                                    <>
-                                        <Calendar className="w-5 h-5" />
-                                        Abbonati Annuale
-                                    </>
-                                )}
-                            </button>
-                        </div>
+                        {/* Piano Annuale - Temporaneamente disabilitato
+217:                         <div className="bg-white rounded-xl border-2 border-blue-500 shadow-sm p-6 relative">
+                                ...
+268:                         </div>
+                            */}
                     </div>
                 </div>
             )}
