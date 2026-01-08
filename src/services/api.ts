@@ -3626,7 +3626,27 @@ export const apiService = {
     }
 
     try {
-      const url = `${API_ENDPOINTS.NOTIFICATIONS}?user_id=eq.${userId}&order=created_at.desc&limit=${limit}`;
+      // CRITICO: Filtra per shop_id per evitare cross-shop delle notifiche
+      let shopId = getStoredShopId();
+      if (!shopId || shopId === 'default') {
+        try {
+          const shop = await this.getShop();
+          shopId = shop?.id ?? null;
+        } catch {
+          // Se non riesce a recuperare lo shop, non mostrare notifiche per sicurezza
+          console.warn('⚠️ getNotifications: Impossibile recuperare shop_id');
+          return [];
+        }
+      }
+
+      // Se non c'è shop_id, non mostrare notifiche per evitare cross-shop
+      if (!shopId || shopId === 'default') {
+        console.warn('⚠️ getNotifications: shop_id non disponibile, notifiche non caricate per sicurezza');
+        return [];
+      }
+
+      // IMPORTANTE: Filtra sia per user_id che per shop_id
+      const url = `${API_ENDPOINTS.NOTIFICATIONS}?user_id=eq.${userId}&shop_id=eq.${shopId}&order=created_at.desc&limit=${limit}`;
       const response = await fetch(url, { headers: buildHeaders(true) });
       if (!response.ok) {
         // Se è un errore di autenticazione, non loggare
@@ -3656,7 +3676,23 @@ export const apiService = {
     }
 
     try {
-      const url = `${API_ENDPOINTS.NOTIFICATIONS}?user_id=eq.${userId}&read_at=is.null&select=id`;
+      // CRITICO: Filtra per shop_id per evitare cross-shop delle notifiche
+      let shopId = getStoredShopId();
+      if (!shopId || shopId === 'default') {
+        try {
+          const shop = await this.getShop();
+          shopId = shop?.id ?? null;
+        } catch {
+          return 0;
+        }
+      }
+
+      // Se non c'è shop_id, ritorna 0 per sicurezza
+      if (!shopId || shopId === 'default') {
+        return 0;
+      }
+
+      const url = `${API_ENDPOINTS.NOTIFICATIONS}?user_id=eq.${userId}&shop_id=eq.${shopId}&read_at=is.null&select=id`;
       const response = await fetch(url, {
         headers: { ...buildHeaders(true), 'Prefer': 'count=exact' }
       });
@@ -3710,7 +3746,22 @@ export const apiService = {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
 
     try {
-      const response = await fetch(`${API_ENDPOINTS.NOTIFICATIONS}?user_id=eq.${userId}&read_at=is.null`, {
+      // CRITICO: Filtra per shop_id per evitare di marcare notifiche di altri negozi
+      let shopId = getStoredShopId();
+      if (!shopId || shopId === 'default') {
+        try {
+          const shop = await this.getShop();
+          shopId = shop?.id ?? null;
+        } catch {
+          throw new Error('Impossibile recuperare shop_id');
+        }
+      }
+
+      if (!shopId || shopId === 'default') {
+        throw new Error('shop_id non disponibile');
+      }
+
+      const response = await fetch(`${API_ENDPOINTS.NOTIFICATIONS}?user_id=eq.${userId}&shop_id=eq.${shopId}&read_at=is.null`, {
         method: 'PATCH',
         headers: buildHeaders(true),
         body: JSON.stringify({ read_at: new Date().toISOString() }),
@@ -3751,8 +3802,23 @@ export const apiService = {
     if (!isSupabaseConfigured()) throw new Error('Supabase non configurato');
 
     try {
+      // CRITICO: Filtra per shop_id per evitare di eliminare notifiche di altri negozi
+      let shopId = getStoredShopId();
+      if (!shopId || shopId === 'default') {
+        try {
+          const shop = await this.getShop();
+          shopId = shop?.id ?? null;
+        } catch {
+          throw new Error('Impossibile recuperare shop_id');
+        }
+      }
+
+      if (!shopId || shopId === 'default') {
+        throw new Error('shop_id non disponibile');
+      }
+
       const headers = buildHeaders(true);
-      const url = `${API_ENDPOINTS.NOTIFICATIONS}?user_id=eq.${userId}`;
+      const url = `${API_ENDPOINTS.NOTIFICATIONS}?user_id=eq.${userId}&shop_id=eq.${shopId}`;
       const response = await fetchWithTokenRefresh(url, {
         method: 'DELETE',
         headers: { ...headers, Prefer: 'return=minimal' },

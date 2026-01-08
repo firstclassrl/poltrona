@@ -149,7 +149,7 @@ export const Billing: React.FC = () => {
                                 <button
                                     onClick={handleManageSubscription}
                                     disabled={portalLoading}
-                                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
+                                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-900 text-yellow-400 rounded-lg hover:bg-green-800 transition-colors disabled:opacity-50 font-medium"
                                 >
                                     {portalLoading ? (
                                         <Loader2 className="w-5 h-5 animate-spin" />
