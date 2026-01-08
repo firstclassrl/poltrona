@@ -50,6 +50,28 @@ export const Login: React.FC = () => {
   const { toast, showToast, hideToast } = useToast();
   const { palette, themeId } = useTheme();
 
+  // Controlla se c'è un errore OAuth salvato in localStorage (redirect fallito)
+  useEffect(() => {
+    const oauthError = localStorage.getItem('oauth_error');
+    if (oauthError) {
+      console.log('[Login] Found OAuth error in localStorage:', oauthError);
+      setError(oauthError);
+      showToast(oauthError, 'error');
+      // Rimuovi l'errore dopo averlo mostrato
+      localStorage.removeItem('oauth_error');
+    }
+
+    // Controlla se c'è un messaggio di successo dal reset password
+    const passwordResetSuccess = localStorage.getItem('password_reset_success');
+    if (passwordResetSuccess) {
+      console.log('[Login] Found password reset success in localStorage:', passwordResetSuccess);
+      setSuccess(passwordResetSuccess);
+      showToast(passwordResetSuccess, 'success');
+      // Rimuovi il messaggio dopo averlo mostrato
+      localStorage.removeItem('password_reset_success');
+    }
+  }, [showToast]);
+
   // Carica i dati dello shop dallo slug nell'URL
   useEffect(() => {
     const loadShopFromUrl = async () => {
@@ -141,21 +163,35 @@ export const Login: React.FC = () => {
     setError('');
     setSuccess('');
 
+    console.log('[Login] handleSubmit called, mode:', mode);
+
     try {
       if (mode === 'login') {
+        console.log('[Login] Attempting login with email:', credentials.email);
         await login({ ...credentials, rememberMe });
+        console.log('[Login] Login successful');
+        // Login riuscito - mostra toast di successo
+        showToast('Accesso effettuato con successo!', 'success');
       } else {
+        console.log('[Login] Attempting registration');
         await handleRegistration();
         // Se handleRegistration completa senza errori, il modal viene mostrato dentro handleRegistration
         // Non facciamo nulla qui perché il modal è già stato mostrato
       }
     } catch (err) {
-      console.error('❌ Errore in handleSubmit:', err);
+      console.error('❌ [Login] Errore in handleSubmit:', err);
       const errorMessage = err instanceof Error ? err.message : 'Errore durante l\'operazione';
+      console.log('[Login] Setting error state:', errorMessage);
+
+      // Imposta l'errore nello stato
       setError(errorMessage);
 
       // Mostra anche un Toast per rendere l'errore più visibile
-      showToast(errorMessage, 'error');
+      // Usa setTimeout per garantire che lo stato sia aggiornato
+      setTimeout(() => {
+        console.log('[Login] Showing toast with message:', errorMessage);
+        showToast(errorMessage, 'error');
+      }, 50);
 
       // Assicurati che il modal non sia mostrato in caso di errore
       setShowRegistrationSuccess(false);
@@ -402,7 +438,16 @@ export const Login: React.FC = () => {
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
-                <div className="mt-2 text-right">
+                <div className="mt-3 flex items-center justify-between">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                    />
+                    <span className="text-sm text-green-900">Ricordami</span>
+                  </label>
                   <button
                     type="button"
                     onClick={() => setShowForgotPassword(true)}
@@ -437,13 +482,12 @@ export const Login: React.FC = () => {
 
               <div>
                 <Input
-                  label="Numero di Telefono"
+                  label="Numero di Telefono (opzionale)"
                   type="tel"
                   value={registrationData.phone}
                   onChange={(e) => setRegistrationData(prev => ({ ...prev, phone: e.target.value }))}
                   placeholder="+39 123 456 7890"
                   autoComplete="tel"
-                  required
                 />
               </div>
 

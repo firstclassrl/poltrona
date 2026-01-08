@@ -72,7 +72,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showUpsellModal, setShowUpsellModal] = useState(false);
   const [notifyIfEarlierSlot, setNotifyIfEarlierSlot] = useState(false);
-  const [selectedProducts, setSelectedProducts] = useState<{ productId: string; quantity: number }[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<{ productId: string; quantity: number; productName?: string; productPrice?: number }[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -477,7 +477,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     setShowUpsellModal(true);
   };
 
-  const handleUpsellConfirm = async (products: { productId: string; quantity: number }[]) => {
+  const handleUpsellConfirm = async (products: { productId: string; quantity: number; productName?: string; productPrice?: number }[]) => {
     setSelectedProducts(products);
     setIsSubmitting(true);
 

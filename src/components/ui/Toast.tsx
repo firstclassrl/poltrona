@@ -31,7 +31,9 @@ export const Toast: React.FC<ToastProps> = ({ message, type, isVisible, onClose 
     if (timerRef.current) clearTimeout(timerRef.current);
     if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
 
-    if (isVisible) {
+    console.log('[Toast] Effect triggered - isVisible:', isVisible, 'message:', message, 'type:', type);
+
+    if (isVisible && message) {
       console.log('[Toast] Showing toast:', message, type);
       // Show immediately
       setShow(true);
@@ -43,6 +45,7 @@ export const Toast: React.FC<ToastProps> = ({ message, type, isVisible, onClose 
         closeTimerRef.current = setTimeout(onClose, 300);
       }, 4000);
     } else {
+      console.log('[Toast] Hiding toast - isVisible:', isVisible, 'message:', message);
       setShow(false);
     }
 

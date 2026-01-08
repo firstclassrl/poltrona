@@ -753,18 +753,29 @@ export const Calendar = () => {
                           Prodotti da preparare
                         </p>
                         <div className="space-y-2">
-                          {selectedAppointment.products.map((product: any, index: number) => (
-                            <div key={index} className="flex items-center justify-between p-2 bg-orange-50 rounded-md">
-                              <span className="text-gray-900 font-medium">
-                                {product.productName || product.name || 'Prodotto'}
-                              </span>
-                              {product.quantity > 1 && (
-                                <span className="text-sm text-gray-600 bg-white px-2 py-1 rounded">
-                                  Quantità: {product.quantity}
-                                </span>
-                              )}
-                            </div>
-                          ))}
+                          {selectedAppointment.products.map((product: any, index: number) => {
+                            const price = product.productPrice || 0;
+                            const formattedPrice = price > 0 ? `€${(price / 100).toFixed(2)}` : '';
+                            return (
+                              <div key={index} className="flex items-center justify-between p-2 bg-orange-50 rounded-md">
+                                <div className="flex flex-col">
+                                  <span className="text-gray-900 font-medium">
+                                    {product.productName || product.name || 'Prodotto'}
+                                  </span>
+                                  {formattedPrice && (
+                                    <span className="text-sm text-green-600 font-medium">
+                                      {formattedPrice}
+                                    </span>
+                                  )}
+                                </div>
+                                {product.quantity > 1 && (
+                                  <span className="text-sm text-gray-600 bg-white px-2 py-1 rounded">
+                                    Quantità: {product.quantity}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}

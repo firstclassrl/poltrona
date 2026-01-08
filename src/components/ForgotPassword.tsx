@@ -30,7 +30,7 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onSucces
       await resetPasswordRequest(email);
       setIsSuccess(true);
       showToast('Email di recupero inviata! Controlla la tua casella di posta.', 'success');
-      
+
       if (onSuccess) {
         setTimeout(() => {
           onSuccess();
@@ -51,7 +51,7 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onSucces
 
   if (isSuccess) {
     return (
-      <div 
+      <div
         className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden login-liquid"
         style={{
           background: `linear-gradient(to bottom right, ${bgColor}, ${bgColorMid}, ${bgColor})`
@@ -79,7 +79,11 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onSucces
             {onBack && (
               <Button
                 variant="secondary"
-                onClick={onBack}
+                onClick={() => {
+                  // Salva messaggio di successo per mostrarlo nella pagina login
+                  localStorage.setItem('password_reset_success', 'Email di recupero password inviata! Controlla la tua casella di posta.');
+                  onBack();
+                }}
                 className="w-full"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -93,7 +97,7 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onSucces
   }
 
   return (
-    <div 
+    <div
       className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden login-liquid"
       style={{
         background: `linear-gradient(to bottom right, ${bgColor}, ${bgColorMid}, ${bgColor})`

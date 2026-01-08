@@ -9,7 +9,7 @@ interface ProductUpsellProps {
   isOpen: boolean;
   onClose: () => void;
   onCancel: () => void;
-  onConfirm: (selectedProducts: { productId: string; quantity: number }[]) => void;
+  onConfirm: (selectedProducts: { productId: string; quantity: number; productName: string; productPrice: number }[]) => void;
   isSubmitting?: boolean;
 }
 
@@ -38,21 +38,26 @@ export const ProductUpsell: React.FC<ProductUpsellProps> = ({
     setSelectedProducts(prev => {
       const currentQuantity = prev[productId] || 0;
       const newQuantity = Math.max(0, currentQuantity + change);
-      
+
       if (newQuantity === 0) {
         const { [productId]: removed, ...rest } = prev;
         return rest;
       }
-      
+
       return { ...prev, [productId]: newQuantity };
     });
   };
 
   const handleConfirm = () => {
-    const productsArray = Object.entries(selectedProducts).map(([productId, quantity]) => ({
-      productId,
-      quantity,
-    }));
+    const productsArray = Object.entries(selectedProducts).map(([productId, quantity]) => {
+      const product = randomProducts.find(p => p.id === productId);
+      return {
+        productId,
+        quantity,
+        productName: product?.name || 'Prodotto',
+        productPrice: product?.price_cents || 0,
+      };
+    });
     onConfirm(productsArray);
   };
 
@@ -104,7 +109,7 @@ export const ProductUpsell: React.FC<ProductUpsellProps> = ({
             </div>
             <div className="flex items-center justify-between">
               <p className="text-xs text-gray-600">
-                {showAllProducts 
+                {showAllProducts
                   ? 'Scegli tra tutti i prodotti disponibili nel nostro catalogo'
                   : 'Questi prodotti completano perfettamente il tuo servizio'
                 }
@@ -141,13 +146,12 @@ export const ProductUpsell: React.FC<ProductUpsellProps> = ({
             {(showAllProducts ? randomProducts : randomProducts).map((product) => {
               const quantity = selectedProducts[product.id] || 0;
               const isSelected = quantity > 0;
-              
+
               return (
                 <Card
                   key={product.id}
-                  className={`p-2 transition-all duration-200 aurora-modal-bg-white ${
-                    isSelected ? 'ring-2 ring-green-500 bg-green-50' : 'hover:shadow-md'
-                  }`}
+                  className={`p-2 transition-all duration-200 aurora-modal-bg-white ${isSelected ? 'ring-2 ring-green-500 bg-green-50' : 'hover:shadow-md'
+                    }`}
                 >
                   <div className="text-center">
                     {/* Product Image */}
@@ -181,11 +185,11 @@ export const ProductUpsell: React.FC<ProductUpsellProps> = ({
                       >
                         <Minus className="w-2.5 h-2.5" />
                       </button>
-                      
+
                       <span className="w-5 text-center font-medium text-xs">
                         {quantity}
                       </span>
-                      
+
                       <button
                         onClick={() => handleQuantityChange(product.id, 1)}
                         className="w-5 h-5 rounded-full bg-green-100 hover:bg-green-200 flex items-center justify-center transition-colors"
@@ -207,7 +211,7 @@ export const ProductUpsell: React.FC<ProductUpsellProps> = ({
                 {Object.entries(selectedProducts).map(([productId, quantity]) => {
                   const product = randomProducts.find(p => p.id === productId);
                   if (!product) return null;
-                  
+
                   return (
                     <div key={productId} className="flex items-center justify-between text-xs">
                       <span className="text-gray-700">
@@ -253,7 +257,7 @@ export const ProductUpsell: React.FC<ProductUpsellProps> = ({
           >
             Annulla
           </button>
-          
+
           <div className="flex items-center space-x-3">
             {Object.keys(selectedProducts).length > 0 && (
               <span className="text-sm text-gray-600">

@@ -161,6 +161,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (error) {
         console.error('❌ Errore OAuth:', error, errorDescription);
+        // Salva l'errore OAuth in localStorage per mostrarlo nella pagina di login
+        const oauthErrorMessage = errorDescription || error || 'Errore durante l\'autenticazione con Google';
+        localStorage.setItem('oauth_error', oauthErrorMessage);
         setAuthState(prev => ({ ...prev, isLoading: false }));
         // Rimuovi i parametri dall'URL
         window.history.replaceState({}, document.title, window.location.pathname);
