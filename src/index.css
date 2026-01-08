@@ -1787,7 +1787,45 @@ body {
   }
 }
 
-/* Mobile spacing improvements */
+/* FINAL OVERRIDE FOR CYBER LILAC MODALS - NUCLEAR OPTION */
+/* Ensure this is the last rule to win over everything */
+[data-theme='cyber-lilac'] div[role="dialog"] {
+  background: transparent !important;
+  /* The backdrop handles the dimming */
+}
+
+/* Force the modal container (usually .aurora-modal) to be solid white */
+[data-theme='cyber-lilac'] div[role="dialog"] .aurora-modal,
+[data-theme='cyber-lilac'] div[role="dialog"]>div[class*="bg-white"] {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+  opacity: 1 !important;
+  z-index: 60 !important;
+  isolation: isolate !important;
+}
+
+/* Force all inputs and structural divs inside to be opaque */
+[data-theme='cyber-lilac'] div[role="dialog"] input,
+[data-theme='cyber-lilac'] div[role="dialog"] select,
+[data-theme='cyber-lilac'] div[role="dialog"] textarea,
+[data-theme='cyber-lilac'] div[role="dialog"] .bg-gray-50,
+[data-theme='cyber-lilac'] div[role="dialog"] .bg-gray-100,
+[data-theme='cyber-lilac'] div[role="dialog"] .bg-white {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  opacity: 1 !important;
+}
+
+/* Ensure sticky headers in modals don't get transparent */
+[data-theme='cyber-lilac'] div[role="dialog"] .sticky {
+  background-color: #ffffff !important;
+  opacity: 1 !important;
+}
+
 @media (max-width: 767px) {
 
   /* Increase line height for better readability */
@@ -3563,13 +3601,13 @@ body {
   background: transparent !important;
 }
 
-[data-theme='cyber-lilac'] .bg-white:not(.page-card-chat-style):not(.aurora-card):not(.glass-panel):not(.login-card-glass) {
+[data-theme='cyber-lilac'] .bg-white:not(.page-card-chat-style):not(.aurora-card):not(.glass-panel):not(.login-card-glass):not(.aurora-modal):not([role="dialog"]):not([role="dialog"] *) {
   background: rgba(255, 255, 255, 0.6) !important;
   backdrop-filter: blur(40px) !important;
   -webkit-backdrop-filter: blur(40px) !important;
 }
 
-[data-theme='cyber-lilac'] .bg-white:not(.page-card-chat-style):not(.aurora-card):not(.glass-panel):not(.login-card-glass):not(.aurora-sidebar) {
+[data-theme='cyber-lilac'] .bg-white:not(.page-card-chat-style):not(.aurora-card):not(.glass-panel):not(.login-card-glass):not(.aurora-sidebar):not(.aurora-modal):not([role="dialog"]):not([role="dialog"] *) {
   background: rgba(255, 255, 255, 0.6) !important;
   backdrop-filter: blur(40px) !important;
   -webkit-backdrop-filter: blur(40px) !important;
