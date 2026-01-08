@@ -11,7 +11,20 @@ export const Paywall: React.FC<PaywallProps> = ({ children }) => {
     const { access, isLoading, createCheckoutSession } = useSubscription();
     const [checkoutLoading, setCheckoutLoading] = React.useState<SubscriptionPlan | null>(null);
 
+    React.useEffect(() => {
+        console.log('Paywall Render Debug:', {
+            checkoutLoading,
+            stripePrices: STRIPE_PRICES,
+            monthlyPrice: STRIPE_PRICES.monthly,
+            isDisabled: checkoutLoading !== null || !STRIPE_PRICES.monthly
+        });
+    }, [checkoutLoading]);
+
     const handleSubscribe = async (plan: SubscriptionPlan) => {
+        console.log('Button clicked for plan:', plan);
+        console.log('Checkout Loading:', checkoutLoading);
+        console.log('Stripe Prices:', STRIPE_PRICES);
+
         setCheckoutLoading(plan);
         try {
             const url = await createCheckoutSession(plan);

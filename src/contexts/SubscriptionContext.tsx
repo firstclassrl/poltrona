@@ -141,19 +141,26 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
             return null;
         }
 
+        console.log('Creating checkout session for plan:', plan);
+        console.log('Available prices:', STRIPE_PRICES);
+
         if (plan === 'yearly') {
+            console.error('Annual plan requested but not available');
             setError('Annual plan is no longer available');
             return null;
         }
 
         const priceId = STRIPE_PRICES.monthly;
+        console.log('Selected price ID:', priceId);
 
         if (!priceId) {
+            console.error('Stripe price not configured for monthly plan');
             setError('Stripe price not configured');
             return null;
         }
 
         try {
+            console.log('Sending request to:', API_ENDPOINTS.CREATE_CHECKOUT_SESSION);
             const response = await fetch(API_ENDPOINTS.CREATE_CHECKOUT_SESSION, {
                 method: 'POST',
                 headers: getAuthHeaders(),
@@ -165,10 +172,12 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
 
             if (!response.ok) {
                 const errorData = await response.json();
+                console.error('Checkout session creation failed:', errorData);
                 throw new Error(errorData.error || 'Failed to create checkout session');
             }
 
             const { url } = await response.json();
+            console.log('Checkout session created:', url);
             return url;
         } catch (err) {
             console.error('Error creating checkout session:', err);
