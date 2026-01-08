@@ -1,7 +1,7 @@
 export const API_CONFIG = {
   N8N_BASE_URL: import.meta.env.VITE_N8N_BASE_URL || '',
   // Usa VITE_SUPABASE_EDGE_URL; se non presente, fallback a VITE_SUPABASE_URL
-  SUPABASE_EDGE_URL: (import.meta.env.VITE_SUPABASE_EDGE_URL || import.meta.env.VITE_SUPABASE_URL || '').trim(),
+  SUPABASE_EDGE_URL: (import.meta.env.VITE_SUPABASE_EDGE_URL || import.meta.env.VITE_SUPABASE_URL || '').trim().replace(/\/+$/, '').replace(/\/rest\/v1\/?$/, ''),
   SUPABASE_ANON_KEY: (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim(),
   // Email usa RESEND API tramite Supabase Edge Function (server-side)
   // Stripe publishable key
