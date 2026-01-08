@@ -1,65 +1,11 @@
-import { useState } from 'react';
-import { useRegisterSW } from 'virtual:pwa-register/react';
 import { RefreshCw, X, Loader2 } from 'lucide-react';
+import { usePWAUpdate } from '../hooks/usePWAUpdate';
 
 export const PWAUpdateNotification: React.FC = () => {
-  const [isUpdating, setIsUpdating] = useState(false);
-
-  const {
-    needRefresh: [needRefresh, setNeedRefresh],
-    updateServiceWorker,
-  } = useRegisterSW({
-    onRegistered(r: ServiceWorkerRegistration | undefined) {
-      console.log('SW Registered:', r);
-    },
-    onRegisterError(error: any) {
-      console.log('SW registration error', error);
-    },
-  });
-
-  const handleUpdate = () => {
-    if (isUpdating) return; // Previene click multipli
-
-    setIsUpdating(true);
-    console.log('[PWA] Starting update - forcing hard reload...');
-
-    // Esegui tutto in modo sincrono e aggressivo
-    // Non aspettiamo updateServiceWorker perché sembra non funzionare
-
-    // Funzione che forza il reload
-    const forceReload = async () => {
-      try {
-        // 1. Cancella TUTTE le cache
-        if ('caches' in window) {
-          const cacheNames = await caches.keys();
-          console.log('[PWA] Deleting caches:', cacheNames);
-          await Promise.all(cacheNames.map(name => caches.delete(name)));
-        }
-
-        // 2. Unregister TUTTI i service workers
-        if ('serviceWorker' in navigator) {
-          const registrations = await navigator.serviceWorker.getRegistrations();
-          console.log('[PWA] Unregistering SWs:', registrations.length);
-          await Promise.all(registrations.map(r => r.unregister()));
-        }
-
-        // 3. Forza hard reload
-        console.log('[PWA] Forcing hard reload...');
-        // Usa replace per non lasciare entry nella history
-        window.location.replace(window.location.origin + window.location.pathname + '?v=' + Date.now());
-      } catch (error) {
-        console.error('[PWA] Error during update:', error);
-        // Fallback: reload semplice
-        window.location.reload();
-      }
-    };
-
-    // Esegui immediatamente
-    forceReload();
-  };
+  const { needRefresh, isUpdating, forceUpdate, setNeedRefresh } = usePWAUpdate();
 
   const handleDismiss = () => {
-    if (isUpdating) return; // Non permettere dismiss durante update
+    if (isUpdating) return;
     setNeedRefresh(false);
   };
 
@@ -82,7 +28,7 @@ export const PWAUpdateNotification: React.FC = () => {
               Una nuova versione dell'app è disponibile. Aggiorna per ottenere le ultime funzionalità.
             </p>
             <button
-              onClick={handleUpdate}
+              onClick={forceUpdate}
               disabled={isUpdating}
               className={`w-full font-medium py-2 px-4 rounded-lg text-sm transition-all duration-200 shadow-lg flex items-center justify-center gap-2 ${isUpdating
                 ? 'bg-gray-200 text-gray-500 cursor-not-allowed'

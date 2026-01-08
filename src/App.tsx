@@ -4,6 +4,7 @@ import { Toast } from './components/ui/Toast';
 import { useToast } from './hooks/useToast';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { PWAUpdateNotification } from './components/PWAUpdateNotification';
+import { usePWAUpdate } from './hooks/usePWAUpdate';
 import { PageSkeleton } from './components/ui/PageSkeleton';
 
 // Lazy load page components for code splitting
@@ -42,6 +43,7 @@ import { apiService } from './services/api';
 import type { CreateAppointmentRequest, UpdateAppointmentRequest, Appointment } from './types';
 
 const AppContent: React.FC = () => {
+  const { forceUpdate } = usePWAUpdate();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
   const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
@@ -282,8 +284,7 @@ const AppContent: React.FC = () => {
               type="button"
               className="ml-4 px-3 py-1 rounded bg-black text-yellow-300 text-xs font-semibold hover:bg-gray-900"
               onClick={() => {
-                // Forza un reload completo per caricare la nuova index.html e i nuovi bundle
-                window.location.reload();
+                forceUpdate();
               }}
             >
               Aggiorna ora

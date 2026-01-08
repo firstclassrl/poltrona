@@ -8,6 +8,7 @@ import { useChairAssignment } from '../hooks/useChairAssignment';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useShop } from '../contexts/ShopContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { useAppointments } from '../hooks/useAppointments';
 import { useVacationMode } from '../hooks/useVacationMode';
 import { useUserProfile } from '../hooks/useUserProfile';
@@ -28,6 +29,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   const { refreshUnreadCount } = useNotifications();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { currentShop, currentShopId, isLoading: shopLoading } = useShop();
+  const { palette } = useTheme();
   const { getUserProfile } = useUserProfile();
   const { appointments, createAppointment } = useAppointments();
   const { isDateInVacation, vacationPeriod, getVacationPeriod } = useVacationMode();
@@ -793,19 +795,38 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
         <div className="flex flex-col space-y-8">
           <div className="space-y-8">
             {/* Header / Welcome Section */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-gray-900 to-gray-800 text-white shadow-xl mb-8 p-6 md:p-10">
+            {/* Header / Welcome Section */}
+            <div
+              className="relative overflow-hidden rounded-3xl shadow-xl mb-8 p-6 md:p-10 transition-all duration-300"
+              style={{
+                background: `linear-gradient(135deg, ${palette.colors.primaryStrong} 0%, ${palette.colors.primary} 100%)`,
+                color: palette.colors.accent
+              }}
+            >
               <div className="relative z-10">
-                <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400 mb-2">
+                <h1
+                  className="text-2xl md:text-3xl font-bold mb-2"
+                  style={{ color: palette.colors.accent }}
+                >
                   Ciao, {userName}!
                 </h1>
-                <p className="text-gray-400 text-lg max-w-xl">
+                <p
+                  className="text-lg max-w-xl opacity-90"
+                  style={{ color: palette.colors.accentSoft }}
+                >
                   È il momento di prenderti cura di te. Prenota il tuo prossimo taglio.
                 </p>
               </div>
 
               {/* Decorative elements */}
-              <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-green-500 rounded-full blur-3xl opacity-20"></div>
-              <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-blue-500 rounded-full blur-3xl opacity-20"></div>
+              <div
+                className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 rounded-full blur-3xl opacity-20"
+                style={{ background: palette.colors.accent }}
+              ></div>
+              <div
+                className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 rounded-full blur-3xl opacity-20"
+                style={{ background: palette.colors.primary }}
+              ></div>
             </div>
 
             {/* Step 1: scelta servizio e barbiere */}
