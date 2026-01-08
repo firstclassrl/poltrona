@@ -1,19 +1,19 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import type { ClientRegistrationData, RegisteredClient, PrivacyConsent } from '../types/auth';
 
 export const useClientRegistration = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   // Genera un ID univoco per il nuovo cliente
-  const generateClientId = (): string => {
+  const generateClientId = useCallback((): string => {
     return `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  };
+  }, []);
 
   // Normalizza numero di telefono italiano in formato E.164
-  const normalizeItalianPhone = (phone: string): string => {
+  const normalizeItalianPhone = useCallback((phone: string): string => {
     // Rimuovi spazi e caratteri non numerici
     let cleaned = phone.replace(/\s/g, '').replace(/[^0-9+]/g, '');
-    
+
     // Rimuovi prefissi italiani comuni
     if (cleaned.startsWith('0039')) {
       cleaned = cleaned.substring(4);
@@ -22,13 +22,13 @@ export const useClientRegistration = () => {
     } else if (cleaned.startsWith('39')) {
       cleaned = cleaned.substring(2);
     }
-    
+
     // Aggiungi il prefisso +39
     return `+39${cleaned}`;
-  };
+  }, []);
 
   // Valida i dati di registrazione
-  const validateRegistrationData = (data: ClientRegistrationData): string | null => {
+  const validateRegistrationData = useCallback((data: ClientRegistrationData): string | null => {
     // Validazione consenso privacy
     if (!data.privacyConsent || !data.privacyConsent.accepted) {
       return 'Devi accettare l\'Informativa Privacy per procedere';
@@ -63,10 +63,10 @@ export const useClientRegistration = () => {
     }
 
     return null;
-  };
+  }, []);
 
   // Controlla se l'email è già registrata
-  const isEmailAlreadyRegistered = (email: string): boolean => {
+  const isEmailAlreadyRegistered = useCallback((email: string): boolean => {
     try {
       const registeredClients = localStorage.getItem('registered_clients');
       if (registeredClients) {
@@ -78,12 +78,32 @@ export const useClientRegistration = () => {
       console.error('Errore nel controllo email esistente:', error);
       return false;
     }
-  };
+  }, []);
+
+  // Salva il cliente nel localStorage
+  const saveClientToStorage = useCallback((client: RegisteredClient): boolean => {
+    try {
+      // Carica i clienti esistenti
+      const existingClients = localStorage.getItem('registered_clients');
+      const clients: RegisteredClient[] = existingClients ? JSON.parse(existingClients) : [];
+
+      // Aggiungi il nuovo cliente
+      clients.push(client);
+
+      // Salva la lista aggiornata
+      localStorage.setItem('registered_clients', JSON.stringify(clients));
+
+      return true;
+    } catch (error) {
+      console.error('Errore nel salvataggio del cliente:', error);
+      return false;
+    }
+  }, []);
 
   // Registra un nuovo cliente
-  const registerClient = async (data: ClientRegistrationData): Promise<RegisteredClient> => {
+  const registerClient = useCallback(async (data: ClientRegistrationData): Promise<RegisteredClient> => {
     setIsLoading(true);
-    
+
     try {
       // Validazione dati
       const validationError = validateRegistrationData(data);
@@ -112,43 +132,23 @@ export const useClientRegistration = () => {
 
       // Salva il nuovo cliente nel localStorage
       const success = saveClientToStorage(newClient);
-      
+
       if (!success) {
         throw new Error('Errore nel salvataggio del cliente');
       }
 
       return newClient;
-      
+
     } catch (error) {
       console.error('Error registering client:', error);
       throw error;
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Salva il cliente nel localStorage
-  const saveClientToStorage = (client: RegisteredClient): boolean => {
-    try {
-      // Carica i clienti esistenti
-      const existingClients = localStorage.getItem('registered_clients');
-      const clients: RegisteredClient[] = existingClients ? JSON.parse(existingClients) : [];
-      
-      // Aggiungi il nuovo cliente
-      clients.push(client);
-      
-      // Salva la lista aggiornata
-      localStorage.setItem('registered_clients', JSON.stringify(clients));
-      
-      return true;
-    } catch (error) {
-      console.error('Errore nel salvataggio del cliente:', error);
-      return false;
-    }
-  };
+  }, [validateRegistrationData, isEmailAlreadyRegistered, normalizeItalianPhone, saveClientToStorage, generateClientId]);
 
   // Ottieni tutti i clienti registrati
-  const getRegisteredClients = (): RegisteredClient[] => {
+  const getRegisteredClients = useCallback((): RegisteredClient[] => {
     try {
       const registeredClients = localStorage.getItem('registered_clients');
       return registeredClients ? JSON.parse(registeredClients) : [];
@@ -156,31 +156,34 @@ export const useClientRegistration = () => {
       console.error('Errore nel caricamento dei clienti registrati:', error);
       return [];
     }
-  };
+  }, []);
 
   // Ottieni un cliente per email
-  const getClientByEmail = (email: string): RegisteredClient | null => {
+  const getClientByEmail = useCallback((email: string): RegisteredClient | null => {
     try {
-      const clients = getRegisteredClients();
+      // Usa localStorage direttamente per evitare dipendenze circolari
+      const registeredClients = localStorage.getItem('registered_clients');
+      const clients: RegisteredClient[] = registeredClients ? JSON.parse(registeredClients) : [];
       return clients.find(client => client.email.toLowerCase() === email.toLowerCase()) || null;
     } catch (error) {
       console.error('Errore nel recupero del cliente:', error);
       return null;
     }
-  };
+  }, []);
 
   // Elimina un cliente registrato
-  const deleteRegisteredClient = (clientId: string): boolean => {
+  const deleteRegisteredClient = useCallback((clientId: string): boolean => {
     try {
-      const clients = getRegisteredClients();
-      const updatedClients = clients.filter(client => client.id !== clientId);
+      const clients = localStorage.getItem('registered_clients');
+      const clientList: RegisteredClient[] = clients ? JSON.parse(clients) : [];
+      const updatedClients = clientList.filter(client => client.id !== clientId);
       localStorage.setItem('registered_clients', JSON.stringify(updatedClients));
       return true;
     } catch (error) {
       console.error('Error deleting client:', error);
       return false;
     }
-  };
+  }, []);
 
   return {
     isLoading,
@@ -192,4 +195,3 @@ export const useClientRegistration = () => {
     deleteRegisteredClient,
   };
 };
-
