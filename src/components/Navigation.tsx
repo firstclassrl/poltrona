@@ -11,7 +11,7 @@ import { APP_VERSION } from '../config/version';
 import { API_CONFIG } from '../config/api';
 import { MobileNavMenu } from './MobileNavMenu';
 
-const DEFAULT_LOGO = '/logo Poltrona 2025.png';
+
 
 interface NavigationProps {
   activeTab: string;
@@ -74,7 +74,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
       }
 
       // Priorità 3: Fallback su logo di default
-      setShopLogoUrl(DEFAULT_LOGO);
+      setShopLogoUrl(null);
     };
     fetchLogo();
   }, [shop?.logo_path, shop?.logo_url]);
@@ -197,13 +197,15 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
         <div className="flex-1 flex flex-col min-h-0 glass-sidebar-dark aurora-sidebar">
           <div className="flex-1 flex flex-col pt-1 pb-4 overflow-y-auto">
             {/* Logo Section */}
-            <div className="flex items-center justify-center flex-shrink-0 px-6 py-2 mb-1 aurora-logo-container">
-              <img
-                src={shopLogoUrl || DEFAULT_LOGO}
-                alt="Logo negozio"
-                className="w-24 h-24 object-contain filter brightness-110 aurora-logo"
-              />
-            </div>
+            {shopLogoUrl && (
+              <div className="flex items-center justify-center flex-shrink-0 px-6 py-2 mb-1 aurora-logo-container">
+                <img
+                  src={shopLogoUrl}
+                  alt="Logo negozio"
+                  className="w-24 h-24 object-contain filter brightness-110 aurora-logo"
+                />
+              </div>
+            )}
 
             {/* Separator Line Below Logo (tra logo e menu) - per tutti i temi */}
             <div className="mx-4 mb-2 theme-separator-top"></div>

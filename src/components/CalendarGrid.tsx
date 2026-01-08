@@ -195,7 +195,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                           ${appointmentAtSlot ? 'overflow-visible z-10' : 'overflow-hidden'}
                           ${isTimeSlotAvailable
                                                         ? 'hover:bg-blue-50/30 cursor-pointer'
-                                                        : 'bg-gray-100/50 text-gray-400 cursor-not-allowed'
+                                                        : 'bg-red-50/80 text-red-400 cursor-not-allowed'
                                                     }
                         `}
                                                 onClick={(e) => {
@@ -253,8 +253,8 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
 
                                                 {/* Closed Label */}
                                                 {!isTimeSlotAvailable && !appointmentAtSlot && !isDateInVacation(day) && (
-                                                    <div className="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none">
-                                                        <div className="w-full h-px bg-gray-300 transform -rotate-45"></div>
+                                                    <div className="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none">
+                                                        <div className="w-full h-px bg-red-200 transform -rotate-45"></div>
                                                     </div>
                                                 )}
 
