@@ -144,30 +144,100 @@ export const PlatformAdmin = () => {
                     )}
 
                     {inviteUrl && (
-                        <div className="mt-8 p-6 bg-green-50 border border-green-200 rounded-2xl animate-in fade-in slide-in-from-bottom-4">
-                            <label className="block text-sm font-bold text-green-800 mb-2">✅ Link Generato con Successo</label>
-                            <div className="flex flex-col md:flex-row gap-3">
-                                <input
-                                    readOnly
-                                    value={inviteUrl}
-                                    className="flex-1 p-3 border border-green-200 rounded-lg bg-white text-sm font-mono text-gray-600 focus:ring-2 focus:ring-green-500 outline-none"
-                                    onClick={e => e.currentTarget.select()}
-                                />
-                                <a
-                                    href={inviteUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-medium text-center shadow-lg shadow-green-900/20 transition-all"
-                                >
-                                    Apri Link ↗
-                                </a>
+                        <div className="mt-8 space-y-8 animate-in fade-in slide-in-from-bottom-4">
+
+                            {/* STEP 1: Link */}
+                            <div className="p-6 bg-green-50 border border-green-200 rounded-2xl">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="bg-green-100 text-green-700 w-8 h-8 rounded-full flex items-center justify-center font-bold">1</div>
+                                    <h3 className="font-bold text-green-900">Link di Registrazione</h3>
+                                </div>
+                                <div className="flex flex-col md:flex-row gap-3">
+                                    <input
+                                        readOnly
+                                        value={inviteUrl}
+                                        className="flex-1 p-3 border border-green-200 rounded-lg bg-white text-sm font-mono text-gray-600 focus:ring-2 focus:ring-green-500 outline-none"
+                                        onClick={e => e.currentTarget.select()}
+                                    />
+                                    <a
+                                        href={inviteUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-medium text-center shadow-lg shadow-green-900/20 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        Apri & Registrati ↗
+                                    </a>
+                                </div>
+                                <p className="text-xs text-green-700 mt-3 opacity-80 pl-11">
+                                    Apri il link, completa la prima schermata e **registrati con una email**. Poi torna qui.
+                                </p>
                             </div>
-                            <p className="text-xs text-green-700 mt-3 opacity-80">
-                                Copia questo link e invialo al gestore del negozio, oppure aprilo per testare l'onboarding.
-                            </p>
+
+                            {/* STEP 2: SQL Upgrade */}
+                            <AdminPromotionStep />
+
                         </div>
                     )}
                 </div>
+            </div>
+        </div>
+    );
+};
+
+const AdminPromotionStep = () => {
+    const [email, setEmail] = useState('');
+    const [copied, setCopied] = useState(false);
+
+    const sqlScript = `-- STEP 3: Esegui questo script nel SQL Editor di Supabase
+UPDATE public.profiles
+SET role = 'owner'
+WHERE email = '${email || 'LA_TUA_EMAIL'}';
+
+-- Verifica
+SELECT email, role FROM public.profiles WHERE email = '${email || 'LA_TUA_EMAIL'}';`;
+
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(sqlScript);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    return (
+        <div className="p-6 bg-blue-50 border border-blue-200 rounded-2xl">
+            <div className="flex items-center gap-3 mb-4">
+                <div className="bg-blue-100 text-blue-700 w-8 h-8 rounded-full flex items-center justify-center font-bold">2</div>
+                <h3 className="font-bold text-blue-900">Sblocco Admin (SQL)</h3>
+            </div>
+
+            <p className="text-sm text-blue-800 mb-4 pl-11">
+                Dopo esserti registrato, inserisci qui la tua email per generare il codice SQL necessario a sbloccare i permessi di Owner.
+            </p>
+
+            <div className="pl-11 space-y-4">
+                <input
+                    type="email"
+                    placeholder="Inserisci la mail usata per registrarti..."
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    className="w-full p-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+
+                <div className="relative group">
+                    <pre className="bg-slate-800 text-blue-50 p-4 rounded-lg text-xs overflow-x-auto font-mono">
+                        {sqlScript}
+                    </pre>
+                    <button
+                        onClick={copyToClipboard}
+                        className="absolute top-2 right-2 bg-white/10 hover:bg-white/20 text-white px-3 py-1 rounded text-xs transition-colors backdrop-blur-sm"
+                    >
+                        {copied ? 'Copiato! ✨' : 'Copia SQL'}
+                    </button>
+                </div>
+
+                <p className="text-xs text-blue-700 opacity-80">
+                    Incolla ed esegui questo codice nella Dashboard di Supabase SQL Editor.
+                    Poi torna nel Wizard e ricarica la pagina.
+                </p>
             </div>
         </div>
     );
