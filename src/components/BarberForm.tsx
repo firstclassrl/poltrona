@@ -39,6 +39,8 @@ export const BarberForm = ({ isOpen, onClose, onSave, staff, mode }: BarberFormP
     { value: 'Stylist', label: 'Stylist' },
     { value: 'Master Barber', label: 'Master Barber' },
     { value: 'Junior Barber', label: 'Junior Barber' },
+    { value: 'Estetista', label: 'Estetista' },
+    { value: 'Parrucchiera', label: 'Parrucchiera' },
   ];
 
   useEffect(() => {

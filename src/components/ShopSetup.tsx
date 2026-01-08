@@ -1529,6 +1529,8 @@ export const ShopSetup: React.FC = () => {
               <option value="Stylist">Stylist</option>
               <option value="Master Barber">Master Barber</option>
               <option value="Junior Barber">Junior Barber</option>
+              <option value="Estetista">Estetista</option>
+              <option value="Parrucchiera">Parrucchiera</option>
             </select>
           </div>
         </div>

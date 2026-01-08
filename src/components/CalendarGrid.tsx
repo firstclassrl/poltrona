@@ -3,6 +3,8 @@ import { Package } from 'lucide-react';
 import { formatDate, formatTime, doesAppointmentOverlapSlot, getAppointmentSlotCount, getAppointmentClientLabel } from '../utils/date';
 import type { Appointment, ShopHoursConfig } from '../types';
 
+import { useTheme } from '../contexts/ThemeContext';
+
 interface CalendarGridProps {
     currentDate: Date;
     weekDays: Date[];
@@ -173,6 +175,9 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                                         const appointmentAtSlot = getAppointmentAtSlot(day, time);
                                         const slotCount = appointmentAtSlot ? getAppointmentSlotCount(appointmentAtSlot) : 0;
 
+                                        const { themeId } = useTheme();
+                                        const borderClass = themeId === 'heritage' ? 'border-[#25401c]/20' : 'border-gray-50/50';
+
                                         return (
                                             <div
                                                 key={`${time}-${dayIndex}`}
@@ -180,7 +185,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                                                 tabIndex={isTimeSlotAvailable ? 0 : -1}
                                                 aria-label={isTimeSlotAvailable ? `Slot ${time}` : 'Slot chiuso'}
                                                 className={`
-                          relative min-h-[50px] max-h-[50px] p-0.5 border border-gray-50/50 
+                          relative min-h-[50px] max-h-[50px] p-0.5 border ${borderClass} 
                           transition-all duration-200 touch-target
                           ${appointmentAtSlot ? 'overflow-visible z-10' : 'overflow-hidden'}
                           ${isTimeSlotAvailable

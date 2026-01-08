@@ -422,27 +422,43 @@ body {
   stroke: #ffffff !important;
 }
 
-/* Dark Mode: Sidebar - STRICT BLACK/WHITE/ORANGE */
+/* Dark Mode: Sidebar - ORANGE BACKGROUND / BLACK TEXT */
 [data-theme='dark-mode'] .glass-sidebar-dark {
-  background: #000000 !important;
-  border-right: 1px solid #333333 !important;
+  background: #ff6b35 !important;
+  border-right: none !important;
   box-shadow: none !important;
 }
 
-/* Sidebar Text - STRICT WHITE */
+/* Sidebar Text - STRICT BLACK */
 [data-theme='dark-mode'] .glass-sidebar-dark button,
 [data-theme='dark-mode'] .glass-sidebar-dark a,
 [data-theme='dark-mode'] .glass-sidebar-dark span,
 [data-theme='dark-mode'] .glass-sidebar-dark p,
 [data-theme='dark-mode'] .glass-sidebar-dark svg {
-  color: #ffffff !important;
+  color: #000000 !important;
 }
 
 [data-theme='dark-mode'] .glass-sidebar-dark svg {
-  stroke: #ffffff !important;
+  stroke: #000000 !important;
 }
 
-/* Sidebar Active State - ORANGE */
+/* Sidebar Active State - BLACK with ORANGE TEXT */
+[data-theme='dark-mode'] .aurora-nav-item-active {
+  background: #000000 !important;
+  color: #ff6b35 !important;
+  border-right: 4px solid #000000 !important;
+}
+
+
+[data-theme='dark-mode'] .aurora-nav-item-active svg {
+  stroke: #ff6b35 !important;
+  color: #ff6b35 !important;
+}
+
+[data-theme='dark-mode'] .aurora-nav-item-active span {
+  color: #ff6b35 !important;
+}
+
 [data-theme='dark-mode'] .aurora-nav-item-active {
   background: rgba(255, 107, 53, 0.15) !important;
   color: #ff6b35 !important;
@@ -704,20 +720,24 @@ body {
   border-color: #ff00ff !important;
 }
 
-/* Dark Mode: quadrati calendario neri con bordo arancione */
+/* Dark Mode: quadrati calendario neri con bordo bianco/grigio */
 [data-theme='dark-mode'] .calendar-time-slot {
-  background-color: #0a0a0a !important;
-  border-color: var(--theme-border) !important;
+  background-color: #000000 !important;
+  border-color: #333333 !important;
 }
 
 [data-theme='dark-mode'] .calendar-time-slot:hover {
-  background-color: #0a0a0a !important;
-  border-color: var(--theme-accent) !important;
+  background-color: #111111 !important;
+  border-color: #ff6b35 !important;
 }
 
-[data-theme='dark-mode'] .calendar-time-slot.bg-gray-200 {
-  background-color: #050505 !important;
-  border-color: var(--theme-border) !important;
+/* Fix per i quadrati grigi (es. slot passati o disabilitati) - FORZA NERO */
+[data-theme='dark-mode'] .calendar-time-slot.bg-gray-200,
+[data-theme='dark-mode'] .bg-gray-200,
+[data-theme='dark-mode'] .bg-gray-100,
+[data-theme='dark-mode'] .bg-gray-50 {
+  background-color: #000000 !important;
+  border-color: #333333 !important;
 }
 
 /* --- Client booking: time slot buttons per tema --- */
