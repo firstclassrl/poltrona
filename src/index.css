@@ -423,38 +423,56 @@ body {
 }
 
 /* Dark Mode: Sidebar - ORANGE BACKGROUND / BLACK TEXT */
-[data-theme='dark-mode'] .glass-sidebar-dark {
+/* Dark Mode: Sidebar - ORANGE BACKGROUND / BLACK TEXT */
+[data-theme='dark-mode'] .glass-sidebar-dark,
+[data-theme='dark-mode'] .glass-sidebar-dark.aurora-sidebar {
   background: #ff6b35 !important;
   border-right: none !important;
   box-shadow: none !important;
+  border-color: #ff6b35 !important;
 }
 
-/* Sidebar Text - STRICT BLACK */
+/* Sidebar Text - STRICT BLACK (excluding badges) */
 [data-theme='dark-mode'] .glass-sidebar-dark button,
 [data-theme='dark-mode'] .glass-sidebar-dark a,
-[data-theme='dark-mode'] .glass-sidebar-dark span,
 [data-theme='dark-mode'] .glass-sidebar-dark p,
-[data-theme='dark-mode'] .glass-sidebar-dark svg {
+[data-theme='dark-mode'] .glass-sidebar-dark span:not(.aurora-badge-nav),
+[data-theme='dark-mode'] .glass-sidebar-dark div:not(.aurora-badge-nav),
+[data-theme='dark-mode'] .glass-sidebar-dark svg,
+[data-theme='dark-mode'] .aurora-nav-item,
+[data-theme='dark-mode'] .aurora-nav-item-inactive,
+[data-theme='dark-mode'] .aurora-sidebar .aurora-nav-item,
+[data-theme='dark-mode'] .aurora-sidebar .aurora-nav-item-inactive {
   color: #000000 !important;
-}
-
-[data-theme='dark-mode'] .glass-sidebar-dark svg {
   stroke: #000000 !important;
 }
 
+/* Mobile Bottom Nav - STRICT BLACK */
+[data-theme='dark-mode'] .mobile-bottom-nav,
+[data-theme='dark-mode'] .mobile-bottom-nav button,
+[data-theme='dark-mode'] .mobile-bottom-nav span {
+  color: #000000 !important;
+}
+
 /* Sidebar Active State - BLACK with ORANGE TEXT */
-[data-theme='dark-mode'] .aurora-nav-item-active {
+[data-theme='dark-mode'] .aurora-nav-item-active,
+[data-theme='dark-mode'] .aurora-sidebar .aurora-nav-item-active,
+[data-theme='dark-mode'] .glass-sidebar-dark .aurora-nav-item-active {
   background: #000000 !important;
   color: #ff6b35 !important;
   border-right: 4px solid #000000 !important;
 }
 
-[data-theme='dark-mode'] .aurora-nav-item-active svg {
+[data-theme='dark-mode'] .aurora-nav-item-active svg,
+[data-theme='dark-mode'] .aurora-sidebar .aurora-nav-item-active svg,
+[data-theme='dark-mode'] .glass-sidebar-dark .aurora-nav-item-active svg {
   stroke: #ff6b35 !important;
   color: #ff6b35 !important;
 }
 
-[data-theme='dark-mode'] .aurora-nav-item-active span {
+[data-theme='dark-mode'] .aurora-nav-item-active span,
+[data-theme='dark-mode'] .aurora-sidebar .aurora-nav-item-active span,
+[data-theme='dark-mode'] .glass-sidebar-dark .aurora-nav-item-active span {
   color: #ff6b35 !important;
 }
 
