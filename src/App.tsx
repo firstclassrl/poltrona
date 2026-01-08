@@ -47,7 +47,11 @@ const AppContent: React.FC = () => {
   const { forceUpdate, needRefresh } = usePWAUpdate();
 
   // Platform Admin Mode (Hidden Tool)
+  // DISPONIBILE SOLO IN MODALITÀ SVILUPPO (LOCALE)
   const isPlatformAdmin = useMemo(() => {
+    // Sicurezza: Abilita solo in dev mode (npm run dev)
+    if (!import.meta.env.DEV) return false;
+
     if (typeof window === 'undefined') return false;
     return new URLSearchParams(window.location.search).get('admin_mode') === 'true';
   }, []);
