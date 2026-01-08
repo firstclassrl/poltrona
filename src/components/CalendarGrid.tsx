@@ -180,7 +180,8 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                                             themeId === 'terra-soft' ? 'border-[#b46a4b]/20' :
                                                 themeId === 'dark-mode' ? 'border-white/20' :
                                                     themeId === 'sunset-neon' ? 'border-[#facc15]/30' :
-                                                        'border-gray-50/50';
+                                                        themeId === 'cyber-lilac' ? 'border-[#9a7bff]/30' :
+                                                            'border-gray-50/50';
 
                                         return (
                                             <div

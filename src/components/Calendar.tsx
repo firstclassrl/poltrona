@@ -320,6 +320,19 @@ export const Calendar = () => {
       return sunsetColors[status as keyof typeof sunsetColors] || sunsetColors.scheduled;
     }
 
+    // Cyber Lilac theme specific styles - Purple borders, no backgrounds (white)
+    if (themeId === 'cyber-lilac') {
+      const cyberLilacColors = {
+        scheduled: 'bg-white border-[#9a7bff] text-gray-900 border',
+        confirmed: 'bg-white border-[#9a7bff] text-gray-900 border',
+        in_progress: 'bg-white border-[#9a7bff] text-gray-900 border ring-1 ring-[#9a7bff]',
+        completed: 'bg-white border-[#9a7bff] text-gray-500 border opacity-80',
+        cancelled: 'bg-white border-red-300 text-red-800 opacity-60',
+        no_show: 'bg-white border-red-300 text-red-800 opacity-60',
+      } as const;
+      return cyberLilacColors[status as keyof typeof cyberLilacColors] || cyberLilacColors.scheduled;
+    }
+
     const colors = {
       scheduled: 'bg-yellow-100 border-yellow-400 text-green-800',
       confirmed: 'bg-green-100 border-green-400 text-green-800',
