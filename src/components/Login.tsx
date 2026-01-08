@@ -186,13 +186,6 @@ export const Login: React.FC = () => {
       // Imposta l'errore nello stato
       setError(errorMessage);
 
-      // Mostra anche un Toast per rendere l'errore più visibile
-      // Usa setTimeout per garantire che lo stato sia aggiornato
-      setTimeout(() => {
-        console.log('[Login] Showing toast with message:', errorMessage);
-        showToast(errorMessage, 'error');
-      }, 50);
-
       // Assicurati che il modal non sia mostrato in caso di errore
       setShowRegistrationSuccess(false);
     }
