@@ -4,6 +4,8 @@ export const API_CONFIG = {
   SUPABASE_EDGE_URL: (import.meta.env.VITE_SUPABASE_EDGE_URL || import.meta.env.VITE_SUPABASE_URL || '').trim(),
   SUPABASE_ANON_KEY: (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim(),
   // Email usa RESEND API tramite Supabase Edge Function (server-side)
+  // Stripe publishable key
+  STRIPE_PUBLISHABLE_KEY: (import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '').trim(),
 };
 
 export const API_ENDPOINTS = {
@@ -24,4 +26,9 @@ export const API_ENDPOINTS = {
   CHAT_MESSAGES: `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/chat_messages`,
   NOTIFICATIONS: `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/notifications`,
   WAITLIST: `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/waitlist`,
+  // Subscription endpoints
+  SUBSCRIPTIONS: `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/shop_subscriptions`,
+  SUBSCRIPTION_INVOICES: `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/subscription_invoices`,
+  CREATE_CHECKOUT_SESSION: `${API_CONFIG.SUPABASE_EDGE_URL}/functions/v1/create-checkout-session`,
+  CREATE_PORTAL_SESSION: `${API_CONFIG.SUPABASE_EDGE_URL}/functions/v1/create-portal-session`,
 };

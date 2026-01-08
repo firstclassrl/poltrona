@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Building2, MapPin, Edit, Save, X, Clock, Image as ImageIcon, FileText, Download, User as UserIcon } from 'lucide-react';
+import { Building2, MapPin, Edit, Save, X, Clock, Image as ImageIcon, FileText, Download, User as UserIcon, MessageCircle } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -95,6 +95,17 @@ export const ShopManagement = () => {
   const [currentShopHours, setCurrentShopHours] = useState<import('../types').ShopHoursConfig | null>(null);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [selectedBarberId, setSelectedBarberId] = useState<string>('');
+
+  // WhatsApp Configuration State
+  const [isEditingWhatsapp, setIsEditingWhatsapp] = useState(false);
+  const [isSavingWhatsapp, setIsSavingWhatsapp] = useState(false);
+  const [whatsappMessage, setWhatsappMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [whatsappConfig, setWhatsappConfig] = useState({
+    enabled: true,
+    reminderTime: '20:00',
+    phoneNumberId: '',
+    accessToken: ''
+  });
 
   const showMessage = (
     setter: (value: { type: 'success' | 'error'; text: string } | null) => void,
@@ -215,6 +226,14 @@ export const ShopManagement = () => {
           setStaff([]);
         }
       }
+
+      // Populate WhatsApp Config
+      setWhatsappConfig({
+        enabled: (syncedShop as any).whatsapp_reminder_enabled ?? true,
+        reminderTime: (syncedShop as any).whatsapp_reminder_time || '20:00',
+        phoneNumberId: (syncedShop as any).whatsapp_phone_number_id || '',
+        accessToken: (syncedShop as any).whatsapp_access_token || '',
+      });
     } catch (error) {
       console.error('Error loading shop data:', error);
       const localShop = loadShopFromLocal();
@@ -369,6 +388,46 @@ export const ShopManagement = () => {
     setIsEditingBasic(false);
   };
 
+  const handleSaveWhatsapp = async () => {
+    if (!shop) {
+      showMessage(setWhatsappMessage, 'error', 'Impossibile salvare: dati negozio non disponibili.', 5000);
+      return;
+    }
+
+    setIsSavingWhatsapp(true);
+    const updatedShop: Shop = {
+      ...shop,
+      whatsapp_reminder_enabled: whatsappConfig.enabled,
+      whatsapp_reminder_time: whatsappConfig.reminderTime,
+      whatsapp_phone_number_id: whatsappConfig.phoneNumberId || null,
+      whatsapp_access_token: whatsappConfig.accessToken || null,
+    };
+
+    try {
+      await apiService.updateShop(updatedShop);
+      persistShopState(updatedShop);
+      setIsEditingWhatsapp(false);
+      showMessage(setWhatsappMessage, 'success', 'Configurazione WhatsApp salvata!');
+    } catch (error) {
+      console.error('Error saving WhatsApp config:', error);
+      showMessage(setWhatsappMessage, 'error', 'Errore durante il salvataggio. Riprova.', 5000);
+    } finally {
+      setIsSavingWhatsapp(false);
+    }
+  };
+
+  const handleCancelWhatsapp = () => {
+    if (shop) {
+      setWhatsappConfig({
+        enabled: (shop as any).whatsapp_reminder_enabled ?? true,
+        reminderTime: (shop as any).whatsapp_reminder_time || '20:00',
+        phoneNumberId: (shop as any).whatsapp_phone_number_id || '',
+        accessToken: (shop as any).whatsapp_access_token || '',
+      });
+    }
+    setIsEditingWhatsapp(false);
+  };
+
 
   const isClient = user?.role === 'client';
   const isAdmin = user?.role === 'admin';
@@ -432,8 +491,8 @@ export const ShopManagement = () => {
                 {basicMessage && (
                   <div
                     className={`mb-4 p-3 rounded-lg ${basicMessage.type === 'success'
-                        ? 'bg-green-50 border border-green-200 text-green-800'
-                        : 'bg-red-50 border border-red-200 text-red-800'
+                      ? 'bg-green-50 border border-green-200 text-green-800'
+                      : 'bg-red-50 border border-red-200 text-red-800'
                       }`}
                   >
                     <p className="text-sm font-medium">{basicMessage.text}</p>
@@ -457,8 +516,8 @@ export const ShopManagement = () => {
                   {logoMessage && (
                     <div
                       className={`mb-3 p-3 rounded-lg ${logoMessage.type === 'success'
-                          ? 'bg-green-50 border border-green-200 text-green-800'
-                          : 'bg-red-50 border border-red-200 text-red-800'
+                        ? 'bg-green-50 border border-green-200 text-green-800'
+                        : 'bg-red-50 border border-red-200 text-red-800'
                         }`}
                     >
                       <p className="text-sm font-medium">{logoMessage.text}</p>
@@ -709,8 +768,8 @@ export const ShopManagement = () => {
                   {hoursMessage && (
                     <div
                       className={`p-3 rounded-lg ${hoursMessage.type === 'success'
-                          ? 'bg-green-50 text-green-800 border border-green-200'
-                          : 'bg-red-50 text-red-800 border border-red-200'
+                        ? 'bg-green-50 text-green-800 border border-green-200'
+                        : 'bg-red-50 text-red-800 border border-red-200'
                         }`}
                     >
                       {hoursMessage.text}
@@ -718,6 +777,132 @@ export const ShopManagement = () => {
                   )}
 
 
+                </div>
+              </Card>
+            )}
+
+            {/* Card Configurazione WhatsApp - solo admin */}
+            {isAdmin && (
+              <Card className="!border-2 !border-green-600">
+                <div className="p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                        <MessageCircle className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-semibold text-gray-900">Reminder WhatsApp</h3>
+                        <p className="text-sm text-gray-600">Configura i messaggi automatici per i tuoi clienti.</p>
+                      </div>
+                    </div>
+                    {/* Buttons */}
+                    {!isEditingWhatsapp ? (
+                      <Button
+                        onClick={() => setIsEditingWhatsapp(true)}
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700 text-white border-green-600"
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Modifica
+                      </Button>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Button
+                          variant="secondary"
+                          onClick={handleCancelWhatsapp}
+                          size="sm"
+                          disabled={isSavingWhatsapp}
+                        >
+                          <X className="w-4 h-4 mr-2" />
+                          Annulla
+                        </Button>
+                        <Button
+                          onClick={handleSaveWhatsapp}
+                          size="sm"
+                          loading={isSavingWhatsapp}
+                          disabled={isSavingWhatsapp}
+                          className="bg-green-600 hover:bg-green-700 text-white border-green-600"
+                        >
+                          <Save className="w-4 h-4 mr-2" />
+                          Salva
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {whatsappMessage && (
+                    <div
+                      className={`p-3 rounded-lg ${whatsappMessage.type === 'success'
+                        ? 'bg-green-50 text-green-800 border border-green-200'
+                        : 'bg-red-50 text-red-800 border border-red-200'
+                        }`}
+                    >
+                      {whatsappMessage.text}
+                    </div>
+                  )}
+
+                  <div className="space-y-4 border-t border-gray-100 pt-4">
+                    {/* Toggle Component */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="text-sm font-medium text-gray-900">Attiva Reminder Automatici</label>
+                        <p className="text-sm text-gray-500">Invia un messaggio WhatsApp 24h prima dell'appuntamento</p>
+                      </div>
+                      <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                        <div className={`w-12 h-6 rounded-full p-1 transition-colors duration-200 ease-in-out cursor-pointer ${whatsappConfig.enabled ? 'bg-green-600' : 'bg-gray-300'}`}
+                          onClick={() => isEditingWhatsapp && setWhatsappConfig(prev => ({ ...prev, enabled: !prev.enabled }))}>
+                          <div className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-200 ease-in-out ${whatsappConfig.enabled ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Time Picker */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <label className="text-sm font-medium text-gray-900">Orario di invio</label>
+                      <div className="w-full sm:w-48">
+                        <Input
+                          type="time"
+                          value={whatsappConfig.reminderTime}
+                          onChange={(e) => setWhatsappConfig(prev => ({ ...prev, reminderTime: e.target.value }))}
+                          disabled={!isEditingWhatsapp || !whatsappConfig.enabled}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Ora locale in cui inviare i messaggi per il giorno successivo</p>
+                      </div>
+                    </div>
+
+                    {/* Advanced Configuration */}
+                    <div className="pt-4 mt-4 border-t border-gray-100">
+                      <h4 className="text-sm font-semibold text-gray-900 mb-2">Configurazione Avanzata (Opzionale)</h4>
+                      <p className="text-xs text-gray-500 mb-4">
+                        Lascia vuoti questi campi per usare la configurazione globale del sistema.
+                        Compila solo se hai un numero WhatsApp Business dedicato per questo negozio.
+                      </p>
+
+                      <div className="grid grid-cols-1 gap-4">
+                        <Input
+                          label="WhatsApp Phone Number ID"
+                          value={whatsappConfig.phoneNumberId}
+                          onChange={(e) => setWhatsappConfig(prev => ({ ...prev, phoneNumberId: e.target.value }))}
+                          disabled={!isEditingWhatsapp}
+                          placeholder="Es. 123456789012345"
+                        />
+
+                        <div>
+                          <Input
+                            label="WhatsApp Access Token"
+                            type="password"
+                            value={whatsappConfig.accessToken}
+                            onChange={(e) => setWhatsappConfig(prev => ({ ...prev, accessToken: e.target.value }))}
+                            disabled={!isEditingWhatsapp}
+                            placeholder="EAABwzLix..."
+                          />
+                          <p className="text-xs text-yellow-600 mt-1">
+                            ⚠️ Nota: Il token viene salvato nel database. Per maggiore sicurezza, usa la configurazione globale.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </Card>
             )}

@@ -27,12 +27,15 @@ const ClientProducts = lazy(() => import('./components/ClientProducts').then(m =
 const Chat = lazy(() => import('./components/Chat').then(m => ({ default: m.Chat })));
 const Notifications = lazy(() => import('./components/Notifications').then(m => ({ default: m.Notifications })));
 const WaitlistDashboard = lazy(() => import('./components/WaitlistDashboard').then(m => ({ default: m.WaitlistDashboard })));
+const Billing = lazy(() => import('./components/Billing').then(m => ({ default: m.Billing })));
+import { Paywall } from './components/Paywall';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { ShopProvider, useShop } from './contexts/ShopContext';
 import { ChatProvider } from './contexts/ChatContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import { SubscriptionProvider, useSubscription } from './contexts/SubscriptionContext';
 import type { ThemePaletteId } from './theme/palettes';
 import { APP_VERSION, VERSION_ENDPOINT } from './config/version';
 import { apiService } from './services/api';
@@ -183,6 +186,8 @@ const AppContent: React.FC = () => {
         ) : <ShopManagement />;
       case 'settings':
         return <Settings />;
+      case 'billing':
+        return <Billing />;
       case 'client_profile':
         return <ClientProfile />;
       case 'client_bookings':
@@ -251,8 +256,14 @@ const AppContent: React.FC = () => {
     );
   }
 
+  // Determina se mostrare il paywall (solo per staff, owner, admin - non per clienti)
+  const shouldShowPaywall = user?.role && !['client'].includes(user.role);
+
   return (
     <div className="app-theme-bg text-[var(--theme-text)]">
+      {/* Paywall per utenti non abbonati (esclusi i clienti) */}
+      {shouldShowPaywall && <Paywall><></></Paywall>}
+
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* Banner aggiornamento versione */}
@@ -320,11 +331,13 @@ function App() {
     <AuthProvider>
       <ShopProvider>
         <ThemeProvider>
-          <NotificationProvider>
-            <ChatProvider>
-              <AppContent />
-            </ChatProvider>
-          </NotificationProvider>
+          <SubscriptionProvider>
+            <NotificationProvider>
+              <ChatProvider>
+                <AppContent />
+              </ChatProvider>
+            </NotificationProvider>
+          </SubscriptionProvider>
         </ThemeProvider>
       </ShopProvider>
     </AuthProvider>

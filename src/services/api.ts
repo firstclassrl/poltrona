@@ -3517,6 +3517,12 @@ export const apiService = {
         if (p.image_url && !p.imageurl) {
           normalized.imageurl = p.image_url;
         }
+
+        // Fix per prezzi a 0: se price_cents manca ma c'è price, calcolalo
+        if ((!normalized.price_cents || normalized.price_cents === 0) && normalized.price) {
+          normalized.price_cents = Math.round(normalized.price * 100);
+        }
+
         return normalized;
       });
 

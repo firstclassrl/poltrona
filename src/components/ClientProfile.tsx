@@ -65,7 +65,7 @@ export const ClientProfile: React.FC = () => {
             profile_photo_url: client.photo_url || prev.profile_photo_url,
           }));
         }
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, [user, getClientByEmail]);
 
@@ -149,12 +149,24 @@ export const ClientProfile: React.FC = () => {
     setIsLoading(true);
     try {
       const email = formData.email || user.email;
-      if (!email) throw new Error('Email mancante');
+      if (!email) {
+        setMessage({ type: 'error', text: 'Email mancante' });
+        setIsLoading(false);
+        return;
+      }
+
+      // Validate phone before saving
+      const phoneToSave = formData.phone?.trim();
+      if (!phoneToSave) {
+        setMessage({ type: 'error', text: 'Telefono è obbligatorio' });
+        setIsLoading(false);
+        return;
+      }
 
       await apiService.updateClientByEmail(email, {
         first_name: formData.full_name.split(' ')[0] || 'Cliente',
         last_name: formData.full_name.split(' ').slice(1).join(' ') || null,
-        phone_e164: normalizePhone(formData.phone || ''),
+        phone_e164: normalizePhone(phoneToSave),
         photo_url: formData.profile_photo_url || null,
       });
 
@@ -163,7 +175,7 @@ export const ClientProfile: React.FC = () => {
       setTimeout(() => setMessage(null), 3000);
     } catch (error) {
       console.error('Error saving profile:', error);
-      setMessage({ type: 'error', text: 'Errore nel salvataggio del profilo' });
+      setMessage({ type: 'error', text: 'Errore nel salvataggio del profilo. Riprova.' });
     } finally {
       setIsLoading(false);
     }
@@ -224,14 +236,14 @@ export const ClientProfile: React.FC = () => {
 
   const handleDeleteAccount = async () => {
     if (!user || !clientData) return;
-    
+
     try {
       // Elimina il cliente registrato
       const success = deleteRegisteredClient(clientData.id);
-      
+
       if (success) {
         setMessage({ type: 'success', text: 'Account eliminato. Verrai disconnesso...' });
-        
+
         // Disconnetti l'utente dopo 2 secondi
         setTimeout(() => {
           logout();
@@ -257,44 +269,44 @@ export const ClientProfile: React.FC = () => {
   // Handle appointment cancellation
   const handleCancelAppointment = async () => {
     if (!appointmentToCancel || !user) return;
-    
+
     setIsCancelling(true);
-    
+
     try {
       // 1. Annulla l'appuntamento nel database
       await apiService.cancelAppointmentDirect(appointmentToCancel.id);
-      
+
       // 2. Ottieni i dettagli completi dell'appuntamento per la notifica
       const appointmentDetails = await apiService.getAppointmentById(appointmentToCancel.id);
-      
+
       // 3. Prepara i dati per le notifiche e email
       const shop = await apiService.getShop();
       const detailedAppointment = appointmentDetails || appointmentToCancel;
       const clientInfo = detailedAppointment?.clients || appointmentToCancel.clients;
       const staffInfo = detailedAppointment?.staff;
       const serviceInfo = detailedAppointment?.services || appointmentToCancel.services;
-      
-      const clientName = clientInfo 
+
+      const clientName = clientInfo
         ? `${clientInfo.first_name} ${clientInfo.last_name || ''}`.trim()
         : user.full_name || 'Cliente';
       const clientEmail = clientInfo?.email || user.email || undefined;
       const clientPhone = clientInfo?.phone_e164 || user.phone || 'Non fornito';
-      
+
       const appointmentDate = new Date(appointmentToCancel.start_at).toLocaleDateString('it-IT', {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
         year: 'numeric'
       });
-      
+
       const appointmentTime = new Date(appointmentToCancel.start_at).toLocaleTimeString('it-IT', {
         hour: '2-digit',
         minute: '2-digit',
         hour12: false
       });
-      
+
       const serviceName = serviceInfo?.name || 'Servizio';
-      
+
       // Ottieni i dettagli dello staff se disponibile
       let staffDetails = staffInfo;
       if (appointmentToCancel.staff_id && !staffDetails) {
@@ -305,7 +317,7 @@ export const ClientProfile: React.FC = () => {
           console.error('❌ Errore recupero dettagli staff:', error);
         }
       }
-      
+
       const barberName = staffDetails?.full_name || 'Staff';
       const barberUserId = staffDetails?.user_id || staffDetails?.id || appointmentToCancel.staff_id;
 
@@ -332,7 +344,7 @@ export const ClientProfile: React.FC = () => {
           console.error('❌ Errore creazione notifica annullamento:', notifError);
         }
       }
-      
+
       // Prepara i dati comuni per le email
       const cancellationData = {
         clientName: clientName,
@@ -344,18 +356,18 @@ export const ClientProfile: React.FC = () => {
         barberName: barberName,
         shopName: shop?.name || 'Barbershop',
       };
-      
+
       // Email disabilitate lato app: invio gestito da webhooks Supabase
-      
+
       // Ricarica gli appuntamenti per mostrare lo stato aggiornato
       await loadAppointments();
-      
+
       setMessage({ type: 'success', text: 'Appuntamento annullato con successo!' });
       setAppointmentToCancel(null);
-      
+
       // Rimuovi il messaggio dopo 3 secondi
       setTimeout(() => setMessage(null), 3000);
-      
+
     } catch (error) {
       console.error('Error cancelling appointment:', error);
       setMessage({ type: 'error', text: 'Errore nell\'annullamento dell\'appuntamento. Riprova.' });
@@ -369,374 +381,377 @@ export const ClientProfile: React.FC = () => {
       className="p-0 page-container-chat-style"
     >
       <div className="w-full">
-      <div className="flex flex-col space-y-8">
-      <div className="space-y-8">
-      <div className="flex items-center justify-between glass-panel pb-2">
-        <h1 className="text-3xl font-bold text-gray-900">Il Mio Profilo</h1>
-        {!isEditing ? (
-          <Button onClick={() => setIsEditing(true)}>
-            <Edit className="w-4 h-4 mr-2" />
-            Modifica Profilo
-          </Button>
-        ) : (
-          <div className="flex space-x-2">
-            <Button variant="secondary" onClick={handleCancel}>
-              <X className="w-4 h-4 mr-2" />
-              Annulla
-            </Button>
-            <Button onClick={handleSave} loading={isLoading}>
-              <Save className="w-4 h-4 mr-2" />
-              Salva
-            </Button>
-          </div>
-        )}
-      </div>
-
-      {/* Messaggio di feedback */}
-      {message && (
-        <div className={`p-4 rounded-lg ${
-          message.type === 'success' 
-            ? 'bg-green-100 text-green-800 border border-green-200' 
-            : 'bg-red-100 text-red-800 border border-red-200'
-        }`}>
-          {message.text}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Profilo */}
-        <Card className="lg:col-span-1">
-          <div className="text-center space-y-4">
-            <div className="flex justify-center">
-              {formData.profile_photo_url ? (
-                <img
-                  src={formData.profile_photo_url}
-                  alt={formData.full_name || 'Foto profilo'}
-                  className="w-28 h-28 rounded-full object-cover border-4 border-white shadow-lg"
-                />
+        <div className="flex flex-col space-y-8">
+          <div className="space-y-8">
+            <div className="flex items-center justify-between glass-panel pb-2">
+              <h1 className="text-3xl font-bold text-gray-900">Il Mio Profilo</h1>
+              {!isEditing ? (
+                <Button onClick={() => setIsEditing(true)}>
+                  <Edit className="w-4 h-4 mr-2" />
+                  Modifica Profilo
+                </Button>
               ) : (
-                <div className="w-28 h-28 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto shadow-lg">
-                  <User className="w-12 h-12 text-white" />
+                <div className="flex space-x-2">
+                  <Button variant="secondary" onClick={handleCancel}>
+                    <X className="w-4 h-4 mr-2" />
+                    Annulla
+                  </Button>
+                  <Button onClick={handleSave} loading={isLoading}>
+                    <Save className="w-4 h-4 mr-2" />
+                    Salva
+                  </Button>
                 </div>
               )}
             </div>
 
-            {photoMessage && (
-              <p className="text-xs text-gray-600">{photoMessage}</p>
-            )}
-
-            {isEditing && (
-              <div className="flex justify-center">
-                <label className="cursor-pointer text-sm font-semibold text-green-700 hover:text-green-800">
-                  Carica foto
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handlePhotoChange}
-                  />
-                </label>
+            {/* Messaggio di feedback */}
+            {message && (
+              <div className={`p-4 rounded-lg ${message.type === 'success'
+                ? 'bg-green-100 text-green-800 border border-green-200'
+                : 'bg-red-100 text-red-800 border border-red-200'
+                }`}>
+                {message.text}
               </div>
             )}
 
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">
-                {formData.full_name}
-              </h2>
-              <p className="text-gray-600">Cliente</p>
-            </div>
-          </div>
-        </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Profilo */}
+              <Card className="lg:col-span-1">
+                <div className="text-center space-y-4">
+                  <div className="flex justify-center">
+                    {formData.profile_photo_url ? (
+                      <img
+                        src={formData.profile_photo_url}
+                        alt={formData.full_name || 'Foto profilo'}
+                        className="w-28 h-28 rounded-full object-cover border-4 border-white shadow-lg"
+                      />
+                    ) : (
+                      <div className="w-28 h-28 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto shadow-lg">
+                        <User className="w-12 h-12 text-white" />
+                      </div>
+                    )}
+                  </div>
 
-        {/* Informazioni */}
-        <Card className="lg:col-span-2">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">Informazioni Personali</h3>
+                  {photoMessage && (
+                    <p className="text-xs text-gray-600">{photoMessage}</p>
+                  )}
 
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Nome Completo"
-                value={formData.full_name}
-                onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
-                disabled={!isEditing}
-                required
-              />
+                  {isEditing && (
+                    <div className="flex justify-center">
+                      <label className="cursor-pointer text-sm font-semibold text-green-700 hover:text-green-800">
+                        Carica foto
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handlePhotoChange}
+                        />
+                      </label>
+                    </div>
+                  )}
 
-              <Input
-                label="Telefono"
-                value={formData.phone}
-                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                disabled={!isEditing}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                disabled={!isEditing}
-                required
-              />
-
-              <Input
-                label="Indirizzo"
-                value={formData.address}
-                onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-                disabled={!isEditing}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Note</label>
-              <textarea
-                value={formData.notes}
-                onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                rows={3}
-                disabled={!isEditing}
-                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                placeholder="Note aggiuntive..."
-              />
-            </div>
-          </div>
-
-          {isEditing && (
-            <div className="flex justify-end space-x-3 mt-6">
-              <Button variant="secondary" onClick={handleCancel}>
-                <X className="w-4 h-4 mr-2" />
-                Annulla
-              </Button>
-              <Button onClick={handleSave} disabled={isLoading}>
-                <Save className="w-4 h-4 mr-2" />
-                Salva Modifiche
-              </Button>
-            </div>
-          )}
-        </Card>
-      </div>
-
-      {/* Sezione appuntamenti rimossa: ora gestita dalla pagina \"Le mie prenotazioni\" */}
-
-      {/* Privacy e Consensi - Solo per clienti registrati */}
-      {clientData && clientData.privacyConsent && (
-        <Card>
-          <div className="flex items-center mb-6">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-4">
-              <Shield className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Privacy e Consensi</h3>
-              <p className="text-gray-600 text-sm">Gestisci i tuoi dati personali e consensi</p>
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            {/* Consenso Privacy */}
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <div className="flex items-start space-x-3">
-                <Shield className="w-5 h-5 text-green-600 mt-0.5" />
-                <div className="flex-1">
-                  <h4 className="font-medium text-green-900">Informativa Privacy Accettata</h4>
-                  <p className="text-sm text-green-700 mt-1">
-                    Hai accettato l'informativa privacy il{' '}
-                    {new Date(clientData.privacyConsent.acceptedAt).toLocaleDateString('it-IT', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </p>
-                  <p className="text-xs text-green-600 mt-1">
-                    Versione: {clientData.privacyConsent.version}
-                  </p>
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      {formData.full_name}
+                    </h2>
+                    <p className="text-gray-600">Cliente</p>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </Card>
 
-            {/* Visualizza Privacy Policy */}
-            <div>
-              <Button
-                variant="secondary"
-                onClick={() => setShowPrivacyPolicy(true)}
-                className="w-full flex items-center justify-center"
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                Visualizza Informativa Privacy
-              </Button>
-            </div>
+              {/* Informazioni */}
+              <Card className="lg:col-span-2">
+                <h3 className="text-lg font-semibold text-gray-900 mb-6">Informazioni Personali</h3>
 
-            {/* I tuoi diritti GDPR */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-medium text-blue-900 mb-2">I Tuoi Diritti GDPR</h4>
-              <ul className="text-sm text-blue-800 space-y-1">
-                <li>• Diritto di accesso ai tuoi dati personali</li>
-                <li>• Diritto di rettifica (modifica profilo)</li>
-                <li>• Diritto alla cancellazione (elimina account)</li>
-                <li>• Diritto di portabilità dei dati</li>
-              </ul>
-            </div>
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input
+                      label="Nome Completo"
+                      value={formData.full_name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
+                      disabled={!isEditing}
+                      required
+                      labelClassName="text-gray-700"
+                    />
 
-            {/* Elimina Account */}
-            <div className="border-t border-gray-200 pt-6">
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <h4 className="font-medium text-red-900 mb-2">Zona Pericolosa</h4>
-                <p className="text-sm text-red-700 mb-3">
-                  L'eliminazione dell'account comporterà la cancellazione permanente di tutti i tuoi dati
-                  personali e consensi. Questa azione non può essere annullata.
-                </p>
-                <Button
-                  variant="secondary"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="bg-red-100 text-red-700 hover:bg-red-200 border-red-300 flex items-center"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Elimina Account e Revoca Consensi
-                </Button>
-              </div>
-            </div>
-          </div>
-        </Card>
-      )}
+                    <Input
+                      label="Telefono"
+                      value={formData.phone}
+                      onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                      disabled={!isEditing}
+                      labelClassName="text-gray-700"
+                    />
+                  </div>
 
-      {/* Privacy Policy Modal */}
-      <PrivacyPolicy 
-        isOpen={showPrivacyPolicy} 
-        onClose={() => setShowPrivacyPolicy(false)} 
-      />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input
+                      label="Email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                      disabled={!isEditing}
+                      required
+                      labelClassName="text-gray-700"
+                    />
 
-      {/* Conferma Eliminazione Account */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                <Trash2 className="w-6 h-6 text-red-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">Conferma Eliminazione</h3>
-            </div>
-            
-            <p className="text-gray-700 mb-6">
-              Sei sicuro di voler eliminare il tuo account? Questa azione eliminerà:
-            </p>
-            <ul className="text-sm text-gray-600 space-y-1 mb-6 ml-4">
-              <li>• Tutti i tuoi dati personali</li>
-              <li>• I consensi privacy</li>
-              <li>• Le prenotazioni future</li>
-              <li>• L'accesso al sistema</li>
-            </ul>
-            <p className="text-red-600 font-medium text-sm mb-6">
-              Questa azione non può essere annullata.
-            </p>
-            
-            <div className="flex space-x-3">
-              <Button
-                variant="secondary"
-                onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1"
-              >
-                Annulla
-              </Button>
-              <Button
-                onClick={handleDeleteAccount}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
-              >
-                Elimina Definitivamente
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+                    <Input
+                      label="Indirizzo"
+                      value={formData.address}
+                      onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                      disabled={!isEditing}
+                      labelClassName="text-gray-700"
+                    />
+                  </div>
 
-      {/* Conferma Annullamento Appuntamento */}
-      {appointmentToCancel && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                <AlertTriangle className="w-6 h-6 text-orange-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">Conferma Annullamento</h3>
-            </div>
-            
-            <p className="text-gray-700 mb-4">
-              Sei sicuro di voler annullare questo appuntamento?
-            </p>
-            
-            <div className="bg-gray-50 rounded-lg p-4 mb-6 aurora-modal-bg-white">
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Servizio:</span>
-                  <span className="font-medium text-gray-900">
-                    {appointmentToCancel.services?.name || 'Servizio'}
-                  </span>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Note</label>
+                    <textarea
+                      value={formData.notes}
+                      onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                      rows={3}
+                      disabled={!isEditing}
+                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      placeholder="Note aggiuntive..."
+                    />
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Barbiere:</span>
-                  <span className="font-medium text-gray-900">
-                    {appointmentToCancel.staff?.full_name || 'Barbiere'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Data:</span>
-                  <span className="font-medium text-gray-900">
-                    {new Date(appointmentToCancel.start_at).toLocaleDateString('it-IT', {
-                      weekday: 'long',
-                      day: 'numeric',
-                      month: 'long'
-                    })}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Orario:</span>
-                  <span className="font-medium text-gray-900">
-                    {new Date(appointmentToCancel.start_at).toLocaleTimeString('it-IT', { 
-                      hour: '2-digit', 
-                      minute: '2-digit',
-                      hour12: false
-                    })}
-                  </span>
-                </div>
-              </div>
-            </div>
-            
-            <p className="text-orange-600 text-sm mb-6">
-              Il barbiere verrà notificato dell'annullamento.
-            </p>
-            
-            <div className="flex space-x-3">
-              <Button
-                variant="secondary"
-                onClick={() => setAppointmentToCancel(null)}
-                className="flex-1"
-                disabled={isCancelling}
-              >
-                Indietro
-              </Button>
-              <Button
-                onClick={handleCancelAppointment}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
-                disabled={isCancelling}
-              >
-                {isCancelling ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                    Annullamento...
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="w-4 h-4 mr-2" />
-                    Annulla Appuntamento
-                  </>
+
+                {isEditing && (
+                  <div className="flex justify-end space-x-3 mt-6">
+                    <Button variant="secondary" onClick={handleCancel}>
+                      <X className="w-4 h-4 mr-2" />
+                      Annulla
+                    </Button>
+                    <Button onClick={handleSave} disabled={isLoading}>
+                      <Save className="w-4 h-4 mr-2" />
+                      Salva Modifiche
+                    </Button>
+                  </div>
                 )}
-              </Button>
+              </Card>
             </div>
+
+            {/* Sezione appuntamenti rimossa: ora gestita dalla pagina \"Le mie prenotazioni\" */}
+
+            {/* Privacy e Consensi - Solo per clienti registrati */}
+            {clientData && clientData.privacyConsent && (
+              <Card>
+                <div className="flex items-center mb-6">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-4">
+                    <Shield className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Privacy e Consensi</h3>
+                    <p className="text-gray-600 text-sm">Gestisci i tuoi dati personali e consensi</p>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Consenso Privacy */}
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-start space-x-3">
+                      <Shield className="w-5 h-5 text-green-600 mt-0.5" />
+                      <div className="flex-1">
+                        <h4 className="font-medium text-green-900">Informativa Privacy Accettata</h4>
+                        <p className="text-sm text-green-700 mt-1">
+                          Hai accettato l'informativa privacy il{' '}
+                          {new Date(clientData.privacyConsent.acceptedAt).toLocaleDateString('it-IT', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                        <p className="text-xs text-green-600 mt-1">
+                          Versione: {clientData.privacyConsent.version}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Visualizza Privacy Policy */}
+                  <div>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShowPrivacyPolicy(true)}
+                      className="w-full flex items-center justify-center"
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      Visualizza Informativa Privacy
+                    </Button>
+                  </div>
+
+                  {/* I tuoi diritti GDPR */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-medium text-blue-900 mb-2">I Tuoi Diritti GDPR</h4>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>• Diritto di accesso ai tuoi dati personali</li>
+                      <li>• Diritto di rettifica (modifica profilo)</li>
+                      <li>• Diritto alla cancellazione (elimina account)</li>
+                      <li>• Diritto di portabilità dei dati</li>
+                    </ul>
+                  </div>
+
+                  {/* Elimina Account */}
+                  <div className="border-t border-gray-200 pt-6">
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <h4 className="font-medium text-red-900 mb-2">Zona Pericolosa</h4>
+                      <p className="text-sm text-red-700 mb-3">
+                        L'eliminazione dell'account comporterà la cancellazione permanente di tutti i tuoi dati
+                        personali e consensi. Questa azione non può essere annullata.
+                      </p>
+                      <Button
+                        variant="secondary"
+                        onClick={() => setShowDeleteConfirm(true)}
+                        className="bg-red-100 text-red-700 hover:bg-red-200 border-red-300 flex items-center"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Elimina Account e Revoca Consensi
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {/* Privacy Policy Modal */}
+            <PrivacyPolicy
+              isOpen={showPrivacyPolicy}
+              onClose={() => setShowPrivacyPolicy(false)}
+            />
+
+            {/* Conferma Eliminazione Account */}
+            {showDeleteConfirm && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                      <Trash2 className="w-6 h-6 text-red-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900">Conferma Eliminazione</h3>
+                  </div>
+
+                  <p className="text-gray-700 mb-6">
+                    Sei sicuro di voler eliminare il tuo account? Questa azione eliminerà:
+                  </p>
+                  <ul className="text-sm text-gray-600 space-y-1 mb-6 ml-4">
+                    <li>• Tutti i tuoi dati personali</li>
+                    <li>• I consensi privacy</li>
+                    <li>• Le prenotazioni future</li>
+                    <li>• L'accesso al sistema</li>
+                  </ul>
+                  <p className="text-red-600 font-medium text-sm mb-6">
+                    Questa azione non può essere annullata.
+                  </p>
+
+                  <div className="flex space-x-3">
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="flex-1"
+                    >
+                      Annulla
+                    </Button>
+                    <Button
+                      onClick={handleDeleteAccount}
+                      className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      Elimina Definitivamente
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Conferma Annullamento Appuntamento */}
+            {appointmentToCancel && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                      <AlertTriangle className="w-6 h-6 text-orange-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900">Conferma Annullamento</h3>
+                  </div>
+
+                  <p className="text-gray-700 mb-4">
+                    Sei sicuro di voler annullare questo appuntamento?
+                  </p>
+
+                  <div className="bg-gray-50 rounded-lg p-4 mb-6 aurora-modal-bg-white">
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Servizio:</span>
+                        <span className="font-medium text-gray-900">
+                          {appointmentToCancel.services?.name || 'Servizio'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Barbiere:</span>
+                        <span className="font-medium text-gray-900">
+                          {appointmentToCancel.staff?.full_name || 'Barbiere'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Data:</span>
+                        <span className="font-medium text-gray-900">
+                          {new Date(appointmentToCancel.start_at).toLocaleDateString('it-IT', {
+                            weekday: 'long',
+                            day: 'numeric',
+                            month: 'long'
+                          })}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Orario:</span>
+                        <span className="font-medium text-gray-900">
+                          {new Date(appointmentToCancel.start_at).toLocaleTimeString('it-IT', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-orange-600 text-sm mb-6">
+                    Il barbiere verrà notificato dell'annullamento.
+                  </p>
+
+                  <div className="flex space-x-3">
+                    <Button
+                      variant="secondary"
+                      onClick={() => setAppointmentToCancel(null)}
+                      className="flex-1"
+                      disabled={isCancelling}
+                    >
+                      Indietro
+                    </Button>
+                    <Button
+                      onClick={handleCancelAppointment}
+                      className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                      disabled={isCancelling}
+                    >
+                      {isCancelling ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                          Annullamento...
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="w-4 h-4 mr-2" />
+                          Annulla Appuntamento
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      )}
-      </div>
-      </div>
       </div>
     </div>
   );

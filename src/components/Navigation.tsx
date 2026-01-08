@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Home, ShoppingBag, User, Building2, LogOut, UserCheck, MessageCircle, Scissors, Bell, ListChecks, Settings, Clock, MoreVertical } from 'lucide-react';
+import { Calendar, Users, Home, ShoppingBag, User, Building2, LogOut, UserCheck, MessageCircle, Scissors, Bell, ListChecks, Settings, Clock, MoreVertical, CreditCard } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../contexts/NotificationContext';
@@ -36,12 +36,12 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
           return;
         }
       }
-      
+
       // Priorità 2: Costruisci URL pubblico da logo_path (se bucket è pubblico)
       if (shop?.logo_path) {
-        const publicUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/shop-logos/${shop.logo_path}`;
+        const publicUrl = `${API_CONFIG.SUPABASE_EDGE_URL} /storage/v1 / object / public / shop - logos / ${shop.logo_path} `;
         setShopLogoUrl(publicUrl);
-        
+
         // Verifica se l'URL funziona, altrimenti prova signed URL
         try {
           const testRes = await fetch(publicUrl, { method: 'HEAD' });
@@ -67,7 +67,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
         }
         return;
       }
-      
+
       // Priorità 3: Fallback su logo di default
       setShopLogoUrl(DEFAULT_LOGO);
     };
@@ -96,6 +96,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
     { id: 'profile', label: 'Poltrone', icon: User, permission: 'profile' },
     { id: 'shop', label: 'Negozio', icon: Building2, permission: 'shop' },
     { id: 'settings', label: 'Opzioni', icon: Settings, permission: 'shop' },
+    { id: 'billing', label: 'Abbonamento', icon: CreditCard, permission: 'shop' },
     // { id: 'analytics', label: 'Analisi', icon: BarChart3, permission: 'analytics' }, // Temporaneamente nascosto
     { id: 'client_profile', label: 'Il Mio Profilo', icon: UserCheck, permission: 'client_profile' },
     { id: 'client_bookings', label: 'Le Mie Prenotazioni', icon: ListChecks, permission: 'client_bookings' },
@@ -118,6 +119,10 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
     if (item.id === 'settings') {
       return user?.role === 'admin';
     }
+    // Billing (Abbonamento) only visible to admin
+    if (item.id === 'billing') {
+      return user?.role === 'admin';
+    }
     return hasPermission(item.permission);
   });
 
@@ -132,7 +137,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
       return items.filter(item => baseItems.includes(item.id));
     } else {
       // Staff/Admin: mostra sempre questi 4 + "Altro"
-      return items.filter(item => 
+      return items.filter(item =>
         ['dashboard', 'calendar', 'clients', 'chat'].includes(item.id)
       );
     }
@@ -145,13 +150,13 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
       if (productsEnabled) {
         primaryIds.push('products');
       }
-      return items.filter(item => 
-        !primaryIds.includes(item.id) && 
+      return items.filter(item =>
+        !primaryIds.includes(item.id) &&
         ['shop', 'client_profile'].includes(item.id)
       );
     } else {
       // Staff/Admin: menu "Altro" contiene tutto tranne i 4 principali e notifiche
-      return items.filter(item => 
+      return items.filter(item =>
         !['dashboard', 'calendar', 'clients', 'chat', 'notifications'].includes(item.id)
       );
     }
@@ -160,10 +165,10 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
   // Reorder items for client users (for desktop sidebar)
   if (user?.role === 'client') {
     // Build client order dynamically based on products enabled status
-    const clientOrder = areProductsEnabled 
+    const clientOrder = areProductsEnabled
       ? ['client_booking', 'client_bookings', 'products', 'chat', 'shop', 'client_profile']
       : ['client_booking', 'client_bookings', 'chat', 'shop', 'client_profile'];
-    
+
     navItems = clientOrder
       .map(id => navItems.find(item => item.id === id))
       .filter(Boolean) as typeof navItems;
@@ -181,24 +186,24 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
           <div className="flex-1 flex flex-col pt-3 pb-4 overflow-y-auto">
             {/* Logo Section */}
             <div className="flex items-center justify-center flex-shrink-0 px-6 py-6 mb-2 aurora-logo-container">
-              <img 
-                src={shopLogoUrl || DEFAULT_LOGO} 
-                alt="Logo negozio" 
+              <img
+                src={shopLogoUrl || DEFAULT_LOGO}
+                alt="Logo negozio"
                 className="w-28 h-28 object-contain filter brightness-110 aurora-logo"
               />
             </div>
-            
+
             {/* Separator Line Below Logo (tra logo e menu) - per tutti i temi */}
             <div className="mx-4 mb-2 theme-separator-top"></div>
-            
+
             <nav className="mt-1 flex-1 px-4 space-y-1.5">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const showChatBadge = item.id === 'chat' && chatBadgeCount > 0;
                 const showClientBookingsBadge = item.id === 'client_bookings' && user?.role === 'client' && unreadEarlierOffers > 0;
                 // Mostra "Il Mio Barbiere" per i clienti, altrimenti la label originale
-                const displayLabel = item.id === 'shop' && user?.role === 'client' 
-                  ? 'Il Mio Barbiere' 
+                const displayLabel = item.id === 'shop' && user?.role === 'client'
+                  ? 'Il Mio Barbiere'
                   : item.label;
                 return (
                   <button
@@ -227,7 +232,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                 );
               })}
             </nav>
-            
+
             {/* Notification Button - Only for staff/admin */}
             {(user?.role === 'admin' || user?.role === 'barber') && (
               <div className="px-4 mt-4 mb-4">
@@ -252,9 +257,9 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                 </button>
               </div>
             )}
-            
+
             {/* Separator Line Above User Info - per tutti i temi - RIMOSSA per Aurora */}
-            
+
             {/* User Info and Logout */}
             <div className="mt-auto px-4 pb-4">
               <div className="pt-4">
@@ -294,7 +299,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
       </div>
 
       {/* Mobile Bottom Navigation - Redesigned */}
-      <div 
+      <div
         className={cn(
           'md:hidden fixed bottom-0 left-0 right-0 z-50',
           'glass-sidebar-dark border-t',
@@ -304,7 +309,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
         )}
         style={{
           borderTopColor: 'var(--theme-sidebar-border, rgba(238, 207, 84, 0.3))',
-          paddingBottom: `max(0.75rem, env(safe-area-inset-bottom, 0.75rem))`,
+          paddingBottom: `max(0.75rem, env(safe - area - inset - bottom, 0.75rem))`,
         }}
       >
         <div className="flex items-center justify-around px-2 py-3">
@@ -313,7 +318,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
             const showChatBadge = item.id === 'chat' && chatBadgeCount > 0;
             const showClientBookingsBadge = item.id === 'client_bookings' && user?.role === 'client' && unreadEarlierOffers > 0;
             const isActive = activeTab === item.id;
-            
+
             return (
               <button
                 key={item.id}
@@ -354,7 +359,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
               </button>
             );
           })}
-          
+
           {/* Menu "Altro" Button */}
           <button
             onClick={() => setShowMobileMenu(true)}

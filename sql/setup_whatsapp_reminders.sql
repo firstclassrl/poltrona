@@ -147,6 +147,7 @@ ALTER TABLE public.whatsapp_outbox ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Staff può vedere i messaggi del proprio shop
 -- NOTA: service_role bypassa RLS automaticamente, quindi n8n può inserire/aggiornare senza policy
+DROP POLICY IF EXISTS "Staff can view shop whatsapp_outbox" ON public.whatsapp_outbox;
 CREATE POLICY "Staff can view shop whatsapp_outbox" ON public.whatsapp_outbox
   FOR SELECT
   USING (
