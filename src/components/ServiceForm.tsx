@@ -20,6 +20,7 @@ export const ServiceForm = ({ isOpen, onClose, onSave, service, mode }: ServiceF
     price_cents: 0,
     active: true,
     image_url: undefined,
+    is_duration_variable: false,
   });
 
   const [priceText, setPriceText] = useState<string>('');
@@ -36,11 +37,12 @@ export const ServiceForm = ({ isOpen, onClose, onSave, service, mode }: ServiceF
         price_cents: service.price_cents ?? 0,
         active: service.active !== false,
         image_url: service.image_url,
+        is_duration_variable: !!service.is_duration_variable,
       });
       const priceEuro = ((service.price_cents ?? 0) / 100).toFixed(2).replace('.', '.');
       setPriceText(priceEuro);
     } else {
-      setFormData({ name: '', duration_min: 30, price_cents: 0, active: true });
+      setFormData({ name: '', duration_min: 30, price_cents: 0, active: true, is_duration_variable: false });
       setPriceText('');
     }
     setErrors({});
@@ -67,6 +69,7 @@ export const ServiceForm = ({ isOpen, onClose, onSave, service, mode }: ServiceF
         price_cents: formData.price_cents,
         active: formData.active,
         image_url: formData.image_url,
+        is_duration_variable: formData.is_duration_variable,
       });
       handleClose();
     } finally {
@@ -75,7 +78,7 @@ export const ServiceForm = ({ isOpen, onClose, onSave, service, mode }: ServiceF
   };
 
   const handleClose = () => {
-    setFormData({ name: '', duration_min: 30, price_cents: 0, active: true });
+    setFormData({ name: '', duration_min: 30, price_cents: 0, active: true, is_duration_variable: false });
     setPriceText('');
     setErrors({});
     onClose();
@@ -133,15 +136,29 @@ export const ServiceForm = ({ isOpen, onClose, onSave, service, mode }: ServiceF
             required
           />
         </div>
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            id="active"
-            checked={formData.active !== false}
-            onChange={e => setFormData(prev => ({ ...prev, active: e.target.checked }))}
-            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-          />
-          <label htmlFor="active" className="text-sm font-medium text-gray-700">Servizio attivo</label>
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="active"
+              checked={formData.active !== false}
+              onChange={e => setFormData(prev => ({ ...prev, active: e.target.checked }))}
+              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <label htmlFor="active" className="text-sm font-medium text-gray-700">Servizio attivo</label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="is_duration_variable"
+              checked={!!formData.is_duration_variable}
+              onChange={e => setFormData(prev => ({ ...prev, is_duration_variable: e.target.checked }))}
+              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <label htmlFor="is_duration_variable" className="text-sm font-medium text-gray-700">
+              Durata variabile (basata su profilo capelli)
+            </label>
+          </div>
         </div>
         <div className="flex space-x-3 pt-4">
           <Button type="button" variant="secondary" onClick={handleClose} className="flex-1" disabled={isLoading}>
