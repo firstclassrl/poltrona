@@ -3254,6 +3254,7 @@ export const apiService = {
         full_name: staffData.full_name,
         role: staffData.role,
         active: staffData.active ?? true,
+        gender: staffData.gender,
       };
 
       // Aggiungi shop_id solo se è un UUID valido (può essere null esplicitamente)
@@ -3356,7 +3357,7 @@ export const apiService = {
       }
 
       // Filtra solo i campi che esistono nel DB (incluso chair_id per assegnazione poltrone)
-      const dbFields = ['shop_id', 'full_name', 'role', 'calendar_id', 'active', 'email', 'phone', 'chair_id', 'profile_photo_url', 'specialties', 'bio'];
+      const dbFields = ['shop_id', 'full_name', 'role', 'calendar_id', 'active', 'email', 'phone', 'chair_id', 'profile_photo_url', 'specialties', 'bio', 'gender'];
       const payload: Record<string, any> = {};
 
       for (const key of dbFields) {
