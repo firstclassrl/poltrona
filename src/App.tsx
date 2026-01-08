@@ -28,6 +28,7 @@ const Chat = lazy(() => import('./components/Chat').then(m => ({ default: m.Chat
 const Notifications = lazy(() => import('./components/Notifications').then(m => ({ default: m.Notifications })));
 const WaitlistDashboard = lazy(() => import('./components/WaitlistDashboard').then(m => ({ default: m.WaitlistDashboard })));
 const Billing = lazy(() => import('./components/Billing').then(m => ({ default: m.Billing })));
+const PlatformAdmin = lazy(() => import('./components/PlatformAdmin').then(m => ({ default: m.PlatformAdmin })));
 import { Paywall } from './components/Paywall';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -44,6 +45,21 @@ import type { CreateAppointmentRequest, UpdateAppointmentRequest, Appointment } 
 
 const AppContent: React.FC = () => {
   const { forceUpdate, needRefresh } = usePWAUpdate();
+
+  // Platform Admin Mode (Hidden Tool)
+  const isPlatformAdmin = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return new URLSearchParams(window.location.search).get('admin_mode') === 'true';
+  }, []);
+
+  if (isPlatformAdmin) {
+    return (
+      <Suspense fallback={<PageSkeleton />}>
+        <PlatformAdmin />
+      </Suspense>
+    );
+  }
+
   const [activeTab, setActiveTab] = useState('dashboard');
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
   const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
