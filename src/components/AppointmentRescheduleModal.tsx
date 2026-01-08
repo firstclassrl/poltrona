@@ -3,6 +3,7 @@ import { ArrowUpCircle, Calendar, Clock, Scissors, User } from 'lucide-react';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
 import { apiService } from '../services/api';
+import { useTerminologyOptional } from '../contexts/TerminologyContext';
 import type { Appointment } from '../types';
 
 interface AppointmentRescheduleModalProps {
@@ -27,6 +28,8 @@ export const AppointmentRescheduleModal: React.FC<AppointmentRescheduleModalProp
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const terminology = useTerminologyOptional();
+  const professionalLabel = terminology?.professional() || 'Professionista';
 
   const earlierStart = useMemo(() => (offer ? new Date(offer.earlierStartAt) : null), [offer]);
   const earlierEnd = useMemo(() => (offer ? new Date(offer.earlierEndAt) : null), [offer]);
@@ -144,7 +147,7 @@ export const AppointmentRescheduleModal: React.FC<AppointmentRescheduleModalProp
             </div>
             <div className="flex items-center gap-2 text-gray-700 text-sm">
               <User className="w-4 h-4" />
-              <span>{appointment.staff?.full_name ?? 'Barbiere'}</span>
+              <span>{appointment.staff?.full_name ?? professionalLabel}</span>
             </div>
             {durationMin !== null && (
               <div className="flex items-center gap-2 text-gray-700 text-sm">

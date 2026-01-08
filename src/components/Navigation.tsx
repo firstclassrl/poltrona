@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useChat } from '../contexts/ChatContext';
 import { useShop } from '../contexts/ShopContext';
+import { useTerminologyOptional } from '../contexts/TerminologyContext';
 import { apiService } from '../services/api';
 import { APP_VERSION } from '../config/version';
 import { API_CONFIG } from '../config/api';
@@ -22,8 +23,12 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
   const { notifications, unreadCount: notificationUnreadCount } = useNotifications();
   const { unreadCount: chatUnreadCount } = useChat();
   const { currentShop: shop } = useShop();
+  const terminology = useTerminologyOptional();
   const [shopLogoUrl, setShopLogoUrl] = useState<string | null>(null);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+
+  // Label dinamica per la voce "Negozio" vista cliente
+  const myShopLabel = terminology ? `Il Mio ${terminology.shop}` : 'Il Mio Negozio';
 
   // Load signed logo when shop changes
   useEffect(() => {
@@ -201,9 +206,9 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                 const Icon = item.icon;
                 const showChatBadge = item.id === 'chat' && chatBadgeCount > 0;
                 const showClientBookingsBadge = item.id === 'client_bookings' && user?.role === 'client' && unreadEarlierOffers > 0;
-                // Mostra "Il Mio Barbiere" per i clienti, altrimenti la label originale
+                // Mostra label dinamica per i clienti, altrimenti la label originale
                 const displayLabel = item.id === 'shop' && user?.role === 'client'
-                  ? 'Il Mio Barbiere'
+                  ? myShopLabel
                   : item.label;
                 return (
                   <button
@@ -386,7 +391,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
         onClose={() => setShowMobileMenu(false)}
         items={secondaryNavItems.map(item => ({
           id: item.id,
-          label: item.id === 'shop' && user?.role === 'client' ? 'Il Mio Barbiere' : item.label,
+          label: item.id === 'shop' && user?.role === 'client' ? myShopLabel : item.label,
           icon: item.icon,
         }))}
         activeTab={activeTab}

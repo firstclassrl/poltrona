@@ -6,6 +6,7 @@ import { Select } from './ui/Select';
 import { Toast } from './ui/Toast';
 import { useChairAssignment } from '../hooks/useChairAssignment';
 import { useToast } from '../hooks/useToast';
+import { useTerminology } from '../contexts/TerminologyContext';
 import { BarberForm } from './BarberForm';
 import { DeleteConfirmation } from './DeleteConfirmation';
 
@@ -23,6 +24,7 @@ export const ChairAssignment = () => {
   } = useChairAssignment();
 
   const { toast, showToast, hideToast } = useToast();
+  const { professional, professionalPlural, noProfessionals } = useTerminology();
 
   const [showBarberForm, setShowBarberForm] = useState(false);
   const [editingStaff, setEditingStaff] = useState<any>(null);
@@ -36,10 +38,10 @@ export const ChairAssignment = () => {
     try {
       if (staffId === '') {
         await unassignStaffFromChair(chairId);
-        showToast('Barbiere rimosso dalla poltrona', 'success');
+        showToast(`${professional()} rimosso dalla poltrona`, 'success');
       } else {
         await assignStaffToChair(chairId, staffId);
-        showToast('Barbiere assegnato alla poltrona con successo!', 'success');
+        showToast(`${professional()} assegnato alla poltrona con successo!`, 'success');
       }
     } catch (error) {
       console.error('Error assigning staff:', error);
@@ -54,10 +56,10 @@ export const ChairAssignment = () => {
     try {
       await addNewStaff(staffData);
       setShowBarberForm(false);
-      showToast('Barbiere creato e salvato nel database con successo!', 'success');
+      showToast(`${professional()} creato e salvato nel database con successo!`, 'success');
     } catch (error) {
       console.error('Error adding staff:', error);
-      showToast('Errore durante la creazione del barbiere. Riprova.', 'error');
+      showToast(`Errore durante la creazione. Riprova.`, 'error');
     } finally {
       setIsSaving(false);
     }
@@ -65,16 +67,16 @@ export const ChairAssignment = () => {
 
   const handleUpdateStaff = async (staffData: any) => {
     if (!editingStaff) return;
-    
+
     setIsSaving(true);
     try {
       await updateStaff(editingStaff.id, staffData);
       setShowBarberForm(false);
       setEditingStaff(null);
-      showToast('Barbiere aggiornato nel database con successo!', 'success');
+      showToast(`${professional()} aggiornato nel database con successo!`, 'success');
     } catch (error) {
       console.error('Error updating staff:', error);
-      showToast('Errore durante l\'aggiornamento del barbiere. Riprova.', 'error');
+      showToast(`Errore durante l'aggiornamento. Riprova.`, 'error');
     } finally {
       setIsSaving(false);
     }
@@ -92,19 +94,19 @@ export const ChairAssignment = () => {
 
   const confirmDeleteStaff = async () => {
     if (!staffToDelete) return;
-    
+
     setIsDeleting(true);
     try {
       await deleteStaff(staffToDelete.id);
       setShowDeleteConfirmation(false);
       setStaffToDelete(null);
-      showToast('Barbiere eliminato dal database con successo!', 'success');
+      showToast(`${professional()} eliminato dal database con successo!`, 'success');
     } catch (error) {
       console.error('Error deleting staff:', error);
       const message =
         error instanceof Error && error.message.includes('23503')
-          ? 'Non puoi eliminare questo barbiere perché ha ancora appuntamenti collegati. Annulla o riassegna prima tutti gli appuntamenti.'
-          : 'Errore durante l\'eliminazione del barbiere. Riprova.';
+          ? `Non puoi eliminare perché ci sono ancora appuntamenti collegati. Annulla o riassegna prima tutti gli appuntamenti.`
+          : `Errore durante l'eliminazione. Riprova.`;
       showToast(message, 'error');
     } finally {
       setIsDeleting(false);
@@ -121,11 +123,11 @@ export const ChairAssignment = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold text-gray-900">Gestione Poltrone e Barbieri</h2>
+        <h2 className="text-2xl font-semibold text-gray-900">Gestione Poltrone e {professionalPlural()}</h2>
         <div className="flex space-x-2">
           <Button onClick={() => setShowBarberForm(true)} disabled={isSaving}>
             <UserPlus className="w-5 h-5 mr-2" />
-            Aggiungi Barbiere
+            Aggiungi {professional()}
           </Button>
         </div>
       </div>
@@ -145,63 +147,61 @@ export const ChairAssignment = () => {
             </div>
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Barbiere Assegnato
-                </label>
-                <Select
-                  value={assignment.staffId || ''}
-                  onChange={(e) => handleAssignStaff(assignment.chairId, e.target.value)}
-                  disabled={isSaving}
-                  options={[
-                    { value: '', label: 'Nessun barbiere assegnato' },
-                    ...availableStaff
-                      .filter(staff => !staff.chair_id || staff.chair_id === assignment.chairId)
-                      .map(staff => ({
-                        value: staff.id,
-                        label: staff.full_name,
-                      })),
-                  ]}
-                />
-              </div>
-
-              {assignment.isAssigned && (
-                <div className="bg-green-50 p-3 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <Users className="w-4 h-4 text-green-600" />
-                    <span className="text-sm font-medium text-green-800">
-                      {assignment.staffName} - {availableStaff.find(s => s.id === assignment.staffId)?.role}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {!assignment.isAssigned && (
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <UserMinus className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm text-gray-600">Poltrona disponibile</span>
-                  </div>
-                </div>
-              )}
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {professional()} Assegnato
+              </label>
+              <Select
+                value={assignment.staffId || ''}
+                onChange={(e) => handleAssignStaff(assignment.chairId, e.target.value)}
+                disabled={isSaving}
+                options={[
+                  { value: '', label: `Nessun ${professional().toLowerCase()} assegnato` },
+                  ...availableStaff
+                    .filter(staff => !staff.chair_id || staff.chair_id === assignment.chairId)
+                    .map(staff => ({
+                      value: staff.id,
+                      label: staff.full_name,
+                    })),
+                ]}
+              />
             </div>
+
+            {assignment.isAssigned && (
+              <div className="bg-green-50 p-3 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <Users className="w-4 h-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-800">
+                    {assignment.staffName} - {availableStaff.find(s => s.id === assignment.staffId)?.role}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {!assignment.isAssigned && (
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <UserMinus className="w-4 h-4 text-gray-500" />
+                  <span className="text-sm text-gray-600">Poltrona disponibile</span>
+                </div>
+              </div>
+            )}
           </Card>
         ))}
       </div>
 
       {/* Gestione Barbieri */}
       <Card className="p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Gestione Barbieri</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Gestione {professionalPlural()}</h3>
         <p className="text-sm text-gray-600 mb-6">
-          Qui puoi modificare o eliminare i barbieri del negozio. 
+          Qui puoi modificare o eliminare i {professionalPlural().toLowerCase()} del negozio.
           <span className="text-blue-600"> I dati vengono salvati direttamente nel database.</span>
         </p>
-        
+
         {availableStaff.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-            <p>Nessun barbiere presente nel database.</p>
-            <p className="text-sm">Clicca "Aggiungi Barbiere" per crearne uno.</p>
+            <p>{noProfessionals}</p>
+            <p className="text-sm">Clicca "Aggiungi {professional()}" per crearne uno.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -232,7 +232,7 @@ export const ChairAssignment = () => {
                     variant="secondary"
                     size="sm"
                     onClick={() => handleEditStaff(staff)}
-                    title="Modifica barbiere"
+                    title={`Modifica ${professional().toLowerCase()}`}
                     disabled={isSaving}
                   >
                     <Edit className="w-4 h-4" />
@@ -242,7 +242,7 @@ export const ChairAssignment = () => {
                     size="sm"
                     onClick={() => handleDeleteStaff(staff)}
                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    title="Elimina barbiere"
+                    title={`Elimina ${professional().toLowerCase()}`}
                     disabled={isSaving}
                   >
                     <Trash2 className="w-4 h-4" />
@@ -268,7 +268,7 @@ export const ChairAssignment = () => {
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-gray-600">{availableStaff.filter(staff => !staff.chair_id).length}</div>
-            <div className="text-sm text-gray-600">Barbieri Disponibili</div>
+            <div className="text-sm text-gray-600">{professionalPlural()} Disponibili</div>
           </div>
         </div>
       </Card>
@@ -292,18 +292,18 @@ export const ChairAssignment = () => {
         isOpen={showDeleteConfirmation}
         onClose={cancelDeleteStaff}
         onConfirm={confirmDeleteStaff}
-        title="Elimina Barbiere"
-        message="Sei sicuro di voler eliminare questo barbiere? Questa azione non può essere annullata."
+        title={`Elimina ${professional()}`}
+        message={`Sei sicuro di voler eliminare? Questa azione non può essere annullata.`}
         itemName={staffToDelete?.full_name || ''}
         isLoading={isDeleting}
       />
 
       {/* Toast Notification */}
-      <Toast 
-        message={toast.message} 
-        type={toast.type} 
-        isVisible={toast.isVisible} 
-        onClose={hideToast} 
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={hideToast}
       />
     </div>
   );

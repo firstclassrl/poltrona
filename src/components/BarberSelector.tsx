@@ -3,6 +3,7 @@ import { User, ChevronDown } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Avatar } from './ui/Avatar';
 import { useChairAssignment } from '../hooks/useChairAssignment';
+import { useTerminology } from '../contexts/TerminologyContext';
 
 interface BarberSelectorProps {
   onBarberSelect?: (staffId: string) => void;
@@ -11,9 +12,12 @@ interface BarberSelectorProps {
 
 export const BarberSelector = ({ onBarberSelect, className = '' }: BarberSelectorProps) => {
   const { availableStaff, activeStaffId, setActiveStaff, getActiveStaff } = useChairAssignment();
+  const { selectProfessional, noProfessionals, professional } = useTerminology();
   const [isOpen, setIsOpen] = useState(false);
 
   const activeStaff = getActiveStaff();
+  const selectLabel = selectProfessional();
+  const noStaffLabel = `Nessun ${professional().toLowerCase()} selezionato`;
 
   const handleBarberSelect = (staffId: string) => {
     setActiveStaff(staffId);
@@ -29,17 +33,17 @@ export const BarberSelector = ({ onBarberSelect, className = '' }: BarberSelecto
         className="w-full justify-between"
       >
         <div className="flex items-center space-x-3">
-          <Avatar 
-            name={activeStaff?.full_name || 'Seleziona Barbiere'}
+          <Avatar
+            name={activeStaff?.full_name || selectLabel}
             size="sm"
             imageUrl={activeStaff?.profile_photo_url || undefined}
           />
           <div className="text-left">
             <div className="font-medium text-gray-900">
-              {activeStaff?.full_name || 'Seleziona Barbiere'}
+              {activeStaff?.full_name || selectLabel}
             </div>
             <div className="text-sm text-gray-500">
-              {activeStaff?.role || 'Nessun barbiere selezionato'}
+              {activeStaff?.role || noStaffLabel}
             </div>
           </div>
         </div>
@@ -50,19 +54,18 @@ export const BarberSelector = ({ onBarberSelect, className = '' }: BarberSelecto
         <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
           {availableStaff.length === 0 ? (
             <div className="p-4 text-center text-gray-500">
-              Nessun barbiere disponibile
+              {noProfessionals}
             </div>
           ) : (
             availableStaff.map((staff) => (
               <button
                 key={staff.id}
                 onClick={() => handleBarberSelect(staff.id)}
-                className={`w-full p-4 text-left hover:bg-gray-50 transition-colors ${
-                  activeStaffId === staff.id ? 'bg-blue-50 border-l-4 border-blue-500' : ''
-                }`}
+                className={`w-full p-4 text-left hover:bg-gray-50 transition-colors ${activeStaffId === staff.id ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+                  }`}
               >
                 <div className="flex items-center space-x-3">
-                  <Avatar 
+                  <Avatar
                     name={staff.full_name}
                     size="md"
                     imageUrl={staff.profile_photo_url || undefined}

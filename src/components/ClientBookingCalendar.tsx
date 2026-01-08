@@ -9,6 +9,7 @@ import { useNotifications } from '../contexts/NotificationContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useShop } from '../contexts/ShopContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useTerminology } from '../contexts/TerminologyContext';
 import { useAppointments } from '../hooks/useAppointments';
 import { useVacationMode } from '../hooks/useVacationMode';
 import { useUserProfile } from '../hooks/useUserProfile';
@@ -33,6 +34,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
   const { getUserProfile } = useUserProfile();
   const { appointments, createAppointment } = useAppointments();
   const { isDateInVacation, vacationPeriod, getVacationPeriod } = useVacationMode();
+  const { professional, professionalPlural, selectProfessional, noProfessionals } = useTerminology();
 
   // Force reload vacation period on mount - sometimes the hook doesn't load it initially
   useEffect(() => {
@@ -673,7 +675,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
 
     // Build description
     const descriptionParts: string[] = [];
-    descriptionParts.push(`Barbiere: ${barber.full_name}`);
+    descriptionParts.push(`${professional(barber.gender)}: ${barber.full_name}`);
     if (currentShop?.name) {
       descriptionParts.push(`Negozio: ${currentShop.name}`);
     }
@@ -800,19 +802,19 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
               className="relative overflow-hidden rounded-3xl shadow-xl mb-8 p-6 md:p-10 transition-all duration-300"
               style={{
                 background: `linear-gradient(135deg, ${palette.colors.primaryStrong} 0%, ${palette.colors.primary} 100%)`,
-                color: palette.colors.accent
+                color: palette.id === 'aurora' ? '#ffffff' : palette.colors.accent
               }}
             >
               <div className="relative z-10">
                 <h1
                   className="text-2xl md:text-3xl font-bold mb-2"
-                  style={{ color: palette.colors.accent }}
+                  style={{ color: palette.id === 'aurora' ? '#ffffff' : palette.colors.accent }}
                 >
                   Ciao, {userName}!
                 </h1>
                 <p
                   className="text-lg max-w-xl opacity-90"
-                  style={{ color: palette.colors.accentSoft }}
+                  style={{ color: palette.id === 'aurora' ? 'rgba(255, 255, 255, 0.9)' : palette.colors.accentSoft }}
                 >
                   È il momento di prenderti cura di te. Prenota il tuo prossimo taglio.
                 </p>
@@ -874,7 +876,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
               <div className={`space-y-4 transition-all duration-300 ${!selectedService ? 'opacity-50 grayscale pointer-events-none' : 'opacity-100'}`}>
                 <div className="flex items-center space-x-2 px-1">
                   <User className="w-5 h-5 text-gray-700" />
-                  <h3 className="text-lg font-semibold text-gray-900">Scegli Barbiere</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">{selectProfessional()}</h3>
                 </div>
 
                 <div className="flex space-x-4 overflow-x-auto pb-4 px-1 scrollbar-hide -mx-4 md:mx-0 px-4 md:px-0">
@@ -970,7 +972,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
               </div>
             ) : !bookingDuration || !selectedBarber ? (
               <div className="text-center py-12 text-gray-700 bg-white/40 border border-white/30 rounded-2xl shadow-lg backdrop-blur-xl">
-                <p className="text-lg font-semibold">Seleziona servizio e barbiere</p>
+                <p className="text-lg font-semibold">Seleziona servizio e {professional().toLowerCase()}</p>
                 <p className="text-sm mt-1">Poi vedrai il calendario mensile con gli orari disponibili.</p>
               </div>
             ) : currentView === 'monthly' ? (
@@ -1255,7 +1257,7 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
                     )}
                     {selectedBarber && (
                       <p>
-                        <strong>Barbiere:</strong>{' '}
+                        <strong>{professional(staff.find((b) => b.id === selectedBarber)?.gender)}:</strong>{' '}
                         {staff.find((b) => b.id === selectedBarber)?.full_name || ''}
                       </p>
                     )}

@@ -9,6 +9,7 @@ import { CustomerForm } from './CustomerForm';
 // removed mock clients: all data comes from API
 import { useDailyShopHours } from '../hooks/useDailyShopHours';
 import { useAppointments } from '../hooks/useAppointments';
+import { useTerminology } from '../contexts/TerminologyContext';
 import { checkAppointmentOverlap } from '../utils/date';
 import type { Client, CreateAppointmentRequest, UpdateAppointmentRequest, Service, Staff, Appointment } from '../types';
 
@@ -55,6 +56,7 @@ export const AppointmentForm = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { isTimeWithinHours, isDateOpen, getAvailableTimeSlots, shopHoursLoaded } = useDailyShopHours();
   const { appointments } = useAppointments();
+  const { professional, selectProfessional, professionalPlural } = useTerminology();
 
   // Load services and staff from API
   useEffect(() => {
@@ -241,7 +243,7 @@ export const AppointmentForm = ({
     } else {
       if (!formData.client_id) newErrors.client_id = 'Seleziona cliente';
     }
-    if (!formData.staff_id) newErrors.staff_id = 'Seleziona barbiere';
+    if (!formData.staff_id) newErrors.staff_id = `Seleziona ${professional().toLowerCase()}`;
     if (!formData.service_id) newErrors.service_id = 'Seleziona servizio';
     if (!formData.date) newErrors.date = 'Seleziona data';
     if (!formData.time) newErrors.time = 'Seleziona orario';
@@ -305,7 +307,7 @@ export const AppointmentForm = ({
       );
 
       if (hasOverlap) {
-        newErrors.time = 'Questo orario è già occupato per questo barbiere';
+        newErrors.time = `Questo orario è già occupato per questo ${professional().toLowerCase()}`;
       }
     }
 
@@ -504,11 +506,11 @@ export const AppointmentForm = ({
 
         {/* Staff Selection */}
         <Select
-          label="Barbiere"
+          label={professional()}
           value={formData.staff_id}
           onChange={(e) => setFormData(prev => ({ ...prev, staff_id: e.target.value }))}
           options={[
-            { value: '', label: isLoading ? 'Caricamento barbieri...' : 'Seleziona barbiere' },
+            { value: '', label: isLoading ? `Caricamento ${professionalPlural().toLowerCase()}...` : selectProfessional() },
             ...staff.map(staff => ({ value: staff.id, label: staff.full_name }))
           ]}
           error={errors.staff_id}

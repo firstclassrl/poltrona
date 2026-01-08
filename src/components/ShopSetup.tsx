@@ -3,7 +3,8 @@ import { Card } from './ui/Card';
 import { Input } from './ui/Input';
 import { Button } from './ui/Button';
 import { apiService } from '../services/api';
-import type { Shop, ShopHoursConfig, Staff, Service } from '../types';
+import type { Shop, ShopHoursConfig, Staff, Service, ShopType } from '../types';
+import { shopTypeOptions, getShopTerminology } from '../config/terminology';
 import { ThemeSelector } from './ThemeSelector';
 import { useTheme } from '../contexts/ThemeContext';
 import { DEFAULT_THEME_ID, type ThemePaletteId } from '../theme/palettes';
@@ -22,12 +23,12 @@ const getTokenFromUrl = (): string | null => {
   const params = new URLSearchParams(window.location.search);
   const token = params.get('token');
   const result = token && token.trim().length > 0 ? token.trim() : null;
-  
+
   // Log per debug
   if (result) {
   } else {
   }
-  
+
   return result;
 };
 
@@ -56,7 +57,7 @@ export const ShopSetup: React.FC = () => {
   const [adminAccessToken, setAdminAccessToken] = useState<string | null>(null);
   const [adminUserId, setAdminUserId] = useState<string | null>(null);
   const [inviteAdminUserId, setInviteAdminUserId] = useState<string | null>(null);
-  
+
   // Nuovi state per le slide aggiuntive
   const [shopHours, setShopHours] = useState<ShopHoursConfig>(createDefaultShopHoursConfig());
   const [barberData, setBarberData] = useState<Partial<Staff>>({
@@ -87,31 +88,36 @@ export const ShopSetup: React.FC = () => {
     email: '',
     notification_email: '',
     theme_palette: (themeId as ThemePaletteId) || DEFAULT_THEME_ID,
+    shop_type: 'barbershop' as ShopType,
   });
+
+  // Get terminology based on selected shop type
+  const shopTerminology = useMemo(() => getShopTerminology(form.shop_type), [form.shop_type]);
+  const professionalLabel = shopTerminology.professional.male; // Default to male for form labels
 
   useEffect(() => {
     const validate = async () => {
-      
+
       if (!inviteToken) {
         console.error('❌ ShopSetup: Token mancante nell\'URL');
         setError('Token di invito mancante o non valido. Verifica che il link contenga ?token=...');
         setIsValidating(false);
         return;
       }
-      
-      
+
+
       try {
         const valid = await apiService.validateShopInvite(inviteToken);
-        
+
         if (!valid) {
           console.error('❌ ShopSetup: Validazione token fallita');
           setError('Link di invito non valido o scaduto. Verifica che il token sia corretto e non sia già stato usato.');
           setTokenValid(false);
         } else {
-          
+
           setTokenValid(true);
           setError(null);
-          
+
           // Salva l'admin_user_id associato al token (se presente)
           // Se non presente, permetteremo a qualsiasi admin di usare il token
           if (valid.admin_user_id) {
@@ -161,12 +167,12 @@ export const ShopSetup: React.FC = () => {
   const handleLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     if (!file.type.startsWith('image/')) {
       setError('Solo file immagine sono permessi.');
       return;
     }
-    
+
     if (file.size > 5 * 1024 * 1024) {
       setError('Il file è troppo grande. Massimo 5MB.');
       return;
@@ -189,11 +195,11 @@ export const ShopSetup: React.FC = () => {
     try {
       const encoded = encodeURIComponent(link);
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encoded}&size=500x500`;
-      
+
       // Fetch the QR code image
       const response = await fetch(qrUrl);
       const blob = await response.blob();
-      
+
       // Create a download link
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -211,15 +217,15 @@ export const ShopSetup: React.FC = () => {
 
   const goToSlide = (targetSlide: Slide) => {
     if (targetSlide === currentSlide || isTransitioning) return;
-    
+
     if (targetSlide > currentSlide) {
       setSlideDirection('forward');
     } else {
       setSlideDirection('backward');
     }
-    
+
     setIsTransitioning(true);
-    
+
     // Cambia slide immediatamente, animazione solo visiva
     setTimeout(() => {
       setCurrentSlide(targetSlide);
@@ -298,7 +304,7 @@ export const ShopSetup: React.FC = () => {
     }
 
     setError(null);
-    
+
     // Verifica configurazione Supabase
     if (!API_CONFIG.SUPABASE_EDGE_URL || !API_CONFIG.SUPABASE_ANON_KEY) {
       const missing = [];
@@ -310,12 +316,12 @@ export const ShopSetup: React.FC = () => {
 
     try {
       const tokenUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/token?grant_type=password`;
-      
-      
+
+
       // Crea un AbortController per timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 secondi timeout
-      
+
       let tokenRes: Response;
       try {
         tokenRes = await fetch(tokenUrl, {
@@ -325,9 +331,9 @@ export const ShopSetup: React.FC = () => {
             'apikey': API_CONFIG.SUPABASE_ANON_KEY,
             'Authorization': `Bearer ${API_CONFIG.SUPABASE_ANON_KEY}`,
           },
-          body: JSON.stringify({ 
-            email: adminEmail.trim().toLowerCase(), 
-            password: adminPassword 
+          body: JSON.stringify({
+            email: adminEmail.trim().toLowerCase(),
+            password: adminPassword
           }),
           signal: controller.signal
         });
@@ -335,19 +341,19 @@ export const ShopSetup: React.FC = () => {
       } catch (fetchError: any) {
         clearTimeout(timeoutId);
         console.error('❌ handleLogin: Errore fetch:', fetchError);
-        
+
         if (fetchError.name === 'AbortError') {
           throw new Error('Timeout: La richiesta ha impiegato troppo tempo. Verifica la connessione internet.');
         }
-        
+
         if (fetchError.message?.includes('Failed to fetch') || fetchError.message?.includes('Load failed')) {
           throw new Error('Impossibile connettersi al server. Verifica:\n1. La connessione internet\n2. Che l\'URL di Supabase sia corretto\n3. Che non ci siano problemi di CORS o firewall');
         }
-        
+
         throw new Error(`Errore di connessione: ${fetchError.message || 'Impossibile connettersi al server'}`);
       }
 
-      
+
       if (!tokenRes.ok) {
         let errorMessage = 'Credenziali non valide';
         try {
@@ -375,7 +381,7 @@ export const ShopSetup: React.FC = () => {
 
       const tokenJson = JSON.parse(responseText);
       const accessToken = tokenJson.access_token;
-      
+
       // Recupera user_id dal token JWT
       let userId: string | null = null;
       if (tokenJson.user?.id) {
@@ -407,15 +413,15 @@ export const ShopSetup: React.FC = () => {
             'Authorization': `Bearer ${accessToken}`,
           },
         });
-        
+
         if (profileRes.ok) {
           const profiles = await profileRes.json();
           const profile = profiles?.[0];
-          
+
           if (!profile || profile.role !== 'admin') {
             throw new Error('L\'utente non ha i permessi di amministratore. Contatta il supporto.');
           }
-          
+
           // Verifica che l'admin non sia già associato a un altro negozio
           if (profile.shop_id) {
             throw new Error('Questo admin è già associato a un negozio. Non puoi creare un nuovo negozio con questo account.');
@@ -435,14 +441,14 @@ export const ShopSetup: React.FC = () => {
       setAdminAccessToken(accessToken);
       setAdminUserId(userId);
       setIsLoggedIn(true);
-      
+
       // Salva anche in localStorage per persistenza
       localStorage.setItem('auth_token', accessToken);
       if (tokenJson.refresh_token) {
         localStorage.setItem('refresh_token', tokenJson.refresh_token);
       }
-      
-      
+
+
       // Vai alla slide successiva
       nextSlide();
     } catch (loginError) {
@@ -461,7 +467,7 @@ export const ShopSetup: React.FC = () => {
       setError('Devi accettare i termini di servizio e la privacy policy.');
       return;
     }
-    
+
     setError(null);
     setIsSubmitting(true);
 
@@ -491,12 +497,13 @@ export const ShopSetup: React.FC = () => {
         notification_email: form.notification_email || undefined,
         description: form.description || undefined,
         theme_palette: form.theme_palette || DEFAULT_THEME_ID,
+        shop_type: form.shop_type || 'barbershop',
       });
 
       // STEP 3: Aggiorna il profilo admin con shop_id (il ruolo admin è già impostato nel database)
       if (shop.id) {
         await new Promise(resolve => setTimeout(resolve, 500)); // Attendi che il trigger completi
-        
+
         const profileUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/profiles?user_id=eq.${adminUserId}`;
         const profileRes = await fetch(profileUrl, {
           method: 'PATCH',
@@ -531,7 +538,7 @@ export const ShopSetup: React.FC = () => {
       if (logoFile && shop.id && adminAccessToken) {
         try {
           setIsUploadingLogo(true);
-          
+
           const bucket = 'shop-logos';
           const mimeToExt: Record<string, string> = {
             'image/jpeg': 'jpg',
@@ -575,7 +582,7 @@ export const ShopSetup: React.FC = () => {
           }
 
           const publicUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/${bucket}/${objectPath}`;
-          
+
           // Aggiorna il negozio con il logo usando il token admin
           const updateShopUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/shops?id=eq.${shop.id}`;
           const updateShopRes = await fetch(updateShopUrl, {
@@ -611,12 +618,12 @@ export const ShopSetup: React.FC = () => {
       }
 
       const link = buildShopUrl(shop.slug || autoSlug);
-      
+
       // Applica il tema scelto e persivilo
       // Priorità: tema salvato nel negozio > tema scelto nel form > default
       const themeToApply = (shop.theme_palette as ThemePaletteId) || form.theme_palette || DEFAULT_THEME_ID;
-      
-      
+
+
       // Se il tema non è stato salvato nel negozio, aggiornalo nel database
       if (!shop.theme_palette && form.theme_palette && shop.id) {
         try {
@@ -633,7 +640,7 @@ export const ShopSetup: React.FC = () => {
               theme_palette: form.theme_palette
             })
           });
-          
+
           if (updateShopRes.ok) {
             const updated = await updateShopRes.json();
             if (updated && updated[0]) {
@@ -646,10 +653,10 @@ export const ShopSetup: React.FC = () => {
           console.error('❌ ShopSetup: Errore aggiornamento tema:', updateError);
         }
       }
-      
+
       // Applica il tema con persistenza (salva in localStorage per questo shop)
       setTheme(themeToApply, { persist: true });
-      
+
       // STEP 4: Salva gli orari del negozio
       if (shop.id && adminAccessToken) {
         try {
@@ -662,7 +669,7 @@ export const ShopSetup: React.FC = () => {
           setError(`Negozio creato con successo, ma errore nel salvataggio degli orari: ${hoursError instanceof Error ? hoursError.message : 'Errore sconosciuto'}. Puoi configurare gli orari successivamente dalle impostazioni.`);
         }
       }
-      
+
       // STEP 5: Crea il barbiere
       if (shop.id && adminAccessToken && barberData.full_name && barberData.email && barberData.role) {
         try {
@@ -680,7 +687,7 @@ export const ShopSetup: React.FC = () => {
           setError(`${currentError ? currentError + ' ' : ''}Errore nella creazione del barbiere: ${barberError instanceof Error ? barberError.message : 'Errore sconosciuto'}. Puoi aggiungere barbieri successivamente dalle impostazioni.`);
         }
       }
-      
+
       // STEP 6: Crea il servizio
       if (shop.id && adminAccessToken && serviceData.name && serviceData.duration_min && serviceData.price_cents !== undefined) {
         try {
@@ -698,7 +705,7 @@ export const ShopSetup: React.FC = () => {
           setError(`${currentError ? currentError + ' ' : ''}Errore nella creazione del servizio: ${serviceError instanceof Error ? serviceError.message : 'Errore sconosciuto'}. Puoi aggiungere servizi successivamente dalle impostazioni.`);
         }
       }
-      
+
       setSuccess({ shop, link });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Errore durante la creazione del negozio');
@@ -711,20 +718,20 @@ export const ShopSetup: React.FC = () => {
   const SlideWelcome = () => (
     <div className="text-center space-y-4 py-2">
       <div className="flex justify-center mb-4">
-        <div 
+        <div
           className="relative"
           style={{
             filter: 'drop-shadow(0 10px 40px rgba(59, 130, 246, 0.3))',
           }}
         >
-        <img 
-          src="/logo Poltrona 2025.png" 
-          alt="Logo Poltrona" 
-            className="h-24 w-auto object-contain" 
-        />
+          <img
+            src="/logo Poltrona 2025.png"
+            alt="Logo Poltrona"
+            className="h-24 w-auto object-contain"
+          />
+        </div>
       </div>
-      </div>
-      <h1 
+      <h1
         className="text-4xl md:text-5xl font-bold mb-2"
         style={{
           fontFamily: '"Inter", "Segoe UI", system-ui, -apple-system, sans-serif',
@@ -740,7 +747,7 @@ export const ShopSetup: React.FC = () => {
         Il sistema di gestione appuntamenti più completo per il tuo negozio
       </p>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-5xl mx-auto mt-6">
-        <div 
+        <div
           className="p-5 rounded-2xl relative overflow-hidden transition-all duration-300"
           style={{
             background: 'rgba(255, 255, 255, 0.7)',
@@ -750,7 +757,7 @@ export const ShopSetup: React.FC = () => {
           }}
         >
           <div className="relative z-10">
-            <div 
+            <div
               className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4 relative overflow-hidden"
               style={{
                 background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(96, 165, 250, 0.3) 100%)',
@@ -760,12 +767,12 @@ export const ShopSetup: React.FC = () => {
               }}
             >
               <Building2 className="w-7 h-7 text-white drop-shadow-lg" />
-          </div>
+            </div>
             <h3 className="font-semibold text-[#1e40af] text-base mb-2">Gestione Completa</h3>
             <p className="text-xs text-gray-600 leading-tight">Appuntamenti, clienti, staff e prodotti in un'unica piattaforma</p>
-        </div>
           </div>
-        <div 
+        </div>
+        <div
           className="p-5 rounded-2xl relative overflow-hidden transition-all duration-300"
           style={{
             background: 'rgba(255, 255, 255, 0.7)',
@@ -775,7 +782,7 @@ export const ShopSetup: React.FC = () => {
           }}
         >
           <div className="relative z-10">
-            <div 
+            <div
               className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4 relative overflow-hidden"
               style={{
                 background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(96, 165, 250, 0.3) 100%)',
@@ -785,12 +792,12 @@ export const ShopSetup: React.FC = () => {
               }}
             >
               <Phone className="w-7 h-7 text-white drop-shadow-lg" />
-        </div>
+            </div>
             <h3 className="font-semibold text-[#1e40af] text-base mb-2">Notifiche Automatiche</h3>
             <p className="text-xs text-gray-600 leading-tight">Email e SMS automatici per te e i tuoi clienti</p>
           </div>
         </div>
-        <div 
+        <div
           className="p-5 rounded-2xl relative overflow-hidden transition-all duration-300"
           style={{
             background: 'rgba(255, 255, 255, 0.7)',
@@ -800,7 +807,7 @@ export const ShopSetup: React.FC = () => {
           }}
         >
           <div className="relative z-10">
-            <div 
+            <div
               className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4 relative overflow-hidden"
               style={{
                 background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(96, 165, 250, 0.3) 100%)',
@@ -827,7 +834,7 @@ export const ShopSetup: React.FC = () => {
         <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Contatti</h2>
         <p className="text-gray-600">Inserisci i tuoi contatti per le comunicazioni</p>
       </div>
-      
+
       <div className="space-y-6">
         <Input
           label="Telefono *"
@@ -876,7 +883,7 @@ export const ShopSetup: React.FC = () => {
         <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Personalizza il Tema</h2>
         <p className="text-gray-600">Scegli i colori del tuo negozio</p>
       </div>
-      
+
       <div className="border-2 border-[#1e40af]/30 rounded-lg p-6 bg-white/60 backdrop-blur-sm">
         <ThemeSelector
           value={form.theme_palette as ThemePaletteId}
@@ -941,7 +948,7 @@ export const ShopSetup: React.FC = () => {
   // Renderizza direttamente il contenuto basato sulla slide corrente
   // Non usare funzioni che vengono ricreate ad ogni render per evitare perdita di focus
   let slideContent: React.ReactNode = null;
-  
+
   if (currentSlide === 1) {
     slideContent = <SlideWelcome />;
   } else if (currentSlide === 2) {
@@ -949,7 +956,7 @@ export const ShopSetup: React.FC = () => {
     slideContent = (
       <div className="space-y-6">
         <div className="text-center mb-8">
-          <div 
+          <div
             className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-6 relative overflow-hidden"
             style={{
               background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(147, 51, 234, 0.3) 100%)',
@@ -959,14 +966,14 @@ export const ShopSetup: React.FC = () => {
             }}
           >
             <Shield className="w-10 h-10 text-white relative z-10 drop-shadow-lg" />
-            <div 
+            <div
               className="absolute inset-0 opacity-50"
               style={{
                 background: 'radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4) 0%, transparent 70%)',
               }}
             />
           </div>
-          <h2 
+          <h2
             className="text-4xl font-bold mb-3"
             style={{
               color: '#1e40af',
@@ -977,9 +984,9 @@ export const ShopSetup: React.FC = () => {
           </h2>
           <p className="text-gray-700 text-lg">Accedi con le credenziali admin fornite</p>
         </div>
-        
+
         {isLoggedIn ? (
-          <div 
+          <div
             className="p-6 rounded-xl relative overflow-hidden"
             style={{
               background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(16, 185, 129, 0.2) 100%)',
@@ -997,7 +1004,7 @@ export const ShopSetup: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div 
+          <div
             className="space-y-6 p-6 rounded-2xl relative overflow-hidden"
             style={{
               background: 'rgba(255, 255, 255, 0.6)',
@@ -1006,50 +1013,49 @@ export const ShopSetup: React.FC = () => {
               boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.5)',
             }}
           >
-          <div className="space-y-6">
-            <Input
-              label="Email admin *"
-              labelClassName="text-[#1e40af] font-medium"
-              type="email"
-              value={adminEmail}
-              onChange={(e) => setAdminEmail(e.target.value)}
-              placeholder="admin@negozio.com"
-              required
-              disabled={isLoggedIn}
-            />
-            <div className="relative">
+            <div className="space-y-6">
               <Input
-                label="Password *"
+                label="Email admin *"
                 labelClassName="text-[#1e40af] font-medium"
-                type={showAdminPassword ? 'text' : 'password'}
-                value={adminPassword}
-                onChange={(e) => setAdminPassword(e.target.value)}
-                placeholder="Inserisci la password"
+                type="email"
+                value={adminEmail}
+                onChange={(e) => setAdminEmail(e.target.value)}
+                placeholder="admin@negozio.com"
                 required
                 disabled={isLoggedIn}
               />
+              <div className="relative">
+                <Input
+                  label="Password *"
+                  labelClassName="text-[#1e40af] font-medium"
+                  type={showAdminPassword ? 'text' : 'password'}
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  placeholder="Inserisci la password"
+                  required
+                  disabled={isLoggedIn}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAdminPassword(!showAdminPassword)}
+                  className="absolute right-3 top-8 text-gray-400 hover:text-gray-600 transition-colors"
+                  disabled={isLoggedIn}
+                >
+                  {showAdminPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
               <button
                 type="button"
-                onClick={() => setShowAdminPassword(!showAdminPassword)}
-                  className="absolute right-3 top-8 text-gray-400 hover:text-gray-600 transition-colors"
-                disabled={isLoggedIn}
+                onClick={handleLogin}
+                disabled={!adminEmail.trim() || !adminPassword.trim()}
+                className={`w-full flex items-center justify-center gap-2 px-6 py-3 font-semibold rounded-xl transition-all duration-300 ${!adminEmail.trim() || !adminPassword.trim()
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-[#1e40af] hover:bg-[#1e3a8a] text-white shadow-lg'
+                  }`}
               >
-                {showAdminPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                <Shield className="w-5 h-5" />
+                Accedi
               </button>
-            </div>
-            <button
-              type="button"
-              onClick={handleLogin}
-              disabled={!adminEmail.trim() || !adminPassword.trim()}
-                className={`w-full flex items-center justify-center gap-2 px-6 py-3 font-semibold rounded-xl transition-all duration-300 ${
-                  !adminEmail.trim() || !adminPassword.trim()
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-[#1e40af] hover:bg-[#1e3a8a] text-white shadow-lg'
-                }`}
-            >
-              <Shield className="w-5 h-5" />
-              Accedi
-            </button>
             </div>
           </div>
         )}
@@ -1063,7 +1069,7 @@ export const ShopSetup: React.FC = () => {
           <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Informazioni Negozio</h2>
           <p className="text-gray-600">Inserisci i dati principali del tuo negozio</p>
         </div>
-        
+
         <div className="space-y-6">
           <Input
             label="Nome negozio *"
@@ -1073,52 +1079,76 @@ export const ShopSetup: React.FC = () => {
             required
             placeholder="Es: Barberia Roma"
           />
-          
-        <div>
-          <label className="block text-sm font-medium text-[#1e40af] mb-2">Descrizione *</label>
-          <textarea
-            className="w-full border-2 border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e40af] focus:border-[#1e40af] bg-white text-gray-900 transition-all"
-            rows={4}
-            value={form.description}
-            onChange={(e) => handleChange('description', e.target.value)}
-            placeholder="Descrivi il tuo negozio..."
-            required
-          />
-        </div>
+
+          {/* Shop Type Selection */}
+          <div>
+            <label className="block text-sm font-medium text-[#1e40af] mb-2">Tipologia attività *</label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {shopTypeOptions.map((option) => (
+                <button
+                  key={option.type}
+                  type="button"
+                  onClick={() => handleChange('shop_type', option.type)}
+                  className={`p-4 rounded-xl border-2 transition-all hover:shadow-md text-left ${form.shop_type === option.type
+                    ? 'border-[#1e40af] bg-blue-50'
+                    : 'border-gray-200 bg-white hover:border-blue-300'
+                    }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span>{option.icon}</span>
+                    <span className="font-medium text-gray-900">{option.name}</span>
+                  </div>
+                  <div className="text-sm text-gray-500">{option.description}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-[#1e40af] mb-2">Descrizione *</label>
+            <textarea
+              className="w-full border-2 border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e40af] focus:border-[#1e40af] bg-white text-gray-900 transition-all"
+              rows={4}
+              value={form.description}
+              onChange={(e) => handleChange('description', e.target.value)}
+              placeholder="Descrivi il tuo negozio..."
+              required
+            />
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input
-            label="Indirizzo *"
-            labelClassName="text-[#1e40af] font-medium"
-            value={form.address}
-            onChange={(e) => handleChange('address', e.target.value)}
-            placeholder="Via, numero civico"
-            required
-          />
-          <Input
-            label="CAP *"
-            labelClassName="text-[#1e40af] font-medium"
-            value={form.postal_code}
-            onChange={(e) => handleChange('postal_code', e.target.value)}
-            placeholder="00100"
-            required
-          />
-          <Input
-            label="Città *"
-            labelClassName="text-[#1e40af] font-medium"
-            value={form.city}
-            onChange={(e) => handleChange('city', e.target.value)}
-            placeholder="Roma"
-            required
-          />
-          <Input
-            label="Provincia *"
-            labelClassName="text-[#1e40af] font-medium"
-            value={form.province}
-            onChange={(e) => handleChange('province', e.target.value)}
-            placeholder="RM"
-            required
-          />
+            <Input
+              label="Indirizzo *"
+              labelClassName="text-[#1e40af] font-medium"
+              value={form.address}
+              onChange={(e) => handleChange('address', e.target.value)}
+              placeholder="Via, numero civico"
+              required
+            />
+            <Input
+              label="CAP *"
+              labelClassName="text-[#1e40af] font-medium"
+              value={form.postal_code}
+              onChange={(e) => handleChange('postal_code', e.target.value)}
+              placeholder="00100"
+              required
+            />
+            <Input
+              label="Città *"
+              labelClassName="text-[#1e40af] font-medium"
+              value={form.city}
+              onChange={(e) => handleChange('city', e.target.value)}
+              placeholder="Roma"
+              required
+            />
+            <Input
+              label="Provincia *"
+              labelClassName="text-[#1e40af] font-medium"
+              value={form.province}
+              onChange={(e) => handleChange('province', e.target.value)}
+              placeholder="RM"
+              required
+            />
           </div>
 
           <div>
@@ -1167,7 +1197,7 @@ export const ShopSetup: React.FC = () => {
           <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Contatti</h2>
           <p className="text-gray-600">Inserisci i tuoi contatti per le comunicazioni</p>
         </div>
-        
+
         <div className="space-y-6">
           <Input
             label="Telefono *"
@@ -1215,7 +1245,7 @@ export const ShopSetup: React.FC = () => {
           <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Personalizza il Tema</h2>
           <p className="text-gray-600">Scegli i colori del tuo negozio</p>
         </div>
-        
+
         <div className="border-2 border-[#1e40af]/30 rounded-lg p-6 bg-white/60 backdrop-blur-sm">
           <ThemeSelector
             value={form.theme_palette as ThemePaletteId}
@@ -1283,7 +1313,7 @@ export const ShopSetup: React.FC = () => {
     slideContent = (
       <div className="space-y-6">
         <div className="text-center mb-6">
-          <div 
+          <div
             className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-4 relative overflow-hidden"
             style={{
               background: 'rgba(59, 130, 246, 0.2)',
@@ -1294,7 +1324,7 @@ export const ShopSetup: React.FC = () => {
           >
             <Clock className="w-10 h-10 text-[#1e40af] relative z-10 drop-shadow-sm" />
           </div>
-          <h2 
+          <h2
             className="text-4xl font-bold mb-2"
             style={{
               color: '#1e40af',
@@ -1305,8 +1335,8 @@ export const ShopSetup: React.FC = () => {
           </h2>
           <p className="text-gray-700 text-lg">Configura gli orari di apertura del tuo negozio</p>
         </div>
-        
-        <div 
+
+        <div
           className="rounded-2xl p-6 relative overflow-hidden"
           style={{
             background: 'rgba(255, 255, 255, 0.7)',
@@ -1317,7 +1347,7 @@ export const ShopSetup: React.FC = () => {
         >
           <div className="space-y-4">
             <div className="flex items-center space-x-3 mb-4">
-              <div 
+              <div
                 className="p-2 rounded-lg"
                 style={{
                   background: 'rgba(59, 130, 246, 0.2)',
@@ -1334,17 +1364,17 @@ export const ShopSetup: React.FC = () => {
               {DAYS_OF_WEEK.map((day) => {
                 const dayHours = shopHours[day.key];
                 const isOpen = dayHours.isOpen;
-                
+
                 return (
-                  <div 
-                    key={day.key} 
+                  <div
+                    key={day.key}
                     className="rounded-xl p-4 relative overflow-hidden transition-all duration-300"
                     style={{
-                      background: isOpen 
+                      background: isOpen
                         ? 'rgba(255, 255, 255, 0.8)'
                         : 'rgba(255, 255, 255, 0.5)',
                       backdropFilter: 'blur(15px) saturate(180%)',
-                      border: isOpen 
+                      border: isOpen
                         ? '1px solid rgba(59, 130, 246, 0.4)'
                         : '1px solid rgba(59, 130, 246, 0.2)',
                       boxShadow: isOpen
@@ -1358,11 +1388,10 @@ export const ShopSetup: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleToggleDay(day.key)}
-                          className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all duration-300 ${
-                            isOpen
-                              ? 'bg-[#1e40af] text-white border border-[#1e40af] hover:bg-[#1e3a8a]'
-                              : 'bg-white/50 text-gray-600 border border-gray-300 hover:bg-white/70'
-                          }`}
+                          className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all duration-300 ${isOpen
+                            ? 'bg-[#1e40af] text-white border border-[#1e40af] hover:bg-[#1e3a8a]'
+                            : 'bg-white/50 text-gray-600 border border-gray-300 hover:bg-white/70'
+                            }`}
                         >
                           {isOpen ? 'Aperto' : 'Chiuso'}
                         </button>
@@ -1440,7 +1469,7 @@ export const ShopSetup: React.FC = () => {
               })}
             </div>
 
-            <div 
+            <div
               className="mt-4 p-4 rounded-xl relative overflow-hidden"
               style={{
                 background: 'rgba(59, 130, 246, 0.1)',
@@ -1464,10 +1493,10 @@ export const ShopSetup: React.FC = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-[#1e40af] rounded-full mb-4">
             <Scissors className="w-8 h-8 text-white" />
           </div>
-          <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Aggiungi un Barbiere</h2>
-          <p className="text-gray-600">Crea almeno un barbiere per il tuo negozio</p>
+          <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Aggiungi un {professionalLabel}</h2>
+          <p className="text-gray-600">Crea almeno un {professionalLabel.toLowerCase()} per il tuo negozio</p>
         </div>
-        
+
         <div className="space-y-6">
           <Input
             label="Nome Completo *"
@@ -1515,7 +1544,7 @@ export const ShopSetup: React.FC = () => {
           <h2 className="text-3xl font-bold text-[#1e40af] mb-2">Aggiungi un Servizio</h2>
           <p className="text-gray-600">Crea almeno un servizio offerto dal tuo negozio</p>
         </div>
-        
+
         <div className="space-y-6">
           <Input
             label="Nome Servizio *"
@@ -1608,7 +1637,7 @@ export const ShopSetup: React.FC = () => {
                 <span className="font-medium text-[#1e40af]">{form.notification_email || 'Non specificato'}</span>
               </div>
               <div className="flex justify-between border-t pt-3 mt-3">
-                <span className="text-gray-600">Barbiere:</span>
+                <span className="text-gray-600">{professionalLabel}:</span>
                 <span className="font-medium text-[#1e40af]">{barberData.full_name || 'Non specificato'}</span>
               </div>
               <div className="flex justify-between">
@@ -1694,7 +1723,7 @@ export const ShopSetup: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white py-12 px-4">
         <div className="max-w-2xl w-full">
-          <div 
+          <div
             className="p-8 md:p-10 rounded-2xl shadow-2xl backdrop-blur-xl border border-white/20"
             style={{
               background: 'linear-gradient(135deg, rgba(96, 165, 250, 0.15) 0%, rgba(59, 130, 246, 0.1) 100%)',
@@ -1726,7 +1755,7 @@ export const ShopSetup: React.FC = () => {
                   Vai al Login!
                 </button>
               </div>
-              
+
               <div className="border-2 border-[#1e40af]/30 rounded-lg p-6 bg-white/60 backdrop-blur-sm">
                 <div className="flex flex-col items-center space-y-4">
                   <ShopQRCode link={success.link} size={200} />
@@ -1740,7 +1769,7 @@ export const ShopSetup: React.FC = () => {
                   </button>
                 </div>
               </div>
-              
+
               <p className="text-sm text-gray-600">
                 Condividi il link o il QR code con i tuoi clienti per permettere loro di registrarsi.
               </p>
@@ -1765,13 +1794,13 @@ export const ShopSetup: React.FC = () => {
   }
 
   return (
-    <div 
+    <div
       className="min-h-screen flex flex-col py-6 px-4 relative overflow-hidden"
       style={{
         background: 'linear-gradient(135deg, #e0f2fe 0%, #bfdbfe 50%, #dbeafe 100%)',
       }}
     >
-      <div 
+      <div
         className="absolute inset-0"
         style={{
           background: 'radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(96, 165, 250, 0.1) 0%, transparent 50%)',
@@ -1779,7 +1808,7 @@ export const ShopSetup: React.FC = () => {
       />
       <div className="max-w-4xl w-full mx-auto flex flex-col h-[calc(100vh-3rem)] max-h-[900px] relative z-10">
         {/* Progress bar */}
-        <div 
+        <div
           className="w-full rounded-full h-2 mb-6 relative overflow-hidden"
           style={{
             background: 'rgba(255, 255, 255, 0.5)',
@@ -1789,7 +1818,7 @@ export const ShopSetup: React.FC = () => {
         >
           <div
             className="h-2 rounded-full transition-all duration-300"
-            style={{ 
+            style={{
               width: `${(currentSlide / 9) * 100}%`,
               background: 'linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%)',
             }}
@@ -1799,7 +1828,7 @@ export const ShopSetup: React.FC = () => {
         {/* Slide container - flex-1 per occupare lo spazio disponibile */}
         <div className="relative overflow-hidden rounded-2xl flex-1 min-h-0 mb-6">
           <div className={`h-full ${currentSlide === 1 ? 'overflow-hidden flex items-center' : 'overflow-y-auto'}`}>
-            <div 
+            <div
               className={`p-6 md:p-8 rounded-2xl relative overflow-hidden w-full ${currentSlide === 1 ? '' : 'min-h-full'}`}
               style={{
                 background: 'rgba(255, 255, 255, 0.8)',
@@ -1809,15 +1838,15 @@ export const ShopSetup: React.FC = () => {
               }}
             >
               <div className="relative z-10">
-              {error && (
-                <div className="bg-red-50 border-2 border-red-200 text-red-800 p-4 rounded-lg mb-6">
-                  <div className="flex items-start gap-3">
-                    <X className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-                    <p className="font-medium">{error}</p>
+                {error && (
+                  <div className="bg-red-50 border-2 border-red-200 text-red-800 p-4 rounded-lg mb-6">
+                    <div className="flex items-start gap-3">
+                      <X className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                      <p className="font-medium">{error}</p>
+                    </div>
                   </div>
-                </div>
-              )}
-              {slideContent}
+                )}
+                {slideContent}
               </div>
             </div>
           </div>
@@ -1829,11 +1858,10 @@ export const ShopSetup: React.FC = () => {
             type="button"
             onClick={prevSlide}
             disabled={currentSlide === 1}
-            className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:ring-offset-2 ${
-              currentSlide === 1
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-[#1e40af] hover:bg-[#1e3a8a] text-white shadow-lg'
-            }`}
+            className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:ring-offset-2 ${currentSlide === 1
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              : 'bg-[#1e40af] hover:bg-[#1e3a8a] text-white shadow-lg'
+              }`}
           >
             <ChevronLeft className="w-4 h-4" />
             Indietro
@@ -1845,11 +1873,10 @@ export const ShopSetup: React.FC = () => {
                 key={slide}
                 type="button"
                 onClick={() => goToSlide(slide as Slide)}
-                className={`h-2 rounded-full transition-all ${
-                  currentSlide === slide
-                    ? 'bg-[#1e40af] w-8'
-                    : 'bg-white/40 hover:bg-white/60 w-2'
-                }`}
+                className={`h-2 rounded-full transition-all ${currentSlide === slide
+                  ? 'bg-[#1e40af] w-8'
+                  : 'bg-white/40 hover:bg-white/60 w-2'
+                  }`}
                 aria-label={`Vai alla slide ${slide}`}
               />
             ))}
@@ -1860,11 +1887,10 @@ export const ShopSetup: React.FC = () => {
               type="button"
               onClick={nextSlide}
               disabled={!validateSlide(currentSlide)}
-              className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:ring-offset-2 ${
-                !validateSlide(currentSlide)
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-[#1e40af] hover:bg-[#1e3a8a] text-white shadow-lg'
-              }`}
+              className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:ring-offset-2 ${!validateSlide(currentSlide)
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-[#1e40af] hover:bg-[#1e3a8a] text-white shadow-lg'
+                }`}
             >
               Avanti
               <ChevronRight className="w-4 h-4" />
@@ -1874,11 +1900,10 @@ export const ShopSetup: React.FC = () => {
               type="button"
               onClick={handleSubmit}
               disabled={!privacyAccepted || isSubmitting || isUploadingLogo}
-              className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:ring-offset-2 ${
-                !privacyAccepted || isSubmitting || isUploadingLogo
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-[#1e40af] hover:bg-[#1e3a8a] text-white shadow-lg'
-              }`}
+              className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:ring-offset-2 ${!privacyAccepted || isSubmitting || isUploadingLogo
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-[#1e40af] hover:bg-[#1e3a8a] text-white shadow-lg'
+                }`}
             >
               {isSubmitting || isUploadingLogo ? (
                 <>
@@ -1912,13 +1937,13 @@ export const ShopSetup: React.FC = () => {
       </div>
 
       {/* Modali per Termini e Privacy */}
-      <PrivacyPolicy 
-        isOpen={showPrivacyModal} 
-        onClose={() => setShowPrivacyModal(false)} 
+      <PrivacyPolicy
+        isOpen={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
       />
-      <TermsOfService 
-        isOpen={showTermsModal} 
-        onClose={() => setShowTermsModal(false)} 
+      <TermsOfService
+        isOpen={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
       />
     </div>
   );

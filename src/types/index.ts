@@ -1,3 +1,6 @@
+import type { ShopType, Gender } from '@/config/terminology';
+export type { ShopType, Gender };
+
 export interface Client {
   id: string;
   shop_id: string | null;
@@ -24,6 +27,7 @@ export interface Staff {
   phone?: string | null;
   specialties?: string | null;
   bio?: string | null;
+  gender?: Gender; // Genere per declinazione terminologia
   created_at: string;
 }
 
@@ -99,6 +103,7 @@ export interface Shop {
   id: string;
   slug: string;
   name: string;
+  shop_type?: ShopType; // Tipo di attività: barbershop, hairdresser, beauty_salon
   address?: string;
   postal_code?: string;
   city?: string;

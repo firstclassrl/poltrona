@@ -35,6 +35,7 @@ import { NotificationProvider } from './contexts/NotificationContext';
 import { ShopProvider, useShop } from './contexts/ShopContext';
 import { ChatProvider } from './contexts/ChatContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import { TerminologyProvider } from './contexts/TerminologyContext';
 import { SubscriptionProvider, useSubscription } from './contexts/SubscriptionContext';
 import type { ThemePaletteId } from './theme/palettes';
 import { APP_VERSION, VERSION_ENDPOINT } from './config/version';
@@ -334,13 +335,15 @@ function App() {
     <AuthProvider>
       <ShopProvider>
         <ThemeProvider>
-          <SubscriptionProvider>
-            <NotificationProvider>
-              <ChatProvider>
-                <AppContent />
-              </ChatProvider>
-            </NotificationProvider>
-          </SubscriptionProvider>
+          <TerminologyProvider>
+            <SubscriptionProvider>
+              <NotificationProvider>
+                <ChatProvider>
+                  <AppContent />
+                </ChatProvider>
+              </NotificationProvider>
+            </SubscriptionProvider>
+          </TerminologyProvider>
         </ThemeProvider>
       </ShopProvider>
     </AuthProvider>

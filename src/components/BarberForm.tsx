@@ -5,7 +5,9 @@ import { Input } from './ui/Input';
 import { Modal } from './ui/Modal';
 import { Select } from './ui/Select';
 import { PhotoUpload } from './PhotoUpload';
-import type { Staff } from '../types';
+import { useTerminology } from '../contexts/TerminologyContext';
+import { genderOptions } from '../config/terminology';
+import type { Staff, Gender } from '../types';
 
 interface BarberFormProps {
   isOpen: boolean;
@@ -16,6 +18,7 @@ interface BarberFormProps {
 }
 
 export const BarberForm = ({ isOpen, onClose, onSave, staff, mode }: BarberFormProps) => {
+  const { professional, professionalActive } = useTerminology();
   const [formData, setFormData] = useState({
     shop_id: null as string | null,
     full_name: '',
@@ -25,8 +28,9 @@ export const BarberForm = ({ isOpen, onClose, onSave, staff, mode }: BarberFormP
     active: true,
     chair_id: '',
     profile_photo_url: '',
+    gender: 'male' as Gender,
   });
-  
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [profileImageUrl, setProfileImageUrl] = useState('');
 
@@ -49,6 +53,7 @@ export const BarberForm = ({ isOpen, onClose, onSave, staff, mode }: BarberFormP
           active: staff.active ?? true,
           chair_id: staff.chair_id || '',
           profile_photo_url: staff.profile_photo_url || '',
+          gender: staff.gender || 'male',
         });
         setProfileImageUrl(staff.profile_photo_url || '');
       } else {
@@ -67,6 +72,7 @@ export const BarberForm = ({ isOpen, onClose, onSave, staff, mode }: BarberFormP
       active: true,
       chair_id: '',
       profile_photo_url: '',
+      gender: 'male',
     });
     setProfileImageUrl('');
     setErrors({});
@@ -108,12 +114,12 @@ export const BarberForm = ({ isOpen, onClose, onSave, staff, mode }: BarberFormP
 
   const handleSubmit = () => {
     if (!validateForm()) return;
-    
+
     const dataToSave = {
       ...formData,
       profile_photo_url: profileImageUrl || formData.profile_photo_url,
     };
-    
+
     onSave(dataToSave);
     handleClose();
   };
@@ -125,8 +131,8 @@ export const BarberForm = ({ isOpen, onClose, onSave, staff, mode }: BarberFormP
 
   if (!isOpen) return null;
 
-  const title = mode === 'add' ? 'Aggiungi Nuovo Barbiere' : 'Modifica Barbiere';
-  const submitText = mode === 'add' ? 'Aggiungi Barbiere' : 'Salva Modifiche';
+  const title = mode === 'add' ? `Aggiungi Nuovo ${professional()}` : `Modifica ${professional()}`;
+  const submitText = mode === 'add' ? `Aggiungi ${professional()}` : 'Salva Modifiche';
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title={title} size="large">
@@ -141,7 +147,7 @@ export const BarberForm = ({ isOpen, onClose, onSave, staff, mode }: BarberFormP
             error={errors.full_name}
             required
           />
-          
+
           <Input
             label="Email"
             name="email"
@@ -165,6 +171,14 @@ export const BarberForm = ({ isOpen, onClose, onSave, staff, mode }: BarberFormP
             ]}
             error={errors.role}
             required
+          />
+
+          <Select
+            label="Genere"
+            name="gender"
+            value={formData.gender}
+            onChange={handleChange}
+            options={genderOptions.map(opt => ({ value: opt.value, label: opt.label }))}
           />
         </div>
 
@@ -191,7 +205,7 @@ export const BarberForm = ({ isOpen, onClose, onSave, staff, mode }: BarberFormP
             onChange={handleChange}
             className="form-checkbox h-5 w-5 text-blue-600 rounded"
           />
-          <label htmlFor="active" className="text-gray-700">Barbiere Attivo</label>
+          <label htmlFor="active" className="text-gray-700">{professionalActive()}</label>
         </div>
 
         {/* Anteprima */}
@@ -214,7 +228,7 @@ export const BarberForm = ({ isOpen, onClose, onSave, staff, mode }: BarberFormP
               )}
             </div>
             <div>
-              <p className="font-medium text-gray-900">{formData.full_name || 'Nome barbiere'}</p>
+              <p className="font-medium text-gray-900">{formData.full_name || `Nome ${professional().toLowerCase()}`}</p>
               <p className="text-sm text-gray-600">{formData.role || 'Ruolo'}</p>
               <p className="text-sm text-gray-500">
                 {formData.active ? 'Attivo' : 'Inattivo'}
