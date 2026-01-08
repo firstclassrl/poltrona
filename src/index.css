@@ -1820,6 +1820,24 @@ body {
 }
 
 /* ============================================
+   CYBER LILAC THEME: Modal Fixes
+   ============================================ */
+
+/* Cyber Lilac: Forza background bianco solido per le modali */
+[data-theme='cyber-lilac'] div[class*="fixed"][class*="inset"][class*="z-50"]>div[class*="bg-white"],
+[data-theme='cyber-lilac'] div[class*="fixed"][class*="inset"][class*="z-50"] div[class*="bg-white"],
+[data-theme='cyber-lilac'] div[role="dialog"] .bg-white,
+[data-theme='cyber-lilac'] .aurora-modal,
+/* In case it uses aurora classes */
+[data-theme='cyber-lilac'] div[class*="fixed"][class*="inset"][class*="z-50"] input,
+[data-theme='cyber-lilac'] div[class*="fixed"][class*="inset"][class*="z-50"] select,
+[data-theme='cyber-lilac'] div[class*="fixed"][class*="inset"][class*="z-50"] textarea {
+  background-color: #ffffff !important;
+  backdrop-filter: none !important;
+}
+
+
+/* ============================================
    HERITAGE THEME: Modern UI Style (Aurora-based)
    ============================================ */
 
