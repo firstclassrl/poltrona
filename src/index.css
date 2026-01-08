@@ -2004,9 +2004,9 @@ body {
   background: transparent !important;
 }
 
-[data-theme='heritage'] .bg-white:not(.glass-sidebar-dark):not(.login-card-glass),
-[data-theme='heritage'] .page-container-chat-style .bg-white,
-[data-theme='heritage'] .page-container-chat-style [class*="bg-white"] {
+[data-theme='heritage'] .bg-white:not(.glass-sidebar-dark):not(.login-card-glass):not(.aurora-modal):not([role="dialog"]):not([role="dialog"] *),
+[data-theme='heritage'] .page-container-chat-style .bg-white:not(.aurora-modal):not([role="dialog"]):not([role="dialog"] *),
+[data-theme='heritage'] .page-container-chat-style [class*="bg-white"]:not(.aurora-modal):not([role="dialog"]):not([role="dialog"] *) {
   background: #ffffff !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -2547,13 +2547,13 @@ body {
   background: transparent !important;
 }
 
-[data-theme='sunset-neon'] .bg-white:not(.page-card-chat-style):not(.aurora-card):not(.glass-panel):not(.login-card-glass) {
+[data-theme='sunset-neon'] .bg-white:not(.page-card-chat-style):not(.aurora-card):not(.glass-panel):not(.login-card-glass):not(.aurora-modal):not([role="dialog"]):not([role="dialog"] *) {
   background: rgba(255, 255, 255, 0.6) !important;
   backdrop-filter: blur(40px) !important;
   -webkit-backdrop-filter: blur(40px) !important;
 }
 
-[data-theme='sunset-neon'] .bg-white:not(.page-card-chat-style):not(.aurora-card):not(.glass-panel):not(.login-card-glass):not(.aurora-sidebar) {
+[data-theme='sunset-neon'] .bg-white:not(.page-card-chat-style):not(.aurora-card):not(.glass-panel):not(.login-card-glass):not(.aurora-sidebar):not(.aurora-modal):not([role="dialog"]):not([role="dialog"] *) {
   background: rgba(255, 255, 255, 0.6) !important;
   backdrop-filter: blur(40px) !important;
   -webkit-backdrop-filter: blur(40px) !important;
@@ -3074,13 +3074,13 @@ body {
   background: transparent !important;
 }
 
-[data-theme='terra-soft'] .bg-white:not(.page-card-chat-style):not(.aurora-card):not(.glass-panel):not(.login-card-glass) {
+[data-theme='terra-soft'] .bg-white:not(.page-card-chat-style):not(.aurora-card):not(.glass-panel):not(.login-card-glass):not(.aurora-modal):not([role="dialog"]):not([role="dialog"] *) {
   background: rgba(255, 255, 255, 0.6) !important;
   backdrop-filter: blur(40px) !important;
   -webkit-backdrop-filter: blur(40px) !important;
 }
 
-[data-theme='terra-soft'] .bg-white:not(.page-card-chat-style):not(.aurora-card):not(.glass-panel):not(.login-card-glass):not(.aurora-sidebar) {
+[data-theme='terra-soft'] .bg-white:not(.page-card-chat-style):not(.aurora-card):not(.glass-panel):not(.login-card-glass):not(.aurora-sidebar):not(.aurora-modal):not([role="dialog"]):not([role="dialog"] *) {
   background: rgba(255, 255, 255, 0.6) !important;
   backdrop-filter: blur(40px) !important;
   -webkit-backdrop-filter: blur(40px) !important;
@@ -4128,13 +4128,13 @@ body {
   background: transparent !important;
 }
 
-[data-theme='dark-mode'] .bg-white:not(.page-card-chat-style):not(.aurora-card):not(.glass-panel):not(.login-card-glass) {
+[data-theme='dark-mode'] .bg-white:not(.page-card-chat-style):not(.aurora-card):not(.glass-panel):not(.login-card-glass):not(.aurora-modal):not([role="dialog"]):not([role="dialog"] *) {
   background: rgba(255, 255, 255, 0.6) !important;
   backdrop-filter: blur(40px) !important;
   -webkit-backdrop-filter: blur(40px) !important;
 }
 
-[data-theme='dark-mode'] .bg-white:not(.page-card-chat-style):not(.aurora-card):not(.glass-panel):not(.login-card-glass):not(.aurora-sidebar) {
+[data-theme='dark-mode'] .bg-white:not(.page-card-chat-style):not(.aurora-card):not(.glass-panel):not(.login-card-glass):not(.aurora-sidebar):not(.aurora-modal):not([role="dialog"]):not([role="dialog"] *) {
   background: rgba(255, 255, 255, 0.6) !important;
   backdrop-filter: blur(40px) !important;
   -webkit-backdrop-filter: blur(40px) !important;
