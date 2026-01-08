@@ -18,6 +18,7 @@ import { useChairAssignment } from '../hooks/useChairAssignment';
 import { useAppointments } from '../hooks/useAppointments';
 import { useVacationMode } from '../hooks/useVacationMode';
 import { useShop } from '../contexts/ShopContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { AppointmentForm } from './AppointmentForm';
 import { DeleteConfirmation } from './DeleteConfirmation';
 import { apiService } from '../services/api';
@@ -264,7 +265,22 @@ export const Calendar = () => {
 
 
 
+  const { themeId } = useTheme();
+
   const getStatusColor = (status: string) => {
+    // Heritage theme specific styles - Green borders for better visibility
+    if (themeId === 'heritage') {
+      const heritageColors = {
+        scheduled: 'bg-[#f4f7f2] border-[#25401c] text-[#25401c] border', // Light green bg, dark green border/text
+        confirmed: 'bg-[#e0f4e7] border-[#25401c] text-[#25401c] border',
+        in_progress: 'bg-[#dcfce7] border-[#25401c] text-[#25401c] border ring-1 ring-[#25401c]',
+        completed: 'bg-green-50 border-[#25401c] text-[#25401c] border opacity-80',
+        cancelled: 'bg-red-50 border-red-300 text-red-800 opacity-60',
+        no_show: 'bg-red-50 border-red-300 text-red-800 opacity-60',
+      } as const;
+      return heritageColors[status as keyof typeof heritageColors] || heritageColors.scheduled;
+    }
+
     const colors = {
       scheduled: 'bg-yellow-100 border-yellow-400 text-green-800',
       confirmed: 'bg-green-100 border-green-400 text-green-800',

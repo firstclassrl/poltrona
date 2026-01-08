@@ -68,9 +68,9 @@ export const THEME_PALETTES: ThemePalette[] = [
       primaryStrong: '#3c5fe6',
       accent: '#9b7bff',
       accentSoft: '#d8d0ff',
-    accentContrast: '#0f1024',
-    text: '#0f172a',      // testo scuro per fondo chiaro
-    textMuted: '#4b5563',
+      accentContrast: '#0f1024',
+      text: '#0f172a',      // testo scuro per fondo chiaro
+      textMuted: '#4b5563',
       border: '#d5def7',
       success: '#22c55e',
       warning: '#f59e0b',
@@ -154,18 +154,18 @@ export const THEME_PALETTES: ThemePalette[] = [
     previewGradient: 'linear-gradient(135deg, #000000 0%, #1a0a00 100%)',
     colors: {
       background: '#000000',
-      surface: '#0a0a0a',
-      surfaceAlt: '#050505',
+      surface: '#000000',
+      surfaceAlt: '#000000',
       primary: '#ff6b35',        // arancione accent
       primaryStrong: '#e55a2b',
-      accent: '#ff8c42',         // arancione più chiaro
-      accentSoft: '#ffb366',
+      accent: '#ff6b35',         // arancione brand
+      accentSoft: '#ff8c42',
       accentContrast: '#ffffff',
-      text: '#ffffff',            // solo bianco, niente nero
-      textMuted: '#ff8c42',       // arancione per testi muted
-      border: '#ff6b35',          // bordo arancione per card
+      text: '#ffffff',            // solo bianco
+      textMuted: '#cccccc',       // grigio chiaro leggibile (non arancione)
+      border: '#333333',          // bordo grigio scuro
       success: '#22c55e',
-      warning: '#ff8c42',
+      warning: '#f59e0b',
       danger: '#ef4444',
     },
   },

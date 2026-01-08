@@ -195,13 +195,13 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
       {/* Desktop Sidebar */}
       <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
         <div className="flex-1 flex flex-col min-h-0 glass-sidebar-dark aurora-sidebar">
-          <div className="flex-1 flex flex-col pt-3 pb-4 overflow-y-auto">
+          <div className="flex-1 flex flex-col pt-1 pb-4 overflow-y-auto">
             {/* Logo Section */}
-            <div className="flex items-center justify-center flex-shrink-0 px-6 py-6 mb-2 aurora-logo-container">
+            <div className="flex items-center justify-center flex-shrink-0 px-6 py-2 mb-1 aurora-logo-container">
               <img
                 src={shopLogoUrl || DEFAULT_LOGO}
                 alt="Logo negozio"
-                className="w-28 h-28 object-contain filter brightness-110 aurora-logo"
+                className="w-24 h-24 object-contain filter brightness-110 aurora-logo"
               />
             </div>
 

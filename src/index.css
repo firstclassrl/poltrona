@@ -422,92 +422,96 @@ body {
   stroke: #ffffff !important;
 }
 
-/* Dark Mode: sidebar con icone e testi arancioni */
-[data-theme='dark-mode'] .glass-sidebar-dark,
+/* Dark Mode: Sidebar - STRICT BLACK/WHITE/ORANGE */
+[data-theme='dark-mode'] .glass-sidebar-dark {
+  background: #000000 !important;
+  border-right: 1px solid #333333 !important;
+  box-shadow: none !important;
+}
+
+/* Sidebar Text - STRICT WHITE */
 [data-theme='dark-mode'] .glass-sidebar-dark button,
 [data-theme='dark-mode'] .glass-sidebar-dark a,
 [data-theme='dark-mode'] .glass-sidebar-dark span,
+[data-theme='dark-mode'] .glass-sidebar-dark p,
 [data-theme='dark-mode'] .glass-sidebar-dark svg {
-  color: var(--theme-accent) !important;
+  color: #ffffff !important;
 }
 
 [data-theme='dark-mode'] .glass-sidebar-dark svg {
-  stroke: var(--theme-accent) !important;
+  stroke: #ffffff !important;
 }
 
-/* Rimuovi override Aurora: usa i token di palette (testo scuro su fondo chiaro) */
+/* Sidebar Active State - ORANGE */
+[data-theme='dark-mode'] .aurora-nav-item-active {
+  background: rgba(255, 107, 53, 0.15) !important;
+  color: #ff6b35 !important;
+  border-right: 2px solid #ff6b35 !important;
+}
 
-/* Dark Mode: card nere con bordo arancione, solo testi bianchi/arancioni */
+[data-theme='dark-mode'] .aurora-nav-item-active svg {
+  stroke: #ff6b35 !important;
+  color: #ff6b35 !important;
+}
+
+[data-theme='dark-mode'] .aurora-nav-item-active span {
+  color: #ff6b35 !important;
+}
+
+/* Sidebar Hover - Subtle Grey */
+[data-theme='dark-mode'] .glass-sidebar-dark button:hover:not(.aurora-nav-item-active) {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+}
+
+/* Dark Mode: Global Backgrounds - STRICT BLACK */
+[data-theme='dark-mode'] body,
+[data-theme='dark-mode'] html,
+[data-theme='dark-mode'] .app-theme-bg {
+  background: #000000 !important;
+  background-color: #000000 !important;
+}
+
+/* Dark Mode: Cards - BLACK with WHITE Border or Subtle Grey */
 [data-theme='dark-mode'] .bg-white,
 [data-theme='dark-mode'] .surface-card,
 [data-theme='dark-mode'] .surface-card-alt,
 [data-theme='dark-mode'] .bg-gray-50,
 [data-theme='dark-mode'] .bg-gray-100 {
-  background-color: #0a0a0a !important;
-  border-color: var(--theme-border) !important;
+  background-color: #000000 !important;
+  border-color: #333333 !important;
   border-width: 1px !important;
+  color: #ffffff !important;
 }
 
+/* Dark Mode: Text - STRICT WHITE */
 [data-theme='dark-mode'] .text-gray-900,
 [data-theme='dark-mode'] .text-gray-800,
 [data-theme='dark-mode'] .text-gray-700,
 [data-theme='dark-mode'] .text-gray-600,
-[data-theme='dark-mode'] .text-gray-500,
 [data-theme='dark-mode'] .text-black {
   color: #ffffff !important;
 }
 
+/* Muted text - Slightly dimmer white for hierarchy, never unrecognizable */
+[data-theme='dark-mode'] .text-gray-500,
 [data-theme='dark-mode'] .text-gray-400,
 [data-theme='dark-mode'] .text-gray-300 {
-  color: var(--theme-accent) !important;
+  color: #cccccc !important;
 }
 
+/* Dark Mode: Borders */
 [data-theme='dark-mode'] .border-gray-200,
 [data-theme='dark-mode'] .border-gray-300 {
-  border-color: var(--theme-border) !important;
+  border-color: #333333 !important;
 }
 
-/* Dark Mode: riduci drasticamente i glow arancioni sotto le card */
+/* Dark Mode: Shadows - REMOVE or Minimal */
 [data-theme='dark-mode'] .shadow-lg,
 [data-theme='dark-mode'] .shadow-md,
 [data-theme='dark-mode'] .shadow-sm,
 [data-theme='dark-mode'] .shadow {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
-}
-
-[data-theme='dark-mode'] .app-theme-bg {
-  background: #000000 !important;
-}
-
-[data-theme='dark-mode'] .glass-sidebar-dark {
-  background: #000000 !important;
-  border-color: transparent !important;
-  /* Glow arancione sottile invece di verde */
-  box-shadow:
-    0 8px 32px rgba(255, 107, 53, 0.15),
-    0 0 0 1px rgba(255, 140, 66, 0.1),
-    inset 0 1px 0 rgba(255, 140, 66, 0.1) !important;
-}
-
-/* Rimuovi tutti i bordi dalla sidebar in dark-mode */
-[data-theme='dark-mode'] .glass-sidebar-dark .border,
-[data-theme='dark-mode'] .glass-sidebar-dark .border-l-2,
-[data-theme='dark-mode'] .glass-sidebar-dark .border-l-4,
-[data-theme='dark-mode'] .glass-sidebar-dark .border-r,
-[data-theme='dark-mode'] .glass-sidebar-dark .border-t,
-[data-theme='dark-mode'] .glass-sidebar-dark .border-b {
-  border-color: transparent !important;
-  border-width: 0 !important;
-}
-
-[data-theme='dark-mode'] .glass-sidebar-dark button,
-[data-theme='dark-mode'] .glass-sidebar-dark span,
-[data-theme='dark-mode'] .glass-sidebar-dark p {
-  color: var(--theme-accent) !important;
-}
-
-[data-theme='dark-mode'] .glass-sidebar-dark button:hover {
-  color: #ffffff !important;
+  box-shadow: none !important;
 }
 
 /* Barre separatrici per tutti i temi - SOLO DUE: una sopra, una sotto */
