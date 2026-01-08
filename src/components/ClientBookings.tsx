@@ -169,7 +169,7 @@ export const ClientBookings: React.FC = () => {
     const barber = appointment.staff;
     const startDateTime = new Date(appointment.start_at);
     const endDateTime = appointment.end_at ? new Date(appointment.end_at) : new Date(startDateTime.getTime() + (service.duration_min || 60) * 60000);
-    
+
     // Build location string
     const locationParts: string[] = [];
     if (shop?.name) {
@@ -195,18 +195,20 @@ export const ClientBookings: React.FC = () => {
     const description = descriptionParts.join('\n');
 
     // Generate calendar event
-    const icsContent = generateICSFile({
+    const eventData = {
       title: service.name,
       startDate: startDateTime,
       endDate: endDateTime,
       description,
       location: location || undefined,
       uid: `appointment-${appointment.id}@poltrona`,
-    });
+    };
 
-    // Download the file
+    const icsContent = generateICSFile(eventData);
+
+    // Download the file or open calendar
     const filename = `appuntamento-${service.name.toLowerCase().replace(/\s+/g, '-')}-${startDateTime.toISOString().split('T')[0]}.ics`;
-    downloadICSFile(icsContent, filename);
+    downloadICSFile(icsContent, filename, eventData);
   };
 
   const openRescheduleModal = async (appointment: Appointment) => {
@@ -363,14 +365,14 @@ export const ClientBookings: React.FC = () => {
 
     try {
       await apiService.cancelAppointmentDirect(selectedAppointment.id);
-      
+
       // Crea notifica in-app per il barbiere
       if (selectedAppointment.staff_id && selectedAppointment.staff) {
         try {
           const staffDetails = selectedAppointment.staff;
           const clientName = user?.full_name || 'Cliente';
           const serviceName = selectedAppointment.services?.name || 'Servizio';
-          
+
           const appointmentDate = new Date(selectedAppointment.start_at).toLocaleDateString('it-IT', {
             weekday: 'long',
             day: 'numeric',
@@ -378,17 +380,17 @@ export const ClientBookings: React.FC = () => {
             year: 'numeric',
             timeZone: 'Europe/Rome',
           });
-          
+
           const appointmentTime = new Date(selectedAppointment.start_at).toLocaleTimeString('it-IT', {
             hour: '2-digit',
             minute: '2-digit',
             hour12: false,
             timeZone: 'Europe/Rome',
           });
-          
+
           // Usa user_id se disponibile (collegato a auth.users), altrimenti usa id
           const notificationUserId = staffDetails.user_id || staffDetails.id || selectedAppointment.staff_id;
-          
+
           await apiService.createNotification({
             user_id: notificationUserId,
             user_type: 'staff',
@@ -409,7 +411,7 @@ export const ClientBookings: React.FC = () => {
           // Non bloccare l'annullamento se la notifica fallisce
         }
       }
-      
+
       await loadAppointments();
       setMessage({ type: 'success', text: 'Prenotazione annullata con successo.' });
     } catch (error) {
@@ -499,239 +501,238 @@ export const ClientBookings: React.FC = () => {
       className="p-0 page-container-chat-style"
     >
       <div className="w-full">
-      <div className="flex flex-col space-y-8">
-      <div className="space-y-8">
-      <div className="text-center glass-panel pb-2">
-        <h1 className="text-3xl font-bold text-gray-900">Le Mie Prenotazioni</h1>
-        <p className="text-gray-700 mt-2">Gestisci e controlla i tuoi appuntamenti</p>
-      </div>
-
-      {message && (
-        <div
-          className={`border rounded-lg p-4 ${
-            message.type === 'success'
-              ? 'bg-green-50/80 border-green-200/80 text-green-800'
-              : 'bg-red-50/80 border-red-200/80 text-red-800'
-          } backdrop-blur shadow-lg`}
-        >
-          {message.text}
-        </div>
-      )}
-
-      {/* Notifiche (solo cliente): proposte per anticipare la prenotazione */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900 flex items-center space-x-2">
-            <Clock className="w-5 h-5 text-emerald-700" />
-            <span>Notifiche</span>
-          </h2>
-        </div>
-
-        {earlierOfferNotifications.length === 0 ? (
-          <Card className="p-5 text-gray-600">
-            Nessuna notifica al momento.
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {earlierOfferNotifications
-              .slice()
-              .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-              .map((n) => {
-                const data = (n.data || {}) as any;
-                const isUnread = !n.read_at;
-                const slotText = data?.earlier_start_at
-                  ? formatOfferDateTime(String(data.earlier_start_at))
-                  : 'Slot disponibile';
-                return (
-                  <Card key={n.id} className="p-4 border border-gray-200">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-lg font-semibold text-gray-900 truncate">{n.title}</p>
-                          {isUnread && <span className="w-2 h-2 bg-red-500 rounded-full" />}
-                        </div>
-                        <p className="text-sm text-gray-700 mt-1">{n.message}</p>
-                        <p className="text-sm text-emerald-700 font-semibold mt-2">
-                          Slot disponibile: {slotText}
-                        </p>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <Button
-                          onClick={() => openEarlierOffer(n)}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                        >
-                          Anticipa
-                        </Button>
-                        <Button variant="secondary" onClick={() => declineEarlierOffer(n)}>
-                          Rifiuta
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })}
-          </div>
-        )}
-      </section>
-
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900 flex items-center space-x-2">
-            <CheckCircle2 className="w-5 h-5 text-green-600" />
-            <span>Prenotazioni attive</span>
-          </h2>
-          <span className="text-sm text-gray-500">
-            {activeAppointments.length} appuntamento{activeAppointments.length !== 1 ? 'i' : ''}
-          </span>
-        </div>
-
-        {activeAppointments.length === 0 ? (
-          <Card className="p-6 text-center text-gray-500">
-            Non hai prenotazioni attive al momento.
-          </Card>
-        ) : (
-          <div className="space-y-4">
-            {activeAppointments.map((apt) => renderAppointmentCard(apt, true))}
-          </div>
-        )}
-      </section>
-
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900 flex items-center space-x-2">
-            <Ban className="w-5 h-5 text-gray-500" />
-            <span>Prenotazioni annullate</span>
-          </h2>
-          <span className="text-sm text-gray-500">
-            {cancelledAppointments.length} appuntamento{cancelledAppointments.length !== 1 ? 'i' : ''}
-          </span>
-        </div>
-
-        {cancelledAppointments.length === 0 ? (
-          <Card className="p-6 text-center text-gray-500">
-            Nessuna prenotazione annullata di recente.
-          </Card>
-        ) : (
-          <div className="space-y-4">
-            {cancelledAppointments.map((apt) => renderAppointmentCard(apt, false))}
-          </div>
-        )}
-      </section>
-
-      <Modal
-        isOpen={isCancelModalOpen}
-        onClose={() => setIsCancelModalOpen(false)}
-        title="Conferma annullamento"
-        size="small"
-      >
-        <div className="space-y-4 text-sm text-gray-700">
-          <p>
-            Sei sicuro di voler annullare la prenotazione per{' '}
-            <strong>{selectedAppointment?.services?.name || 'il servizio selezionato'}</strong> del{' '}
-            <strong>
-              {selectedAppointment &&
-                new Date(selectedAppointment.start_at).toLocaleDateString('it-IT')}
-            </strong>{' '}
-            alle{' '}
-            <strong>
-              {selectedAppointment &&
-                new Date(selectedAppointment.start_at).toLocaleTimeString('it-IT', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: false,
-                })}
-            </strong>
-            ?
-          </p>
-          <p className="text-xs text-gray-500">
-            Il barbiere verrà avvisato automaticamente dell&apos;annullamento.
-          </p>
-          <div className="flex space-x-3">
-            <Button variant="secondary" className="flex-1" onClick={() => setIsCancelModalOpen(false)}>
-              Torna indietro
-            </Button>
-            <Button
-              variant="danger"
-              className="flex-1 bg-red-600 hover:bg-red-700"
-              onClick={handleConfirmCancel}
-              disabled={isCancelling}
-            >
-              {isCancelling ? 'Annullamento...' : 'Conferma annullamento'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
-        isOpen={isRescheduleModalOpen}
-        onClose={() => {
-          setIsRescheduleModalOpen(false);
-          setAppointmentToReschedule(null);
-          setRescheduleSlots([]);
-        }}
-        title="Modifica prenotazione"
-        size="medium"
-      >
-        <div className="space-y-4 text-sm text-gray-700">
-          {isLoadingSlots ? (
-            <p>Caricamento disponibilità...</p>
-          ) : rescheduleSlots.length === 0 ? (
-            <p>Nessuno slot disponibile per il servizio selezionato nei prossimi 3 mesi.</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
-              {rescheduleSlots.map((slot) => {
-                const dateLabel = slot.date.toLocaleDateString('it-IT', {
-                  weekday: 'long',
-                  day: 'numeric',
-                  month: 'long',
-                });
-                return (
-                  <button
-                    key={`${slot.date.toISOString()}-${slot.time}`}
-                    onClick={() => handleConfirmReschedule(slot)}
-                    disabled={isUpdating}
-                    className="border rounded-lg p-3 text-left hover:border-orange-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-300 transition"
-                  >
-                    <div className="text-sm font-semibold capitalize">{dateLabel}</div>
-                    <div className="text-base text-gray-900">{slot.time}</div>
-                  </button>
-                );
-              })}
+        <div className="flex flex-col space-y-8">
+          <div className="space-y-8">
+            <div className="text-center glass-panel pb-2">
+              <h1 className="text-3xl font-bold text-gray-900">Le Mie Prenotazioni</h1>
+              <p className="text-gray-700 mt-2">Gestisci e controlla i tuoi appuntamenti</p>
             </div>
-          )}
-          {isUpdating && <p>Salvataggio modifica...</p>}
-        </div>
-      </Modal>
 
-      {/* Modale "slot prima" */}
-      <AppointmentRescheduleModal
-        isOpen={earlierOffer !== null}
-        offer={
-          earlierOffer
-            ? {
-                waitlistId: earlierOffer.waitlistId,
-                appointmentId: earlierOffer.appointmentId,
-                earlierStartAt: earlierOffer.earlierStartAt,
-                earlierEndAt: earlierOffer.earlierEndAt,
+            {message && (
+              <div
+                className={`border rounded-lg p-4 ${message.type === 'success'
+                    ? 'bg-green-50/80 border-green-200/80 text-green-800'
+                    : 'bg-red-50/80 border-red-200/80 text-red-800'
+                  } backdrop-blur shadow-lg`}
+              >
+                {message.text}
+              </div>
+            )}
+
+            {/* Notifiche (solo cliente): proposte per anticipare la prenotazione */}
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-gray-900 flex items-center space-x-2">
+                  <Clock className="w-5 h-5 text-emerald-700" />
+                  <span>Notifiche</span>
+                </h2>
+              </div>
+
+              {earlierOfferNotifications.length === 0 ? (
+                <Card className="p-5 text-gray-600">
+                  Nessuna notifica al momento.
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  {earlierOfferNotifications
+                    .slice()
+                    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                    .map((n) => {
+                      const data = (n.data || {}) as any;
+                      const isUnread = !n.read_at;
+                      const slotText = data?.earlier_start_at
+                        ? formatOfferDateTime(String(data.earlier_start_at))
+                        : 'Slot disponibile';
+                      return (
+                        <Card key={n.id} className="p-4 border border-gray-200">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-lg font-semibold text-gray-900 truncate">{n.title}</p>
+                                {isUnread && <span className="w-2 h-2 bg-red-500 rounded-full" />}
+                              </div>
+                              <p className="text-sm text-gray-700 mt-1">{n.message}</p>
+                              <p className="text-sm text-emerald-700 font-semibold mt-2">
+                                Slot disponibile: {slotText}
+                              </p>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                              <Button
+                                onClick={() => openEarlierOffer(n)}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                              >
+                                Anticipa
+                              </Button>
+                              <Button variant="secondary" onClick={() => declineEarlierOffer(n)}>
+                                Rifiuta
+                              </Button>
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                </div>
+              )}
+            </section>
+
+            <section className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-gray-900 flex items-center space-x-2">
+                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  <span>Prenotazioni attive</span>
+                </h2>
+                <span className="text-sm text-gray-500">
+                  {activeAppointments.length} appuntamento{activeAppointments.length !== 1 ? 'i' : ''}
+                </span>
+              </div>
+
+              {activeAppointments.length === 0 ? (
+                <Card className="p-6 text-center text-gray-500">
+                  Non hai prenotazioni attive al momento.
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {activeAppointments.map((apt) => renderAppointmentCard(apt, true))}
+                </div>
+              )}
+            </section>
+
+            <section className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-gray-900 flex items-center space-x-2">
+                  <Ban className="w-5 h-5 text-gray-500" />
+                  <span>Prenotazioni annullate</span>
+                </h2>
+                <span className="text-sm text-gray-500">
+                  {cancelledAppointments.length} appuntamento{cancelledAppointments.length !== 1 ? 'i' : ''}
+                </span>
+              </div>
+
+              {cancelledAppointments.length === 0 ? (
+                <Card className="p-6 text-center text-gray-500">
+                  Nessuna prenotazione annullata di recente.
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {cancelledAppointments.map((apt) => renderAppointmentCard(apt, false))}
+                </div>
+              )}
+            </section>
+
+            <Modal
+              isOpen={isCancelModalOpen}
+              onClose={() => setIsCancelModalOpen(false)}
+              title="Conferma annullamento"
+              size="small"
+            >
+              <div className="space-y-4 text-sm text-gray-700">
+                <p>
+                  Sei sicuro di voler annullare la prenotazione per{' '}
+                  <strong>{selectedAppointment?.services?.name || 'il servizio selezionato'}</strong> del{' '}
+                  <strong>
+                    {selectedAppointment &&
+                      new Date(selectedAppointment.start_at).toLocaleDateString('it-IT')}
+                  </strong>{' '}
+                  alle{' '}
+                  <strong>
+                    {selectedAppointment &&
+                      new Date(selectedAppointment.start_at).toLocaleTimeString('it-IT', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false,
+                      })}
+                  </strong>
+                  ?
+                </p>
+                <p className="text-xs text-gray-500">
+                  Il barbiere verrà avvisato automaticamente dell&apos;annullamento.
+                </p>
+                <div className="flex space-x-3">
+                  <Button variant="secondary" className="flex-1" onClick={() => setIsCancelModalOpen(false)}>
+                    Torna indietro
+                  </Button>
+                  <Button
+                    variant="danger"
+                    className="flex-1 bg-red-600 hover:bg-red-700"
+                    onClick={handleConfirmCancel}
+                    disabled={isCancelling}
+                  >
+                    {isCancelling ? 'Annullamento...' : 'Conferma annullamento'}
+                  </Button>
+                </div>
+              </div>
+            </Modal>
+
+            <Modal
+              isOpen={isRescheduleModalOpen}
+              onClose={() => {
+                setIsRescheduleModalOpen(false);
+                setAppointmentToReschedule(null);
+                setRescheduleSlots([]);
+              }}
+              title="Modifica prenotazione"
+              size="medium"
+            >
+              <div className="space-y-4 text-sm text-gray-700">
+                {isLoadingSlots ? (
+                  <p>Caricamento disponibilità...</p>
+                ) : rescheduleSlots.length === 0 ? (
+                  <p>Nessuno slot disponibile per il servizio selezionato nei prossimi 3 mesi.</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+                    {rescheduleSlots.map((slot) => {
+                      const dateLabel = slot.date.toLocaleDateString('it-IT', {
+                        weekday: 'long',
+                        day: 'numeric',
+                        month: 'long',
+                      });
+                      return (
+                        <button
+                          key={`${slot.date.toISOString()}-${slot.time}`}
+                          onClick={() => handleConfirmReschedule(slot)}
+                          disabled={isUpdating}
+                          className="border rounded-lg p-3 text-left hover:border-orange-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-300 transition"
+                        >
+                          <div className="text-sm font-semibold capitalize">{dateLabel}</div>
+                          <div className="text-base text-gray-900">{slot.time}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {isUpdating && <p>Salvataggio modifica...</p>}
+              </div>
+            </Modal>
+
+            {/* Modale "slot prima" */}
+            <AppointmentRescheduleModal
+              isOpen={earlierOffer !== null}
+              offer={
+                earlierOffer
+                  ? {
+                    waitlistId: earlierOffer.waitlistId,
+                    appointmentId: earlierOffer.appointmentId,
+                    earlierStartAt: earlierOffer.earlierStartAt,
+                    earlierEndAt: earlierOffer.earlierEndAt,
+                  }
+                  : null
               }
-            : null
-        }
-        onClose={() => setEarlierOffer(null)}
-        onSuccess={async () => {
-          try {
-            if (earlierOffer?.notificationId) {
-              await deleteNotification(earlierOffer.notificationId);
-            }
-          } catch {
-            // ignore
-          }
-          setEarlierOffer(null);
-          await loadAppointments();
-          setMessage({ type: 'success', text: 'Prenotazione anticipata con successo.' });
-        }}
-      />
-      </div>
-      </div>
+              onClose={() => setEarlierOffer(null)}
+              onSuccess={async () => {
+                try {
+                  if (earlierOffer?.notificationId) {
+                    await deleteNotification(earlierOffer.notificationId);
+                  }
+                } catch {
+                  // ignore
+                }
+                setEarlierOffer(null);
+                await loadAppointments();
+                setMessage({ type: 'success', text: 'Prenotazione anticipata con successo.' });
+              }}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

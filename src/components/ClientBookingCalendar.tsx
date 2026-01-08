@@ -736,18 +736,20 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     const description = descriptionParts.join('\n');
 
     // Generate calendar event
-    const icsContent = generateICSFile({
+    const eventData = {
       title: service.name,
       startDate: startDateTime,
       endDate: endDateTime,
       description,
       location: location || undefined,
       uid: `appointment-${Date.now()}@poltrona`,
-    });
+    };
 
-    // Download the file
+    const icsContent = generateICSFile(eventData);
+
+    // Download the file or open calendar
     const filename = `appuntamento-${service.name.toLowerCase().replace(/\s+/g, '-')}-${startDateTime.toISOString().split('T')[0]}.ics`;
-    downloadICSFile(icsContent, filename);
+    downloadICSFile(icsContent, filename, eventData);
   };
 
   const formatDate = (date: Date) => {

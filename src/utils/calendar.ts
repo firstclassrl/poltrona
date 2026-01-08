@@ -26,7 +26,7 @@ function formatICalDate(date: Date): string {
   const hours = String(date.getUTCHours()).padStart(2, '0');
   const minutes = String(date.getUTCMinutes()).padStart(2, '0');
   const seconds = String(date.getUTCSeconds()).padStart(2, '0');
-  
+
   return `${year}${month}${day}T${hours}${minutes}${seconds}Z`;
 }
 
@@ -115,10 +115,43 @@ function isSafari(): boolean {
 }
 
 /**
- * Scarica un file .ics generato
- * Su iOS/Safari usa un data URL che apre direttamente l'app Calendario
+ * Rileva se il browser è Android
  */
-export function downloadICSFile(icsContent: string, filename: string = 'appuntamento.ics'): void {
+function isAndroid(): boolean {
+  return /Android/i.test(navigator.userAgent);
+}
+
+/**
+ * Genera un URL per aggiungere l'evento a Google Calendar
+ */
+export function generateGoogleCalendarUrl(data: CalendarEventData): string {
+  const { title, startDate, endDate, description = '', location = '' } = data;
+
+  const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+
+  const url = new URL('https://calendar.google.com/calendar/render');
+  url.searchParams.append('action', 'TEMPLATE');
+  url.searchParams.append('text', title);
+  url.searchParams.append('dates', `${fmt(startDate)}/${fmt(endDate)}`);
+  if (description) url.searchParams.append('details', description);
+  if (location) url.searchParams.append('location', location);
+
+  return url.toString();
+}
+
+/**
+ * Scarica un file .ics generato o apre l'URL del calendario appropriato
+ * Su iOS/Safari usa un data URL che apre direttamente l'app Calendario
+ * Su Android apre Google Calendar
+ */
+export function downloadICSFile(icsContent: string, filename: string = 'appuntamento.ics', eventData?: CalendarEventData): void {
+  // Su Android, preferiamo Google Calendar perché gestisce meglio l'apertura automatica
+  if (isAndroid() && eventData) {
+    const googleUrl = generateGoogleCalendarUrl(eventData);
+    window.open(googleUrl, '_blank');
+    return;
+  }
+
   // Su iOS, usa un data URL che aprirà direttamente l'app Calendario
   if (isIOS() || (isSafari() && /iPhone|iPad|iPod/.test(navigator.userAgent))) {
     const dataUrl = `data:text/calendar;charset=utf-8,${encodeURIComponent(icsContent)}`;
@@ -133,11 +166,11 @@ export function downloadICSFile(icsContent: string, filename: string = 'appuntam
   link.href = url;
   link.download = filename;
   link.style.display = 'none';
-  
+
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  
+
   // Clean up the URL object after a short delay
   setTimeout(() => {
     URL.revokeObjectURL(url);
