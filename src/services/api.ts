@@ -1231,6 +1231,16 @@ export const apiService = {
         order: 'start_at.asc',
       });
 
+      // CRITICO: Aggiungi filtro esplicito shop_id come difesa in profondità
+      let shopId = getStoredShopId();
+      if (!shopId) {
+        // Se non trovi shop_id nello storage, prova a recuperarlo dallo stato globale o altro (qui semplificato)
+        // Se manca, le RLS dovrebbero comunque proteggere, ma il filtro esplicito aiuta l'UI
+        console.warn('⚠️ getAppointments: shop_id mancante, RLS sarà l\'unica protezione');
+      } else if (shopId !== 'default') {
+        params.append('shop_id', `eq.${shopId}`);
+      }
+
       // PostgREST usa operatori di filtro nella sintassi: column.operator.value
       // Per il range, usiamo due filtri separati
       const url = `${API_ENDPOINTS.APPOINTMENTS_FEED}?${params.toString()}&start_at=gte.${encodeURIComponent(start)}&start_at=lte.${encodeURIComponent(end)}`;
