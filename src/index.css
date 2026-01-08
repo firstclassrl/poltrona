@@ -1824,16 +1824,46 @@ body {
    ============================================ */
 
 /* Cyber Lilac: Forza background bianco solido per le modali */
-[data-theme='cyber-lilac'] div[class*="fixed"][class*="inset"][class*="z-50"]>div[class*="bg-white"],
-[data-theme='cyber-lilac'] div[class*="fixed"][class*="inset"][class*="z-50"] div[class*="bg-white"],
+/* Cyber Lilac: Forza background bianco solido per le modali */
 [data-theme='cyber-lilac'] div[role="dialog"] .bg-white,
-[data-theme='cyber-lilac'] .aurora-modal,
-/* In case it uses aurora classes */
-[data-theme='cyber-lilac'] div[class*="fixed"][class*="inset"][class*="z-50"] input,
-[data-theme='cyber-lilac'] div[class*="fixed"][class*="inset"][class*="z-50"] select,
-[data-theme='cyber-lilac'] div[class*="fixed"][class*="inset"][class*="z-50"] textarea {
+[data-theme='cyber-lilac'] div[role="dialog"] [class*="bg-white"],
+[data-theme='cyber-lilac'] .aurora-modal {
   background-color: #ffffff !important;
   backdrop-filter: none !important;
+  background-image: none !important;
+  --tw-bg-opacity: 1 !important;
+}
+
+/* Fix inner gray elements to be solid (not glass/transparent) */
+[data-theme='cyber-lilac'] div[role="dialog"] .bg-gray-50 {
+  background-color: #f9fafb !important;
+  /* Solid gray-50 */
+  backdrop-filter: none !important;
+}
+
+[data-theme='cyber-lilac'] div[role="dialog"] .bg-gray-100 {
+  background-color: #f3f4f6 !important;
+  /* Solid gray-100 */
+  backdrop-filter: none !important;
+}
+
+/* Fix inputs */
+[data-theme='cyber-lilac'] div[role="dialog"] input,
+[data-theme='cyber-lilac'] div[role="dialog"] select,
+[data-theme='cyber-lilac'] div[role="dialog"] textarea {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  backdrop-filter: none !important;
+}
+
+/* Ensure text is standard */
+[data-theme='cyber-lilac'] div[role="dialog"] label,
+[data-theme='cyber-lilac'] div[role="dialog"] p,
+[data-theme='cyber-lilac'] div[role="dialog"] h2,
+[data-theme='cyber-lilac'] div[role="dialog"] h3,
+[data-theme='cyber-lilac'] div[role="dialog"] span {
+  color: #000000 !important;
+  text-shadow: none !important;
 }
 
 
