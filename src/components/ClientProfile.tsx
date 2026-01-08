@@ -43,7 +43,7 @@ export const ClientProfile: React.FC = () => {
       ...prev,
       full_name: user.full_name || '',
       email: user.email || '',
-      phone: user.phone || '',
+      phone: user.phone || '+39 ',
     }));
 
     // Carica anche i dati del cliente registrato (con consensi privacy)
@@ -94,12 +94,16 @@ export const ClientProfile: React.FC = () => {
   });
 
   const normalizePhone = (phone: string): string => {
-    if (!phone) return '+39000000000';
-    let cleaned = phone.replace(/\s/g, '').replace(/[^0-9+]/g, '');
-    if (cleaned.startsWith('0039')) cleaned = cleaned.substring(4);
-    else if (cleaned.startsWith('+39')) cleaned = cleaned.substring(3);
-    else if (cleaned.startsWith('39') && cleaned.length > 10) cleaned = cleaned.substring(2);
-    return `+39${cleaned}`;
+    if (!phone) return '';
+    let cleaned = phone.replace(/[^0-9+]/g, '');
+    if (!cleaned.startsWith('+')) {
+      if (cleaned.startsWith('39') && cleaned.length > 10) {
+        cleaned = '+' + cleaned;
+      } else {
+        cleaned = '+39' + cleaned;
+      }
+    }
+    return cleaned;
   };
 
   const compressImage = async (file: File, maxDimension = 512, quality = 0.75): Promise<File> => {
@@ -157,8 +161,10 @@ export const ClientProfile: React.FC = () => {
 
       // Validate phone before saving
       const phoneToSave = formData.phone?.trim();
-      if (!phoneToSave) {
-        setMessage({ type: 'error', text: 'Telefono è obbligatorio' });
+      const cleanPhone = phoneToSave?.replace(/[^0-9+]/g, '');
+
+      if (!phoneToSave || phoneToSave === '+39' || (cleanPhone && cleanPhone.length < 8)) {
+        setMessage({ type: 'error', text: 'Inserisci un numero di telefono valido' });
         setIsLoading(false);
         return;
       }
@@ -476,6 +482,7 @@ export const ClientProfile: React.FC = () => {
 
                     <Input
                       label="Telefono"
+                      type="tel"
                       value={formData.phone}
                       onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                       disabled={!isEditing}

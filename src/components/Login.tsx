@@ -218,9 +218,13 @@ export const Login: React.FC = () => {
       throw new Error('La password deve contenere almeno 6 caratteri');
     }
 
-    // Validazione telefono
-    const cleanPhone = registrationData.phone.replace(/\s+/g, '');
-    if (!cleanPhone || cleanPhone === '+39' || cleanPhone.length < 8) {
+    // Normalizzazione e validazione telefono
+    let formattedPhone = registrationData.phone.replace(/[^0-9+]/g, '');
+    if (!formattedPhone.startsWith('+')) {
+      formattedPhone = '+39' + formattedPhone;
+    }
+
+    if (formattedPhone === '+39' || formattedPhone.length < 8) {
       throw new Error('Inserisci un numero di telefono valido');
     }
 
@@ -233,7 +237,7 @@ export const Login: React.FC = () => {
       password: registrationData.password,
       full_name: `${registrationData.firstName} ${registrationData.lastName}`,
       role: 'client',
-      phone: registrationData.phone,
+      phone: formattedPhone,
     });
 
     // Se arriviamo qui, la registrazione è andata a buon fine
@@ -433,8 +437,8 @@ export const Login: React.FC = () => {
                   <Input
                     label="Password"
                     type={showPassword ? 'text' : 'password'}
-                    name="password"
-                    id="password"
+                    name="current-password"
+                    id="current-password"
                     value={credentials.password}
                     onChange={(e) => setCredentials(prev => ({ ...prev, password: e.target.value }))}
                     placeholder="Inserisci la tua password"
@@ -520,6 +524,8 @@ export const Login: React.FC = () => {
                   <Input
                     label="Password"
                     type={showPassword ? 'text' : 'password'}
+                    name="new-password"
+                    id="new-password"
                     value={registrationData.password}
                     onChange={(e) => setRegistrationData(prev => ({ ...prev, password: e.target.value }))}
                     placeholder="Inserisci una password"
@@ -541,6 +547,8 @@ export const Login: React.FC = () => {
                   <Input
                     label="Conferma Password"
                     type={showConfirmPassword ? 'text' : 'password'}
+                    name="confirm-password"
+                    id="confirm-password"
                     value={registrationData.confirmPassword}
                     onChange={(e) => setRegistrationData(prev => ({ ...prev, confirmPassword: e.target.value }))}
                     placeholder="Conferma la password"
