@@ -3,7 +3,6 @@ import { Navigation } from './components/Navigation';
 import { Toast } from './components/ui/Toast';
 import { useToast } from './hooks/useToast';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
-import { PWAUpdateNotification } from './components/PWAUpdateNotification';
 import { usePWAUpdate } from './hooks/usePWAUpdate';
 import { PageSkeleton } from './components/ui/PageSkeleton';
 
@@ -43,7 +42,7 @@ import { apiService } from './services/api';
 import type { CreateAppointmentRequest, UpdateAppointmentRequest, Appointment } from './types';
 
 const AppContent: React.FC = () => {
-  const { forceUpdate } = usePWAUpdate();
+  const { forceUpdate, needRefresh } = usePWAUpdate();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
   const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
@@ -273,7 +272,7 @@ const AppContent: React.FC = () => {
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* Banner aggiornamento versione */}
-      {isUpdateAvailable && (
+      {(isUpdateAvailable || needRefresh) && (
         <div className="md:ml-64">
           <div className="bg-yellow-500 text-black px-4 py-2 text-sm flex items-center justify-between shadow-md">
             <span>
@@ -325,7 +324,6 @@ const AppContent: React.FC = () => {
 
       {/* PWA Components */}
       <PWAInstallPrompt />
-      <PWAUpdateNotification />
       <OfflineIndicator />
     </div>
   );
