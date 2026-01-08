@@ -26,7 +26,7 @@ export const Login: React.FC = () => {
   const [registrationData, setRegistrationData] = useState({
     firstName: '',
     lastName: '',
-    phone: '',
+    phone: '+39 ',
     email: '',
     password: '',
     confirmPassword: '',
@@ -209,8 +209,19 @@ export const Login: React.FC = () => {
       throw new Error('Le password non coincidono');
     }
 
+    // Validazione telefono
+    if (registrationData.phone.trim().replace(/\s/g, '') === '+39' || registrationData.phone.length < 8) {
+      throw new Error('Inserisci un numero di telefono valido');
+    }
+
     if (registrationData.password.length < 6) {
       throw new Error('La password deve contenere almeno 6 caratteri');
+    }
+
+    // Validazione telefono
+    const cleanPhone = registrationData.phone.replace(/\s+/g, '');
+    if (!cleanPhone || cleanPhone === '+39' || cleanPhone.length < 8) {
+      throw new Error('Inserisci un numero di telefono valido');
     }
 
     // Registra il nuovo utente in Supabase
@@ -222,7 +233,7 @@ export const Login: React.FC = () => {
       password: registrationData.password,
       full_name: `${registrationData.firstName} ${registrationData.lastName}`,
       role: 'client',
-      phone: registrationData.phone || undefined,
+      phone: registrationData.phone,
     });
 
     // Se arriviamo qui, la registrazione è andata a buon fine
@@ -482,12 +493,13 @@ export const Login: React.FC = () => {
 
               <div>
                 <Input
-                  label="Numero di Telefono (opzionale)"
+                  label="Numero di Telefono"
                   type="tel"
                   value={registrationData.phone}
                   onChange={(e) => setRegistrationData(prev => ({ ...prev, phone: e.target.value }))}
                   placeholder="+39 123 456 7890"
                   autoComplete="tel"
+                  required
                 />
               </div>
 
@@ -716,7 +728,7 @@ export const Login: React.FC = () => {
                   setRegistrationData({
                     firstName: '',
                     lastName: '',
-                    phone: '',
+                    phone: '+39 ',
                     email: '',
                     password: '',
                     confirmPassword: '',
@@ -755,7 +767,7 @@ export const Login: React.FC = () => {
                     setRegistrationData({
                       firstName: '',
                       lastName: '',
-                      phone: '',
+                      phone: '+39 ',
                       email: '',
                       password: '',
                       confirmPassword: '',
