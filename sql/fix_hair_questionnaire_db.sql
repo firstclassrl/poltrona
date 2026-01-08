@@ -54,9 +54,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'client_hair_profiles' AND policyname = 'Staff can manage hair profiles') THEN
         CREATE POLICY "Staff can manage hair profiles" ON public.client_hair_profiles
           FOR ALL USING (
-            shop_id IN (
-              SELECT shop_id FROM public.shop_staff WHERE user_id = auth.uid()
-            )
+            shop_id = public.current_shop_id()
           );
     END IF;
 
