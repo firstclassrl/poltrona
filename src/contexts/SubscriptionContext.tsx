@@ -7,7 +7,6 @@ import type { ShopSubscription, SubscriptionAccess, SubscriptionPlan } from '../
 // Configurazione prezzi Stripe - DA AGGIORNARE con i tuoi price IDs
 export const STRIPE_PRICES = {
     monthly: import.meta.env.VITE_STRIPE_PRICE_MONTHLY || '',
-    yearly: import.meta.env.VITE_STRIPE_PRICE_YEARLY || '',
 };
 
 interface SubscriptionContextValue {
@@ -142,7 +141,12 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
             return null;
         }
 
-        const priceId = plan === 'yearly' ? STRIPE_PRICES.yearly : STRIPE_PRICES.monthly;
+        if (plan === 'yearly') {
+            setError('Annual plan is no longer available');
+            return null;
+        }
+
+        const priceId = STRIPE_PRICES.monthly;
 
         if (!priceId) {
             setError('Stripe price not configured');

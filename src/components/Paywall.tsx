@@ -79,38 +79,21 @@ export const Paywall: React.FC<PaywallProps> = ({ children }) => {
                     </div>
 
                     {/* Pricing Buttons */}
-                    <div className="space-y-3">
-                        <button
-                            onClick={() => handleSubscribe('yearly')}
-                            disabled={checkoutLoading !== null || !STRIPE_PRICES.yearly}
-                            className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold hover:from-blue-500 hover:to-purple-500 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:transform-none shadow-lg"
-                        >
-                            {checkoutLoading === 'yearly' ? (
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                            ) : (
-                                <>
-                                    <Calendar className="w-5 h-5" />
-                                    <span>Annuale - €290/anno</span>
-                                    <span className="ml-auto text-xs bg-white/20 px-2 py-1 rounded-full">-17%</span>
-                                </>
-                            )}
-                        </button>
+                    <button
+                        onClick={() => handleSubscribe('monthly')}
+                        disabled={checkoutLoading !== null || !STRIPE_PRICES.monthly}
+                        className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold hover:from-blue-500 hover:to-purple-500 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:transform-none shadow-lg"
+                    >
+                        {checkoutLoading === 'monthly' ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                            <>
+                                <CreditCard className="w-5 h-5" />
+                                <span>Mensile - €99/mese</span>
+                            </>
+                        )}
+                    </button>
 
-                        <button
-                            onClick={() => handleSubscribe('monthly')}
-                            disabled={checkoutLoading !== null || !STRIPE_PRICES.monthly}
-                            className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white/10 text-white rounded-xl font-medium hover:bg-white/20 transition-all border border-white/20 disabled:opacity-50"
-                        >
-                            {checkoutLoading === 'monthly' ? (
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                            ) : (
-                                <>
-                                    <CreditCard className="w-5 h-5" />
-                                    <span>Mensile - €29/mese</span>
-                                </>
-                            )}
-                        </button>
-                    </div>
 
                     {/* Secure Payment Notice */}
                     <p className="text-center text-white/50 text-sm mt-6 flex items-center justify-center gap-2">
@@ -119,6 +102,6 @@ export const Paywall: React.FC<PaywallProps> = ({ children }) => {
                     </p>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };

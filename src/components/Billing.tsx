@@ -178,7 +178,7 @@ export const Billing: React.FC = () => {
                             </div>
 
                             <div className="mb-6">
-                                <span className="text-4xl font-bold text-gray-900">€29</span>
+                                <span className="text-4xl font-bold text-gray-900">€99</span>
                                 <span className="text-gray-600">/mese</span>
                             </div>
 
