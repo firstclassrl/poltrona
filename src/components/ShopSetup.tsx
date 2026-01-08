@@ -418,11 +418,12 @@ export const ShopSetup: React.FC = () => {
           const profiles = await profileRes.json();
           const profile = profiles?.[0];
 
-          if (!profile || profile.role !== 'admin') {
+          if (!profile || (profile.role !== 'admin' && profile.role !== 'owner')) {
             throw new Error('L\'utente non ha i permessi di amministratore. Contatta il supporto.');
           }
 
           // Verifica che l'admin non sia già associato a un altro negozio
+          // Nota: un owner può avere più negozi in futuro, ma per ora limitiamo a uno
           if (profile.shop_id) {
             throw new Error('Questo admin è già associato a un negozio. Non puoi creare un nuovo negozio con questo account.');
           }
