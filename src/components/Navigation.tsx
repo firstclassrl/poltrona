@@ -128,6 +128,13 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
     if (item.id === 'billing') {
       return user?.role === 'admin';
     }
+
+    // CRITICO: Nascondi voci specifiche del cliente se non sei un cliente
+    // Questo previene che admin/staff vedano "Il Mio Profilo", "Le Mie Prenotazioni", "Prenota"
+    if (['client_profile', 'client_bookings', 'client_booking'].includes(item.id)) {
+      return user?.role === 'client';
+    }
+
     return hasPermission(item.permission);
   });
 
