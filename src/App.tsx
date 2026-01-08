@@ -223,7 +223,11 @@ const AppContent: React.FC = () => {
     }
   };
 
-  if (isLoading) {
+  // IMPORTANTE: Non mostrare lo spinner generico quando l'utente non è autenticato
+  // perché questo smonterebbe il componente Login e perderebbe lo stato degli errori.
+  // Login gestisce internamente il proprio stato di loading tramite isLoading di useAuth.
+  if (isLoading && isAuthenticated) {
+    // Mostra lo spinner solo se l'utente è già autenticato (es. durante il refresh del token)
     return (
       <div className="min-h-screen app-theme-bg flex items-center justify-center">
         <div className="text-center">
