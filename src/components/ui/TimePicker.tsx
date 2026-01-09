@@ -86,20 +86,18 @@ export const TimePicker: React.FC<TimePickerProps> = ({
           aria-expanded={isOpen}
           aria-haspopup="grid"
           className={cn(
-            'w-full px-3 py-2 bg-white border border-green-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 flex items-center justify-between touch-target',
+            'w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 flex items-center justify-between touch-target text-sm hover:border-gray-300',
             disabled && 'opacity-50 cursor-not-allowed',
-            isOpen && 'ring-2 ring-green-500 border-transparent shadow-sm'
+            isOpen && 'ring-2 ring-blue-500/20 border-blue-500 z-10'
           )}
         >
-          <div className="flex items-center space-x-2">
-            <Clock className="w-4 h-4 text-gray-500" />
-            <span className="font-mono text-sm font-semibold tracking-wide text-gray-900">
+          <div className="flex items-center gap-2 min-w-0">
+            <Clock className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+            <span className="font-medium text-gray-800 tabular-nums truncate">
               {currentDisplayValue}
             </span>
           </div>
-          <ChevronDown
-            className={cn('w-4 h-4 text-gray-400 transition-transform duration-200', isOpen && 'rotate-180')}
-          />
+          {/* Chevron rimosso per pulizia se lo spazio è poco, o reso più piccolo */}
         </button>
 
         {isOpen && (

@@ -116,22 +116,24 @@ export const DailyHoursManager: React.FC<DailyHoursManagerProps> = ({ disabled =
                         return (
                           <div
                             key={slotIndex}
-                            className={`flex items-center justify-between p-3 rounded border ${isValid ? 'border-gray-200 bg-gray-50' : 'border-red-200 bg-red-50'
+                            className={`group flex items-center gap-2 p-2 rounded-lg border transition-all ${isValid
+                              ? 'border-gray-100 bg-gray-50/50 hover:border-gray-200 hover:bg-gray-50'
+                              : 'border-red-100 bg-red-50/30'
                               }`}
                           >
-                            <div className="flex items-center space-x-2">
+                            <div className="flex-1 flex items-center justify-center gap-2 min-w-0">
                               <TimePicker
                                 value={slot.start}
                                 onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'start', value)}
-                                className="w-24 min-w-[6rem]"
+                                className="w-[85px] sm:w-[90px]"
                                 disabled={disabled}
                                 placeholder="09:00"
                               />
-                              <span className="text-gray-400 text-sm">-</span>
+                              <span className="text-gray-300 text-sm font-medium flex-shrink-0">à</span>
                               <TimePicker
                                 value={slot.end}
                                 onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'end', value)}
-                                className="w-24 min-w-[6rem]"
+                                className="w-[85px] sm:w-[90px]"
                                 disabled={disabled}
                                 placeholder="18:00"
                               />
@@ -142,22 +144,22 @@ export const DailyHoursManager: React.FC<DailyHoursManagerProps> = ({ disabled =
                               size="sm"
                               onClick={() => handleRemoveTimeSlot(day.key, slotIndex)}
                               disabled={disabled}
-                              className="text-red-500 hover:text-red-700 p-1"
+                              className="h-8 w-8 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full shrink-0 transition-colors"
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
                         );
                       })}
                       <Button
-                        variant="secondary"
+                        variant="ghost"
                         size="sm"
                         onClick={() => handleAddTimeSlot(day.key)}
                         disabled={disabled}
-                        className="w-full text-xs px-2 py-1 mt-1"
+                        className="w-full text-xs py-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 border border-dashed border-blue-200 hover:border-blue-300 rounded-lg transition-all"
                       >
-                        <Plus className="w-3 h-3 mr-1" />
-                        Aggiungi fascia
+                        <Plus className="w-3 h-3 mr-1.5" />
+                        Aggiungi orario
                       </Button>
                     </>
                   )}

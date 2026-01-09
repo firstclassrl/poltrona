@@ -153,17 +153,17 @@ export const THEME_PALETTES: ThemePalette[] = [
     trend: 'Dark mode minimale con accenti caldi',
     previewGradient: 'linear-gradient(135deg, #000000 0%, #1a0a00 100%)',
     colors: {
-      background: '#000000',
-      surface: '#000000',
-      surfaceAlt: '#000000',
-      primary: '#ff6b35',        // arancione accent
+      background: '#09090b',      // Zinc 950 - Rich Dark
+      surface: '#18181b',         // Zinc 900
+      surfaceAlt: '#27272a',      // Zinc 800
+      primary: '#ff6b35',         // Arancione accent (invariato)
       primaryStrong: '#e55a2b',
-      accent: '#ff6b35',         // arancione brand
+      accent: '#ff6b35',          // Arancione brand
       accentSoft: '#ff8c42',
       accentContrast: '#ffffff',
-      text: '#ffffff',            // solo bianco
-      textMuted: '#cccccc',       // grigio chiaro leggibile (non arancione)
-      border: '#333333',          // bordo grigio scuro
+      text: '#f4f4f5',            // Zinc 100 - Whiteish
+      textMuted: '#a1a1aa',       // Zinc 400
+      border: '#27272a',          // Zinc 800
       success: '#22c55e',
       warning: '#f59e0b',
       danger: '#ef4444',

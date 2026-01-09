@@ -483,30 +483,33 @@ body {
 }
 
 /* Dark Mode: Global Backgrounds - STRICT BLACK */
+/* Dark Mode: Global Backgrounds - Zinc 950 */
 [data-theme='dark-mode'] body,
 [data-theme='dark-mode'] html,
 [data-theme='dark-mode'] .app-theme-bg {
-  background: #000000 !important;
-  background-color: #000000 !important;
+  background: var(--theme-background) !important;
+  background-color: var(--theme-background) !important;
+  color: var(--theme-text) !important;
 }
 
-/* Dark Mode: Cards - BLACK with WHITE Border or Subtle Grey */
+/* Dark Mode: Cards - Zinc 900 with Zinc 800 Border */
 [data-theme='dark-mode'] .bg-white,
 [data-theme='dark-mode'] .surface-card,
 [data-theme='dark-mode'] .surface-card-alt {
-  background-color: #000000 !important;
-  border-color: #333333 !important;
+  background-color: var(--theme-surface) !important;
+  border-color: var(--theme-border) !important;
   border-width: 1px !important;
-  color: #ffffff !important;
+  color: var(--theme-text) !important;
 }
 
 /* Dark Mode: Text - STRICT WHITE */
+/* Dark Mode: Text - Zinc 100 */
 [data-theme='dark-mode'] .text-gray-900,
 [data-theme='dark-mode'] .text-gray-800,
 [data-theme='dark-mode'] .text-gray-700,
 [data-theme='dark-mode'] .text-gray-600,
 [data-theme='dark-mode'] .text-black {
-  color: #ffffff !important;
+  color: var(--theme-text) !important;
 }
 
 /* Muted text */
@@ -634,9 +637,10 @@ body {
 }
 
 /* Dark Mode Calendar: STRICT BLACK BG */
+/* Dark Mode Calendar: Zinc 950 BG */
 [data-theme='dark-mode'] .calendar-time-slot {
-  background-color: #000000 !important;
-  border-color: #333333 !important;
+  background-color: var(--theme-background) !important;
+  border-color: var(--theme-border) !important;
 }
 
 [data-theme='dark-mode'] .calendar-time-slot:hover {
@@ -645,6 +649,7 @@ body {
 }
 
 /* --- SCORCHED EARTH POLICY: FORCE REMOVAL OF ALL GREENS/GRAYS/ETC --- */
+/* --- SCORCHED EARTH POLICY FOR DARK MODE: Fix colors to Zinc scale --- */
 [data-theme='dark-mode'] [class*='bg-green-'],
 [data-theme='dark-mode'] [class*='bg-emerald-'],
 [data-theme='dark-mode'] [class*='bg-teal-'],
@@ -659,16 +664,17 @@ body {
 [data-theme='dark-mode'] .bg-gray-50,
 [data-theme='dark-mode'] .bg-green-50,
 [data-theme='dark-mode'] .bg-blue-50 {
-  background-color: #000000 !important;
+  background-color: var(--theme-surface) !important;
   background-image: none !important;
-  border-color: #333333 !important;
-  color: #ffffff !important;
+  border-color: var(--theme-border) !important;
+  color: var(--theme-text) !important;
 }
 
 /* Force text colors in mixed blocks to be White */
+/* Force text colors in mixed blocks to be Whiteish */
 [data-theme='dark-mode'] [class*='text-green-'],
 [data-theme='dark-mode'] [class*='text-gray-'] {
-  color: #ffffff !important;
+  color: var(--theme-text) !important;
 }
 
 /* Client Booking Slots */
@@ -703,9 +709,9 @@ body {
 }
 
 [data-theme='dark-mode'] .client-time-slot {
-  background-color: #000000 !important;
-  border-color: #333333 !important;
-  color: #ffffff !important;
+  background-color: var(--theme-surface) !important;
+  border-color: var(--theme-border) !important;
+  color: var(--theme-text) !important;
 }
 
 [data-theme='dark-mode'] .client-time-slot:hover {
@@ -766,8 +772,9 @@ body {
 }
 
 /* Dark Mode: card prossimi appuntamenti nere con bordo arancione */
+/* Dark Mode: card prossimi appuntamenti - Zinc 900 */
 [data-theme='dark-mode'] .dashboard-appointment-card {
-  background-color: #0a0a0a !important;
+  background-color: var(--theme-surface) !important;
   border-color: var(--theme-border) !important;
   border-width: 1px !important;
 }

@@ -730,9 +730,9 @@ export const Settings = () => {
 
   return (
     <div className="p-0 page-container-chat-style">
-      <div className="w-full">
+      <div className="w-full min-h-[80vh]">
         <div className="flex flex-col space-y-4">
-          <div className="space-y-4 max-w-3xl mx-auto">
+          <div className="space-y-4 max-w-3xl mx-auto w-full">
             {/* Header */}
             <div className="flex items-center space-x-3 mb-2">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
@@ -1164,7 +1164,7 @@ export const Settings = () => {
                   </div>
                 </div>
 
-                {/* Reminder */}
+                {/* Reminder Section */}
                 <div className="p-3 bg-white rounded-lg border border-gray-200 md:col-span-2">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-2">
@@ -1237,31 +1237,16 @@ export const Settings = () => {
                     </div>
                   )}
                 </div>
-              </div>
 
-              <Button
-                onClick={handleSaveNotifications}
-                loading={isSavingNotifications}
-                disabled={isSavingNotifications}
-                className="w-full"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Salva Preferenze Notifiche
-              </Button>
-            </CollapsibleSection>
-
-            {/* Section: Comunicazioni */}
-            <CollapsibleSection
-              icon={<MessageCircle className="w-5 h-5" />}
-              title="Comunicazioni"
-              color="emerald"
-            >
-              <Card className="border border-gray-200 bg-white">
-                <div className="p-4 space-y-4">
+                {/* WhatsApp Section Moved Here */}
+                <div className="bg-white rounded-lg border border-gray-200 p-4 md:col-span-2 space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-sm font-semibold text-gray-900">Reminder WhatsApp</h3>
-                      <p className="text-xs text-gray-500">Invia messaggi automatici ai clienti 24h prima dell'appuntamento</p>
+                      <div className="flex items-center space-x-2">
+                        <MessageCircle className="w-4 h-4 text-green-600" />
+                        <h3 className="text-sm font-semibold text-gray-900">Reminder WhatsApp</h3>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Invia messaggi automatici ai clienti 24h prima dell'appuntamento</p>
                     </div>
 
                     {!isEditingWhatsapp ? (
@@ -1331,7 +1316,19 @@ export const Settings = () => {
                     </div>
                   </div>
                 </div>
-              </Card>
+              </div>
+
+              <div className="pt-2">
+                <Button
+                  onClick={handleSaveNotifications}
+                  loading={isSavingNotifications}
+                  disabled={isSavingNotifications}
+                  className="w-full"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Salva Preferenze Notifiche
+                </Button>
+              </div>
             </CollapsibleSection>
 
             {/* Section 4: Aspetto */}

@@ -37,7 +37,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
                 isActive
                   ? 'border-4 border-[var(--theme-primary)] shadow-xl ring-0'
                   : 'border border-gray-200 hover:border-gray-300 hover:shadow-lg',
-                'bg-white text-black p-0',
+                'bg-white p-0', /* Force white background for the card itself */
                 disabled && 'opacity-50 cursor-not-allowed hover:border-gray-200 hover:shadow-none'
               )}
             >
@@ -45,7 +45,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
                 className="h-14 w-full shrink-0"
                 style={{ background: palette.previewGradient }}
               />
-              <div className="p-5 space-y-2 flex-1">
+              <div className="p-5 space-y-2 flex-1 bg-white"> {/* Explicit bg-white content area */}
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-base font-bold text-gray-900">{palette.name}</p>
                 </div>
@@ -55,6 +55,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
               </div>
             </button>
           );
+
         })}
       </div>
     </div>
