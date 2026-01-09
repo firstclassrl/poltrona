@@ -284,10 +284,10 @@ export const BarberProfile = () => {
                             <Button
                               variant="secondary"
                               size="sm"
-                              className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              className="h-8 px-2 !text-red-600 hover:!text-red-700 hover:bg-red-50"
                               onClick={() => handleDeleteClick(staff)}
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="w-3.5 h-3.5 !text-red-600" />
                             </Button>
                           </div>
                         </div>
