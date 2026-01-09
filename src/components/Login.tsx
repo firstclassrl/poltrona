@@ -325,15 +325,13 @@ export const Login: React.FC = () => {
                   className="w-full h-full object-contain filter brightness-110 rounded-lg"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
-                    target.src = '/logo Poltrona 2025.png';
+                    target.style.display = 'none';
                   }}
                 />
               ) : (
-                <img
-                  src="/logo Poltrona 2025.png"
-                  alt="Logo ufficiale Poltrona"
-                  className="w-full h-full object-contain filter brightness-110"
-                />
+                <div className="w-20 h-20 bg-white/20 rounded-lg flex items-center justify-center">
+                  <User className="w-10 h-10 text-white/50" />
+                </div>
               )}
             </div>
           )}

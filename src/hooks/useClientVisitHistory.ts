@@ -86,7 +86,7 @@ export function useClientVisitHistory(
 
             try {
                 // Query appuntamenti completati o no-show con join su staff e services
-                const url = `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/appointments?select=id,start_at,end_at,status,notes,staff:shop_staff(full_name,gender),services(id,name,duration_min,price_cents)&client_id=eq.${clientId}&shop_id=eq.${shopId}&status=in.(completed,no_show)&order=start_at.desc&limit=${limit}`;
+                const url = `${API_CONFIG.SUPABASE_EDGE_URL}/rest/v1/appointments?select=id,start_at,end_at,status,notes,staff(full_name,gender),services(id,name,duration_min,price_cents)&client_id=eq.${clientId}&shop_id=eq.${shopId}&status=in.(completed,no_show)&order=start_at.desc&limit=${limit}`;
 
                 const response = await fetch(url, { headers: buildHeaders(true) });
 
@@ -107,12 +107,13 @@ export function useClientVisitHistory(
                         const durationMs = end.getTime() - start.getTime();
                         const durationMinutes = Math.round(durationMs / 60000);
 
-                        // Formatta servizi
-                        const services = apt.services ? [{
-                            name: apt.services.name || 'Servizio',
-                            duration_minutes: apt.services.duration_min || 0,
-                            price: apt.services.price_cents ? apt.services.price_cents / 100 : 0
-                        }] : [];
+                        // Formatta servizi - gestisce sia oggetto singolo che array
+                        const servicesData = Array.isArray(apt.services) ? apt.services : (apt.services ? [apt.services] : []);
+                        const services = servicesData.map((s: any) => ({
+                            name: s.name || 'Servizio',
+                            duration_minutes: s.duration_min || 0,
+                            price: s.price_cents ? s.price_cents / 100 : 0
+                        }));
 
                         return {
                             id: apt.id,

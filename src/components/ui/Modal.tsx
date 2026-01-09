@@ -79,7 +79,9 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
   const sizeClasses = {
     small: 'max-w-sm',
     medium: 'max-w-xl',
-    large: 'max-w-3xl'
+    large: 'max-w-3xl',
+    xl: 'max-w-5xl',
+    full: 'max-w-[95vw]'
   };
 
   return (

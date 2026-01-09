@@ -5,6 +5,7 @@
 export type HairType = 'straight_fine' | 'wavy_medium' | 'curly_thick' | 'very_curly_afro';
 export type HairLength = 'short' | 'medium' | 'long' | 'very_long';
 export type ColorSituation = 'virgin' | 'roots_touch_up' | 'full_color_change' | 'color_correction';
+export type LastColorTime = 'never' | 'less_than_month' | '1_3_months' | '3_6_months' | '6_12_months' | 'more_than_year';
 
 // ==========================================
 // INTERFACCE
@@ -18,10 +19,12 @@ export interface HairProfile {
     hair_length: HairLength | null;
     has_color_history: boolean;
     color_situation: ColorSituation | null;
+    last_color_time: LastColorTime | null;
     created_at: string;
     updated_at: string;
     updated_by: string | null;
 }
+
 
 export interface DurationConfig {
     base_minutes: number;
@@ -140,9 +143,47 @@ export const COLOR_SITUATION_OPTIONS: Array<{
         }
     ];
 
+export const LAST_COLOR_TIME_OPTIONS: Array<{
+    value: LastColorTime;
+    label: string;
+    description: string;
+}> = [
+        {
+            value: 'never',
+            label: 'Mai colorati',
+            description: 'Colore naturale'
+        },
+        {
+            value: 'less_than_month',
+            label: 'Meno di 1 mese',
+            description: 'Colorazione molto recente'
+        },
+        {
+            value: '1_3_months',
+            label: '1-3 mesi',
+            description: 'Ricrescita visibile'
+        },
+        {
+            value: '3_6_months',
+            label: '3-6 mesi',
+            description: 'Ricrescita importante'
+        },
+        {
+            value: '6_12_months',
+            label: '6-12 mesi',
+            description: 'Colore molto cresciuto'
+        },
+        {
+            value: 'more_than_year',
+            label: 'Più di un anno',
+            description: 'Colore quasi scomparso'
+        }
+    ];
+
 // ==========================================
 // HELPER PER OTTENERE LABEL DA VALORE
 // ==========================================
+
 
 export function getHairTypeLabel(value: HairType | null): string {
     if (!value) return 'Non specificato';
@@ -158,6 +199,12 @@ export function getColorSituationLabel(value: ColorSituation | null): string {
     if (!value) return 'Non specificato';
     return COLOR_SITUATION_OPTIONS.find(o => o.value === value)?.label || value;
 }
+
+export function getLastColorTimeLabel(value: LastColorTime | null): string {
+    if (!value) return 'Non specificato';
+    return LAST_COLOR_TIME_OPTIONS.find(o => o.value === value)?.label || value;
+}
+
 
 export function getHairTypeIcon(value: HairType | null): string {
     if (!value) return '❓';

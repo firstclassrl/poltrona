@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import {
@@ -6,9 +6,11 @@ import {
     HairType,
     HairLength,
     ColorSituation,
+    LastColorTime,
     HAIR_TYPE_OPTIONS,
     HAIR_LENGTH_OPTIONS,
-    COLOR_SITUATION_OPTIONS
+    COLOR_SITUATION_OPTIONS,
+    LAST_COLOR_TIME_OPTIONS
 } from '@/types/hairProfile';
 import type { QuestionType } from '@/hooks/useHairQuestionnaire';
 
@@ -32,32 +34,91 @@ export function HairQuestionnaire({
     const [hairType, setHairType] = useState<HairType | null>(existingProfile?.hair_type || null);
     const [hairLength, setHairLength] = useState<HairLength | null>(existingProfile?.hair_length || null);
     const [colorSituation, setColorSituation] = useState<ColorSituation | null>(existingProfile?.color_situation || null);
+    const [lastColorTime, setLastColorTime] = useState<LastColorTime | null>(existingProfile?.last_color_time || null);
 
-    const totalSteps = questionsToAsk.length;
-    const progress = ((currentStep + 1) / totalSteps) * 100;
-    const currentQuestion = questionsToAsk[currentStep];
+    // Dynamic questions list - may include last_color_time dynamically
+    const [dynamicQuestions, setDynamicQuestions] = useState<QuestionType[]>(questionsToAsk);
 
-    const handleSelection = (value: HairType | HairLength | ColorSituation) => {
+    // Update dynamic questions when color_situation changes
+    useEffect(() => {
+        // If user selected 'virgin', remove last_color_time from questions
+        const isVirgin = colorSituation === 'virgin';
+
+        if (isVirgin) {
+            setDynamicQuestions(questionsToAsk.filter(q => q !== 'last_color_time'));
+        } else if (colorSituation !== null) {
+            // Add last_color_time if not already present and not virgin
+            if (!dynamicQuestions.includes('last_color_time') && questionsToAsk.includes('color_situation')) {
+                const colorIndex = questionsToAsk.indexOf('color_situation');
+                const newQuestions = [...questionsToAsk];
+                // Insert last_color_time after color_situation if not already there
+                if (!newQuestions.includes('last_color_time')) {
+                    newQuestions.splice(colorIndex + 1, 0, 'last_color_time');
+                }
+                setDynamicQuestions(newQuestions);
+            }
+        } else {
+            setDynamicQuestions(questionsToAsk);
+        }
+    }, [colorSituation, questionsToAsk]);
+
+
+    const totalSteps = dynamicQuestions.length;
+    const progress = totalSteps > 0 ? ((currentStep + 1) / totalSteps) * 100 : 0;
+    const currentQuestion = dynamicQuestions[currentStep];
+
+    const handleSelection = (value: HairType | HairLength | ColorSituation | LastColorTime) => {
         // Set value based on current question
         if (currentQuestion === 'hair_type') {
             setHairType(value as HairType);
         } else if (currentQuestion === 'hair_length') {
             setHairLength(value as HairLength);
         } else if (currentQuestion === 'color_situation') {
-            setColorSituation(value as ColorSituation);
+            const colorValue = value as ColorSituation;
+            setColorSituation(colorValue);
+
+            // If virgin, we skip last_color_time and set it to 'never'
+            if (colorValue === 'virgin') {
+                setLastColorTime('never');
+            }
+        } else if (currentQuestion === 'last_color_time') {
+            setLastColorTime(value as LastColorTime);
         }
 
         // Auto-advance after 300ms
         setTimeout(() => {
-            if (currentStep < totalSteps - 1) {
-                setCurrentStep(currentStep + 1);
+            // Recalculate dynamic questions based on selection
+            let effectiveQuestions = [...dynamicQuestions];
+
+            if (currentQuestion === 'color_situation') {
+                const colorValue = value as ColorSituation;
+                if (colorValue === 'virgin') {
+                    // Remove last_color_time from remaining questions
+                    effectiveQuestions = effectiveQuestions.filter(q => q !== 'last_color_time');
+                } else if (!effectiveQuestions.includes('last_color_time')) {
+                    // Add last_color_time after color_situation
+                    const colorIndex = effectiveQuestions.indexOf('color_situation');
+                    effectiveQuestions.splice(colorIndex + 1, 0, 'last_color_time');
+                }
+                setDynamicQuestions(effectiveQuestions);
+            }
+
+            const nextStep = currentStep + 1;
+            if (nextStep < effectiveQuestions.length) {
+                setCurrentStep(nextStep);
             } else {
                 // Complete questionnaire
+                const finalColorSituation = currentQuestion === 'color_situation' ? (value as ColorSituation) : colorSituation;
+                const finalLastColorTime = currentQuestion === 'last_color_time'
+                    ? (value as LastColorTime)
+                    : (finalColorSituation === 'virgin' ? 'never' : lastColorTime);
+
                 onComplete({
                     hair_type: currentQuestion === 'hair_type' ? (value as HairType) : hairType,
                     hair_length: currentQuestion === 'hair_length' ? (value as HairLength) : hairLength,
-                    has_color_history: currentQuestion === 'color_situation' || colorSituation !== null,
-                    color_situation: currentQuestion === 'color_situation' ? (value as ColorSituation) : colorSituation
+                    has_color_history: finalColorSituation !== 'virgin',
+                    color_situation: finalColorSituation,
+                    last_color_time: finalLastColorTime
                 });
             }
         }, 300);
@@ -71,6 +132,8 @@ export function HairQuestionnaire({
                 return existingProfile ? 'Conferma la lunghezza' : 'Quanto sono lunghi?';
             case 'color_situation':
                 return 'Qual è la situazione del colore?';
+            case 'last_color_time':
+                return 'Quanto tempo fa hai colorato?';
             default:
                 return '';
         }
@@ -83,7 +146,9 @@ export function HairQuestionnaire({
             case 'hair_length':
                 return 'La lunghezza influenza il tempo necessario';
             case 'color_situation':
-                return 'Per i servizi colore, abbiamo bisogno di sapere da dove partiamo';
+                return 'Informazione importante per il servizio';
+            case 'last_color_time':
+                return 'Ci aiuta a valutare lo stato del colore';
             default:
                 return '';
         }
@@ -99,8 +164,8 @@ export function HairQuestionnaire({
                                 key={option.value}
                                 onClick={() => handleSelection(option.value)}
                                 className={`p-5 rounded-2xl border-2 text-left transition-all transform hover:scale-[1.02] active:scale-[0.98] ${hairType === option.value
-                                        ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200 shadow-md'
-                                        : 'border-gray-200 hover:border-purple-300 hover:shadow-md bg-white'
+                                    ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200 shadow-md'
+                                    : 'border-gray-200 hover:border-purple-300 hover:shadow-md bg-white'
                                     }`}
                             >
                                 <div className="text-3xl mb-2">{option.icon}</div>
@@ -119,8 +184,8 @@ export function HairQuestionnaire({
                                 key={option.value}
                                 onClick={() => handleSelection(option.value)}
                                 className={`w-full p-5 rounded-2xl border-2 text-left transition-all flex items-center justify-between transform hover:scale-[1.01] active:scale-[0.99] ${hairLength === option.value
-                                        ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200 shadow-md'
-                                        : 'border-gray-200 hover:border-purple-300 hover:shadow-md bg-white'
+                                    ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200 shadow-md'
+                                    : 'border-gray-200 hover:border-purple-300 hover:shadow-md bg-white'
                                     }`}
                             >
                                 <div>
@@ -143,12 +208,38 @@ export function HairQuestionnaire({
                                 key={option.value}
                                 onClick={() => handleSelection(option.value)}
                                 className={`w-full p-5 rounded-2xl border-2 text-left transition-all transform hover:scale-[1.01] active:scale-[0.99] ${colorSituation === option.value
-                                        ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200 shadow-md'
-                                        : 'border-gray-200 hover:border-purple-300 hover:shadow-md bg-white'
+                                    ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200 shadow-md'
+                                    : 'border-gray-200 hover:border-purple-300 hover:shadow-md bg-white'
                                     }`}
                             >
                                 <div className="flex items-center gap-3">
                                     <span className="text-2xl">🎨</span>
+                                    <div>
+                                        <div className="font-semibold text-gray-900">{option.label}</div>
+                                        <div className="text-sm text-gray-500">{option.description}</div>
+                                    </div>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                );
+
+            case 'last_color_time':
+                // Filter out 'never' since we only show this if NOT virgin
+                const colorTimeOptions = LAST_COLOR_TIME_OPTIONS.filter(o => o.value !== 'never');
+                return (
+                    <div className="space-y-3">
+                        {colorTimeOptions.map((option) => (
+                            <button
+                                key={option.value}
+                                onClick={() => handleSelection(option.value)}
+                                className={`w-full p-5 rounded-2xl border-2 text-left transition-all transform hover:scale-[1.01] active:scale-[0.99] ${lastColorTime === option.value
+                                    ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200 shadow-md'
+                                    : 'border-gray-200 hover:border-purple-300 hover:shadow-md bg-white'
+                                    }`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <span className="text-2xl">⏰</span>
                                     <div>
                                         <div className="font-semibold text-gray-900">{option.label}</div>
                                         <div className="text-sm text-gray-500">{option.description}</div>

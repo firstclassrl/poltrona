@@ -13,7 +13,7 @@ import type { Shop, Staff } from '../types';
 import { PhotoUpload } from './PhotoUpload';
 import { ShopQRCode } from './ShopQRCode';
 
-const DEFAULT_LOGO = '/logo Poltrona 2025.png';
+const DEFAULT_LOGO = '';
 
 const formatDateForDisplay = (isoDate?: string | null): string => {
   if (!isoDate) return '';
@@ -86,7 +86,7 @@ export const ShopManagement = () => {
     notification_email: '',
     description: '',
   });
-  const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO);
+  const [logoUrl, setLogoUrl] = useState<string>('');
   const [logoPath, setLogoPath] = useState<string>('');
   const [logoMessage, setLogoMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isEditingHours, setIsEditingHours] = useState(false);
@@ -197,7 +197,6 @@ export const ShopManagement = () => {
               setLogoUrl(signed);
             } catch (e) {
               console.error('Error signing logo URL', e);
-              setLogoUrl(DEFAULT_LOGO);
             }
           }
         } catch (e) {
@@ -206,12 +205,12 @@ export const ShopManagement = () => {
             setLogoUrl(signed);
           } catch (signedError) {
             console.error('Error signing logo URL', signedError);
-            setLogoUrl(DEFAULT_LOGO);
+            setLogoUrl('');
           }
         }
       } else {
-        // Priorità 3: Fallback su logo di default
-        setLogoUrl(DEFAULT_LOGO);
+        // Priorità 3: Nessun logo
+        setLogoUrl('');
       }
       // Per i clienti, carica anche la lista barbieri del negozio
       if (user?.role === 'client') {
@@ -286,11 +285,11 @@ export const ShopManagement = () => {
             setLogoUrl(signed);
           } catch (e) {
             console.error('Error signing logo URL', e);
-            setLogoUrl(DEFAULT_LOGO);
+            setLogoUrl('');
           }
         } else {
-          // Priorità 3: Fallback su logo di default
-          setLogoUrl(DEFAULT_LOGO);
+          // Priorità 3: Nessun logo
+          setLogoUrl('');
         }
       }
     }
@@ -361,7 +360,7 @@ export const ShopManagement = () => {
       await apiService.updateShop(updatedShop);
       persistShopState(updatedShop);
       setLogoPath('');
-      setLogoUrl(DEFAULT_LOGO);
+      setLogoUrl('');
       showMessage(setLogoMessage, 'success', 'Logo rimosso.');
     } catch (error) {
       console.error('Error removing logo:', error);
@@ -528,7 +527,7 @@ export const ShopManagement = () => {
                     <PhotoUpload
                       onUpload={handleUploadLogo}
                       currentImageUrl={
-                        logoPath && logoPath.toLowerCase().endsWith('.pdf') ? undefined : logoUrl || DEFAULT_LOGO
+                        logoPath && logoPath.toLowerCase().endsWith('.pdf') ? undefined : logoUrl || undefined
                       }
                       onRemove={logoPath ? handleRemoveLogo : undefined}
                       accept=".png,.jpg,.jpeg,.pdf"
@@ -553,11 +552,9 @@ export const ShopManagement = () => {
                           <span>Logo (PDF)</span>
                         </div>
                       ) : (
-                        <img
-                          src={DEFAULT_LOGO}
-                          alt="Logo generico Poltrona"
-                          className="w-20 h-20 object-contain rounded-lg border border-gray-200"
-                        />
+                        <div className="w-20 h-20 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center">
+                          <ImageIcon className="w-8 h-8 text-gray-300" />
+                        </div>
                       )}
                     </div>
                   )}

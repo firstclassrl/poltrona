@@ -27,7 +27,7 @@ const buildHeaders = (): Record<string, string> => {
 // TIPI
 // ==========================================
 
-export type QuestionType = 'hair_type' | 'hair_length' | 'color_situation';
+export type QuestionType = 'hair_type' | 'hair_length' | 'color_situation' | 'last_color_time';
 
 export interface QuestionnaireDecision {
     shouldShow: boolean;
@@ -97,23 +97,23 @@ export function useHairQuestionnaire(
                 // 3. Determina quali domande fare
                 const questionsToAsk: QuestionType[] = [];
 
-                // Nessun profilo → domande base
+                // Nessun profilo → domande base + colore obbligatorio
                 if (!hasProfile) {
-                    questionsToAsk.push('hair_type', 'hair_length');
+                    questionsToAsk.push('hair_type', 'hair_length', 'color_situation');
                 }
-                // Profilo outdated → conferma
+                // Profilo outdated → conferma tutte le info
                 else if (isProfileOutdated) {
-                    questionsToAsk.push('hair_type', 'hair_length');
+                    questionsToAsk.push('hair_type', 'hair_length', 'color_situation');
+                }
+                // Profilo valido ma servizi colore selezionati → conferma solo colore
+                else {
+                    const hasColorServiceSelected = selectedServices.some(s => isColorService(s.name));
+                    if (hasColorServiceSelected) {
+                        questionsToAsk.push('color_situation');
+                    }
                 }
 
-                // 4. Servizi colore richiedono info aggiuntive
-                const hasColorServiceSelected = selectedServices.some(s => isColorService(s.name));
-
-                if (hasColorServiceSelected) {
-                    questionsToAsk.push('color_situation');
-                }
-
-                // 5. Determina reason
+                // 4. Determina reason
                 let reason: QuestionnaireDecision['reason'] = 'skip';
                 if (!hasProfile) reason = 'no_profile';
                 else if (isProfileOutdated) reason = 'profile_outdated';
@@ -125,6 +125,7 @@ export function useHairQuestionnaire(
                     existingProfile: profile,
                     questionsToAsk
                 });
+
             } catch (err) {
                 console.error('Error checking questionnaire:', err);
                 setDecision({ shouldShow: false, reason: 'disabled', existingProfile: null, questionsToAsk: [] });

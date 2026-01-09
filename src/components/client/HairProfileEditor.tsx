@@ -6,9 +6,11 @@ import {
     HairType,
     HairLength,
     ColorSituation,
+    LastColorTime,
     HAIR_TYPE_OPTIONS,
     HAIR_LENGTH_OPTIONS,
-    COLOR_SITUATION_OPTIONS
+    COLOR_SITUATION_OPTIONS,
+    LAST_COLOR_TIME_OPTIONS
 } from '@/types/hairProfile';
 
 interface HairProfileEditorProps {
@@ -32,19 +34,22 @@ export function HairProfileEditor({
 }: HairProfileEditorProps) {
     const [hairType, setHairType] = useState<HairType | null>(initialProfile?.hair_type || null);
     const [hairLength, setHairLength] = useState<HairLength | null>(initialProfile?.hair_length || null);
-    const [hasColorHistory, setHasColorHistory] = useState(initialProfile?.has_color_history || false);
     const [colorSituation, setColorSituation] = useState<ColorSituation | null>(initialProfile?.color_situation || null);
+    const [lastColorTime, setLastColorTime] = useState<LastColorTime | null>(initialProfile?.last_color_time || null);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Reset color situation if toggle off
+    // Reset last_color_time if virgin is selected
     useEffect(() => {
-        if (!hasColorHistory) {
-            setColorSituation(null);
+        if (colorSituation === 'virgin') {
+            setLastColorTime('never');
+        } else if (colorSituation && lastColorTime === 'never') {
+            // If switching from virgin to non-virgin, reset to null so user must select
+            setLastColorTime(null);
         }
-    }, [hasColorHistory]);
+    }, [colorSituation]);
 
-    const isValid = hairType && hairLength && (!hasColorHistory || colorSituation);
+    const isValid = hairType && hairLength && colorSituation && (colorSituation === 'virgin' || lastColorTime);
 
     const handleSave = async () => {
         if (!isValid) return;
@@ -58,8 +63,9 @@ export function HairProfileEditor({
                 shop_id: shopId,
                 hair_type: hairType,
                 hair_length: hairLength,
-                has_color_history: hasColorHistory,
-                color_situation: hasColorHistory ? colorSituation : null
+                has_color_history: colorSituation !== 'virgin',
+                color_situation: colorSituation,
+                last_color_time: colorSituation === 'virgin' ? 'never' : lastColorTime
             });
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Errore durante il salvataggio');
@@ -143,36 +149,40 @@ export function HairProfileEditor({
                 </div>
             </div>
 
-            {/* Toggle storia colore */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                <div>
-                    <div className="font-medium text-gray-900">Storia di colorazione</div>
-                    <div className="text-sm text-gray-500">I capelli sono stati colorati?</div>
+            {/* Situazione colore (obbligatorio) */}
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Situazione colore <span className="text-red-500">*</span>
+                </label>
+                <div className="space-y-2">
+                    {COLOR_SITUATION_OPTIONS.map((option) => (
+                        <button
+                            key={option.value}
+                            onClick={() => setColorSituation(option.value)}
+                            className={`w-full p-4 rounded-xl border-2 text-left transition-all ${colorSituation === option.value
+                                ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200'
+                                : 'border-gray-200 hover:border-purple-300 hover:bg-purple-50/50'
+                                }`}
+                        >
+                            <div className="font-medium text-gray-900">{option.label}</div>
+                            <div className="text-xs text-gray-500">{option.description}</div>
+                        </button>
+                    ))}
                 </div>
-                <button
-                    onClick={() => setHasColorHistory(!hasColorHistory)}
-                    className={`relative w-14 h-8 rounded-full transition-colors ${hasColorHistory ? 'bg-purple-500' : 'bg-gray-300'
-                        }`}
-                >
-                    <span
-                        className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow transition-transform ${hasColorHistory ? 'translate-x-6' : 'translate-x-0'
-                            }`}
-                    />
-                </button>
             </div>
 
-            {/* Situazione colore (se toggle ON) */}
-            {hasColorHistory && (
+            {/* Ultimo trattamento colore (solo se NON virgin) */}
+            {colorSituation && colorSituation !== 'virgin' && (
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-3">
-                        Situazione colore attuale <span className="text-red-500">*</span>
+                        Ultimo trattamento colore <span className="text-red-500">*</span>
                     </label>
                     <div className="space-y-2">
-                        {COLOR_SITUATION_OPTIONS.map((option) => (
+                        {LAST_COLOR_TIME_OPTIONS.filter(o => o.value !== 'never').map((option) => (
                             <button
                                 key={option.value}
-                                onClick={() => setColorSituation(option.value)}
-                                className={`w-full p-4 rounded-xl border-2 text-left transition-all ${colorSituation === option.value
+                                onClick={() => setLastColorTime(option.value)}
+                                className={`w-full p-4 rounded-xl border-2 text-left transition-all ${lastColorTime === option.value
                                     ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200'
                                     : 'border-gray-200 hover:border-purple-300 hover:bg-purple-50/50'
                                     }`}

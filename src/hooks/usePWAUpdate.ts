@@ -22,6 +22,9 @@ export const usePWAUpdate = () => {
         console.log('[PWA] Starting nuclear update...');
 
         try {
+            // Give the UI a moment to show the loading state
+            await new Promise(resolve => setTimeout(resolve, 500));
+
             // 1. Unregister all Service Workers
             if ('serviceWorker' in navigator) {
                 const registrations = await navigator.serviceWorker.getRegistrations();

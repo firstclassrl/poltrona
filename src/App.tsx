@@ -43,7 +43,7 @@ import { apiService } from './services/api';
 import type { CreateAppointmentRequest, UpdateAppointmentRequest, Appointment } from './types';
 
 const AppContent: React.FC = () => {
-  const { forceUpdate, needRefresh } = usePWAUpdate();
+  const { forceUpdate, needRefresh, isUpdating } = usePWAUpdate();
 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
@@ -268,6 +268,19 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="app-theme-bg text-[var(--theme-text)]">
+      {/* Overlay Aggiornamento */}
+      {isUpdating && (
+        <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center">
+          <div className="text-center p-8 rounded-2xl bg-[#1a1a1a] border border-yellow-500/30 shadow-2xl max-w-sm w-full mx-4">
+            <div className="w-20 h-20 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+            <h2 className="text-2xl font-bold text-white mb-2">Aggiornamento...</h2>
+            <p className="text-gray-400 text-sm">
+              Stiamo preparando la nuova versione di Poltrona. L'app si riavvierà tra un istante.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Paywall per utenti non abbonati (esclusi i clienti) */}
       {shouldShowPaywall && <Paywall><></></Paywall>}
 

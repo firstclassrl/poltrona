@@ -273,6 +273,7 @@ export const Clients = ({ onNavigateToBooking }: ClientsProps) => {
                 setClientAppointments([]);
               }}
               title="Dettagli Cliente"
+              size="xl"
             >
               {selectedClient && (
                 <div className="space-y-6">

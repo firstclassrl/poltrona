@@ -725,11 +725,9 @@ export const ShopSetup: React.FC = () => {
             filter: 'drop-shadow(0 10px 40px rgba(59, 130, 246, 0.3))',
           }}
         >
-          <img
-            src="/logo Poltrona 2025.png"
-            alt="Logo Poltrona"
-            className="h-24 w-auto object-contain"
-          />
+          <div className="w-24 h-24 bg-blue-100 rounded-3xl flex items-center justify-center mx-auto shadow-inner border border-blue-200">
+            <Building2 className="w-12 h-12 text-blue-600" />
+          </div>
         </div>
       </div>
       <h1
