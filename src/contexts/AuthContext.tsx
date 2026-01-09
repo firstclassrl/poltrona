@@ -1123,6 +1123,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Non bloccare la registrazione se l'email fallisce
       }
 
+      // FALLBACK: Creazione manuale notifica in-app se il trigger non funziona
+      try {
+        if (resolvedShopId) { // Assicuriamoci che uno shop ID sia disponibile
+          await apiService.createNotification({
+            shop_id: resolvedShopId,
+            title: 'Nuovo Cliente',
+            message: `${data.full_name} si è registrato/a al negozio.`,
+            type: 'new_client',
+            target_role: 'admin', // Notifica visibile a admin e barber
+            data: {
+              client_id: signupJson.user?.id,
+              client_name: data.full_name,
+              client_email: data.email
+            }
+          });
+        }
+      } catch (notifError) {
+        console.error('Failed to create in-app notification:', notifError);
+      }
+
       // Non facciamo login automatico, l'utente deve confermare l'email se necessario
 
     } catch (error) {

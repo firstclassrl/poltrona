@@ -378,7 +378,7 @@ export const Notifications: React.FC = () => {
                   'px-4 py-2 text-sm font-medium rounded-xl transition-all',
                   filter === option.value
                     ? 'bg-gray-900 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                 )}
               >
                 {option.label}
