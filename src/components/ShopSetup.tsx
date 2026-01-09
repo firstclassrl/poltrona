@@ -1359,7 +1359,7 @@ export const ShopSetup: React.FC = () => {
               <h3 className="text-xl font-bold text-[#1e40af]">Orari di Apertura</h3>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {DAYS_OF_WEEK.map((day) => {
                 const dayHours = shopHours[day.key];
                 const isOpen = dayHours.isOpen;
@@ -1415,25 +1415,29 @@ export const ShopSetup: React.FC = () => {
                               {dayHours.timeSlots.map((slot, slotIndex) => (
                                 <div
                                   key={slotIndex}
-                                  className="flex items-center gap-2 py-1.5"
+                                  className="flex items-center gap-1 py-1"
                                 >
-                                  <TimePicker
-                                    value={slot.start}
-                                    onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'start', value)}
-                                    placeholder="09:00"
-                                  />
-                                  <span className="text-gray-400 text-xs">—</span>
-                                  <TimePicker
-                                    value={slot.end}
-                                    onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'end', value)}
-                                    placeholder="18:00"
-                                  />
+                                  <div className="flex items-center gap-1 flex-1 min-w-0">
+                                    <TimePicker
+                                      value={slot.start}
+                                      onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'start', value)}
+                                      placeholder="09:00"
+                                      className="flex-1"
+                                    />
+                                    <span className="text-gray-300 text-xs px-0.5">–</span>
+                                    <TimePicker
+                                      value={slot.end}
+                                      onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'end', value)}
+                                      placeholder="18:00"
+                                      className="flex-1"
+                                    />
+                                  </div>
                                   <button
                                     type="button"
                                     onClick={() => handleRemoveTimeSlot(day.key, slotIndex)}
-                                    className="h-7 w-7 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full shrink-0 transition-all"
+                                    className="h-6 w-6 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full shrink-0 transition-all ml-1"
                                   >
-                                    <X className="w-4 h-4" />
+                                    <X className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
                               ))}
