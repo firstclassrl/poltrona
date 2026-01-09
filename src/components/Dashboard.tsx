@@ -240,8 +240,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <p className="text-xs text-gray-500">Buon riposo!</p>
                     </div>
                   ) : upcomingAppointments.length === 0 ? (
-                    <div className="text-center py-8 bg-green-50 rounded-lg border border-dashed border-green-200">
-                      <Calendar className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                    <div className="text-center py-8 bg-[color-mix(in_srgb,var(--theme-primary)_8%,var(--theme-surface))] rounded-lg border border-dashed border-[color-mix(in_srgb,var(--theme-primary)_20%,transparent)]">
+                      <Calendar className="w-8 h-8 text-[var(--theme-primary)] mx-auto mb-2" />
                       <p className="font-medium text-gray-900">Nessun appuntamento</p>
                       <p className="text-xs text-gray-500">Tutto libero per oggi!</p>
                     </div>
@@ -357,7 +357,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <Card className="bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-gray-900">Gli appuntamenti di oggi</h2>
-                <Clock className="w-6 h-6 text-green-600" />
+                <Clock className="w-6 h-6 text-[var(--theme-primary)]" />
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -372,9 +372,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     </p>
                   </div>
                 ) : upcomingAppointments.length === 0 ? (
-                  <div className="col-span-full flex flex-col items-center justify-center py-12 text-center bg-green-50/50 rounded-lg border border-dashed border-green-200">
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                      <Calendar className="w-8 h-8 text-green-600" />
+                  <div className="col-span-full flex flex-col items-center justify-center py-12 text-center bg-[color-mix(in_srgb,var(--theme-primary)_8%,var(--theme-surface))] rounded-lg border border-dashed border-[color-mix(in_srgb,var(--theme-primary)_20%,transparent)]">
+                    <div className="w-16 h-16 bg-[color-mix(in_srgb,var(--theme-primary)_15%,var(--theme-surface))] rounded-full flex items-center justify-center mb-4">
+                      <Calendar className="w-8 h-8 text-[var(--theme-primary)]" />
                     </div>
                     <h3 className="text-lg font-medium text-gray-900">Nessun appuntamento oggi 📅</h3>
                     <p className="text-gray-500 max-w-sm mt-1">
