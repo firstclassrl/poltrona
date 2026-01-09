@@ -3923,9 +3923,12 @@ export const apiService = {
   },
 
   // Create a notification for a user
+  // Create a notification for a user
   async createNotification(data: {
-    user_id: string;
-    user_type: 'staff' | 'client';
+    user_id?: string;
+    user_type?: 'staff' | 'client';
+    shop_id?: string;
+    target_role?: string;
     type: NotificationType;
     title: string;
     message: string;
@@ -3936,7 +3939,7 @@ export const apiService = {
     }
 
     try {
-      let shopId = getStoredShopId();
+      let shopId = data.shop_id || getStoredShopId();
       if (!shopId) {
         const shop = await this.getShop();
         shopId = shop?.id ?? null;
@@ -3946,6 +3949,7 @@ export const apiService = {
         shop_id: shopId && shopId !== 'default' ? shopId : null,
         user_id: data.user_id,
         user_type: data.user_type,
+        target_role: data.target_role,
         type: data.type,
         title: data.title,
         message: data.message,

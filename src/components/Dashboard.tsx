@@ -40,14 +40,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
       d.getFullYear() === today.getFullYear();
   };
 
+  const activeStatuses = new Set(['scheduled', 'confirmed', 'in_progress', 'rescheduled', 'completed']);
+
   // Filtra solo gli appuntamenti di OGGI, ordinati per ora
   const todaysAppointments = appointments
-    .filter(a => isToday(a.start_at))
+    .filter(a => {
+      const status = a.status ? a.status.toLowerCase() : '';
+      return isToday(a.start_at) && activeStatuses.has(status);
+    })
     .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime());
 
   // Use this for the list instead of "upcomingAppointments"
   const upcomingAppointments = todaysAppointments;
-  const activeStatuses = new Set(['scheduled', 'confirmed', 'in_progress', 'rescheduled', 'completed']);
 
   const todayActiveAppointments = appointments.filter((appointment) => {
     const status = appointment.status ? appointment.status.toLowerCase() : '';
