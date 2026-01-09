@@ -1,6 +1,7 @@
 import React from 'react';
 import { Lock, CreditCard, Calendar, CheckCircle, Loader2 } from 'lucide-react';
-import { useSubscription, STRIPE_PRICES } from '../contexts/SubscriptionContext';
+import { useSubscription, STRIPE_PRICES, SHOP_TYPE_PRICE_MAP, PRICE_INFO } from '../contexts/SubscriptionContext';
+import { useShop } from '../contexts/ShopContext';
 import type { SubscriptionPlan } from '../types/subscription';
 
 interface PaywallProps {
@@ -9,21 +10,27 @@ interface PaywallProps {
 
 export const Paywall: React.FC<PaywallProps> = ({ children }) => {
     const { access, isLoading, createCheckoutSession } = useSubscription();
+    const { currentShop } = useShop();
     const [checkoutLoading, setCheckoutLoading] = React.useState<SubscriptionPlan | null>(null);
+
+    // Determina prezzo basato sul tipo negozio
+    const priceTier = SHOP_TYPE_PRICE_MAP[currentShop?.shop_type || 'barbershop'] || 'basic';
+    const priceInfo = PRICE_INFO[priceTier];
+    const priceId = STRIPE_PRICES[priceTier];
 
     React.useEffect(() => {
         console.log('Paywall Render Debug:', {
             checkoutLoading,
-            stripePrices: STRIPE_PRICES,
-            monthlyPrice: STRIPE_PRICES.monthly,
-            isDisabled: checkoutLoading !== null || !STRIPE_PRICES.monthly
+            priceTier,
+            priceInfo,
+            priceId,
+            isDisabled: checkoutLoading !== null || !priceId
         });
-    }, [checkoutLoading]);
+    }, [checkoutLoading, priceTier, priceInfo, priceId]);
 
     const handleSubscribe = async (plan: SubscriptionPlan) => {
         console.log('Button clicked for plan:', plan);
-        console.log('Checkout Loading:', checkoutLoading);
-        console.log('Stripe Prices:', STRIPE_PRICES);
+        console.log('Price Tier:', priceTier, 'Price ID:', priceId);
 
         setCheckoutLoading(plan);
         try {
@@ -94,7 +101,7 @@ export const Paywall: React.FC<PaywallProps> = ({ children }) => {
                     {/* Pricing Buttons */}
                     <button
                         onClick={() => handleSubscribe('monthly')}
-                        disabled={checkoutLoading !== null || !STRIPE_PRICES.monthly}
+                        disabled={checkoutLoading !== null || !priceId}
                         className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold hover:from-blue-500 hover:to-purple-500 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:transform-none shadow-lg"
                     >
                         {checkoutLoading === 'monthly' ? (
@@ -102,7 +109,7 @@ export const Paywall: React.FC<PaywallProps> = ({ children }) => {
                         ) : (
                             <>
                                 <CreditCard className="w-5 h-5" />
-                                <span>Mensile - €99/mese</span>
+                                <span>€{priceInfo.monthly}/mese (fatturato ogni {priceInfo.period} mesi)</span>
                             </>
                         )}
                     </button>

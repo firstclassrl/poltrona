@@ -4,9 +4,26 @@ import { useShop } from './ShopContext';
 import { API_CONFIG, API_ENDPOINTS } from '../config/api';
 import type { ShopSubscription, SubscriptionAccess, SubscriptionPlan } from '../types/subscription';
 
-// Configurazione prezzi Stripe - DA AGGIORNARE con i tuoi price IDs
+// Prezzi Stripe per tipologia negozio
+// basic: Barbiere + Estetista (€49.99/mese, fatturato ogni 6 mesi = €299.94)
+// pro: Parrucchiere (€99.99/mese, fatturato ogni 6 mesi = €599.94)
 export const STRIPE_PRICES = {
-    monthly: import.meta.env.VITE_STRIPE_PRICE_MONTHLY || '',
+    basic: import.meta.env.VITE_STRIPE_PRICE_BASIC || '',   // Barbiere, Estetista
+    pro: import.meta.env.VITE_STRIPE_PRICE_PRO || '',       // Parrucchiere
+};
+
+// Mappatura shop_type → price tier
+export type PriceTier = 'basic' | 'pro';
+export const SHOP_TYPE_PRICE_MAP: Record<string, PriceTier> = {
+    barbershop: 'basic',
+    beauty_salon: 'basic',
+    hairdresser: 'pro',
+};
+
+// Info prezzi per UI
+export const PRICE_INFO: Record<PriceTier, { monthly: number; billing: number; period: number }> = {
+    basic: { monthly: 49.99, billing: 299.94, period: 6 },
+    pro: { monthly: 99.99, billing: 599.94, period: 6 },
 };
 
 interface SubscriptionContextValue {
@@ -36,7 +53,7 @@ interface SubscriptionProviderProps {
 
 export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ children }) => {
     const { user, isAuthenticated } = useAuth();
-    const { currentShopId } = useShop();
+    const { currentShopId, currentShop } = useShop();
     const [subscription, setSubscription] = useState<ShopSubscription | null>(null);
     const [access, setAccess] = useState<SubscriptionAccess>(defaultAccess);
     const [isLoading, setIsLoading] = useState(true);
@@ -141,20 +158,15 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
             return null;
         }
 
-        console.log('Creating checkout session for plan:', plan);
-        console.log('Available prices:', STRIPE_PRICES);
+        // Determina il prezzo basato sul tipo di negozio
+        const shopType = currentShop?.shop_type || 'barbershop';
+        const priceTier = SHOP_TYPE_PRICE_MAP[shopType] || 'basic';
+        const priceId = STRIPE_PRICES[priceTier];
 
-        if (plan === 'yearly') {
-            console.error('Annual plan requested but not available');
-            setError('Annual plan is no longer available');
-            return null;
-        }
-
-        const priceId = STRIPE_PRICES.monthly;
-        console.log('Selected price ID:', priceId);
+        console.log('Creating checkout session:', { shopType, priceTier, priceId });
 
         if (!priceId) {
-            console.error('Stripe price not configured for monthly plan');
+            console.error(`Stripe price not configured for ${priceTier} tier`);
             setError('Stripe price not configured');
             return null;
         }
@@ -184,7 +196,7 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
             setError(err instanceof Error ? err.message : 'Error creating checkout');
             return null;
         }
-    }, [currentShopId, getAuthHeaders]);
+    }, [currentShopId, currentShop, getAuthHeaders]);
 
     // Apri Customer Portal per gestire abbonamento
     const openCustomerPortal = useCallback(async (): Promise<string | null> => {

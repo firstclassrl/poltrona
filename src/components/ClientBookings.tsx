@@ -511,8 +511,8 @@ export const ClientBookings: React.FC = () => {
             {message && (
               <div
                 className={`border rounded-lg p-4 ${message.type === 'success'
-                    ? 'bg-green-50/80 border-green-200/80 text-green-800'
-                    : 'bg-red-50/80 border-red-200/80 text-red-800'
+                  ? 'bg-green-50/80 border-green-200/80 text-green-800'
+                  : 'bg-red-50/80 border-red-200/80 text-red-800'
                   } backdrop-blur shadow-lg`}
               >
                 {message.text}
@@ -731,6 +731,8 @@ export const ClientBookings: React.FC = () => {
                 setMessage({ type: 'success', text: 'Prenotazione anticipata con successo.' });
               }}
             />
+            {/* Physical Spacer to force scroll past bottom nav */}
+            <div className="h-32 w-full flex-shrink-0" aria-hidden="true" />
           </div>
         </div>
       </div>

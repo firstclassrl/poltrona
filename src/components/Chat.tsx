@@ -483,8 +483,8 @@ export const Chat: React.FC = () => {
                               />
 
                               <div className={`px-4 py-2 rounded-lg ${isOwnMessage
-                                  ? 'bg-green-500 text-white'
-                                  : 'bg-gray-100 text-gray-900'
+                                ? 'bg-green-500 text-white'
+                                : 'bg-gray-100 text-gray-900'
                                 }`}>
                                 <p className="text-sm">{message.content}</p>
                                 <div className={`flex items-center justify-between mt-1 ${isOwnMessage ? 'text-green-100' : 'text-gray-500'
@@ -594,8 +594,8 @@ export const Chat: React.FC = () => {
                                 type="button"
                                 onClick={() => setSelectedClient(client)}
                                 className={`w-full px-4 py-3 text-left transition-colors ${selectedClient?.id === client.id
-                                    ? 'bg-green-50 border-l-4 border-green-500'
-                                    : 'hover:bg-gray-50'
+                                  ? 'bg-green-50 border-l-4 border-green-500'
+                                  : 'hover:bg-gray-50'
                                   }`}
                               >
                                 <div className="font-semibold text-gray-900">
@@ -731,6 +731,8 @@ export const Chat: React.FC = () => {
             )}
           </div>
         </div>
+        {/* Physical Spacer to force scroll past bottom nav */}
+        <div className="h-32 w-full flex-shrink-0" aria-hidden="true" />
       </div>
     </div>
   );

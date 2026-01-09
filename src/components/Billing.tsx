@@ -1,6 +1,7 @@
 import React from 'react';
 import { CreditCard, Calendar, AlertCircle, CheckCircle, Clock, ExternalLink, Loader2 } from 'lucide-react';
-import { useSubscription, STRIPE_PRICES } from '../contexts/SubscriptionContext';
+import { useSubscription, STRIPE_PRICES, SHOP_TYPE_PRICE_MAP, PRICE_INFO } from '../contexts/SubscriptionContext';
+import { useShop } from '../contexts/ShopContext';
 import type { SubscriptionPlan } from '../types/subscription';
 
 export const Billing: React.FC = () => {
@@ -13,6 +14,12 @@ export const Billing: React.FC = () => {
         openCustomerPortal,
         refreshSubscription
     } = useSubscription();
+    const { currentShop } = useShop();
+
+    // Determina prezzo basato sul tipo negozio
+    const priceTier = SHOP_TYPE_PRICE_MAP[currentShop?.shop_type || 'barbershop'] || 'basic';
+    const priceInfo = PRICE_INFO[priceTier];
+    const priceId = STRIPE_PRICES[priceTier];
 
     const [checkoutLoading, setCheckoutLoading] = React.useState<SubscriptionPlan | null>(null);
     const [portalLoading, setPortalLoading] = React.useState(false);
@@ -173,13 +180,14 @@ export const Billing: React.FC = () => {
                         {/* Piano Mensile */}
                         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 hover:border-blue-300 transition-colors">
                             <div className="mb-4">
-                                <h3 className="text-xl font-bold text-gray-900">Mensile</h3>
-                                <p className="text-gray-600 text-sm">Flessibilità massima</p>
+                                <h3 className="text-xl font-bold text-gray-900">{priceTier === 'pro' ? 'Poltrona Pro' : 'Poltrona Basic'}</h3>
+                                <p className="text-gray-600 text-sm">Fatturazione semestrale</p>
                             </div>
 
                             <div className="mb-6">
-                                <span className="text-4xl font-bold text-gray-900">€99</span>
+                                <span className="text-4xl font-bold text-gray-900">€{priceInfo.monthly}</span>
                                 <span className="text-gray-600">/mese</span>
+                                <p className="text-sm text-gray-500 mt-1">€{priceInfo.billing} ogni {priceInfo.period} mesi</p>
                             </div>
 
                             <ul className="space-y-3 mb-6">
@@ -199,7 +207,7 @@ export const Billing: React.FC = () => {
 
                             <button
                                 onClick={() => handleSubscribe('monthly')}
-                                disabled={checkoutLoading !== null || !STRIPE_PRICES.monthly}
+                                disabled={checkoutLoading !== null || !priceId}
                                 className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
                             >
                                 {checkoutLoading === 'monthly' ? (

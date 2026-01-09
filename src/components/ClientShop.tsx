@@ -322,6 +322,8 @@ export const ClientShop = () => {
                 </div>
               </Card>
             )}
+            {/* Physical Spacer to force scroll past bottom nav */}
+            <div className="h-32 w-full flex-shrink-0" aria-hidden="true" />
           </div>
         </div>
       </div>
