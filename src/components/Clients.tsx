@@ -178,6 +178,8 @@ export const Clients = ({ onNavigateToBooking }: ClientsProps) => {
       setEditingCustomer(null);
     } catch (error) {
       console.error('Error saving customer:', error);
+      const message = error instanceof Error ? error.message : 'Errore durante il salvataggio';
+      alert(message); // Simple alert for now as there is no toast in this component
     } finally {
       setIsClientsLoading(false);
     }

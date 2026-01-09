@@ -300,6 +300,24 @@ export const apiService = {
       try {
         const fullName = `${data.first_name.trim()} ${data.last_name.trim()}`.trim();
 
+        // Check if client already exists in THIS shop
+        // CRITICO: Controllo duplicati pre-registrazione
+        let currentShopId = getStoredShopId();
+        if (!currentShopId || currentShopId === 'default') {
+          try {
+            const shop = await this.getShop();
+            currentShopId = shop?.id ?? null;
+          } catch { }
+        }
+
+        if (currentShopId && currentShopId !== 'default') {
+          const existingClient = await this.getClientByEmailExact(data.email.trim());
+          // Se esiste e appartiene a questo shop, blocca
+          if (existingClient && existingClient.shop_id === currentShopId) {
+            throw new Error('Un cliente con questa email esiste già in questo negozio.');
+          }
+        }
+
         // Create user in Supabase Auth
         const signupUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/auth/v1/signup`;
         const signupRes = await fetch(signupUrl, {
