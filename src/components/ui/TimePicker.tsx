@@ -99,53 +99,56 @@ export const TimePicker: React.FC<TimePickerProps> = ({
         </button>
 
         {isOpen && (
-          <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-50 flex overflow-hidden min-w-[280px] sm:min-w-[320px] animate-in fade-in zoom-in-95 duration-100 origin-top-left">
+          <>
+            <div className="fixed inset-0 z-[9998]" onClick={() => setIsOpen(false)} />
+            <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-2xl z-[9999] flex overflow-hidden min-w-[280px] sm:min-w-[320px] animate-in fade-in zoom-in-95 duration-100 origin-top-left">
 
-            {/* Hours Column */}
-            <div className="flex-1 p-2 sm:p-3 border-r border-gray-100 bg-gray-50/50">
-              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider text-center mb-2">Ore</div>
-              <div className="grid grid-cols-4 gap-1">
-                {hoursGrid.map((h) => (
-                  <button
-                    key={h}
-                    type="button"
-                    onClick={() => handleHourClick(h)}
-                    className={cn(
-                      'h-8 text-sm rounded-md transition-all font-medium',
-                      hours === h
-                        ? 'bg-green-600 text-white shadow-md scale-105'
-                        : 'text-gray-700 hover:bg-green-100 hover:text-green-800'
-                    )}
-                  >
-                    {h}
-                  </button>
-                ))}
+              {/* Hours Column */}
+              <div className="flex-1 p-2 sm:p-3 border-r border-gray-100 bg-gray-50/50">
+                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider text-center mb-2">Ore</div>
+                <div className="grid grid-cols-4 gap-1">
+                  {hoursGrid.map((h) => (
+                    <button
+                      key={h}
+                      type="button"
+                      onClick={() => handleHourClick(h)}
+                      className={cn(
+                        'h-8 text-sm rounded-md transition-all font-medium',
+                        hours === h
+                          ? 'bg-blue-600 text-white shadow-md scale-105'
+                          : 'text-gray-700 hover:bg-blue-100 hover:text-blue-800'
+                      )}
+                    >
+                      {h}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            {/* Minutes Column */}
-            <div className="w-[100px] sm:w-[120px] p-2 sm:p-3 bg-white">
-              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider text-center mb-2">Minuti</div>
-              <div className="grid grid-cols-2 gap-1">
-                {minutesGrid.map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => handleMinuteClick(m)}
-                    className={cn(
-                      'h-8 text-sm rounded-md transition-all font-medium',
-                      minutes === m
-                        ? 'bg-green-600 text-white shadow-md scale-105'
-                        : 'text-gray-700 hover:bg-green-100 hover:text-green-800'
-                    )}
-                  >
-                    {m}
-                  </button>
-                ))}
+              {/* Minutes Column */}
+              <div className="w-[100px] sm:w-[120px] p-2 sm:p-3 bg-white">
+                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider text-center mb-2">Minuti</div>
+                <div className="grid grid-cols-2 gap-1">
+                  {minutesGrid.map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => handleMinuteClick(m)}
+                      className={cn(
+                        'h-8 text-sm rounded-md transition-all font-medium',
+                        minutes === m
+                          ? 'bg-blue-600 text-white shadow-md scale-105'
+                          : 'text-gray-700 hover:bg-blue-100 hover:text-blue-800'
+                      )}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
 
-          </div>
+            </div>
+          </>
         )}
       </div>
     </div>

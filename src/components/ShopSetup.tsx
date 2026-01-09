@@ -1367,7 +1367,7 @@ export const ShopSetup: React.FC = () => {
                 return (
                   <div
                     key={day.key}
-                    className="rounded-xl p-4 relative overflow-hidden transition-all duration-300"
+                    className="rounded-xl p-4 transition-all duration-300"
                     style={{
                       background: isOpen
                         ? 'rgba(255, 255, 255, 0.8)'
