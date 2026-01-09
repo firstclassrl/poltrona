@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Settings as SettingsIcon, CalendarPlus, Sun, Flag, Package, Calendar, Bell, Mail, Clock, Edit, Save, X, Palette, Scissors } from 'lucide-react';
+import { Settings as SettingsIcon, CalendarPlus, Sun, Flag, Package, Calendar, Bell, Mail, Clock, Save, X, Palette, Scissors, ChevronDown, ChevronUp, Check, Loader2 } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { TimePicker } from './ui/TimePicker';
@@ -129,6 +129,105 @@ const persistShopLocally = (shopData: Shop) => {
   }
 };
 
+// Toggle Component with auto-save
+interface AutoSaveToggleProps {
+  label: string;
+  description?: string;
+  checked: boolean;
+  onChange: (value: boolean) => Promise<void>;
+  disabled?: boolean;
+}
+
+const AutoSaveToggle = ({ label, description, checked, onChange, disabled }: AutoSaveToggleProps) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const handleChange = async (newValue: boolean) => {
+    if (disabled || isLoading) return;
+    setIsLoading(true);
+    try {
+      await onChange(newValue);
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 1500);
+    } catch (error) {
+      console.error('Error saving:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
+      <div className="flex-1 mr-4">
+        <p className="text-sm font-medium text-gray-900">{label}</p>
+        {description && <p className="text-xs text-gray-500 mt-0.5">{description}</p>}
+      </div>
+      <div className="flex items-center space-x-2">
+        {isLoading && <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />}
+        {showSuccess && <Check className="w-4 h-4 text-green-500" />}
+        <button
+          onClick={() => handleChange(!checked)}
+          disabled={disabled || isLoading}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${checked ? 'bg-green-500' : 'bg-gray-300'
+            } ${disabled || isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+        >
+          <span
+            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${checked ? 'translate-x-5' : 'translate-x-0.5'
+              }`}
+          />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Collapsible Section Component
+interface CollapsibleSectionProps {
+  icon: React.ReactNode;
+  title: string;
+  color: 'blue' | 'purple' | 'indigo' | 'emerald';
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}
+
+const CollapsibleSection = ({ icon, title, color, children, defaultOpen = true }: CollapsibleSectionProps) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  const colorClasses = {
+    blue: 'bg-blue-50 border-blue-100 hover:bg-blue-100/50',
+    purple: 'bg-purple-50 border-purple-100 hover:bg-purple-100/50',
+    indigo: 'bg-indigo-50 border-indigo-100 hover:bg-indigo-100/50',
+    emerald: 'bg-emerald-50 border-emerald-100 hover:bg-emerald-100/50',
+  };
+
+  const iconColorClasses = {
+    blue: 'text-blue-600',
+    purple: 'text-purple-600',
+    indigo: 'text-indigo-600',
+    emerald: 'text-emerald-600',
+  };
+
+  return (
+    <div className={`rounded-xl border ${colorClasses[color]} transition-colors`}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-4 text-left"
+      >
+        <div className="flex items-center space-x-3">
+          <div className={iconColorClasses[color]}>{icon}</div>
+          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+        </div>
+        {isOpen ? (
+          <ChevronUp className="w-5 h-5 text-gray-500" />
+        ) : (
+          <ChevronDown className="w-5 h-5 text-gray-500" />
+        )}
+      </button>
+      {isOpen && <div className="px-4 pb-4 space-y-3">{children}</div>}
+    </div>
+  );
+};
+
 export const Settings = () => {
   const { user } = useAuth();
   const { refreshShop } = useShop();
@@ -137,15 +236,9 @@ export const Settings = () => {
 
   // Products
   const [productsEnabled, setProductsEnabled] = useState(true);
-  const [productsMessage, setProductsMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [isEditingProducts, setIsEditingProducts] = useState(false);
-  const [isSavingProducts, setIsSavingProducts] = useState(false);
 
   // Hair Questionnaire (solo hairdresser)
   const [hairQuestionnaireEnabled, setHairQuestionnaireEnabled] = useState(false);
-  const [hairQuestionnaireMessage, setHairQuestionnaireMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [isEditingHairQuestionnaire, setIsEditingHairQuestionnaire] = useState(false);
-  const [isSavingHairQuestionnaire, setIsSavingHairQuestionnaire] = useState(false);
 
   // Extra Opening
   const [extraOpeningForm, setExtraOpeningForm] = useState({
@@ -169,20 +262,17 @@ export const Settings = () => {
 
   // Auto Close Holidays
   const [autoCloseHolidays, setAutoCloseHolidays] = useState(true);
-  const [isEditingAutoCloseHolidays, setIsEditingAutoCloseHolidays] = useState(false);
-  const [isSavingAutoCloseHolidays, setIsSavingAutoCloseHolidays] = useState(false);
-  const [autoCloseHolidaysMessage, setAutoCloseHolidaysMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Calendar View
   const [calendarViewMode, setCalendarViewMode] = useState<'split' | 'full'>('split');
-  const [isEditingCalendarView, setIsEditingCalendarView] = useState(false);
   const [isSavingCalendarView, setIsSavingCalendarView] = useState(false);
-  const [calendarViewMessage, setCalendarViewMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   // Notifications
   const [notificationPrefs, setNotificationPrefs] = useState<NotificationPrefs>(defaultNotificationPrefs);
-  const [isEditingNotifications, setIsEditingNotifications] = useState(false);
   const [isSavingNotifications, setIsSavingNotifications] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Theme
   const { themeId, setTheme } = useTheme();
   const [themePalette, setThemePalette] = useState<ThemePaletteId>(themeId);
   const [originalThemePalette, setOriginalThemePalette] = useState<ThemePaletteId>(themeId);
@@ -250,12 +340,9 @@ export const Settings = () => {
       setHairQuestionnaireEnabled(syncedShop.hair_questionnaire_enabled ?? false);
       setAutoCloseHolidays(syncedShop.auto_close_holidays ?? true);
       setCalendarViewMode(syncedShop.calendar_view_mode ?? 'split');
-      // Non applicare il tema qui, solo impostare lo stato locale per la UI
-      // Il tema viene gestito dal ThemeContext in base al database
       const paletteFromShop = (syncedShop.theme_palette as ThemePaletteId) || themeId;
       setThemePalette(paletteFromShop);
       setOriginalThemePalette(paletteFromShop);
-      // NON chiamare setTheme qui per evitare reset quando si apre la pagina opzioni
       setExtraOpeningForm({
         date: formatDateForDisplay(syncedShop.extra_opening_date),
         morningStart: syncedShop.extra_morning_start ?? '',
@@ -275,7 +362,6 @@ export const Settings = () => {
         const paletteFromShop = (syncedShop.theme_palette as ThemePaletteId) || themeId;
         setThemePalette(paletteFromShop);
         setOriginalThemePalette(paletteFromShop);
-        // NON chiamare setTheme qui per evitare reset quando si apre la pagina opzioni
         setExtraOpeningForm({
           date: formatDateForDisplay(syncedShop.extra_opening_date),
           morningStart: syncedShop.extra_morning_start ?? '',
@@ -287,67 +373,44 @@ export const Settings = () => {
     }
   };
 
-  // Products handlers
-  const handleCancelProducts = () => {
-    if (shop) {
-      setProductsEnabled(shop.products_enabled ?? true);
-    }
-    setIsEditingProducts(false);
+  // Auto-save handlers for simple toggles
+  const handleSaveProducts = async (value: boolean) => {
+    if (!shop) throw new Error('Shop data not available');
+    const updatedShop: Shop = { ...shop, products_enabled: value };
+    await apiService.updateShop(updatedShop);
+    persistShopState(updatedShop);
+    setProductsEnabled(value);
   };
 
-  const handleSaveProducts = async () => {
-    if (!shop) {
-      showMessage(setProductsMessage, 'error', 'Impossibile salvare: dati negozio non disponibili.', 5000);
-      return;
-    }
+  const handleSaveHairQuestionnaire = async (value: boolean) => {
+    if (!shop) throw new Error('Shop data not available');
+    const updatedShop: Shop = { ...shop, hair_questionnaire_enabled: value };
+    await apiService.updateShop(updatedShop);
+    persistShopState(updatedShop);
+    setHairQuestionnaireEnabled(value);
+  };
 
-    setIsSavingProducts(true);
-    const updatedShop: Shop = {
-      ...shop,
-      products_enabled: productsEnabled,
-    };
+  const handleSaveAutoCloseHolidays = async (value: boolean) => {
+    if (!shop) throw new Error('Shop data not available');
+    await apiService.updateShopAutoCloseHolidays(value);
+    const updatedShop: Shop = { ...shop, auto_close_holidays: value };
+    persistShopLocally(updatedShop);
+    setShop(updatedShop);
+    setAutoCloseHolidays(value);
+  };
+
+  const handleSaveCalendarView = async (mode: 'split' | 'full') => {
+    if (!shop) return;
+    setIsSavingCalendarView(true);
     try {
+      const updatedShop: Shop = { ...shop, calendar_view_mode: mode };
       await apiService.updateShop(updatedShop);
-      persistShopState(updatedShop);
-      setIsEditingProducts(false);
-      showMessage(setProductsMessage, 'success', 'Sistema prodotti aggiornato!');
-    } catch (error) {
-      console.error('Error saving products setting:', error);
-      showMessage(setProductsMessage, 'error', 'Errore durante il salvataggio del sistema prodotti.', 5000);
+      persistShopLocally(updatedShop);
+      setShop(updatedShop);
+      setCalendarViewMode(mode);
+      window.dispatchEvent(new CustomEvent('calendar-view-mode-updated', { detail: mode }));
     } finally {
-      setIsSavingProducts(false);
-    }
-  };
-
-  // Hair Questionnaire handlers
-  const handleCancelHairQuestionnaire = () => {
-    if (shop) {
-      setHairQuestionnaireEnabled(shop.hair_questionnaire_enabled ?? false);
-    }
-    setIsEditingHairQuestionnaire(false);
-  };
-
-  const handleSaveHairQuestionnaire = async () => {
-    if (!shop) {
-      showMessage(setHairQuestionnaireMessage, 'error', 'Impossibile salvare: dati negozio non disponibili.', 5000);
-      return;
-    }
-
-    setIsSavingHairQuestionnaire(true);
-    const updatedShop: Shop = {
-      ...shop,
-      hair_questionnaire_enabled: hairQuestionnaireEnabled,
-    };
-    try {
-      await apiService.updateShop(updatedShop);
-      persistShopState(updatedShop);
-      setIsEditingHairQuestionnaire(false);
-      showMessage(setHairQuestionnaireMessage, 'success', hairQuestionnaireEnabled ? 'Questionario capelli attivato!' : 'Questionario capelli disattivato!');
-    } catch (error) {
-      console.error('Error saving hair questionnaire setting:', error);
-      showMessage(setHairQuestionnaireMessage, 'error', 'Errore durante il salvataggio del questionario.', 5000);
-    } finally {
-      setIsSavingHairQuestionnaire(false);
+      setIsSavingCalendarView(false);
     }
   };
 
@@ -449,12 +512,12 @@ export const Settings = () => {
 
       setIsEditingExtraOpening(false);
       const successMessage = isoDate
-        ? 'Apertura straordinaria aggiornata con successo!'
+        ? 'Apertura straordinaria aggiornata!'
         : 'Apertura straordinaria rimossa.';
       showMessage(setExtraOpeningMessage, 'success', successMessage);
     } catch (error) {
       console.error('Error saving extra opening:', error);
-      showMessage(setExtraOpeningMessage, 'error', 'Errore durante il salvataggio dell\'apertura straordinaria.', 5000);
+      showMessage(setExtraOpeningMessage, 'error', 'Errore durante il salvataggio.', 5000);
     } finally {
       setIsSavingExtraOpening(false);
     }
@@ -472,7 +535,7 @@ export const Settings = () => {
     const endDate = new Date(vacationEndDate);
 
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      showMessage(setVacationMessage, 'error', 'Date non valide. Inserisci date corrette.', 5000);
+      showMessage(setVacationMessage, 'error', 'Date non valide.', 5000);
       return;
     }
 
@@ -497,14 +560,14 @@ export const Settings = () => {
         API_CONFIG.SUPABASE_ANON_KEY &&
         API_CONFIG.N8N_BASE_URL;
       const messageText = isBackendConfigured
-        ? 'Modalità ferie attivata! Tutti gli appuntamenti nel periodo sono stati cancellati.'
-        : 'Modalità ferie attivata! Le prenotazioni per questo periodo sono bloccate.';
+        ? 'Modalità ferie attivata! Appuntamenti cancellati.'
+        : 'Modalità ferie attivata!';
 
       showMessage(setVacationMessage, 'success', messageText, 5000);
       window.dispatchEvent(new CustomEvent('vacation-period-updated'));
     } catch (error) {
       console.error('Error activating vacation mode:', error);
-      showMessage(setVacationMessage, 'error', 'Errore durante l\'attivazione della modalità ferie', 5000);
+      showMessage(setVacationMessage, 'error', 'Errore durante l\'attivazione.', 5000);
     } finally {
       setIsSavingVacation(false);
     }
@@ -517,102 +580,28 @@ export const Settings = () => {
       showMessage(setVacationMessage, 'success', 'Modalità ferie disattivata!', 4000);
     } catch (error) {
       console.error('Error deactivating vacation mode:', error);
-      showMessage(setVacationMessage, 'error', 'Errore durante la disattivazione della modalità ferie', 5000);
+      showMessage(setVacationMessage, 'error', 'Errore durante la disattivazione.', 5000);
     }
   };
 
-  // Auto Close Holidays handlers
-  const handleCancelAutoCloseHolidays = () => {
-    if (shop) {
-      setAutoCloseHolidays(shop.auto_close_holidays ?? true);
-    }
-    setIsEditingAutoCloseHolidays(false);
-  };
-
-  const handleSaveAutoCloseHolidays = async () => {
-    if (!shop) {
-      showMessage(setAutoCloseHolidaysMessage, 'error', 'Impossibile salvare: dati negozio non disponibili.', 5000);
-      return;
-    }
-
-    setIsSavingAutoCloseHolidays(true);
-    try {
-      await apiService.updateShopAutoCloseHolidays(autoCloseHolidays);
-      const updatedShop: Shop = {
-        ...shop,
-        auto_close_holidays: autoCloseHolidays,
-      };
-      persistShopLocally(updatedShop);
-      setShop(updatedShop);
-      setIsEditingAutoCloseHolidays(false);
-      showMessage(setAutoCloseHolidaysMessage, 'success', 'Impostazione chiusura automatica feste aggiornata!');
-    } catch (error) {
-      console.error('Error saving auto close holidays setting:', error);
-      showMessage(setAutoCloseHolidaysMessage, 'error', 'Errore durante il salvataggio. Riprova.', 5000);
-    } finally {
-      setIsSavingAutoCloseHolidays(false);
-    }
-  };
-
-  // Calendar View handlers
-  const handleCancelCalendarView = () => {
-    if (shop) {
-      setCalendarViewMode(shop.calendar_view_mode ?? 'split');
-    }
-    setIsEditingCalendarView(false);
-  };
-
-  const handleSaveCalendarView = async () => {
-    if (!shop) {
-      showMessage(setCalendarViewMessage, 'error', 'Impossibile salvare: dati negozio non disponibili.', 5000);
-      return;
-    }
-
-    setIsSavingCalendarView(true);
-    try {
-      const updatedShop: Shop = {
-        ...shop,
-        calendar_view_mode: calendarViewMode,
-      };
-      await apiService.updateShop(updatedShop);
-      persistShopLocally(updatedShop);
-      setShop(updatedShop);
-      setIsEditingCalendarView(false);
-      showMessage(setCalendarViewMessage, 'success', 'Impostazione visualizzazione calendario aggiornata!');
-      window.dispatchEvent(new CustomEvent('calendar-view-mode-updated', { detail: calendarViewMode }));
-    } catch (error) {
-      console.error('Error saving calendar view mode setting:', error);
-      showMessage(setCalendarViewMessage, 'error', 'Errore durante il salvataggio. Riprova.', 5000);
-    } finally {
-      setIsSavingCalendarView(false);
-    }
-  };
-
-  // Notification handlers (client-side only)
-  const handleCancelNotifications = () => {
-    setNotificationPrefs(initialNotificationPrefsRef.current);
-    setIsEditingNotifications(false);
-  };
-
+  // Notification handlers
   const handleSaveNotifications = () => {
     setIsSavingNotifications(true);
     try {
       persistNotificationPrefs(notificationPrefs);
       initialNotificationPrefsRef.current = notificationPrefs;
-      setIsEditingNotifications(false);
       showMessage(setNotificationMessage, 'success', 'Notifiche aggiornate!');
     } catch (error) {
       console.error('Error saving notifications prefs:', error);
-      showMessage(setNotificationMessage, 'error', 'Errore durante il salvataggio delle notifiche.', 5000);
+      showMessage(setNotificationMessage, 'error', 'Errore durante il salvataggio.', 5000);
     } finally {
       setIsSavingNotifications(false);
     }
   };
 
+  // Theme handlers
   const handleCancelTheme = () => {
-    // Ripristina il tema originale salvato quando si è entrati in modalità modifica
     setThemePalette(originalThemePalette);
-    // Ripristina il tema applicato (senza persistenza, solo per annullare le modifiche)
     setTheme(originalThemePalette, { persist: false });
     setIsEditingTheme(false);
   };
@@ -623,29 +612,40 @@ export const Settings = () => {
       return;
     }
     setIsSavingTheme(true);
-    const updatedShop: Shop = {
-      ...shop,
-      theme_palette: themePalette,
-    };
+    const updatedShop: Shop = { ...shop, theme_palette: themePalette };
     try {
-      // Salva prima nel database
       await apiService.updateShop(updatedShop);
-      // Aggiorna lo shop nel ShopContext per triggerare l'aggiornamento del tema
       await refreshShop();
-      // Poi aggiorna lo stato locale
       const syncedShop = persistShopState(updatedShop);
-      // Infine salva il tema con persistenza (nel database e localStorage)
-      // Questo deve essere fatto DOPO l'aggiornamento del database per evitare che il ThemeContext lo resetti
       setTheme(themePalette, { persist: true });
       setIsEditingTheme(false);
       setThemePalette((syncedShop.theme_palette as ThemePaletteId) || themePalette);
       setOriginalThemePalette((syncedShop.theme_palette as ThemePaletteId) || themePalette);
-      showMessage(setThemeMessage, 'success', 'Palette aggiornata!');
+      showMessage(setThemeMessage, 'success', 'Tema salvato!');
     } catch (error) {
       console.error('Error saving theme palette:', error);
-      showMessage(setThemeMessage, 'error', 'Errore durante il salvataggio del tema.', 5000);
+      showMessage(setThemeMessage, 'error', 'Errore durante il salvataggio.', 5000);
     } finally {
       setIsSavingTheme(false);
+    }
+  };
+
+  const formatVacationDate = (dateStr: string): string => {
+    if (!dateStr) return 'Data non valida';
+    try {
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        const [year, month, day] = parts.map(Number);
+        const date = new Date(year, month - 1, day);
+        return date.toLocaleDateString('it-IT', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        });
+      }
+      return 'Data non valida';
+    } catch {
+      return 'Data non valida';
     }
   };
 
@@ -676,44 +676,80 @@ export const Settings = () => {
   return (
     <div className="p-0 page-container-chat-style">
       <div className="w-full">
-        <div className="flex flex-col space-y-6">
-          <div className="space-y-6 max-w-7xl mx-auto">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-green-900">
-                  <SettingsIcon className="w-6 h-6 text-yellow-400" />
-                </div>
-                <h1 className="text-3xl font-bold text-black">Opzioni</h1>
+        <div className="flex flex-col space-y-4">
+          <div className="space-y-4 max-w-3xl mx-auto">
+            {/* Header */}
+            <div className="flex items-center space-x-3 mb-2">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
+                <SettingsIcon className="w-5 h-5 text-white" />
               </div>
+              <h1 className="text-2xl font-bold text-gray-900">Opzioni</h1>
             </div>
 
-            {/* Sezione Operativa */}
-            <Card className="space-y-4 bg-sky-50 border border-sky-100 p-4 md:p-5 shadow-sm">
-              <div className="flex items-center space-x-2 mb-4">
-                <CalendarPlus className="w-5 h-5 text-gray-600" />
-                <h2 className="text-xl font-semibold text-gray-900">Operativa</h2>
+            {/* Section 1: Calendario & Disponibilità */}
+            <CollapsibleSection
+              icon={<Calendar className="w-5 h-5" />}
+              title="Calendario & Disponibilità"
+              color="blue"
+            >
+              {/* Visualizzazione Calendario - Inline radio */}
+              <div className="bg-white rounded-lg border border-gray-200 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Visualizzazione Calendario</p>
+                    <p className="text-xs text-gray-500">Come mostrare la griglia degli appuntamenti</p>
+                  </div>
+                  {isSavingCalendarView && <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => handleSaveCalendarView('split')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${calendarViewMode === 'split'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                  >
+                    Diviso (Mattina/Pomeriggio)
+                  </button>
+                  <button
+                    onClick={() => handleSaveCalendarView('full')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${calendarViewMode === 'full'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                  >
+                    Giornata Intera
+                  </button>
+                </div>
               </div>
 
-              {/* Apertura Straordinaria */}
-              <Card className="border border-gray-200 shadow-sm">
-                <div className="p-6 space-y-4">
+              {/* Chiusura Automatica Festivi - Toggle */}
+              <AutoSaveToggle
+                label="Chiusura Automatica Festivi"
+                description="Chiudi automaticamente nei giorni festivi nazionali"
+                checked={autoCloseHolidays}
+                onChange={handleSaveAutoCloseHolidays}
+              />
+
+              {/* Apertura Straordinaria - Complex form */}
+              <Card className="border border-gray-200 bg-white">
+                <div className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
-                        <CalendarPlus className="w-5 h-5 text-pink-600" />
+                      <div className="w-8 h-8 bg-pink-100 rounded-full flex items-center justify-center">
+                        <CalendarPlus className="w-4 h-4 text-pink-600" />
                       </div>
                       <div>
-                        <h3 className="text-base font-semibold text-gray-900">Apertura Straordinaria</h3>
-                        <p className="text-sm text-gray-600">Apri in un giorno extra rispetto al calendario standard.</p>
+                        <h3 className="text-sm font-semibold text-gray-900">Apertura Straordinaria</h3>
+                        <p className="text-xs text-gray-500">Aggiungi un giorno extra</p>
                       </div>
                     </div>
                     {!isEditingExtraOpening ? (
                       <Button
                         onClick={() => setIsEditingExtraOpening(true)}
                         size="sm"
-                        className="bg-pink-600 hover:bg-pink-700 text-white border-pink-600"
+                        variant="secondary"
                       >
-                        <Edit className="w-4 h-4 mr-2" />
                         Modifica
                       </Button>
                     ) : (
@@ -724,18 +760,15 @@ export const Settings = () => {
                           onClick={handleCancelExtraOpening}
                           disabled={isSavingExtraOpening}
                         >
-                          <X className="w-4 h-4 mr-2" />
-                          Annulla
+                          <X className="w-4 h-4" />
                         </Button>
                         <Button
                           onClick={handleSaveExtraOpening}
                           size="sm"
                           loading={isSavingExtraOpening}
                           disabled={isSavingExtraOpening}
-                          className="bg-pink-600 hover:bg-pink-700 text-white border-pink-600"
                         >
-                          <Save className="w-4 h-4 mr-2" />
-                          Salva
+                          <Save className="w-4 h-4" />
                         </Button>
                       </div>
                     )}
@@ -743,29 +776,18 @@ export const Settings = () => {
 
                   {extraOpeningMessage && (
                     <div
-                      className={`p-3 rounded-lg ${extraOpeningMessage.type === 'success'
-                        ? 'bg-pink-50 border border-pink-200 text-pink-800'
+                      className={`p-2 rounded-lg text-sm ${extraOpeningMessage.type === 'success'
+                        ? 'bg-green-50 border border-green-200 text-green-800'
                         : 'bg-red-50 border border-red-200 text-red-800'
                         }`}
                     >
-                      <p className="text-sm font-medium">{extraOpeningMessage.text}</p>
+                      {extraOpeningMessage.text}
                     </div>
                   )}
 
-                  <div className="flex justify-end">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={handleClearExtraOpening}
-                      disabled={!isEditingExtraOpening || (!extraOpeningForm.date && !extraOpeningForm.morningStart && !extraOpeningForm.morningEnd && !extraOpeningForm.afternoonStart && !extraOpeningForm.afternoonEnd)}
-                    >
-                      Rimuovi apertura
-                    </Button>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Data (gg/mm/aaaa)</label>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Data (gg/mm/aaaa)</label>
                       <input
                         type="text"
                         inputMode="numeric"
@@ -788,33 +810,27 @@ export const Settings = () => {
                           }
                         }}
                         disabled={!isEditingExtraOpening}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:bg-gray-100"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                       />
                     </div>
 
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                      <h4 className="text-sm font-medium text-gray-900 mb-2">Fascia mattina</h4>
-                      <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-gray-50 rounded-lg p-2">
+                      <h4 className="text-xs font-medium text-gray-700 mb-2">Mattina</h4>
+                      <div className="grid grid-cols-2 gap-2">
                         <TimePicker
-                          label="Apertura"
+                          label="Apre"
                           value={extraOpeningForm.morningStart}
                           onChange={(value) =>
-                            setExtraOpeningForm(prev => ({
-                              ...prev,
-                              morningStart: value,
-                            }))
+                            setExtraOpeningForm(prev => ({ ...prev, morningStart: value }))
                           }
                           disabled={!isEditingExtraOpening || !extraOpeningForm.date}
                           placeholder="--:--"
                         />
                         <TimePicker
-                          label="Chiusura"
+                          label="Chiude"
                           value={extraOpeningForm.morningEnd}
                           onChange={(value) =>
-                            setExtraOpeningForm(prev => ({
-                              ...prev,
-                              morningEnd: value,
-                            }))
+                            setExtraOpeningForm(prev => ({ ...prev, morningEnd: value }))
                           }
                           disabled={!isEditingExtraOpening || !extraOpeningForm.date}
                           placeholder="--:--"
@@ -822,29 +838,23 @@ export const Settings = () => {
                       </div>
                     </div>
 
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                      <h4 className="text-sm font-medium text-gray-900 mb-2">Fascia pomeriggio</h4>
-                      <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-gray-50 rounded-lg p-2">
+                      <h4 className="text-xs font-medium text-gray-700 mb-2">Pomeriggio</h4>
+                      <div className="grid grid-cols-2 gap-2">
                         <TimePicker
-                          label="Apertura"
+                          label="Apre"
                           value={extraOpeningForm.afternoonStart}
                           onChange={(value) =>
-                            setExtraOpeningForm(prev => ({
-                              ...prev,
-                              afternoonStart: value,
-                            }))
+                            setExtraOpeningForm(prev => ({ ...prev, afternoonStart: value }))
                           }
                           disabled={!isEditingExtraOpening || !extraOpeningForm.date}
                           placeholder="--:--"
                         />
                         <TimePicker
-                          label="Chiusura"
+                          label="Chiude"
                           value={extraOpeningForm.afternoonEnd}
                           onChange={(value) =>
-                            setExtraOpeningForm(prev => ({
-                              ...prev,
-                              afternoonEnd: value,
-                            }))
+                            setExtraOpeningForm(prev => ({ ...prev, afternoonEnd: value }))
                           }
                           disabled={!isEditingExtraOpening || !extraOpeningForm.date}
                           placeholder="--:--"
@@ -853,23 +863,30 @@ export const Settings = () => {
                     </div>
                   </div>
 
-                  <p className="text-xs text-gray-500">
-                    Lascia vuoto il campo data per rimuovere l'apertura straordinaria. Puoi specificare solo la mattina o solo il pomeriggio.
-                  </p>
+                  {isEditingExtraOpening && extraOpeningForm.date && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleClearExtraOpening}
+                      className="text-red-600"
+                    >
+                      Rimuovi apertura
+                    </Button>
+                  )}
                 </div>
               </Card>
 
-              {/* Modalità Ferie */}
-              <Card className="border border-gray-200 shadow-sm">
-                <div className="p-6 space-y-4">
+              {/* Modalità Ferie - Complex form */}
+              <Card className="border border-gray-200 bg-white">
+                <div className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                        <Sun className="w-5 h-5 text-orange-600" />
+                      <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                        <Sun className="w-4 h-4 text-orange-600" />
                       </div>
                       <div>
-                        <h3 className="text-base font-semibold text-gray-900">Modalità Ferie</h3>
-                        <p className="text-sm text-gray-600">Imposta un periodo di chiusura temporanea.</p>
+                        <h3 className="text-sm font-semibold text-gray-900">Modalità Ferie</h3>
+                        <p className="text-xs text-gray-500">Periodo di chiusura temporanea</p>
                       </div>
                     </div>
                     {!isEditingVacation ? (
@@ -882,9 +899,8 @@ export const Settings = () => {
                           }
                         }}
                         size="sm"
-                        className="bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
+                        variant="secondary"
                       >
-                        <Edit className="w-4 h-4 mr-2" />
                         Modifica
                       </Button>
                     ) : (
@@ -896,746 +912,313 @@ export const Settings = () => {
                           setShowVacationConfirm(false);
                         }}
                         size="sm"
-                        className="bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
+                        variant="secondary"
                       >
-                        <Save className="w-4 h-4 mr-2" />
-                        Termina
+                        Chiudi
                       </Button>
                     )}
                   </div>
 
                   {vacationMessage && (
                     <div
-                      className={`p-3 rounded-lg ${vacationMessage.type === 'success'
-                        ? 'bg-orange-50 border border-orange-200 text-orange-800'
+                      className={`p-2 rounded-lg text-sm ${vacationMessage.type === 'success'
+                        ? 'bg-green-50 border border-green-200 text-green-800'
                         : 'bg-red-50 border border-red-200 text-red-800'
                         }`}
                     >
-                      <p className="text-sm font-medium">{vacationMessage.text}</p>
+                      {vacationMessage.text}
                     </div>
                   )}
 
-                  <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg space-y-4">
-                    {vacationPeriod && (() => {
-                      let period = vacationPeriod;
-                      if (typeof period === 'string') {
-                        try {
-                          period = JSON.parse(period);
-                        } catch (e) {
-                          console.error('Error parsing vacationPeriod:', e);
-                          return null;
-                        }
+                  {vacationPeriod && (() => {
+                    let period = vacationPeriod;
+                    if (typeof period === 'string') {
+                      try {
+                        period = JSON.parse(period);
+                      } catch {
+                        return null;
                       }
+                    }
 
-                      const formatVacationDate = (dateStr: string): string => {
-                        if (!dateStr) return 'Data non valida';
-                        try {
-                          const parts = dateStr.split('-');
-                          if (parts.length === 3) {
-                            const [year, month, day] = parts.map(Number);
-                            const date = new Date(year, month - 1, day);
-                            return date.toLocaleDateString('it-IT', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric'
-                            });
-                          }
-                          const date = new Date(dateStr);
-                          if (isNaN(date.getTime())) {
-                            return 'Data non valida';
-                          }
-                          return date.toLocaleDateString('it-IT', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric'
-                          });
-                        } catch (e) {
-                          console.error('Error formatting date:', e, dateStr);
-                          return 'Data non valida';
-                        }
-                      };
-
-                      const startDateFormatted = formatVacationDate(period.start_date || '');
-                      const endDateFormatted = formatVacationDate(period.end_date || '');
-
-                      return (
-                        <div className="p-3 bg-white border border-orange-200 rounded-lg">
-                          <p className="text-sm font-medium text-orange-700">Modalità ferie attiva</p>
-                          <p className="text-xs text-orange-600">
-                            Periodo corrente: {startDateFormatted} - {endDateFormatted}
-                          </p>
-                        </div>
-                      );
-                    })()}
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Data inizio</label>
-                        <input
-                          type="date"
-                          value={vacationStartDate}
-                          onChange={(e) => setVacationStartDate(e.target.value)}
-                          disabled={!isEditingVacation}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                        />
+                    return (
+                      <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                        <p className="text-sm font-medium text-orange-700">🏖️ Ferie attive</p>
+                        <p className="text-xs text-orange-600">
+                          {formatVacationDate(period.start_date || '')} - {formatVacationDate(period.end_date || '')}
+                        </p>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Data fine</label>
-                        <input
-                          type="date"
-                          value={vacationEndDate}
-                          onChange={(e) => setVacationEndDate(e.target.value)}
-                          disabled={!isEditingVacation}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                        />
-                      </div>
-                    </div>
+                    );
+                  })()}
 
-                    <div className="flex flex-wrap gap-3">
-                      <Button
-                        variant="danger"
-                        onClick={() => setShowVacationConfirm(true)}
-                        disabled={!isEditingVacation || !vacationStartDate || !vacationEndDate}
-                      >
-                        Attiva Modalità Ferie
-                      </Button>
-                      {vacationPeriod && (
-                        <Button
-                          variant="secondary"
-                          onClick={handleDeactivateVacation}
-                          disabled={!isEditingVacation}
-                        >
-                          Disattiva Modalità Ferie
-                        </Button>
-                      )}
-                    </div>
-
-                    {!isEditingVacation && (
-                      <p className="text-xs text-gray-500">
-                        Clicca su Modifica per impostare o disattivare il periodo di ferie.
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </Card>
-
-              {/* Chiusura Automatica Festivi */}
-              <Card className="border border-gray-200 shadow-sm">
-                <div className="p-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                        <Flag className="w-5 h-5 text-red-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-base font-semibold text-gray-900">Chiusura Automatica Giorni Festivi</h3>
-                        <p className="text-sm text-gray-600">Chiudi automaticamente il negozio nei giorni festivi nazionali italiani (feste rosse).</p>
-                      </div>
-                    </div>
-                    {!isEditingAutoCloseHolidays ? (
-                      <Button
-                        onClick={() => setIsEditingAutoCloseHolidays(true)}
-                        size="sm"
-                        className="bg-red-600 hover:bg-red-700 text-white border-red-600"
-                      >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Modifica
-                      </Button>
-                    ) : (
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={handleCancelAutoCloseHolidays}
-                          disabled={isSavingAutoCloseHolidays}
-                        >
-                          <X className="w-4 h-4 mr-2" />
-                          Annulla
-                        </Button>
-                        <Button
-                          onClick={handleSaveAutoCloseHolidays}
-                          size="sm"
-                          loading={isSavingAutoCloseHolidays}
-                          disabled={isSavingAutoCloseHolidays}
-                          className="bg-red-600 hover:bg-red-700 text-white border-red-600"
-                        >
-                          <Save className="w-4 h-4 mr-2" />
-                          Salva
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-
-                  {autoCloseHolidaysMessage && (
-                    <div
-                      className={`p-3 rounded-lg ${autoCloseHolidaysMessage.type === 'success'
-                        ? 'bg-red-50 border border-red-200 text-red-800'
-                        : 'bg-red-50 border border-red-200 text-red-800'
-                        }`}
-                    >
-                      <p className="text-sm font-medium">{autoCloseHolidaysMessage.text}</p>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-700">
-                      {autoCloseHolidays
-                        ? 'Il negozio chiude automaticamente nei giorni festivi nazionali italiani.'
-                        : 'Il negozio rimane aperto anche nei giorni festivi nazionali.'}
-                    </p>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={autoCloseHolidays}
-                        onChange={(e) => setAutoCloseHolidays(e.target.checked)}
-                        disabled={!isEditingAutoCloseHolidays}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                    </label>
-                  </div>
-
-                  {!isEditingAutoCloseHolidays && (
-                    <p className="text-xs text-gray-500">
-                      Clicca su Modifica per cambiare l'impostazione.
-                    </p>
-                  )}
-                </div>
-              </Card>
-            </Card>
-
-            {/* Sezione Sistema */}
-            <Card className="space-y-4 mt-6 bg-amber-50 border border-amber-100 p-4 md:p-5 shadow-sm">
-              <div className="flex items-center space-x-2 mb-4">
-                <SettingsIcon className="w-5 h-5 text-gray-600" />
-                <h2 className="text-xl font-semibold text-gray-900">Sistema</h2>
-              </div>
-
-              {/* Sistema Prodotti */}
-              <Card className="border border-gray-200 shadow-sm">
-                <div className="p-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                        <Package className="w-5 h-5 text-purple-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-base font-semibold text-gray-900">Sistema Prodotti</h3>
-                        <p className="text-sm text-gray-600">Attiva o disattiva il catalogo prodotti e l'upsell.</p>
-                      </div>
-                    </div>
-                    {!isEditingProducts ? (
-                      <Button
-                        onClick={() => setIsEditingProducts(true)}
-                        size="sm"
-                        className="bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
-                      >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Modifica
-                      </Button>
-                    ) : (
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={handleCancelProducts}
-                          disabled={isSavingProducts}
-                        >
-                          <X className="w-4 h-4 mr-2" />
-                          Annulla
-                        </Button>
-                        <Button
-                          onClick={handleSaveProducts}
-                          size="sm"
-                          loading={isSavingProducts}
-                          disabled={isSavingProducts}
-                          className="bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
-                        >
-                          <Save className="w-4 h-4 mr-2" />
-                          Salva
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-
-                  {productsMessage && (
-                    <div
-                      className={`p-3 rounded-lg ${productsMessage.type === 'success'
-                        ? 'bg-purple-50 border border-purple-200 text-purple-800'
-                        : 'bg-red-50 border border-red-200 text-red-800'
-                        }`}
-                    >
-                      <p className="text-sm font-medium">{productsMessage.text}</p>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-700">
-                      {productsEnabled ? 'Il catalogo prodotti è attivo.' : 'Il catalogo prodotti è disattivato.'}
-                    </p>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={productsEnabled}
-                        onChange={(e) => setProductsEnabled(e.target.checked)}
-                        disabled={!isEditingProducts}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                    </label>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Questionario Stima Durata - Solo per hairdresser */}
-              {shop?.shop_type === 'hairdresser' && (
-                <Card className="border border-gray-200 shadow-sm">
-                  <div className="p-6 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
-                          <Scissors className="w-5 h-5 text-pink-600" />
+                  {isEditingVacation && (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Inizio</label>
+                          <input
+                            type="date"
+                            value={vacationStartDate}
+                            onChange={(e) => setVacationStartDate(e.target.value)}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          />
                         </div>
                         <div>
-                          <h3 className="text-base font-semibold text-gray-900">Questionario Stima Durata</h3>
-                          <p className="text-sm text-gray-600">
-                            {hairQuestionnaireEnabled
-                              ? 'I clienti risponderanno a 2-3 domande veloci durante la prenotazione per stimare la durata corretta.'
-                              : 'Attiva per chiedere ai clienti informazioni sui loro capelli e calcolare automaticamente la durata.'}
-                          </p>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Fine</label>
+                          <input
+                            type="date"
+                            value={vacationEndDate}
+                            onChange={(e) => setVacationEndDate(e.target.value)}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          />
                         </div>
                       </div>
-                      {!isEditingHairQuestionnaire ? (
+
+                      <div className="flex flex-wrap gap-2">
                         <Button
-                          onClick={() => setIsEditingHairQuestionnaire(true)}
+                          variant="danger"
                           size="sm"
-                          className="bg-pink-600 hover:bg-pink-700 text-white border-pink-600"
+                          onClick={() => setShowVacationConfirm(true)}
+                          disabled={!vacationStartDate || !vacationEndDate}
                         >
-                          <Edit className="w-4 h-4 mr-2" />
-                          Modifica
+                          Attiva Ferie
                         </Button>
-                      ) : (
-                        <div className="flex space-x-2">
+                        {vacationPeriod && (
                           <Button
                             variant="secondary"
                             size="sm"
-                            onClick={handleCancelHairQuestionnaire}
-                            disabled={isSavingHairQuestionnaire}
+                            onClick={handleDeactivateVacation}
                           >
-                            <X className="w-4 h-4 mr-2" />
-                            Annulla
+                            Disattiva Ferie
                           </Button>
-                          <Button
-                            onClick={handleSaveHairQuestionnaire}
-                            size="sm"
-                            loading={isSavingHairQuestionnaire}
-                            disabled={isSavingHairQuestionnaire}
-                            className="bg-pink-600 hover:bg-pink-700 text-white border-pink-600"
-                          >
-                            <Save className="w-4 h-4 mr-2" />
-                            Salva
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-
-                    {hairQuestionnaireMessage && (
-                      <div
-                        className={`p-3 rounded-lg ${hairQuestionnaireMessage.type === 'success'
-                          ? 'bg-pink-50 border border-pink-200 text-pink-800'
-                          : 'bg-red-50 border border-red-200 text-red-800'
-                          }`}
-                      >
-                        <p className="text-sm font-medium">{hairQuestionnaireMessage.text}</p>
+                        )}
                       </div>
-                    )}
-
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                      <p className="text-sm text-gray-700">
-                        {hairQuestionnaireEnabled ? 'Il questionario capelli è attivo.' : 'Il questionario capelli è disattivato.'}
-                      </p>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={hairQuestionnaireEnabled}
-                          onChange={(e) => setHairQuestionnaireEnabled(e.target.checked)}
-                          disabled={!isEditingHairQuestionnaire}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                      </label>
                     </div>
-                  </div>
-                </Card>
+                  )}
+                </div>
+              </Card>
+            </CollapsibleSection>
+
+            {/* Section 2: Funzionalità */}
+            <CollapsibleSection
+              icon={<Package className="w-5 h-5" />}
+              title="Funzionalità"
+              color="purple"
+            >
+              <AutoSaveToggle
+                label="Sistema Prodotti"
+                description="Catalogo prodotti e upsell durante la prenotazione"
+                checked={productsEnabled}
+                onChange={handleSaveProducts}
+              />
+
+              {shop?.shop_type === 'hairdresser' && (
+                <AutoSaveToggle
+                  label="Questionario Capelli"
+                  description="Domande veloci per stimare la durata corretta"
+                  checked={hairQuestionnaireEnabled}
+                  onChange={handleSaveHairQuestionnaire}
+                />
+              )}
+            </CollapsibleSection>
+
+            {/* Section 3: Notifiche */}
+            <CollapsibleSection
+              icon={<Bell className="w-5 h-5" />}
+              title="Notifiche"
+              color="indigo"
+              defaultOpen={false}
+            >
+              {notificationMessage && (
+                <div
+                  className={`p-2 rounded-lg text-sm ${notificationMessage.type === 'success'
+                    ? 'bg-green-50 border border-green-200 text-green-800'
+                    : 'bg-red-50 border border-red-200 text-red-800'
+                    }`}
+                >
+                  {notificationMessage.text}
+                </div>
               )}
 
-              {/* Visualizzazione Calendario */}
-              <Card className="border border-gray-200 shadow-sm">
-                <div className="p-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                        <Calendar className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-base font-semibold text-gray-900">Visualizzazione Calendario</h3>
-                        <p className="text-sm text-gray-600">Scegli come visualizzare il calendario: diviso tra mattina e pomeriggio o giornata intera.</p>
-                      </div>
-                    </div>
-                    {!isEditingCalendarView ? (
-                      <Button
-                        onClick={() => setIsEditingCalendarView(true)}
-                        size="sm"
-                        className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* Email */}
+                <div className="p-3 bg-white rounded-lg border border-gray-200">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Mail className="w-4 h-4 text-indigo-600" />
+                    <h4 className="text-sm font-semibold text-gray-900">Email</h4>
+                  </div>
+                  <div className="space-y-1">
+                    {[
+                      { key: 'newClient', label: 'Nuovo cliente' },
+                      { key: 'newAppointment', label: 'Nuovo appuntamento' },
+                      { key: 'cancelAppointment', label: 'Annullamento' },
+                      { key: 'clientWelcome', label: 'Benvenuto cliente' },
+                      { key: 'clientConfirmation', label: 'Conferma cliente' },
+                    ].map((item) => (
+                      <label
+                        key={item.key}
+                        className="flex items-center justify-between p-2 rounded hover:bg-gray-50 cursor-pointer"
                       >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Modifica
-                      </Button>
-                    ) : (
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={handleCancelCalendarView}
-                          disabled={isSavingCalendarView}
-                        >
-                          <X className="w-4 h-4 mr-2" />
-                          Annulla
-                        </Button>
-                        <Button
-                          onClick={handleSaveCalendarView}
-                          size="sm"
-                          loading={isSavingCalendarView}
-                          disabled={isSavingCalendarView}
-                          className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
-                        >
-                          <Save className="w-4 h-4 mr-2" />
-                          Salva
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-
-                  {calendarViewMessage && (
-                    <div
-                      className={`p-3 rounded-lg ${calendarViewMessage.type === 'success'
-                        ? 'bg-blue-50 border border-blue-200 text-blue-800'
-                        : 'bg-red-50 border border-red-200 text-red-800'
-                        }`}
-                    >
-                      <p className="text-sm font-medium">{calendarViewMessage.text}</p>
-                    </div>
-                  )}
-
-                  <div className="space-y-3">
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
-                        Modalità di visualizzazione
-                      </label>
-                      <div className="space-y-2">
-                        <label className={`flex items-center p-3 rounded-lg border-2 cursor-pointer transition-colors ${calendarViewMode === 'split'
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 bg-white hover:border-gray-300'
-                          } ${!isEditingCalendarView ? 'opacity-60 cursor-not-allowed' : ''}`}>
-                          <input
-                            type="radio"
-                            name="calendarViewMode"
-                            value="split"
-                            checked={calendarViewMode === 'split'}
-                            onChange={(e) => isEditingCalendarView && setCalendarViewMode(e.target.value as 'split' | 'full')}
-                            disabled={!isEditingCalendarView}
-                            className="mr-3"
-                          />
-                          <div className="flex-1">
-                            <div className="font-medium text-gray-900">Diviso (Mattina / Pomeriggio)</div>
-                            <div className="text-sm text-gray-600">Il calendario mostra separatamente la mattina e il pomeriggio con toggle per passare tra le due viste.</div>
-                          </div>
-                        </label>
-                        <label className={`flex items-center p-3 rounded-lg border-2 cursor-pointer transition-colors ${calendarViewMode === 'full'
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 bg-white hover:border-gray-300'
-                          } ${!isEditingCalendarView ? 'opacity-60 cursor-not-allowed' : ''}`}>
-                          <input
-                            type="radio"
-                            name="calendarViewMode"
-                            value="full"
-                            checked={calendarViewMode === 'full'}
-                            onChange={(e) => isEditingCalendarView && setCalendarViewMode(e.target.value as 'split' | 'full')}
-                            disabled={!isEditingCalendarView}
-                            className="mr-3"
-                          />
-                          <div className="flex-1">
-                            <div className="font-medium text-gray-900">Giornata Intera</div>
-                            <div className="text-sm text-gray-600">Il calendario mostra l'intera giornata in un'unica vista senza divisione tra mattina e pomeriggio.</div>
-                          </div>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-
-                  {!isEditingCalendarView && (
-                    <p className="text-xs text-gray-500">
-                      Clicca su Modifica per cambiare la modalità di visualizzazione del calendario.
-                    </p>
-                  )}
-                </div>
-              </Card>
-
-              {/* Notifiche */}
-              <Card className="border border-gray-200 shadow-sm">
-                <div className="p-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                        <Bell className="w-5 h-5 text-indigo-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-base font-semibold text-gray-900">Notifiche</h3>
-                        <p className="text-sm text-gray-600">Gestisci le notifiche email e in-app.</p>
-                      </div>
-                    </div>
-                    {!isEditingNotifications ? (
-                      <Button
-                        onClick={() => setIsEditingNotifications(true)}
-                        size="sm"
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600"
-                      >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Modifica
-                      </Button>
-                    ) : (
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={handleCancelNotifications}
-                          disabled={isSavingNotifications}
-                        >
-                          <X className="w-4 h-4 mr-2" />
-                          Annulla
-                        </Button>
-                        <Button
-                          onClick={handleSaveNotifications}
-                          size="sm"
-                          loading={isSavingNotifications}
-                          disabled={isSavingNotifications}
-                          className="bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600"
-                        >
-                          <Save className="w-4 h-4 mr-2" />
-                          Salva
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-
-                  {notificationMessage && (
-                    <div
-                      className={`p-3 rounded-lg ${notificationMessage.type === 'success'
-                        ? 'bg-indigo-50 border border-indigo-200 text-indigo-800'
-                        : 'bg-red-50 border border-red-200 text-red-800'
-                        }`}
-                    >
-                      <p className="text-sm font-medium">{notificationMessage.text}</p>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Email */}
-                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <div className="flex items-center space-x-2 mb-3">
-                        <Mail className="w-4 h-4 text-indigo-600" />
-                        <h4 className="text-sm font-semibold text-gray-900">Notifiche Email</h4>
-                      </div>
-                      <div className="space-y-2 text-sm text-gray-700">
-                        {[
-                          { key: 'newClient', label: 'Nuovo cliente' },
-                          { key: 'newAppointment', label: 'Nuovo appuntamento' },
-                          { key: 'cancelAppointment', label: 'Annullamento appuntamento' },
-                          { key: 'clientWelcome', label: 'Benvenuto cliente' },
-                          { key: 'clientConfirmation', label: 'Conferma appuntamento (cliente)' },
-                        ].map((item) => (
-                          <label
-                            key={item.key}
-                            className={`flex items-center justify-between p-2 rounded hover:bg-white ${!isEditingNotifications ? 'opacity-60 cursor-not-allowed' : ''
-                              }`}
-                          >
-                            <span>{item.label}</span>
-                            <input
-                              type="checkbox"
-                              checked={notificationPrefs.email[item.key as keyof NotificationPrefs['email']]}
-                              onChange={(e) =>
-                                isEditingNotifications &&
-                                setNotificationPrefs((prev) => ({
-                                  ...prev,
-                                  email: { ...prev.email, [item.key]: e.target.checked },
-                                }))
-                              }
-                              disabled={!isEditingNotifications}
-                              className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                            />
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Reminder */}
-                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <div className="flex items-center space-x-2 mb-3">
-                        <Clock className="w-4 h-4 text-indigo-600" />
-                        <h4 className="text-sm font-semibold text-gray-900">Reminder Automatici</h4>
-                      </div>
-                      <div className={`flex items-center justify-between p-2 rounded mb-3 ${!isEditingNotifications ? 'opacity-60 cursor-not-allowed' : ''}`}>
-                        <span className="text-sm text-gray-700">Abilita reminder</span>
+                        <span className="text-xs text-gray-700">{item.label}</span>
                         <input
                           type="checkbox"
-                          checked={notificationPrefs.reminder.enabled}
+                          checked={notificationPrefs.email[item.key as keyof NotificationPrefs['email']]}
                           onChange={(e) =>
-                            isEditingNotifications &&
                             setNotificationPrefs((prev) => ({
                               ...prev,
-                              reminder: { ...prev.reminder, enabled: e.target.checked },
+                              email: { ...prev.email, [item.key]: e.target.checked },
                             }))
                           }
-                          disabled={!isEditingNotifications}
                           className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                         />
-                      </div>
-
-                      <div className="space-y-3 text-sm text-gray-700">
-                        <div>
-                          <p className="font-medium mb-1">Anticipo invio</p>
-                          <div className="space-y-1">
-                            {['24h', '2h', '1h'].map((offset) => (
-                              <label
-                                key={offset}
-                                className={`flex items-center space-x-2 p-2 rounded hover:bg-white ${!isEditingNotifications ? 'opacity-60 cursor-not-allowed' : ''
-                                  }`}
-                              >
-                                <input
-                                  type="radio"
-                                  name="reminder-offset"
-                                  value={offset}
-                                  checked={notificationPrefs.reminder.offset === offset}
-                                  onChange={(e) =>
-                                    isEditingNotifications &&
-                                    setNotificationPrefs((prev) => ({
-                                      ...prev,
-                                      reminder: { ...prev.reminder, offset: e.target.value as NotificationPrefs['reminder']['offset'] },
-                                    }))
-                                  }
-                                  disabled={!isEditingNotifications}
-                                />
-                                <span>{offset === '24h' ? '24 ore prima' : offset === '2h' ? '2 ore prima' : '1 ora prima'}</span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div>
-                          <p className="font-medium mb-1">Canale</p>
-                          <div className="space-y-1">
-                            {[
-                              { value: 'both', label: 'Email + In-app' },
-                              { value: 'email', label: 'Solo Email' },
-                              { value: 'in-app', label: 'Solo In-app' },
-                            ].map((channel) => (
-                              <label
-                                key={channel.value}
-                                className={`flex items-center space-x-2 p-2 rounded hover:bg-white ${!isEditingNotifications ? 'opacity-60 cursor-not-allowed' : ''
-                                  }`}
-                              >
-                                <input
-                                  type="radio"
-                                  name="reminder-channel"
-                                  value={channel.value}
-                                  checked={notificationPrefs.reminder.channel === channel.value}
-                                  onChange={(e) =>
-                                    isEditingNotifications &&
-                                    setNotificationPrefs((prev) => ({
-                                      ...prev,
-                                      reminder: { ...prev.reminder, channel: e.target.value as NotificationPrefs['reminder']['channel'] },
-                                    }))
-                                  }
-                                  disabled={!isEditingNotifications}
-                                />
-                                <span>{channel.label}</span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* In-App */}
-                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <div className="flex items-center space-x-2 mb-3">
-                        <Bell className="w-4 h-4 text-indigo-600" />
-                        <h4 className="text-sm font-semibold text-gray-900">Notifiche In-App</h4>
-                      </div>
-                      <div className="space-y-2 text-sm text-gray-700">
-                        {[
-                          { key: 'chat', label: 'Chat' },
-                          { key: 'system', label: 'Sistema' },
-                          { key: 'waitlist', label: 'Lista d’attesa' },
-                        ].map((item) => (
-                          <label
-                            key={item.key}
-                            className={`flex items-center justify-between p-2 rounded hover:bg-white ${!isEditingNotifications ? 'opacity-60 cursor-not-allowed' : ''
-                              }`}
-                          >
-                            <span>{item.label}</span>
-                            <input
-                              type="checkbox"
-                              checked={notificationPrefs.inApp[item.key as keyof NotificationPrefs['inApp']]}
-                              onChange={(e) =>
-                                isEditingNotifications &&
-                                setNotificationPrefs((prev) => ({
-                                  ...prev,
-                                  inApp: { ...prev.inApp, [item.key]: e.target.checked },
-                                }))
-                              }
-                              disabled={!isEditingNotifications}
-                              className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                            />
-                          </label>
-                        ))}
-                      </div>
-                    </div>
+                      </label>
+                    ))}
                   </div>
                 </div>
-              </Card>
-            </Card>
 
-            {/* Tema & Palette (spostato in fondo) */}
-            <Card className="space-y-4 bg-emerald-50 border border-emerald-100 p-4 md:p-5 shadow-sm">
-              <div className="flex items-center space-x-2 mb-2">
-                <Palette className="w-5 h-5 text-green-700" />
-                <h2 className="text-xl font-semibold text-black">Tema & Palette</h2>
-              </div>
+                {/* In-App */}
+                <div className="p-3 bg-white rounded-lg border border-gray-200">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Bell className="w-4 h-4 text-indigo-600" />
+                    <h4 className="text-sm font-semibold text-gray-900">In-App</h4>
+                  </div>
+                  <div className="space-y-1">
+                    {[
+                      { key: 'chat', label: 'Chat' },
+                      { key: 'system', label: 'Sistema' },
+                      { key: 'waitlist', label: "Lista d'attesa" },
+                    ].map((item) => (
 
-              <Card className="border border-gray-200 shadow-sm bg-white">
-                <div className="p-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                        <Palette className="w-5 h-5 text-green-700" />
+                      <label
+                        key={item.key}
+                        className="flex items-center justify-between p-2 rounded hover:bg-gray-50 cursor-pointer"
+                      >
+                        <span className="text-xs text-gray-700">{item.label}</span>
+                        <input
+                          type="checkbox"
+                          checked={notificationPrefs.inApp[item.key as keyof NotificationPrefs['inApp']]}
+                          onChange={(e) =>
+                            setNotificationPrefs((prev) => ({
+                              ...prev,
+                              inApp: { ...prev.inApp, [item.key]: e.target.checked },
+                            }))
+                          }
+                          className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Reminder */}
+                <div className="p-3 bg-white rounded-lg border border-gray-200 md:col-span-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <Clock className="w-4 h-4 text-indigo-600" />
+                      <h4 className="text-sm font-semibold text-gray-900">Reminder Automatici</h4>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={notificationPrefs.reminder.enabled}
+                      onChange={(e) =>
+                        setNotificationPrefs((prev) => ({
+                          ...prev,
+                          reminder: { ...prev.reminder, enabled: e.target.checked },
+                        }))
+                      }
+                      className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  {notificationPrefs.reminder.enabled && (
+                    <div className="grid grid-cols-2 gap-3 mt-2">
+                      <div>
+                        <p className="text-xs font-medium text-gray-700 mb-1">Anticipo</p>
+                        <div className="flex flex-wrap gap-1">
+                          {['24h', '2h', '1h'].map((offset) => (
+                            <button
+                              key={offset}
+                              onClick={() =>
+                                setNotificationPrefs((prev) => ({
+                                  ...prev,
+                                  reminder: { ...prev.reminder, offset: offset as NotificationPrefs['reminder']['offset'] },
+                                }))
+                              }
+                              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${notificationPrefs.reminder.offset === offset
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
+                            >
+                              {offset === '24h' ? '24 ore' : offset === '2h' ? '2 ore' : '1 ora'}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                       <div>
-                        <h3 className="text-base font-semibold text-gray-900">Palette colore</h3>
-                        <p className="text-sm text-gray-600">Applicata a dashboard, navigazione e wizard.</p>
+                        <p className="text-xs font-medium text-gray-700 mb-1">Canale</p>
+                        <div className="flex flex-wrap gap-1">
+                          {[
+                            { value: 'both', label: 'Entrambi' },
+                            { value: 'email', label: 'Email' },
+                            { value: 'in-app', label: 'In-app' },
+                          ].map((channel) => (
+                            <button
+                              key={channel.value}
+                              onClick={() =>
+                                setNotificationPrefs((prev) => ({
+                                  ...prev,
+                                  reminder: { ...prev.reminder, channel: channel.value as NotificationPrefs['reminder']['channel'] },
+                                }))
+                              }
+                              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${notificationPrefs.reminder.channel === channel.value
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
+                            >
+                              {channel.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <Button
+                onClick={handleSaveNotifications}
+                loading={isSavingNotifications}
+                disabled={isSavingNotifications}
+                className="w-full"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Salva Preferenze Notifiche
+              </Button>
+            </CollapsibleSection>
+
+            {/* Section 4: Aspetto */}
+            <CollapsibleSection
+              icon={<Palette className="w-5 h-5" />}
+              title="Aspetto"
+              color="emerald"
+              defaultOpen={false}
+            >
+              <Card className="border border-gray-200 bg-white">
+                <div className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900">Tema & Palette</h3>
+                      <p className="text-xs text-gray-500">Personalizza i colori dell'app</p>
                     </div>
                     {!isEditingTheme ? (
                       <Button
                         onClick={() => {
-                          // Quando si entra in modalità modifica, salva il tema corrente come originale
                           setOriginalThemePalette(themeId);
                           setThemePalette(themeId);
                           setIsEditingTheme(true);
                         }}
                         size="sm"
+                        variant="secondary"
                       >
-                        <Edit className="w-4 h-4 mr-2" />
                         Modifica
                       </Button>
                     ) : (
@@ -1646,8 +1229,7 @@ export const Settings = () => {
                           onClick={handleCancelTheme}
                           disabled={isSavingTheme}
                         >
-                          <X className="w-4 h-4 mr-2" />
-                          Annulla
+                          <X className="w-4 h-4" />
                         </Button>
                         <Button
                           onClick={handleSaveTheme}
@@ -1655,8 +1237,7 @@ export const Settings = () => {
                           loading={isSavingTheme}
                           disabled={isSavingTheme}
                         >
-                          <Save className="w-4 h-4 mr-2" />
-                          Salva
+                          <Save className="w-4 h-4" />
                         </Button>
                       </div>
                     )}
@@ -1664,50 +1245,49 @@ export const Settings = () => {
 
                   {themeMessage && (
                     <div
-                      className={`p-3 rounded-lg ${themeMessage.type === 'success'
+                      className={`p-2 rounded-lg text-sm ${themeMessage.type === 'success'
                         ? 'bg-green-50 border border-green-200 text-green-800'
                         : 'bg-red-50 border border-red-200 text-red-800'
                         }`}
                     >
-                      <p className="text-sm font-medium">{themeMessage.text}</p>
+                      {themeMessage.text}
                     </div>
                   )}
 
                   <ThemeSelector
                     value={themePalette}
                     onChange={(id) => {
-                      // Aggiorna lo stato locale e applica per preview (senza persistenza)
                       setThemePalette(id);
-                      // Applica il tema per preview (senza persistenza)
                       setTheme(id, { persist: false });
                     }}
                     disabled={!isEditingTheme}
                   />
-                  <p className="text-xs text-gray-600">
-                    Il tema scelto verrà salvato per il negozio e per i futuri accessi dei collaboratori.
+
+                  <p className="text-xs text-gray-500">
+                    Il tema scelto verrà salvato per tutti i collaboratori.
                   </p>
                 </div>
               </Card>
-            </Card>
+            </CollapsibleSection>
 
-            {/* Modal Conferma Attivazione Ferie */}
+            {/* Modal Conferma Ferie */}
             <Modal
               isOpen={showVacationConfirm}
               onClose={() => setShowVacationConfirm(false)}
               title="Conferma Attivazione Ferie"
             >
               <div className="text-red-600 font-semibold mb-4">
-                ⚠️ ATTENZIONE: Tutti gli appuntamenti nel periodo selezionato verranno cancellati (se il backend è configurato)
+                ⚠️ Gli appuntamenti nel periodo verranno cancellati
               </div>
-              <p className="mb-4">
-                Periodo ferie: {vacationStartDate ? new Date(vacationStartDate).toLocaleDateString('it-IT') : ''} - {vacationEndDate ? new Date(vacationEndDate).toLocaleDateString('it-IT') : ''}
+              <p className="mb-4 text-sm text-gray-700">
+                Periodo: {vacationStartDate ? new Date(vacationStartDate).toLocaleDateString('it-IT') : ''} - {vacationEndDate ? new Date(vacationEndDate).toLocaleDateString('it-IT') : ''}
               </p>
-              <div className="flex space-x-3 mt-6">
+              <div className="flex space-x-3">
                 <Button variant="secondary" onClick={() => setShowVacationConfirm(false)}>
                   Annulla
                 </Button>
                 <Button variant="danger" onClick={handleActivateVacation} loading={isSavingVacation}>
-                  Conferma e Cancella Appuntamenti
+                  Conferma
                 </Button>
               </div>
             </Modal>
@@ -1717,4 +1297,3 @@ export const Settings = () => {
     </div>
   );
 };
-
