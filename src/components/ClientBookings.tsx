@@ -14,7 +14,9 @@ import { useDailyShopHours } from '../hooks/useDailyShopHours';
 import { useVacationMode } from '../hooks/useVacationMode';
 import type { Appointment, Shop, Notification } from '../types';
 import { AppointmentRescheduleModal } from './AppointmentRescheduleModal';
-import { generateICSFile, downloadICSFile } from '../utils/calendar';
+import { generateICSFile } from '../utils/calendar';
+import { CalendarPickerModal } from './CalendarPickerModal';
+import type { CalendarEventData } from '../utils/calendar';
 import { findAvailableSlotsForDuration } from '../utils/availability';
 import { addMinutes, getSlotDateTime } from '../utils/date';
 
@@ -57,6 +59,8 @@ export const ClientBookings: React.FC = () => {
     earlierEndAt: string;
     notificationId: string;
   } | null>(null);
+  const [isCalendarPickerOpen, setIsCalendarPickerOpen] = useState(false);
+  const [calendarEventData, setCalendarEventData] = useState<CalendarEventData | null>(null);
 
   useEffect(() => {
     if (user?.email) {
@@ -204,11 +208,9 @@ export const ClientBookings: React.FC = () => {
       uid: `appointment-${appointment.id}@poltrona`,
     };
 
-    const icsContent = generateICSFile(eventData);
-
-    // Download the file or open calendar
-    const filename = `appuntamento-${service.name.toLowerCase().replace(/\s+/g, '-')}-${startDateTime.toISOString().split('T')[0]}.ics`;
-    downloadICSFile(icsContent, filename, eventData);
+    // Salva i dati evento e apri il modale di selezione calendario
+    setCalendarEventData(eventData);
+    setIsCalendarPickerOpen(true);
   };
 
   const openRescheduleModal = async (appointment: Appointment) => {
@@ -731,6 +733,14 @@ export const ClientBookings: React.FC = () => {
                 setMessage({ type: 'success', text: 'Prenotazione anticipata con successo.' });
               }}
             />
+
+            {/* Calendar Picker Modal */}
+            <CalendarPickerModal
+              isOpen={isCalendarPickerOpen}
+              onClose={() => setIsCalendarPickerOpen(false)}
+              eventData={calendarEventData}
+            />
+
             {/* Physical Spacer to force scroll past bottom nav */}
             <div className="h-32 w-full flex-shrink-0" aria-hidden="true" />
           </div>

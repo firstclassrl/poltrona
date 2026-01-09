@@ -17,7 +17,9 @@ import { apiService } from '../services/api';
 import type { Service, Staff, Shop, Appointment } from '../types';
 import { findAvailableSlotsForDuration } from '../utils/availability';
 import { getSlotDateTime, addMinutes } from '../utils/date';
-import { generateICSFile, downloadICSFile } from '../utils/calendar';
+import { generateICSFile } from '../utils/calendar';
+import type { CalendarEventData } from '../utils/calendar';
+import { CalendarPickerModal } from './CalendarPickerModal';
 import { HairQuestionnaire } from './booking/HairQuestionnaire';
 import { DurationEstimate } from './booking/DurationEstimate';
 import { useHairQuestionnaire } from '../hooks/useHairQuestionnaire';
@@ -93,6 +95,8 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
     endDateTime: Date;
   } | null>(null);
   const areProductsEnabled = currentShop?.products_enabled === true;
+  const [isCalendarPickerOpen, setIsCalendarPickerOpen] = useState(false);
+  const [calendarEventData, setCalendarEventData] = useState<CalendarEventData | null>(null);
 
   // Questionnaire State
   const [clientId, setClientId] = useState<string | null>(null);
@@ -745,11 +749,9 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
       uid: `appointment-${Date.now()}@poltrona`,
     };
 
-    const icsContent = generateICSFile(eventData);
-
-    // Download the file or open calendar
-    const filename = `appuntamento-${service.name.toLowerCase().replace(/\s+/g, '-')}-${startDateTime.toISOString().split('T')[0]}.ics`;
-    downloadICSFile(icsContent, filename, eventData);
+    // Salva i dati evento e apri il modale di selezione calendario
+    setCalendarEventData(eventData);
+    setIsCalendarPickerOpen(true);
   };
 
   const formatDate = (date: Date) => {
@@ -1404,6 +1406,13 @@ export const ClientBookingCalendar: React.FC<ClientBookingCalendarProps> = ({ on
           />
         </Modal>
       )}
+
+      {/* Calendar Picker Modal */}
+      <CalendarPickerModal
+        isOpen={isCalendarPickerOpen}
+        onClose={() => setIsCalendarPickerOpen(false)}
+        eventData={calendarEventData}
+      />
 
     </div>
   );

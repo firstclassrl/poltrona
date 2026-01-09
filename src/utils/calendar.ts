@@ -140,6 +140,94 @@ export function generateGoogleCalendarUrl(data: CalendarEventData): string {
 }
 
 /**
+ * Genera un URL per aggiungere l'evento a Outlook Calendar (web)
+ */
+export function generateOutlookCalendarUrl(data: CalendarEventData): string {
+  const { title, startDate, endDate, description = '', location = '' } = data;
+
+  const url = new URL('https://outlook.live.com/calendar/0/deeplink/compose');
+  url.searchParams.append('path', '/calendar/action/compose');
+  url.searchParams.append('rru', 'addevent');
+  url.searchParams.append('subject', title);
+  url.searchParams.append('startdt', startDate.toISOString());
+  url.searchParams.append('enddt', endDate.toISOString());
+  if (description) url.searchParams.append('body', description);
+  if (location) url.searchParams.append('location', location);
+
+  return url.toString();
+}
+
+/**
+ * Genera un URL per aggiungere l'evento a Yahoo Calendar
+ */
+export function generateYahooCalendarUrl(data: CalendarEventData): string {
+  const { title, startDate, endDate, description = '', location = '' } = data;
+
+  // Yahoo usa formato: YYYYMMDDTHHmmSS
+  const fmt = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${year}${month}${day}T${hours}${minutes}00`;
+  };
+
+  const url = new URL('https://calendar.yahoo.com/');
+  url.searchParams.append('v', '60');
+  url.searchParams.append('title', title);
+  url.searchParams.append('st', fmt(startDate));
+  url.searchParams.append('et', fmt(endDate));
+  if (description) url.searchParams.append('desc', description);
+  if (location) url.searchParams.append('in_loc', location);
+
+  return url.toString();
+}
+
+/**
+ * Tipo per i provider di calendario supportati
+ */
+export type CalendarProvider = 'google' | 'outlook' | 'yahoo' | 'apple' | 'ics';
+
+/**
+ * Apre il calendario specificato con i dati dell'evento
+ */
+export function openCalendar(provider: CalendarProvider, data: CalendarEventData): void {
+  const icsContent = generateICSFile(data);
+
+  switch (provider) {
+    case 'google':
+      window.open(generateGoogleCalendarUrl(data), '_blank');
+      break;
+    case 'outlook':
+      window.open(generateOutlookCalendarUrl(data), '_blank');
+      break;
+    case 'yahoo':
+      window.open(generateYahooCalendarUrl(data), '_blank');
+      break;
+    case 'apple':
+      // Su iOS, usa un data URL che aprirà direttamente l'app Calendario
+      const dataUrl = `data:text/calendar;charset=utf-8,${encodeURIComponent(icsContent)}`;
+      window.location.href = dataUrl;
+      break;
+    case 'ics':
+    default:
+      // Download file .ics come fallback
+      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'appuntamento.ics';
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+      break;
+  }
+}
+
+/**
  * Scarica un file .ics generato o apre l'URL del calendario appropriato
  * Su iOS/Safari usa un data URL che apre direttamente l'app Calendario
  * Su Android apre Google Calendar
