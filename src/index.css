@@ -783,6 +783,11 @@ body {
   border-color: var(--theme-accent) !important;
 }
 
+/* Force Black Text Utility (used in ThemeSelector) */
+[data-theme='dark-mode'] .force-text-black {
+  color: #000000 !important;
+}
+
 /* Modali: testi neri in tutti i temi tranne dark mode */
 /* Forza testi neri nelle modali per tutti i temi (escluso dark mode) */
 [data-theme]:not([data-theme='dark-mode']) .bg-white h2,

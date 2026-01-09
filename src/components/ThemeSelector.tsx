@@ -47,10 +47,10 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
               />
               <div className="p-5 space-y-2 flex-1 bg-white"> {/* Explicit bg-white content area */}
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-base font-bold text-gray-900">{palette.name}</p>
+                  <p className="text-base font-bold text-gray-900 force-text-black">{palette.name}</p>
                 </div>
                 {showDescription && (
-                  <p className="text-sm text-gray-600 leading-normal">{palette.description}</p>
+                  <p className="text-sm text-gray-600 leading-normal force-text-black">{palette.description}</p>
                 )}
               </div>
             </button>

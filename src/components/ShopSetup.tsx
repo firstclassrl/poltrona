@@ -1359,7 +1359,7 @@ export const ShopSetup: React.FC = () => {
               <h3 className="text-xl font-bold text-[#1e40af]">Orari di Apertura</h3>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {DAYS_OF_WEEK.map((day) => {
                 const dayHours = shopHours[day.key];
                 const isOpen = dayHours.isOpen;
@@ -1415,35 +1415,34 @@ export const ShopSetup: React.FC = () => {
                               {dayHours.timeSlots.map((slot, slotIndex) => (
                                 <div
                                   key={slotIndex}
-                                  className="flex items-center gap-2 p-2.5 rounded-lg relative overflow-hidden"
+                                  className="group flex items-center gap-2 p-2 rounded-lg relative overflow-hidden transition-all duration-200"
                                   style={{
-                                    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
+                                    background: 'rgba(255, 255, 255, 0.5)',
                                     backdropFilter: 'blur(10px)',
-                                    border: '1px solid rgba(34, 197, 94, 0.3)',
-                                    boxShadow: '0 2px 10px 0 rgba(34, 197, 94, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.1)',
+                                    border: '1px solid rgba(59, 130, 246, 0.2)',
                                   }}
                                 >
-                                  <div className="flex items-center space-x-2 flex-1 min-w-0">
+                                  <div className="flex items-center justify-center gap-2 flex-1 min-w-0">
                                     <TimePicker
                                       value={slot.start}
                                       onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'start', value)}
-                                      className="w-24 min-w-[6rem]"
+                                      className="w-[85px] sm:w-[90px]"
                                       placeholder="09:00"
                                     />
-                                    <span className="text-white/60 text-sm font-medium">-</span>
+                                    <span className="text-gray-400 text-sm font-medium flex-shrink-0">à</span>
                                     <TimePicker
                                       value={slot.end}
                                       onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'end', value)}
-                                      className="w-24 min-w-[6rem]"
+                                      className="w-[85px] sm:w-[90px]"
                                       placeholder="18:00"
                                     />
                                   </div>
                                   <button
                                     type="button"
                                     onClick={() => handleRemoveTimeSlot(day.key, slotIndex)}
-                                    className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-md transition-all duration-200 hover:bg-red-100 bg-red-50 border border-red-200"
+                                    className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200 hover:bg-red-100/80 bg-red-50/50 border border-red-200/50 text-gray-400 hover:text-red-600"
                                   >
-                                    <X className="w-3.5 h-3.5 text-red-600" />
+                                    <X className="w-4 h-4" />
                                   </button>
                                 </div>
                               ))}
