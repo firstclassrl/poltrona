@@ -1415,43 +1415,32 @@ export const ShopSetup: React.FC = () => {
                               {dayHours.timeSlots.map((slot, slotIndex) => (
                                 <div
                                   key={slotIndex}
-                                  className="group flex items-center gap-2 p-2 rounded-lg relative overflow-hidden transition-all duration-200"
-                                  style={{
-                                    background: 'rgba(255, 255, 255, 0.5)',
-                                    backdropFilter: 'blur(10px)',
-                                    border: '1px solid rgba(59, 130, 246, 0.2)',
-                                  }}
+                                  className="flex items-center gap-2 py-1.5"
                                 >
-                                  <div className="flex items-center gap-1 flex-1 min-w-0">
-                                    <TimePicker
-                                      value={slot.start}
-                                      onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'start', value)}
-                                      className="w-full min-w-[75px]"
-                                      placeholder="09:00"
-                                    />
-                                    <div className="flex flex-col items-center justify-center px-0.5 shrink-0">
-                                      <span className="h-[1px] w-2 bg-gray-400/50"></span>
-                                    </div>
-                                    <TimePicker
-                                      value={slot.end}
-                                      onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'end', value)}
-                                      className="w-full min-w-[75px]"
-                                      placeholder="18:00"
-                                    />
-                                  </div>
+                                  <TimePicker
+                                    value={slot.start}
+                                    onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'start', value)}
+                                    placeholder="09:00"
+                                  />
+                                  <span className="text-gray-400 text-xs">—</span>
+                                  <TimePicker
+                                    value={slot.end}
+                                    onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'end', value)}
+                                    placeholder="18:00"
+                                  />
                                   <button
                                     type="button"
                                     onClick={() => handleRemoveTimeSlot(day.key, slotIndex)}
-                                    className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full transition-all duration-200 hover:bg-red-100 bg-red-50 border border-red-200 text-red-500 hover:text-red-700 ml-1"
+                                    className="h-7 w-7 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full shrink-0 transition-all"
                                   >
-                                    <X className="w-3.5 h-3.5" />
+                                    <X className="w-4 h-4" />
                                   </button>
                                 </div>
                               ))}
                               <button
                                 type="button"
                                 onClick={() => handleAddTimeSlot(day.key)}
-                                className="w-full text-xs px-3 py-2 rounded-lg transition-all duration-300 font-medium bg-[#1e40af] hover:bg-[#1e3a8a] text-white"
+                                className="w-full text-xs px-3 py-2 rounded-lg transition-all duration-300 font-medium bg-[#1e40af] hover:bg-[#1e3a8a] text-white mt-1"
                               >
                                 + Aggiungi fascia
                               </button>
