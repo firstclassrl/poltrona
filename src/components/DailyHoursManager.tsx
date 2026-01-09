@@ -116,40 +116,29 @@ export const DailyHoursManager: React.FC<DailyHoursManagerProps> = ({ disabled =
                         return (
                           <div
                             key={slotIndex}
-                            className={`group flex items-center gap-2 p-2 rounded-lg border transition-all ${isValid
-                              ? 'border-gray-100 bg-gray-50/50 hover:border-gray-200 hover:bg-gray-50'
-                              : 'border-red-100 bg-red-50/30'
-                              }`}
+                            className={`flex items-center gap-2 py-1.5 ${!isValid ? 'bg-red-50 rounded px-2 -mx-2' : ''}`}
                           >
-                            <div className="flex-1 flex items-center gap-1 min-w-0">
-                              <TimePicker
-                                value={slot.start}
-                                onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'start', value)}
-                                className="w-full min-w-[75px]"
-                                disabled={disabled}
-                                placeholder="09:00"
-                              />
-                              <div className="flex flex-col items-center justify-center px-1 shrink-0">
-                                <span className="h-[1px] w-2 bg-gray-300"></span>
-                              </div>
-                              <TimePicker
-                                value={slot.end}
-                                onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'end', value)}
-                                className="w-full min-w-[75px]"
-                                disabled={disabled}
-                                placeholder="18:00"
-                              />
-                            </div>
-
-                            <Button
-                              variant="ghost"
-                              size="sm"
+                            <TimePicker
+                              value={slot.start}
+                              onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'start', value)}
+                              disabled={disabled}
+                              placeholder="09:00"
+                            />
+                            <span className="text-gray-400 text-xs">—</span>
+                            <TimePicker
+                              value={slot.end}
+                              onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'end', value)}
+                              disabled={disabled}
+                              placeholder="18:00"
+                            />
+                            <button
+                              type="button"
                               onClick={() => handleRemoveTimeSlot(day.key, slotIndex)}
                               disabled={disabled}
-                              className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 border border-transparent hover:border-red-200 rounded-full shrink-0 transition-all ml-1"
+                              className="h-7 w-7 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full shrink-0 transition-all disabled:opacity-50"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         );
                       })}
@@ -158,7 +147,7 @@ export const DailyHoursManager: React.FC<DailyHoursManagerProps> = ({ disabled =
                         size="sm"
                         onClick={() => handleAddTimeSlot(day.key)}
                         disabled={disabled}
-                        className="w-full text-xs py-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 border border-dashed border-blue-200 hover:border-blue-300 rounded-lg transition-all"
+                        className="w-full text-xs py-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 border border-dashed border-blue-200 hover:border-blue-300 rounded-lg transition-all mt-1"
                       >
                         <Plus className="w-3 h-3 mr-1.5" />
                         Aggiungi orario

@@ -86,18 +86,16 @@ export const TimePicker: React.FC<TimePickerProps> = ({
           aria-expanded={isOpen}
           aria-haspopup="grid"
           className={cn(
-            'w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 flex items-center justify-between touch-target text-sm hover:border-gray-300',
+            'min-w-[90px] px-2 py-1.5 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-200 flex items-center justify-center gap-1.5 text-sm hover:border-gray-300 hover:bg-gray-50 cursor-pointer',
             disabled && 'opacity-50 cursor-not-allowed',
-            isOpen && 'ring-2 ring-blue-500/20 border-blue-500 z-10'
+            isOpen && 'ring-2 ring-blue-500/30 border-blue-500',
+            className
           )}
         >
-          <div className="flex items-center gap-2 min-w-0">
-            <Clock className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-            <span className="font-medium text-gray-800 tabular-nums truncate">
-              {currentDisplayValue}
-            </span>
-          </div>
-          {/* Chevron rimosso per pulizia se lo spazio è poco, o reso più piccolo */}
+          <Clock className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+          <span className="font-medium text-gray-800 tabular-nums whitespace-nowrap">
+            {currentDisplayValue}
+          </span>
         </button>
 
         {isOpen && (

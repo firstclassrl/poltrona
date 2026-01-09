@@ -159,7 +159,7 @@ const AutoSaveToggle = ({ label, description, checked, onChange, disabled }: Aut
   };
 
   return (
-    <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
+    <div className="flex items-center justify-between p-4 surface-card transition-colors">
       <div className="flex-1 mr-4">
         <p className="text-sm font-medium text-gray-900">{label}</p>
         {description && <p className="text-xs text-gray-500 mt-0.5">{description}</p>}
@@ -748,7 +748,7 @@ export const Settings = () => {
               color="blue"
             >
               {/* Visualizzazione Calendario - Inline radio */}
-              <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <div className="surface-card p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <p className="text-sm font-medium text-gray-900">Visualizzazione Calendario</p>
@@ -787,7 +787,7 @@ export const Settings = () => {
               />
 
               {/* Apertura Straordinaria - Complex form */}
-              <Card className="border border-gray-200 bg-white">
+              <Card className="surface-card">
                 <div className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
@@ -932,7 +932,7 @@ export const Settings = () => {
               </Card>
 
               {/* Modalità Ferie - Complex form */}
-              <Card className="border border-gray-200 bg-white">
+              <Card className="surface-card">
                 <div className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
@@ -1096,7 +1096,7 @@ export const Settings = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {/* Email */}
-                <div className="p-3 bg-white rounded-lg border border-gray-200">
+                <div className="p-3 surface-card">
                   <div className="flex items-center space-x-2 mb-2">
                     <Mail className="w-4 h-4 text-indigo-600" />
                     <h4 className="text-sm font-semibold text-gray-900">Email</h4>
@@ -1131,7 +1131,7 @@ export const Settings = () => {
                 </div>
 
                 {/* In-App */}
-                <div className="p-3 bg-white rounded-lg border border-gray-200">
+                <div className="p-3 surface-card">
                   <div className="flex items-center space-x-2 mb-2">
                     <Bell className="w-4 h-4 text-indigo-600" />
                     <h4 className="text-sm font-semibold text-gray-900">In-App</h4>
@@ -1165,7 +1165,7 @@ export const Settings = () => {
                 </div>
 
                 {/* Reminder Section */}
-                <div className="p-3 bg-white rounded-lg border border-gray-200 md:col-span-2">
+                <div className="p-3 surface-card md:col-span-2">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-2">
                       <Clock className="w-4 h-4 text-indigo-600" />
@@ -1239,7 +1239,7 @@ export const Settings = () => {
                 </div>
 
                 {/* WhatsApp Section Moved Here */}
-                <div className="bg-white rounded-lg border border-gray-200 p-4 md:col-span-2 space-y-4">
+                <div className="surface-card p-4 md:col-span-2 space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="flex items-center space-x-2">
@@ -1338,7 +1338,7 @@ export const Settings = () => {
               color="emerald"
               defaultOpen={false}
             >
-              <Card className="border border-gray-200 bg-white">
+              <Card className="surface-card">
                 <div className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
