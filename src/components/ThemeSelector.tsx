@@ -15,7 +15,6 @@ interface ThemeSelectorProps {
 export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
   value,
   onChange,
-  title = 'Temi',
   layout = 'grid',
   showDescription = true,
   disabled = false,
@@ -24,12 +23,6 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-lg font-semibold text-gray-900">{title}</p>
-        </div>
-      </div>
-
       <div className={cn(layout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'flex flex-wrap gap-3')}>
         {palettes.map((palette) => {
           const isActive = palette.id === value;
@@ -40,19 +33,19 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
               onClick={() => onChange(palette.id)}
               disabled={disabled}
               className={cn(
-                'relative overflow-hidden rounded-2xl transition-all duration-200 text-left focus:outline-none focus:ring-2 focus:ring-offset-2 w-full',
+                'relative overflow-hidden rounded-2xl transition-all duration-200 text-left focus:outline-none focus:ring-2 focus:ring-offset-2 w-full flex flex-col',
                 isActive
                   ? 'border-4 border-[var(--theme-primary)] shadow-xl ring-0'
                   : 'border border-gray-200 hover:border-gray-300 hover:shadow-lg',
-                'bg-white text-black',
+                'bg-white text-black p-0',
                 disabled && 'opacity-50 cursor-not-allowed hover:border-gray-200 hover:shadow-none'
               )}
             >
               <div
-                className="h-28 w-full"
+                className="h-14 w-full shrink-0"
                 style={{ background: palette.previewGradient }}
               />
-              <div className="p-5 space-y-2">
+              <div className="p-5 space-y-2 flex-1">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-base font-bold text-gray-900">{palette.name}</p>
                 </div>

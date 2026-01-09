@@ -385,6 +385,27 @@ export const Calendar = () => {
               {/* Desktop Controls */}
               <div className="hidden md:flex items-center space-x-4">
 
+                {/* Chair Selector */}
+                <div className="w-64">
+                  <Select
+                    value={selectedChair}
+                    onChange={(e) => setSelectedChair(e.target.value)}
+                    className="w-full"
+                    options={[
+                      { value: "all", label: "Tutte le poltrone" },
+                      ...assignedChairs
+                        .filter(chair => {
+                          const staff = availableStaff.find(s => s.id === chair.staffId);
+                          return staff?.active === true;
+                        })
+                        .map(chair => ({
+                          value: chair.chairId,
+                          label: `${chair.chairName} - ${chair.staffName}`
+                        }))
+                    ]}
+                  />
+                </div>
+
                 {/* Controlli Mattina/Pomeriggio - Solo se modalità split */}
                 {calendarViewMode === 'split' && (
                   <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
@@ -460,11 +481,14 @@ export const Calendar = () => {
                 </div>
 
                 {/* Multiple Calendar Grids - One per ACTIVE chair */}
-                <div className={`grid grid-cols-1 ${getAssignedChairs().filter(c => availableStaff.find(s => s.id === c.staffId)?.active).length > 1 ? 'xl:grid-cols-2' : ''} gap-6`}>
+                <div className={`grid grid-cols-1 ${calendarViewMode === 'split' && selectedChair === 'all' && getAssignedChairs().filter(c => availableStaff.find(s => s.id === c.staffId)?.active).length > 1 ? 'xl:grid-cols-2' : ''} gap-6`}>
                   {getAssignedChairs()
                     .filter(chair => {
                       const staff = availableStaff.find(s => s.id === chair.staffId);
-                      return staff?.active === true;
+                      // Filter by active staff AND selected chair
+                      const isActive = staff?.active === true;
+                      const isSelected = selectedChair === 'all' || chair.chairId === selectedChair;
+                      return isActive && isSelected;
                     })
                     .map(chair => (
                       <CalendarGrid

@@ -38,6 +38,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
     getStatusColor,
     chairName
 }) => {
+    const { themeId } = useTheme();
 
     const getTimeSlotsForDate = (date: Date, period?: 'morning' | 'afternoon') => {
         if (!shopHoursLoaded) return [];
@@ -132,10 +133,27 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
     };
 
 
+    const getHeaderStyle = () => {
+        switch (themeId) {
+            case 'heritage':
+                return 'bg-[#f4f7f2] border-b border-[#25401c]/20 text-[#25401c]';
+            case 'terra-soft':
+                return 'bg-[#f7f2eb] border-b border-[#b46a4b]/20 text-[#5c3a2e]';
+            case 'dark-mode':
+                return 'bg-gray-800 border-b border-gray-700 text-gray-200';
+            case 'sunset-neon':
+                return 'bg-yellow-50 border-b border-yellow-200 text-yellow-800';
+            case 'cyber-lilac':
+                return 'bg-purple-50 border-b border-purple-200 text-purple-900';
+            default:
+                return 'bg-gray-50/50 border-b border-gray-100 text-gray-800';
+        }
+    };
+
     return (
         <div className="bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl rounded-xl overflow-hidden">
-            <div className="bg-gray-50/50 p-3 border-b border-gray-100">
-                <h3 className="text-md font-semibold text-gray-800 text-center uppercase tracking-wide">
+            <div className={`${getHeaderStyle()} p-3`}>
+                <h3 className="text-md font-semibold text-center uppercase tracking-wide">
                     {chairName}
                 </h3>
             </div>
@@ -176,12 +194,13 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                                         const slotCount = appointmentAtSlot ? getAppointmentSlotCount(appointmentAtSlot) : 0;
 
                                         const { themeId } = useTheme();
+                                        // Dynamic borders based on theme
                                         const borderClass = themeId === 'heritage' ? 'border-[#25401c]/20' :
                                             themeId === 'terra-soft' ? 'border-[#b46a4b]/20' :
-                                                themeId === 'dark-mode' ? 'border-white/20' :
+                                                themeId === 'dark-mode' ? 'border-white/10' :
                                                     themeId === 'sunset-neon' ? 'border-[#facc15]/30' :
                                                         themeId === 'cyber-lilac' ? 'border-[#9a7bff]/30' :
-                                                            'border-gray-50/50';
+                                                            'border-gray-100';
 
                                         return (
                                             <div
