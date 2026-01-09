@@ -1422,29 +1422,29 @@ export const ShopSetup: React.FC = () => {
                                     border: '1px solid rgba(59, 130, 246, 0.2)',
                                   }}
                                 >
-                                  <div className="flex items-center justify-center gap-2 flex-1 min-w-0">
+                                  <div className="flex items-center gap-1 flex-1 min-w-0">
                                     <TimePicker
                                       value={slot.start}
                                       onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'start', value)}
-                                      className="w-[85px] sm:w-[90px]"
+                                      className="w-full min-w-[75px]"
                                       placeholder="09:00"
                                     />
-                                    <div className="flex flex-col items-center justify-center px-1">
-                                      <span className="h-[1px] w-3 bg-gray-400/50"></span>
+                                    <div className="flex flex-col items-center justify-center px-0.5 shrink-0">
+                                      <span className="h-[1px] w-2 bg-gray-400/50"></span>
                                     </div>
                                     <TimePicker
                                       value={slot.end}
                                       onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'end', value)}
-                                      className="w-[85px] sm:w-[90px]"
+                                      className="w-full min-w-[75px]"
                                       placeholder="18:00"
                                     />
                                   </div>
                                   <button
                                     type="button"
                                     onClick={() => handleRemoveTimeSlot(day.key, slotIndex)}
-                                    className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200 hover:bg-red-100 bg-red-50 border border-red-200 text-red-500 hover:text-red-700"
+                                    className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full transition-all duration-200 hover:bg-red-100 bg-red-50 border border-red-200 text-red-500 hover:text-red-700 ml-1"
                                   >
-                                    <X className="w-4 h-4" />
+                                    <X className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
                               ))}

@@ -121,21 +121,21 @@ export const DailyHoursManager: React.FC<DailyHoursManagerProps> = ({ disabled =
                               : 'border-red-100 bg-red-50/30'
                               }`}
                           >
-                            <div className="flex-1 flex items-center justify-center gap-2 min-w-0">
+                            <div className="flex-1 flex items-center gap-1 min-w-0">
                               <TimePicker
                                 value={slot.start}
                                 onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'start', value)}
-                                className="w-[85px] sm:w-[90px]"
+                                className="w-full min-w-[75px]"
                                 disabled={disabled}
                                 placeholder="09:00"
                               />
-                              <div className="flex flex-col items-center justify-center px-1">
-                                <span className="h-[1px] w-3 bg-gray-300"></span>
+                              <div className="flex flex-col items-center justify-center px-1 shrink-0">
+                                <span className="h-[1px] w-2 bg-gray-300"></span>
                               </div>
                               <TimePicker
                                 value={slot.end}
                                 onChange={(value) => handleTimeSlotChange(day.key, slotIndex, 'end', value)}
-                                className="w-[85px] sm:w-[90px]"
+                                className="w-full min-w-[75px]"
                                 disabled={disabled}
                                 placeholder="18:00"
                               />
@@ -146,9 +146,9 @@ export const DailyHoursManager: React.FC<DailyHoursManagerProps> = ({ disabled =
                               size="sm"
                               onClick={() => handleRemoveTimeSlot(day.key, slotIndex)}
                               disabled={disabled}
-                              className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 border border-transparent hover:border-red-200 rounded-full shrink-0 transition-all"
+                              className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 border border-transparent hover:border-red-200 rounded-full shrink-0 transition-all ml-1"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-3.5 h-3.5" />
                             </Button>
                           </div>
                         );
