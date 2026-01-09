@@ -84,57 +84,23 @@ export const Login: React.FC = () => {
             setShop(shopData);
 
             // Carica il logo dello shop se disponibile
-            // 1) prova logo_url salvato (se esiste)
-            // 2) prova signed URL pubblico (senza autenticazione, per login page)
-            // 3) fallback su URL pubblico da path (se bucket pubblico)
             if (shopData.logo_url) {
-              // Prova prima con logo_url salvato
               setShopLogoUrl(shopData.logo_url);
             } else if (shopData.logo_path) {
               try {
-                // Prova a generare un signed URL pubblico (senza autenticazione)
-                const signed = await apiService.getSignedShopLogoUrlPublic(shopData.logo_path);
-                if (signed) {
-                  setShopLogoUrl(signed);
-                } else {
-                  // Fallback su URL pubblico
-                  const publicUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/shop-logos/${shopData.logo_path}`;
-                  setShopLogoUrl(publicUrl);
-                }
+                const publicUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/shop-logos/${shopData.logo_path}`;
+                setShopLogoUrl(publicUrl);
               } catch (e) {
-                // Fallback su URL pubblico
                 const publicUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/shop-logos/${shopData.logo_path}`;
                 setShopLogoUrl(publicUrl);
               }
             }
           } catch (error) {
-            // Fallback: prova a caricare il negozio di default
-            try {
-              const defaultShop = await apiService.getShop();
-              setShop(defaultShop);
-              if (defaultShop?.logo_url) {
-                setShopLogoUrl(defaultShop.logo_url);
-              } else if (defaultShop?.logo_path) {
-                const publicUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/shop-logos/${defaultShop.logo_path}`;
-                setShopLogoUrl(publicUrl);
-              }
-            } catch (e) {
-            }
-          }
-        } else {
-          // Nessuno slug, prova a caricare il negozio di default
-          try {
-            const defaultShop = await apiService.getShop();
-            setShop(defaultShop);
-            if (defaultShop?.logo_url) {
-              setShopLogoUrl(defaultShop.logo_url);
-            } else if (defaultShop?.logo_path) {
-              const publicUrl = `${API_CONFIG.SUPABASE_EDGE_URL}/storage/v1/object/public/shop-logos/${defaultShop.logo_path}`;
-              setShopLogoUrl(publicUrl);
-            }
-          } catch (e) {
+            // Slug invalido o shop non trovato: restiamo sulla login generica
+            console.warn('Shop not found for slug:', shopSlug);
           }
         }
+        // Se non c'è slug, restiamo sulla login generica (shop = null)
       } catch (error) {
         console.error('Errore caricamento shop:', error);
       } finally {
@@ -254,16 +220,24 @@ export const Login: React.FC = () => {
     setCredentials(demoCredentials[role]);
   };
 
-  // Colori per lo sfondo: più scuro (primaryStrong) e più chiaro (accent) per la texture
-  const bgColor = palette?.colors.primaryStrong || '#1b3015';
-  const bgColorMid = palette?.colors.primary || '#25401c';
+  // Se non c'è uno shop specifico, usa i colori del tema Aurora
+  // Altrimenti usa i colori del tema dello shop (o default heritage se non specificato)
+  const bgColor = shop ? (palette?.colors.primaryStrong || '#1b3015') : '#5b7cff'; // Aurora primaryStrong (approx)
+  const bgColorMid = shop ? (palette?.colors.primary || '#25401c') : '#c8e4ff'; // Aurora light blue
+  const bgColorEnd = shop ? (palette?.colors.primaryStrong || '#1b3015') : '#9b7bff'; // Aurora violet accent
 
-  // Texture: per Heritage usa l'accento originale, per tutti gli altri temi usa bianco per massimo contrasto
-  const isHeritageTheme = themeId === 'heritage';
+  // Texture
+  const isHeritageTheme = shop && themeId === 'heritage';
   const textureColor = isHeritageTheme
     ? palette?.colors.accent || '#eecf54'
-    : '#ffffff';
-  const patternId = `barbershop-pattern-${palette?.id || 'default'}`;
+    : shop ? '#ffffff' : '#ffffff'; // Bianco anche per Aurora
+
+  const patternId = `barbershop-pattern-${shop ? (palette?.id || 'default') : 'aurora'}`;
+
+  // Custom Gradient per Aurora
+  const backgroundStyle = shop
+    ? { background: `linear-gradient(to bottom right, ${bgColor}, ${bgColorMid}, ${bgColor})` }
+    : { background: `linear-gradient(135deg, #f7fbff 0%, #c8e4ff 40%, #c7c5ff 100%)` }; // Aurora gradient da palette
 
   // Se mostra forgot password, non renderizzare il resto
   if (showForgotPassword) {
@@ -278,9 +252,7 @@ export const Login: React.FC = () => {
   return (
     <div
       className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden login-liquid"
-      style={{
-        background: `linear-gradient(to bottom right, ${bgColor}, ${bgColorMid}, ${bgColor})`
-      }}
+      style={backgroundStyle}
     >
       <div className="login-grain"></div>
       {/* Pattern di sfondo con colori del tema */}
@@ -317,28 +289,34 @@ export const Login: React.FC = () => {
               <div className="w-8 h-8 border-4 border-green-300 border-t-green-900 rounded-full animate-spin"></div>
             </div>
           ) : (
-            <div className="w-20 h-20 mx-auto mb-4">
-              {shopLogoUrl ? (
+            <div className={`w-24 h-24 mx-auto mb-4 ${!shop ? 'rounded-full overflow-hidden shadow-lg border-2 border-white/50' : ''}`}>
+              {shop && shopLogoUrl ? (
                 <img
                   src={shopLogoUrl}
-                  alt={`Logo ${shop?.name || 'negozio'}`}
+                  alt={`Logo ${shop.name}`}
                   className="w-full h-full object-contain filter brightness-110 rounded-lg"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.style.display = 'none';
                   }}
                 />
+              ) : !shop ? (
+                <img
+                  src="/logo_aurora.jpg"
+                  alt="Poltrona"
+                  className="w-full h-full object-cover"
+                />
               ) : (
-                <div className="w-20 h-20 bg-white/20 rounded-lg flex items-center justify-center">
+                <div className="w-20 h-20 bg-white/20 rounded-lg flex items-center justify-center mx-auto">
                   <User className="w-10 h-10 text-white/50" />
                 </div>
               )}
             </div>
           )}
-          <h1 className="text-2xl font-bold text-green-900">
-            {shop?.name || 'Poltrona'}
+          <h1 className={`text-2xl font-bold ${shop ? 'text-green-900' : 'text-slate-800'}`}>
+            {shop?.name || 'Benvenuto su Poltrona'}
           </h1>
-          <p className="text-green-800 mt-2">
+          <p className={`mt-2 ${shop ? 'text-green-800' : 'text-slate-600'}`}>
             {mode === 'login' ? 'Accedi al tuo account' : 'Crea il tuo account'}
           </p>
         </div>

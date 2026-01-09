@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { Button } from './Button';
 
@@ -13,6 +14,12 @@ interface ModalProps {
 export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 'medium' }) => {
   const modalRef = React.useRef<HTMLDivElement>(null);
   const previousActiveElement = React.useRef<HTMLElement | null>(null);
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   // Focus management: trap focus inside modal
   React.useEffect(() => {
@@ -74,7 +81,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const sizeClasses = {
     small: 'max-w-sm',
@@ -84,9 +91,9 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
     full: 'max-w-[95vw]'
   };
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 bg-black/50 backdrop-blur-sm"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onClose();
@@ -112,6 +119,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

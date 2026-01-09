@@ -4,7 +4,11 @@ import { useSubscription, STRIPE_PRICES, SHOP_TYPE_PRICE_MAP, PRICE_INFO } from 
 import { useShop } from '../contexts/ShopContext';
 import type { SubscriptionPlan } from '../types/subscription';
 
-export const Billing: React.FC = () => {
+interface BillingProps {
+    embedded?: boolean;
+}
+
+export const Billing: React.FC<BillingProps> = ({ embedded = false }) => {
     const {
         subscription,
         access,
@@ -87,11 +91,13 @@ export const Billing: React.FC = () => {
     }
 
     return (
-        <div className="max-w-4xl mx-auto p-6">
-            <div className="mb-8">
-                <h1 className="text-2xl font-bold text-gray-900">Abbonamento</h1>
-                <p className="text-gray-600 mt-1">Gestisci il tuo piano e la fatturazione</p>
-            </div>
+        <div className={`max-w-4xl mx-auto ${embedded ? 'p-4' : 'p-6'}`}>
+            {!embedded && (
+                <div className="mb-8">
+                    <h1 className="text-2xl font-bold text-gray-900">Abbonamento</h1>
+                    <p className="text-gray-600 mt-1">Gestisci il tuo piano e la fatturazione</p>
+                </div>
+            )}
 
             {error && (
                 <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">

@@ -101,7 +101,6 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
     { id: 'profile', label: 'Poltrone', icon: User, permission: 'profile' },
     { id: 'shop', label: 'Negozio', icon: Building2, permission: 'shop' },
     { id: 'settings', label: 'Opzioni', icon: Settings, permission: 'shop' },
-    { id: 'billing', label: 'Abbonamento', icon: CreditCard, permission: 'shop' },
     // { id: 'analytics', label: 'Analisi', icon: BarChart3, permission: 'analytics' }, // Temporaneamente nascosto
     { id: 'client_profile', label: 'Il Mio Profilo', icon: UserCheck, permission: 'client_profile' },
     { id: 'client_bookings', label: 'Le Mie Prenotazioni', icon: ListChecks, permission: 'client_bookings' },
@@ -124,10 +123,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
     if (item.id === 'settings') {
       return user?.role === 'admin';
     }
-    // Billing (Abbonamento) only visible to admin
-    if (item.id === 'billing') {
-      return user?.role === 'admin';
-    }
+
 
     // CRITICO: Nascondi voci specifiche del cliente se non sei un cliente
     // Questo previene che admin/staff vedano "Il Mio Profilo", "Le Mie Prenotazioni", "Prenota"

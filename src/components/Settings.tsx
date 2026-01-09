@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Settings as SettingsIcon, CalendarPlus, Sun, Flag, Package, Calendar, Bell, Mail, Clock, Save, X, Palette, Scissors, ChevronDown, ChevronUp, Check, Loader2, MessageCircle } from 'lucide-react';
+import { Settings as SettingsIcon, CalendarPlus, Sun, Flag, Package, Calendar, Bell, Mail, Clock, Save, X, Palette, Scissors, ChevronDown, ChevronUp, Check, Loader2, MessageCircle, CreditCard } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { TimePicker } from './ui/TimePicker';
@@ -15,6 +15,7 @@ import type { Shop } from '../types';
 import { ThemeSelector } from './ThemeSelector';
 import { useTheme } from '../contexts/ThemeContext';
 import type { ThemePaletteId } from '../theme/palettes';
+import { Billing } from './Billing';
 
 const formatDateForDisplay = (isoDate?: string | null): string => {
   if (!isoDate) return '';
@@ -740,6 +741,18 @@ export const Settings = () => {
               </div>
               <h1 className="text-2xl font-bold text-gray-900">Opzioni</h1>
             </div>
+
+            {/* Section 0: Abbonamento */}
+            <CollapsibleSection
+              icon={<CreditCard className="w-5 h-5" />}
+              title="Gestione Abbonamento"
+              color="emerald"
+              defaultOpen={false}
+            >
+              <div className="-m-4 mt-0">
+                <Billing embedded />
+              </div>
+            </CollapsibleSection>
 
             {/* Section 1: Calendario & Disponibilità */}
             <CollapsibleSection
