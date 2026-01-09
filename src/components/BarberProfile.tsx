@@ -8,6 +8,7 @@ import { PhotoUpload } from './PhotoUpload';
 import { ChairAssignment } from './ChairAssignment';
 import { Avatar } from './ui/Avatar';
 import { DeleteConfirmation } from './DeleteConfirmation';
+import { Toast } from './ui/Toast';
 import { useChairAssignment } from '../hooks/useChairAssignment';
 import { useBarberProfile, type BarberProfileData } from '../hooks/useBarberProfile';
 import { apiService } from '../services/api';
@@ -110,6 +111,7 @@ export const BarberProfile = () => {
         gender: formData.gender,
         specialties: formData.specialties,
         bio: formData.bio,
+        calendar_id: null,
       };
 
       if (viewMode === 'create') {
