@@ -83,10 +83,11 @@ export function calculateServiceDuration(
             continue;
         }
 
-        // Servizio a durata variabile
+        // Servizio a durata variabile - usa duration_minutes del servizio come base
         const config = service.duration_config || DEFAULT_DURATION_CONFIG;
-        let minutes = config.base_minutes;
-        baseTotal += config.base_minutes;
+        // IMPORTANTE: partiamo dalla durata impostata nel servizio, non da config.base_minutes
+        let minutes = service.duration_minutes;
+        baseTotal += service.duration_minutes;
 
         // Moltiplicatore tipo capello
         if (hairProfile.hair_type) {

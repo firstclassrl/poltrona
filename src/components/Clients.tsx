@@ -11,7 +11,7 @@ import type { Client, Appointment } from '../types';
 import { formatDate } from '../utils/date';
 import { useShop } from '../contexts/ShopContext';
 import { useClientHairProfile } from '../hooks/useClientHairProfile';
-import { getHairTypeLabel, getHairLengthLabel, getColorSituationLabel } from '../types/hairProfile';
+import { getHairTypeLabel, getHairLengthLabel, getColorSituationLabel, getLastColorTimeLabel } from '../types/hairProfile';
 import { HairProfileBadge } from './client/HairProfileBadge';
 import { HairProfileEditor } from './client/HairProfileEditor';
 import { ClientVisitHistory } from './client/ClientVisitHistory';
@@ -398,12 +398,20 @@ export const Clients = ({ onNavigateToBooking }: ClientsProps) => {
                             </span>
                           </div>
                           {hairProfile?.has_color_history && (
-                            <div className="p-3 bg-white rounded-lg border border-purple-100 col-span-2">
-                              <span className="block text-gray-500 text-xs uppercase mb-1">Colore</span>
-                              <span className="font-medium text-purple-900">
-                                {getColorSituationLabel(hairProfile.color_situation)}
-                              </span>
-                            </div>
+                            <>
+                              <div className="p-3 bg-white rounded-lg border border-purple-100">
+                                <span className="block text-gray-500 text-xs uppercase mb-1">Colore</span>
+                                <span className="font-medium text-purple-900 truncate" title={getColorSituationLabel(hairProfile.color_situation)}>
+                                  {getColorSituationLabel(hairProfile.color_situation)}
+                                </span>
+                              </div>
+                              <div className="p-3 bg-white rounded-lg border border-purple-100">
+                                <span className="block text-gray-500 text-xs uppercase mb-1">Ultimo col.</span>
+                                <span className="font-medium text-purple-900 truncate" title={getLastColorTimeLabel(hairProfile.last_color_time)}>
+                                  {getLastColorTimeLabel(hairProfile.last_color_time)}
+                                </span>
+                              </div>
+                            </>
                           )}
                         </div>
                       )}

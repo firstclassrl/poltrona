@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { Settings as SettingsIcon, CalendarPlus, Sun, Flag, Package, Calendar, Bell, Mail, Clock, Save, X, Palette, Scissors, ChevronDown, ChevronUp, Check, Loader2 } from 'lucide-react';
+import { Settings as SettingsIcon, CalendarPlus, Sun, Flag, Package, Calendar, Bell, Mail, Clock, Save, X, Palette, Scissors, ChevronDown, ChevronUp, Check, Loader2, MessageCircle } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { TimePicker } from './ui/TimePicker';
+import { Input } from './ui/Input';
+
 import { Modal } from './ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
 import { useVacationMode } from '../hooks/useVacationMode';
@@ -223,7 +225,7 @@ const CollapsibleSection = ({ icon, title, color, children, defaultOpen = true }
           <ChevronDown className="w-5 h-5 text-gray-500" />
         )}
       </button>
-      {isOpen && <div className="px-4 pb-4 space-y-3">{children}</div>}
+      {isOpen && <div className="px-4 pb-4 pt-4 space-y-3">{children}</div>}
     </div>
   );
 };
@@ -279,6 +281,15 @@ export const Settings = () => {
   const [isEditingTheme, setIsEditingTheme] = useState(false);
   const [isSavingTheme, setIsSavingTheme] = useState(false);
   const [themeMessage, setThemeMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // WhatsApp Configuration State
+  const [isEditingWhatsapp, setIsEditingWhatsapp] = useState(false);
+  const [isSavingWhatsapp, setIsSavingWhatsapp] = useState(false);
+  const [whatsappMessage, setWhatsappMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [whatsappConfig, setWhatsappConfig] = useState({
+    enabled: true,
+    reminderTime: '20:00'
+  });
 
   const { vacationPeriod, setVacationPeriod, clearVacationPeriod } = useVacationMode();
 
@@ -350,6 +361,10 @@ export const Settings = () => {
         afternoonStart: syncedShop.extra_afternoon_start ?? '',
         afternoonEnd: syncedShop.extra_afternoon_end ?? '',
       });
+      setWhatsappConfig({
+        enabled: syncedShop.whatsapp_reminder_enabled ?? true,
+        reminderTime: syncedShop.whatsapp_reminder_time || '20:00'
+      });
     } catch (error) {
       console.error('Error loading shop data:', error);
       const localShop = loadShopFromLocal();
@@ -368,6 +383,10 @@ export const Settings = () => {
           morningEnd: syncedShop.extra_morning_end ?? '',
           afternoonStart: syncedShop.extra_afternoon_start ?? '',
           afternoonEnd: syncedShop.extra_afternoon_end ?? '',
+        });
+        setWhatsappConfig({
+          enabled: syncedShop.whatsapp_reminder_enabled ?? true,
+          reminderTime: syncedShop.whatsapp_reminder_time || '20:00'
         });
       }
     }
@@ -628,6 +647,42 @@ export const Settings = () => {
     } finally {
       setIsSavingTheme(false);
     }
+  };
+
+  const handleSaveWhatsapp = async () => {
+    if (!shop) {
+      showMessage(setWhatsappMessage, 'error', 'Impossibile salvare: dati negozio non disponibili.', 5000);
+      return;
+    }
+
+    setIsSavingWhatsapp(true);
+    const updatedShop: Shop = {
+      ...shop,
+      whatsapp_reminder_enabled: whatsappConfig.enabled,
+      whatsapp_reminder_time: whatsappConfig.reminderTime
+    };
+
+    try {
+      await apiService.updateShop(updatedShop);
+      persistShopState(updatedShop);
+      setIsEditingWhatsapp(false);
+      showMessage(setWhatsappMessage, 'success', 'Configurazione WhatsApp salvata!');
+    } catch (error) {
+      console.error('Error saving WhatsApp config:', error);
+      showMessage(setWhatsappMessage, 'error', 'Errore durante il salvataggio. Riprova.', 5000);
+    } finally {
+      setIsSavingWhatsapp(false);
+    }
+  };
+
+  const handleCancelWhatsapp = () => {
+    if (shop) {
+      setWhatsappConfig({
+        enabled: shop.whatsapp_reminder_enabled ?? true,
+        reminderTime: shop.whatsapp_reminder_time || '20:00'
+      });
+    }
+    setIsEditingWhatsapp(false);
   };
 
   const formatVacationDate = (dateStr: string): string => {
@@ -1193,6 +1248,90 @@ export const Settings = () => {
                 <Save className="w-4 h-4 mr-2" />
                 Salva Preferenze Notifiche
               </Button>
+            </CollapsibleSection>
+
+            {/* Section: Comunicazioni */}
+            <CollapsibleSection
+              icon={<MessageCircle className="w-5 h-5" />}
+              title="Comunicazioni"
+              color="emerald"
+            >
+              <Card className="border border-gray-200 bg-white">
+                <div className="p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900">Reminder WhatsApp</h3>
+                      <p className="text-xs text-gray-500">Invia messaggi automatici ai clienti 24h prima dell'appuntamento</p>
+                    </div>
+
+                    {!isEditingWhatsapp ? (
+                      <Button
+                        onClick={() => setIsEditingWhatsapp(true)}
+                        size="sm"
+                        variant="secondary"
+                      >
+                        Modifica
+                      </Button>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Button
+                          variant="secondary"
+                          onClick={handleCancelWhatsapp}
+                          size="sm"
+                          disabled={isSavingWhatsapp}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          onClick={handleSaveWhatsapp}
+                          size="sm"
+                          loading={isSavingWhatsapp}
+                          disabled={isSavingWhatsapp}
+                        >
+                          <Save className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {whatsappMessage && (
+                    <div
+                      className={`p-3 rounded-lg text-sm ${whatsappMessage.type === 'success'
+                        ? 'bg-green-50 text-green-800 border border-green-200'
+                        : 'bg-red-50 text-red-800 border border-red-200'
+                        }`}
+                    >
+                      {whatsappMessage.text}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                    {/* Toggle */}
+                    <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                      <span className="text-sm font-medium text-gray-700">Attiva Reminder</span>
+                      <div className="relative inline-block w-10 align-middle select-none transition duration-200 ease-in">
+                        <div className={`w-10 h-6 rounded-full p-1 transition-colors duration-200 ease-in-out cursor-pointer ${whatsappConfig.enabled ? 'bg-green-500' : 'bg-gray-300'} ${!isEditingWhatsapp ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          onClick={() => isEditingWhatsapp && setWhatsappConfig(prev => ({ ...prev, enabled: !prev.enabled }))}>
+                          <div className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-200 ease-in-out ${whatsappConfig.enabled ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Time Picker */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Orario di invio</label>
+                      <Input
+                        type="time"
+                        value={whatsappConfig.reminderTime}
+                        onChange={(e) => setWhatsappConfig(prev => ({ ...prev, reminderTime: e.target.value }))}
+                        disabled={!isEditingWhatsapp || !whatsappConfig.enabled}
+                        className="bg-white"
+                      />
+                      <p className="text-[10px] text-gray-500 mt-1">Ora locale per i messaggi del giorno dopo</p>
+                    </div>
+                  </div>
+                </div>
+              </Card>
             </CollapsibleSection>
 
             {/* Section 4: Aspetto */}
