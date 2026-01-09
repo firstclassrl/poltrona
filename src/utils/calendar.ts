@@ -190,10 +190,38 @@ export function generateYahooCalendarUrl(data: CalendarEventData): string {
 export type CalendarProvider = 'google' | 'outlook' | 'yahoo' | 'apple' | 'ics';
 
 /**
+ * Condivide il file .ics usando la Web Share API nativa (se disponibile)
+ * Questo permette di aprire direttamente l'app calendario su Android/iOS
+ */
+async function shareICSFile(icsContent: string, filename: string): Promise<boolean> {
+  if (!navigator.canShare) return false;
+
+  try {
+    const blob = new Blob([icsContent], { type: 'text/calendar' });
+    const file = new File([blob], filename, { type: 'text/calendar' });
+
+    if (navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: 'Aggiungi al calendario',
+        text: 'Aggiungi questo appuntamento al tuo calendario',
+      });
+      return true;
+    }
+  } catch (error) {
+    if ((error as any).name !== 'AbortError') {
+      console.error('Error sharing ICS file:', error);
+    }
+  }
+  return false;
+}
+
+/**
  * Apre il calendario specificato con i dati dell'evento
  */
-export function openCalendar(provider: CalendarProvider, data: CalendarEventData): void {
+export async function openCalendar(provider: CalendarProvider, data: CalendarEventData): Promise<void> {
   const icsContent = generateICSFile(data);
+  const filename = `appuntamento-${data.title.toLowerCase().replace(/\s+/g, '-')}.ics`;
 
   switch (provider) {
     case 'google':
@@ -212,17 +240,13 @@ export function openCalendar(provider: CalendarProvider, data: CalendarEventData
       break;
     case 'ics':
     default:
-      // Download file .ics come fallback
-      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'appuntamento.ics';
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(url), 100);
+      // Tenta prima la condivisione nativa (funziona bene su Android)
+      const shared = await shareICSFile(icsContent, filename);
+
+      // Se la condivisione non riesce o non è supportata, fallback al download classico
+      if (!shared) {
+        downloadICSFile(icsContent, filename, data);
+      }
       break;
   }
 }
