@@ -292,6 +292,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
           }
 
+
+          // CRITICO: Salva shop_id in localStorage PRIMA di creare il record client
+          // Questo è necessario perché getOrCreateClientFromUser legge lo shop_id da localStorage
+          if (resolvedShopId) {
+            localStorage.setItem('current_shop_id', resolvedShopId);
+          }
+
           // Crea o aggiorna il record client (sia per nuovo che esistente)
           try {
             await apiService.getOrCreateClientFromUser(
@@ -316,6 +323,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               }
             }
           } catch (clientError) {
+            console.error('❌ Errore creazione record client OAuth:', clientError);
           }
 
           // Salva il consenso privacy per utenti OAuth
@@ -1039,8 +1047,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       }
 
+      // CRITICO: Prima salva lo shop_id in localStorage così che getOrCreateClientFromUser 
+      // possa leggerlo quando crea il record client
+      // Questo FIX risolve il bug dove i clienti venivano creati senza shop_id
+      if (resolvedShopId) {
+        localStorage.setItem('current_shop_id', resolvedShopId);
+      }
+
+      // Aggiorna il profilo con lo shop_id risolto
+      try {
+        if (signupJson.user?.id && resolvedShopId) {
+          await apiService.updateProfileShop(signupJson.user.id, resolvedShopId);
+        }
+      } catch (profileShopError) {
+        console.error('❌ Errore aggiornamento shop_id nel profilo:', profileShopError);
+      }
+
       // Se l'utente è stato creato con successo, crea anche il record client
       // per far apparire l'utente nella pagina Clienti
+      // NOTA: Ora lo shop_id è già in localStorage, quindi getOrCreateClientFromUser lo userà
       try {
         await apiService.getOrCreateClientFromUser(
           {
@@ -1052,18 +1077,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           { accessToken: signupAccessToken }
         );
       } catch (clientError) {
+        console.error('❌ Errore creazione record client:', clientError);
         // Non bloccare la registrazione se la creazione client fallisce
-      }
-
-      // Aggiorna il profilo con lo shop_id risolto
-      try {
-        if (signupJson.user?.id && resolvedShopId) {
-          await apiService.updateProfileShop(signupJson.user.id, resolvedShopId);
-        }
-        if (resolvedShopId) {
-          localStorage.setItem('current_shop_id', resolvedShopId);
-        }
-      } catch (profileShopError) {
       }
 
       setAuthState(prev => ({ ...prev, isLoading: false }));
