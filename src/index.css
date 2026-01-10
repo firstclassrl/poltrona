@@ -89,6 +89,57 @@ textarea {
   animation: fade-in 0.2s ease-out;
 }
 
+/* Shimmer animation for gradient text */
+@keyframes shimmer {
+
+  0%,
+  100% {
+    background-position: 0% 50%;
+    opacity: 1;
+  }
+
+  50% {
+    background-position: 100% 50%;
+    opacity: 0.85;
+  }
+}
+
+.shimmer-text {
+  background-size: 200% 200%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+/* Page fade-in animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.8s ease-out forwards;
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
 :root {
   --theme-background: #ffffff;
   --theme-surface: #ffffff;

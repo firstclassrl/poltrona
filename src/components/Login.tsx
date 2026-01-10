@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { flushSync } from 'react-dom';
 import { Eye, EyeOff, User, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from './ui/Button';
@@ -8,6 +8,7 @@ import { PrivacyPolicy } from './PrivacyPolicy';
 import { Modal } from './ui/Modal';
 import { Toast } from './ui/Toast';
 import { ForgotPassword } from './ForgotPassword';
+import { StoreDiscovery } from './StoreDiscovery';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../hooks/useToast';
 import { useTheme } from '../contexts/ThemeContext';
@@ -45,6 +46,7 @@ export const Login: React.FC = () => {
   const [isLoadingShop, setIsLoadingShop] = useState(true);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [showStoreDiscovery, setShowStoreDiscovery] = useState(false);
 
   const { login, register, signInWithGoogle, isLoading } = useAuth();
   const { toast, showToast, hideToast } = useToast();
@@ -72,6 +74,9 @@ export const Login: React.FC = () => {
     }
   }, [showToast]);
 
+  // Determina se abbiamo uno slug valido nell'URL
+  const slugFromUrl = useMemo(() => extractSlugFromLocation(), []);
+
   // Carica i dati dello shop dallo slug nell'URL
   useEffect(() => {
     const loadShopFromUrl = async () => {
@@ -82,6 +87,7 @@ export const Login: React.FC = () => {
           try {
             const shopData = await apiService.getShopBySlug(shopSlug);
             setShop(shopData);
+            setShowStoreDiscovery(false); // Abbiamo uno shop valido
 
             // Carica il logo dello shop se disponibile
             if (shopData.logo_url) {
@@ -96,13 +102,17 @@ export const Login: React.FC = () => {
               }
             }
           } catch (error) {
-            // Slug invalido o shop non trovato: restiamo sulla login generica
+            // Slug invalido o shop non trovato: mostra la discovery page
             console.warn('Shop not found for slug:', shopSlug);
+            setShowStoreDiscovery(true);
           }
+        } else {
+          // Nessun slug nell'URL: mostra la discovery page per scegliere un negozio
+          setShowStoreDiscovery(true);
         }
-        // Se non c'è slug, restiamo sulla login generica (shop = null)
       } catch (error) {
         console.error('Errore caricamento shop:', error);
+        setShowStoreDiscovery(true);
       } finally {
         setIsLoadingShop(false);
       }
@@ -245,6 +255,29 @@ export const Login: React.FC = () => {
       <ForgotPassword
         onBack={() => setShowForgotPassword(false)}
         onSuccess={() => setShowForgotPassword(false)}
+      />
+    );
+  }
+
+  // Se non c'è slug e stiamo caricando, mostra loader
+  if (isLoadingShop) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0f172a] via-[#1e1b4b] to-[#312e81]">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-purple-200">Caricamento...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Se non c'è slug valido, mostra la pagina di discovery
+  if (showStoreDiscovery) {
+    return (
+      <StoreDiscovery
+        onSelectStore={(slug) => {
+          window.location.href = `/${slug}`;
+        }}
       />
     );
   }

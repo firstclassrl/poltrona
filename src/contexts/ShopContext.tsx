@@ -57,11 +57,14 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const effectiveSlug = useMemo(() => {
     // Se siamo in setup mode (token nell'URL), non caricare negozi
     if (setupMode) return null;
-    
+
     // Se c'è slug nel percorso, vince sempre lui
     if (slugFromUrl) return slugFromUrl;
-    // Se utente non loggato, fallback allo shop di default (retro-compatibilità QR)
-    if (!isAuthenticated) return DEFAULT_SLUG;
+
+    // Se utente non loggato e non c'è slug, ritorna null
+    // La login page gestirà questo caso mostrando StoreDiscovery
+    if (!isAuthenticated) return null;
+
     // Se loggato, sarà determinato da shop_id (non slug)
     return null;
   }, [slugFromUrl, isAuthenticated, setupMode]);

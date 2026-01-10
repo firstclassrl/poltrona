@@ -2313,6 +2313,32 @@ export const apiService = {
     }
   },
 
+  // Get all public shops for the discovery landing page
+  async getPublicShops(): Promise<Shop[]> {
+    if (!isSupabaseConfigured()) {
+      return [];
+    }
+
+    try {
+      // Solo campi pubblici per la discovery
+      const url = `${API_ENDPOINTS.SHOPS}?select=id,slug,name,address,postal_code,city,province,phone,logo_url,logo_path,description&order=name.asc`;
+
+      const response = await fetch(url, { headers: buildHeaders(false) });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ getPublicShops: Errore HTTP:', response.status, errorText);
+        return [];
+      }
+
+      const shops = await response.json();
+      return shops || [];
+    } catch (error) {
+      console.error('❌ getPublicShops: Errore durante caricamento:', error);
+      return [];
+    }
+  },
+
   async getShopBySlug(slug: string): Promise<Shop> {
 
     if (!isSupabaseConfigured()) {
